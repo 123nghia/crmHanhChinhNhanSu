@@ -1,0 +1,16 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build crmHuman",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "${workspaceFolder}/crmHuman/crmHuman.csproj"
+            ],
+            "problemMatcher": "\u0024msCompile",
+            "group": "build"
+        }
+    ]
+}

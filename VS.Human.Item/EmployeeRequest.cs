@@ -166,11 +166,12 @@
         public int LoadAll { get; set; }
         public int? GroupId { get; set; }
         public int? MemberId { get; set; }
-        public int CandidateStatus {get;set;}
+        public int CandidateStatus { get; set; }
 
-        
-        public int DocumentStatus {get;set;}
-        public int ManagerId {get;set;}
+
+        public int DocumentStatus { get; set; }
+        public int ManagerId { get; set; }
+        public bool IsEmployee { get; set; }
         public CandidateRequest() : base()
         {
             LoadAll = 0;
@@ -180,10 +181,10 @@
 
     public class CandidateEditRequest
     {
-        public int? Id {get;set;}
+        public int? Id { get; set; }
     }
 
- 
+
     public class OnboardMemberRequest : BaseRequest
     {
         public string Status { get; set; }

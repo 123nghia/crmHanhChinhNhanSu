@@ -19,8 +19,8 @@ namespace VS.Human.Business.Model
 
     public class EmployeeInfoAdd : Employee
     {
-            
 
+        public string StatusWork { get; set; }
 
     }
 
@@ -37,6 +37,11 @@ namespace VS.Human.Business.Model
         public IFormFile FileRequest { get; set; }
 
 
+    }
+
+    public class ConvertToEmployeeAdd
+    {
+        public int? Id { get; set; }
     }
 
     public class CheckDupAdd
@@ -129,7 +134,7 @@ namespace VS.Human.Business.Model
     }
     public class CandidateAdd : Candidate
     {
-        public int ManagerId {get;set;}
+        public int ManagerId { get; set; }
         public CandidateAdd()
         {
 
@@ -137,12 +142,12 @@ namespace VS.Human.Business.Model
     }
 
 
-      public class DocumentInfoUpdate : Employee
+    public class DocumentInfoUpdate : Employee
     {
 
         public int EmployeeId { get; set; }
 
-      
+
 
         public DocumentInfoUpdate()
         {
@@ -156,7 +161,7 @@ namespace VS.Human.Business.Model
 
         public int CandidateId { get; set; }
 
-         public int ManagerId {get;set;}
+        public int ManagerId { get; set; }
 
         public CandidateDetailUpdate()
         {
@@ -165,13 +170,13 @@ namespace VS.Human.Business.Model
     }
 
 
-    
+
     public class EmployeeDetailUpdate : Employee
     {
 
         public int CandidateId { get; set; }
 
-         public int ManagerId {get;set;}
+        public int ManagerId { get; set; }
 
         public EmployeeDetailUpdate()
         {

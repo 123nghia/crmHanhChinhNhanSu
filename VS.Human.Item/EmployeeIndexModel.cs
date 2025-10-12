@@ -21,14 +21,14 @@
         public string DepartmentCode { get; set; }
         public string DocumentStatus { get; set; }
         public string PositionCode { get; set; }
-        public  string  StatusText { get; set; }
+        public string StatusText { get; set; }
 
         public string? TypeAccountText { get; set; }
         public string? DepartmentText { get; set; }
         public string? PositionText { get; set; }
         public string? DocumentStatusText { get; set; }
 
-         public string OnboardDateDisplay
+        public string OnboardDateDisplay
         {
             get
             {
@@ -67,6 +67,8 @@
         public string? Extra { get; set; }
 
         public int TypeData { get; set; }
+
+        public int ApplyFor { get; set; }
 
 
     }

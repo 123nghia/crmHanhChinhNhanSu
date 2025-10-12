@@ -28,5 +28,11 @@
         public IScheduleInterviewRep ScheduleInterviewRep { get; set; }
         public IDocumentDataRep DocumentDataRep { get; set; }
 
+        public IBHXHItemRep BHXHItemRep { get; set; }
+        public ITaxtItemRep TaxtItemRep { get; set; }
+
+        public IRelationItemRep RelationItemRep { get; set; }
+        public IHDLDItemRep HDLDItemRep { get; set; }
+
     }
 }

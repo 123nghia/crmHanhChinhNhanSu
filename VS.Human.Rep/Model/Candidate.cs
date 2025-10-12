@@ -17,6 +17,8 @@
         public int? ManagerId { get; set; }
         public int? Position { get; set; }
         public int? DepartmentId { get; set; }
+
+        public string Referrer { get; set; }
         public Candidate()
         {
             Source = 0;

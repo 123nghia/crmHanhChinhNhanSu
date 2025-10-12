@@ -24,8 +24,17 @@
         public IReportTalkTimeGroupByDay ReportTalkTimeGroupByDay { get; set; }
 
         public IScheduleInterviewRep ScheduleInterviewRep { get; set; }
-         public IDocumentDataRep DocumentDataRep { get; set; }
+        public IDocumentDataRep DocumentDataRep { get; set; }
+        public IBHXHItemRep BHXHItemRep { get; set; }
+        public ITaxtItemRep TaxtItemRep { get; set; }
+
+        public IRelationItemRep RelationItemRep { get; set; }
+        public IHDLDItemRep HDLDItemRep { get; set; }
         public UnitOfWork(
+            IHDLDItemRep hDLDItemRep,
+            IRelationItemRep relationItemRep,
+            IBHXHItemRep bHXHItemRep,
+            ITaxtItemRep taxtItemRep,
             IEmployeeRep employeeRep,
             IGroupRep groupRep,
             IPartnerRep partnerRep,
@@ -45,6 +54,11 @@
             IDocumentDataRep documentDataRep
             )
         {
+            this.BHXHItemRep = bHXHItemRep;
+            this.TaxtItemRep = taxtItemRep;
+            this.HDLDItemRep = hDLDItemRep;
+            this.RelationItemRep = relationItemRep;
+
             this.EmployeeRep = employeeRep;
             this.GroupRep = groupRep;
             this.PartnerRep = partnerRep;

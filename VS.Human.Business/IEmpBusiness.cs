@@ -15,6 +15,9 @@ namespace VS.Human.Business
         Task<bool> Delete(int id, bool reactive = false);
         Task<BaseList> GetAllManager();
 
+        Task<Employee> ConvertToEmployeeFromCandidate(int? idRequest);
+
+
         Task<BaseList> GetAll(EmployeeRequest request);
     }
 

@@ -99,6 +99,12 @@ namespace VS.Human.Business.Imp
             return await _unitOfWork.EmployeeRep.GetAllManager();
         }
 
+        public async Task<Employee> ConvertToEmployeeFromCandidate(int? requestId)
+        {
+            return new Employee();
+        }
+
+
 
 
         public async Task<Employee> Login(string userName, string password)

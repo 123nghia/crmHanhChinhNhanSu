@@ -29,6 +29,13 @@ namespace VS.Human.Rep
             return con;
         }
 
+        protected async Task<IDbConnection> GetConnectionAsync()
+        {
+            var con = new SqlConnection(_configuration.GetConnectionString("stringConnect7"));
+            await con.OpenAsync();
+            return con;
+        }
+
         public async Task<bool> Delete(int id)
         {
             return await DeleteBase(id, tableDelete: tableName);
@@ -186,6 +193,60 @@ namespace VS.Human.Rep
             {
                 return new TResult();
             }
+        }
+
+
+        public async Task<TResult> GetFirstRecordBySql<TResult, TRequest, TindexModel>(
+           TRequest request,
+           string sql
+           ) where TResult : BaseList, new()
+           where TRequest : BaseRequest, new()
+           where TindexModel : BaseIndexModel, new()
+        {
+            int page = request.Page;
+            int limit = request.Limit;
+            ProcessInputPaging(ref page, ref limit, out offset);
+            try
+            {
+                using (var con = GetConnection())
+                {
+                    var result = await con.QueryAsync<TindexModel>(sql,
+                    request, commandType: CommandType.StoredProcedure);
+
+                    var fistElement = result.FirstOrDefault();
+                    var totalRecord = 0;
+                    if (fistElement != null)
+                    {
+
+                        totalRecord = 10;
+                    }
+
+                    var reponse = new TResult()
+                    {
+                        Total = totalRecord,
+                        Data = result
+                    };
+
+                    return reponse;
+                }
+            }
+            catch (Exception e)
+            {
+                return new TResult();
+            }
+        }
+
+
+
+
+        public async Task<T?> GetFirstRecordBySql<T>(string sql, object? parameters = null) where T : class
+        {
+            using var con = await GetConnectionAsync();  // ✅ just use `using`, not `await using`
+            return await con.QueryFirstOrDefaultAsync<T>(
+                sql,
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
         }
 
         public async Task<TModel> GetById(int id)

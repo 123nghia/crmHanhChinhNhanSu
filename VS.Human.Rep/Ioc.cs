@@ -28,7 +28,12 @@ namespace VS.Human.Rep
             services.AddSingleton<IReportRepository, ReportRepository>();
             services.AddSingleton<IScheduleInterviewRep, ScheduleInterviewRep>();
             services.AddSingleton<IDocumentDataRep, DocumentDataRep>();
-            
+            services.AddSingleton<IHDLDItemRep, HDLDItemRep>();
+            services.AddSingleton<ITaxtItemRep, TaxtItemRep>();
+            services.AddSingleton<IRelationItemRep, RelationItemRep>();
+
+            services.AddSingleton<IBHXHItemRep, BHXHItemRep>();
+
         }
     }
 }

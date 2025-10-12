@@ -64,14 +64,14 @@
     }
 
 
-     public class ScheduleInterviewRquest : BaseRequest
+    public class ScheduleInterviewRquest : BaseRequest
     {
 
         public int? RelId { get; set; }
         public string? RelCode { get; set; }
 
         public int? Type { get; set; }
-        
+
         public ScheduleInterviewRquest() : base()
         {
 
@@ -83,6 +83,8 @@
     {
         public int? RelId { get; set; }
         public string? RelCode { get; set; }
+
+        public int DataType { get; set; }
 
         public DocumentDataRquest() : base()
         {
