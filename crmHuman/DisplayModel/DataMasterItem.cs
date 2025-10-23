@@ -8,7 +8,6 @@
         public int IsActive { get; set; }
         public string? Extra { get; set; }
         public int TypeData { get; set; }
-
         public int? ApplyFor { get; set; }
     }
 }

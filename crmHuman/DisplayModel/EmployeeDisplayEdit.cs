@@ -45,11 +45,17 @@ namespace crmHuman.DisplayModel
         public RelationItem? DataRelation { get; set; }
         public HDLD? HDLD { get; set; }
         public TaxItem? TaxItem { get; set; }
-
         public BHXHItem? BHXHItem { get; set; }
-
         public List<string> DataCheckList { get; set; }
 
+/*************  ✨ Windsurf Command ⭐  *************/
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EmployeeDisplayEdit"/> class.
+        /// </summary>
+        /// <remarks>
+        /// Initializes the <see cref="DataCheckList"/> property to an empty list.
+        /// </remarks>
+/*******  18eb2845-b539-4c81-8177-5721f195a29b  *******/
         public EmployeeDisplayEdit()
         {
             DataCheckList = new List<string>();
