@@ -73,14 +73,19 @@ namespace VS.Human.Business.Imp
             item.Onboard = itemUpdate.Onboard;
             item.PermanentAddress = itemUpdate.PermanentAddress;
             item.TemporaryAddress = itemUpdate.TemporaryAddress;
-            item.Noted = itemUpdate.Noted;
             item.NationalId = itemUpdate.NationalId;
             item.NationalDate = itemUpdate.NationalDate;
             item.NationalPlace = itemUpdate.NationalPlace;
             item.DocumentStatus = itemUpdate.DocumentStatus;
-
             item.Status = itemUpdate.Status;
+            item.BankAccount = itemUpdate.BankAccount;
+            item.BankName = itemUpdate.BankName;
+            item.EducationLevel = itemUpdate.EducationLevel;
+            item.Maritalstatus = itemUpdate.Maritalstatus;
+            item.DocumentCheck = itemUpdate.DocumentCheck;
+            item.StatusWork = itemUpdate.StatusWork;
             item.UpdatedBy = GetUserId();
+            item.UpdateAt = DateTime.Now;
             return await _unitOfWork.EmployeeRep.AddOrUpdate(item);
         }
         public Task<bool> Delete(int id, bool reactive = false)

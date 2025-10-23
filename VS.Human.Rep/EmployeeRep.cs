@@ -51,7 +51,13 @@ namespace VS.Human.Rep
                 item.Status,
                 item.UpdatedBy,
                 item.UpdateAt,
-                item.IsActive
+                item.IsActive,
+                item.BankAccount,
+                item.BankName,
+                item.EducationLevel,
+                item.Maritalstatus,
+                item.DocumentCheck,
+                item.StatusWork
             };
 
             return await this.ExecuteSQL("sp_emp_update", parameter);
@@ -137,13 +143,19 @@ namespace VS.Human.Rep
                     itemUpdate.Onboard = item.Onboard;
                     itemUpdate.PermanentAddress = item.PermanentAddress;
                     itemUpdate.TemporaryAddress = item.TemporaryAddress;
-                    itemUpdate.Noted = item.Noted;
                     itemUpdate.NationalId = item.NationalId;
                     itemUpdate.NationalDate = item.NationalDate;
                     itemUpdate.NationalPlace = item.NationalPlace;
                     itemUpdate.UpdatedBy = item.UpdatedBy;
+                    itemUpdate.UpdateAt = DateTime.Now;
                     itemUpdate.DocumentStatus = item.DocumentStatus;
                     itemUpdate.Status = item.Status;
+                    itemUpdate.BankAccount = item.BankAccount;
+                    itemUpdate.BankName = item.BankName;
+                    itemUpdate.EducationLevel = item.EducationLevel;
+                    itemUpdate.Maritalstatus = item.Maritalstatus;
+                    itemUpdate.DocumentCheck = item.DocumentCheck;
+                    itemUpdate.StatusWork = item.StatusWork;
                     return await Update(itemUpdate);
                 }
             }

@@ -16,10 +16,10 @@
         public int Status { get; set; }
         public int IsActive { get; set; }
         public string? AvatarFile { get; set; }
-        public string TypeAccount { get; set; }
-        public string DepartmentCode { get; set; }
-        public string DocumentStatus { get; set; }
-        public string PositionCode { get; set; }
+        public string TypeAccount { get; set; } = string.Empty;
+        public string DepartmentCode { get; set; } = string.Empty;
+        public string DocumentStatus { get; set; } = string.Empty;
+        public string PositionCode { get; set; } = string.Empty;
 
         public string? NationalId { get; set; }
 
@@ -30,14 +30,14 @@
         public string? NationalPlace { get; set; }
         public string? PermanentAddress { get; set; }
         public string? TemporaryAddress { get; set; }
-        public string BankAccount { get; set; }
+        public string BankAccount { get; set; } = string.Empty;
 
-        public string BankName { get; set; }
-        public string EducationLevel { get; set; }
-        public string Maritalstatus { get; set; }
-        public string DocumentCheck { get; set; }
+        public string BankName { get; set; } = string.Empty;
+        public string EducationLevel { get; set; } = string.Empty;
+        public string Maritalstatus { get; set; } = string.Empty;
+        public string DocumentCheck { get; set; } = string.Empty;
 
-        public string StatusWork { get; set; }
+        public string StatusWork { get; set; } = string.Empty;
 
     }
 }

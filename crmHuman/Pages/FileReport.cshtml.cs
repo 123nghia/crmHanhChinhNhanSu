@@ -10,7 +10,7 @@ namespace crmHuman.Pages
     {
         private readonly ILogger<FileReport> _logger;
         private readonly IEmpBusiness _empBusiness;
-        private readonly Microsoft.AspNetCore.Hosting.IHostingEnvironment _hostingEnvironment;
+        private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _hostingEnvironment;
         public List<string> TableColumnTextAdmin { get; set; }
         public EmployeeRequest RequestSearch { get; set; }
         private readonly IExportFileBussiness _exportFileBussiness;
@@ -19,7 +19,7 @@ namespace crmHuman.Pages
         public FileReport(ILogger<FileReport> logger,
             IEmpBusiness empBusiness,
             IExportFileBussiness exportFileBussiness,
-            Microsoft.AspNetCore.Hosting.IHostingEnvironment hostingEnvironment
+            Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment
             )
         {
             _logger = logger;

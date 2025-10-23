@@ -1,37 +1,18 @@
-﻿using System.Data;
-
-namespace crmHuman.Model
+﻿namespace crmHuman.Model
 {
-    public class UserActive
+    /// <summary>
+    /// Singleton pattern for tracking active users
+    /// Thread-safe implementation
+    /// </summary>
+    public sealed class UserActive
     {
-        public UserActive()
+        private static UserActive? instance;
+        private static readonly object lockObject = new();
+        private readonly List<UserItem> DataUsser;
+
+        private UserActive()
         {
             DataUsser = new List<UserItem>();
-
-        }
-
-        private static UserActive instance = null;
-        private List<UserItem> DataUsser { get; set; }
-        public void AddOrUpdate(string UserId, string userName, string fullName)
-        {
-            var itemUser = new UserItem()
-            {
-                LastUpdated = DateTime.Now,
-                UserId = UserId,
-                UserName = userName,
-                FullName = fullName
-
-            };
-
-            var itemUserData = DataUsser.Where(x => x.UserId == UserId).FirstOrDefault();
-            if (itemUserData == null)
-            {
-                DataUsser.Add(itemUser);
-            }
-            else
-            {
-                itemUserData.LastUpdated = DateTime.Now;
-            }
         }
 
         public static UserActive DataActiveOnline
@@ -40,65 +21,74 @@ namespace crmHuman.Model
             {
                 if (instance == null)
                 {
-                    instance = new UserActive();
+                    lock (lockObject)
+                    {
+                        instance ??= new UserActive();
+                    }
                 }
                 return instance;
+            }
+        }
+
+        public void AddOrUpdate(string UserId, string userName, string fullName)
+        {
+            lock (lockObject)
+            {
+                var itemUser = new UserItem
+                {
+                    LastUpdated = DateTime.Now,
+                    UserId = UserId,
+                    UserName = userName,
+                    FullName = fullName
+                };
+
+                var itemUserData = DataUsser.FirstOrDefault(x => x.UserId == UserId);
+                if (itemUserData == null)
+                {
+                    DataUsser.Add(itemUser);
+                }
+                else
+                {
+                    itemUserData.LastUpdated = DateTime.Now;
+                }
             }
         }
 
 
         public int GetCountUserOnline()
         {
-            var datetiemDiff = DateTime.Now.AddMinutes(-3);
-
-            var allUserActive = DataUsser
-                                    .Where(x => x.LastUpdated > datetiemDiff)
-                                    .Count();
-
-            return allUserActive;
+            lock (lockObject)
+            {
+                var datetiemDiff = DateTime.Now.AddMinutes(-3);
+                return DataUsser.Count(x => x.LastUpdated > datetiemDiff);
+            }
         }
 
         public List<UserItem> GetListUser(int UserId)
         {
-            if (UserId == 17)
-                return DataUsser;
-
-            if (UserId == 37)
+            lock (lockObject)
             {
-                var tempCondition = new List<string>
+                if (UserId == 17)
+                    return new List<UserItem>(DataUsser);
+
+                if (UserId == 37)
                 {
-                    "41",
-                    "48",
-                    "49",
-                    "50",
-                    "51",
-                    "37"
-                };
-                var dataUserTemp = DataUsser.Where(x => x.StatusOnline == "Online").Where(x => tempCondition.Contains(x.UserId));
-                return dataUserTemp.ToList();
+                    var tempCondition = new List<string> { "41", "48", "49", "50", "51", "37" };
+                    return DataUsser
+                        .Where(x => x.StatusOnline == "Online" && tempCondition.Contains(x.UserId ?? ""))
+                        .ToList();
+                }
 
-            }
-
-
-            if (UserId == 38)
-            {
-                var tempCondition = new List<string>
+                if (UserId == 38)
                 {
-                    "39",
-                    "40",
-                    "43",
-                    "44",
-                    "45",
-                    "46",
-                    "47",
-                    "38"
-                };
-                var dataUserTemp = DataUsser.Where(x => tempCondition.Contains(x.UserId));
-                return dataUserTemp.ToList();
+                    var tempCondition = new List<string> { "39", "40", "43", "44", "45", "46", "47", "38" };
+                    return DataUsser
+                        .Where(x => tempCondition.Contains(x.UserId ?? ""))
+                        .ToList();
+                }
 
+                return new List<UserItem>();
             }
-
-            return new List<UserItem>();
         }
     }
 

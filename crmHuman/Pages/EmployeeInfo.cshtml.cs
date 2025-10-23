@@ -431,20 +431,15 @@ namespace crmHuman.Pages
                 return Redirect("/Login");
             }
             GetInfoUser();
-
             var idInput = request.Id.HasValue == true ? request.Id.Value : -1;
-
             var dataAllMaster = await _masterDataBussiness.GetAll(new CommonRequest()
             {
 
             });
             DataMasterData = dataAllMaster;
-
             foreach (var item in dataAllMaster.Data)
             {
-
                 var tempItem = item as dynamic;
-
                 var itemInsert = new DataMasterItem()
                 {
                     Name = tempItem.Name,
@@ -455,16 +450,12 @@ namespace crmHuman.Pages
                 };
                 DataDepartment.Add(itemInsert);
             }
-
             DataPostion = dataAllMaster;
-
             var itemInfo = await _empBusiness.GetById(idInput);
-
             if (idInput < 1)
             {
                 TitlePage = "Thêm mới nhân viên";
             }
-
             var dataRelation = await _employeeExtraBusiness.GetInfo(itemInfo.UserName);
             var hdldItem = await _employeeExtraBusiness.GetHDLD(itemInfo.Id.ToString());
             var bhxhItem = await _employeeExtraBusiness.GetBHXH(itemInfo.UserName);
@@ -498,7 +489,6 @@ namespace crmHuman.Pages
                 DataRelation = dataRelation,
                 HDLD = hdldItem,
                 BHXHItem = bhxhItem,
-
                 TaxItem = taxtItem,
                 BankAccount = itemInfo.BankAccount,
                 BankName = itemInfo.BankName,
@@ -506,14 +496,15 @@ namespace crmHuman.Pages
                 Maritalstatus = itemInfo.Maritalstatus,
                 DocumentCheck = itemInfo.DocumentCheck,
                 DataCheckList = itemInfo.DocumentCheck != null
-    ? itemInfo.DocumentCheck
+          ? itemInfo.DocumentCheck
         .Split(',', StringSplitOptions.RemoveEmptyEntries)
         .Select(x => x.Trim())
-        .ToList()
-    : new List<string>(),
+        .ToList() : new List<string>(),
                 StatusWork = itemInfo.StatusWork
 
             };
+
+
             ResultModel = resultView;
             var dataAllHistory = await _scheduleInterviewBussiness.GetAll(new ScheduleInterviewRquest()
             {
@@ -521,7 +512,6 @@ namespace crmHuman.Pages
                 Type = 0
             });
             DataHistory = dataAllHistory;
-
             DataFile = await _documentDataBussiness.GetAll(new DocumentDataRquest()
             {
                 DataType = 2,
@@ -529,7 +519,6 @@ namespace crmHuman.Pages
 
             });
             DataLead = await _empBusiness.GetAllManager();
-
             return Page();
         }
 

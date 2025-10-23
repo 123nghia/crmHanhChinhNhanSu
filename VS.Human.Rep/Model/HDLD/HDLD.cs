@@ -2,11 +2,11 @@
 {
     public class HDLD : BaseModel
     {
-        public string UserName { get; set; }
-        public string NoAgree { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string NoAgree { get; set; } = string.Empty;
         public DateTime? Start { get; set; }
         public DateTime? End { get; set; }
-        public string CodeId { get; set; }
-        public string UserId { get; set; }
+        public string CodeId { get; set; } = string.Empty;
+        public string UserId { get; set; } = string.Empty;
     }
 }

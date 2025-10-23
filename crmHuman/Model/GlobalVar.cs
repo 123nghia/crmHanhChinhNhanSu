@@ -1,16 +1,16 @@
 ﻿namespace crmHuman.Model
 {
-    public class GlobalVar
+    /// <summary>
+    /// Singleton pattern for global application data
+    /// </summary>
+    public sealed class GlobalVar
     {
-        private static GlobalVar instance = null;
+        private static GlobalVar? instance;
+        private static readonly object lockObject = new();
 
         public int? TotalUser { get; set; }
-
         public int? TotalSumOnline { get; set; }
-
         public List<object> DataUser { get; set; }
-
-
         public int TotalCaseSource { get; set; }
         public int TotalCaseSourceCTV { get; set; }
 
@@ -23,21 +23,19 @@
             TotalCaseSourceCTV = 0;
         }
 
-
-
-
         public static GlobalVar GlobalData
         {
             get
             {
                 if (instance == null)
                 {
-                    instance = new GlobalVar();
+                    lock (lockObject)
+                    {
+                        instance ??= new GlobalVar();
+                    }
                 }
                 return instance;
             }
         }
-
-
     }
 }

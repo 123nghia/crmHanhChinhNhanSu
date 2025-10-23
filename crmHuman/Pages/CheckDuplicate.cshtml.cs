@@ -10,10 +10,6 @@ namespace crmHuman.Pages
     {
         private readonly ILogger<CheckDuplicateModel> _logger;
         private readonly IOrderBussiness _business;
-        private readonly ImasterDataBussiness imasterDataBussiness;
-        private readonly IOrderBussiness orderBussiness;
-        private readonly IJobItemBusiness _jobbussines;
-        private readonly IEmpBusiness _empBusiness;
         public CheckDuplicateRequest RequestSearch { get; set; }
         public BaseList DataAll { get; set; }
         public int TotalRecord
@@ -24,11 +20,7 @@ namespace crmHuman.Pages
 
             }
         }
-        public CheckDuplicateModel(
-            ILogger<CheckDuplicateModel> logger,
-            IOrderBussiness business
-
-            )
+        public CheckDuplicateModel(ILogger<CheckDuplicateModel> logger, IOrderBussiness business)
         {
             TitlePage = "Danh sách ứng cử viên";
             KeyPage = "candidate";

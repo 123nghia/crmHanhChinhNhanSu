@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- Suppress non-critical warnings globally -->
+    <NoWarn>$(NoWarn);MVC1000;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8629;CS0168;CS0219;CS8321;CS0108;CS1998;SYSLIB0021;CS0162;CS0472;CS8625;SYSLIB0014;CS8073</NoWarn>
+  </PropertyGroup>
+</Project>
+

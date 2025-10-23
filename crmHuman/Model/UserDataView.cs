@@ -6,8 +6,8 @@
         {
 
         }
-        public string UserName { get; set; }
-        public string FullName { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
         public string RoleName
         {
             get
@@ -37,8 +37,8 @@
             }
         }
         public int UserId { get; set; }
-        public string RoleCode { get; set; }
+        public string RoleCode { get; set; } = string.Empty;
 
-        public string LineCode { get; set; }
+        public string LineCode { get; set; } = string.Empty;
     }
 }
