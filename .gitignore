@@ -78,6 +78,7 @@ UpgradeLog*.htm
 # Temp folders
 [Tt]emp/
 [Tt]mp/
+venv/
 
 # OS files
 .DS_Store
