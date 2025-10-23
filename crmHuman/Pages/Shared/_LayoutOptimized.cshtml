@@ -1,84 +1,51 @@
-@model BaseModel2
+@model crmHuman.Pages.BaseModel2
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="HR Management System - crmHuman">
-    <meta name="keywords" content="HR, Management, Recruitment, Employee">
-    
-    <title>Human - @ViewData["Title"]</title>
-    
-    <!-- Favicons -->
-    <link rel="icon" href="~/assets/img/favicon.png">
-    <link rel="apple-touch-icon" href="~/assets/img/apple-touch-icon.png">
-    
-    <!-- Preconnect for performance -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
-    
-    <!-- Critical CSS - Inline for faster load -->
+    @await Html.PartialAsync("_LayoutHeadResources")
     <style>
         :root {
             --primary: #98181c;
             --text: #495057;
             --bg: #fff;
         }
-        body { 
-            font-family: system-ui, -apple-system, sans-serif; 
-            margin: 0; 
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
             background: var(--bg);
         }
-        .loading { opacity: 0.5; pointer-events: none; }
-    </style>
-    
-    <!-- Vendor CSS - Async load -->
-    <link rel="preload" href="~/assets/vendor/bootstrap/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="~/assets/vendor/bootstrap-icons/bootstrap-icons.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    
-    <!-- Fallback for no-JS -->
-    <noscript>
-        <link href="~/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-        <link href="~/assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-    </noscript>
-    
-    <!-- Main CSS -->
-    <link href="~/assets/css/style.css" rel="stylesheet">
-    <link href="~/css/custom-optimized.css" rel="stylesheet">
-    
-    <!-- External CSS - Async -->
-    <link rel="stylesheet" 
-          href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css"
-          media="print" onload="this.media='all'">
-    <link rel="stylesheet" 
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
-          media="print" onload="this.media='all'">
-</head>
 
+        .loading {
+            opacity: .5;
+            pointer-events: none;
+        }
+    </style>
+    @await RenderSectionAsync("Styles", required: false)
+</head>
 <body>
     @Html.AntiForgeryToken()
-    
-    <!-- Header -->
+
     <header id="header" class="header fixed-top d-flex align-items-center">
         <div class="d-flex align-items-center justify-content-between">
-            <a href="/" class="logo d-flex align-items-center">
-                <img src="~/assets/img/logo.png" alt="crmHuman Logo" loading="lazy">
+            <a href="~/" class="logo d-flex align-items-center">
+                <img src="~/assets/img/logo.png" alt="crmHuman logo" loading="lazy" asp-append-version="true">
             </a>
-            <i class="bi bi-list toggle-sidebar-btn" aria-label="Toggle Sidebar"></i>
+            <button class="btn btn-link toggle-sidebar-btn" type="button" aria-label="Toggle sidebar">
+                <i class="bi bi-list"></i>
+            </button>
         </div>
-        
-        <nav class="header-nav ms-auto" aria-label="Main Navigation">
-            <ul class="d-flex align-items-center">
+
+        <nav class="header-nav ms-auto" aria-label="Main navigation">
+            <ul class="d-flex align-items-center mb-0">
                 <li class="nav-item d-block d-lg-none">
                     <a class="nav-link nav-icon search-bar-toggle" href="#" aria-label="Search">
                         <i class="bi bi-search"></i>
                     </a>
                 </li>
-                
                 <li class="nav-item dropdown pe-3">
-                    <a class="nav-link nav-profile d-flex align-items-center pe-0" 
-                       href="#" 
+                    <a class="nav-link nav-profile d-flex align-items-center pe-0"
+                       href="#"
                        data-bs-toggle="dropdown"
                        aria-expanded="false">
                         <span class="d-none d-md-block dropdown-toggle ps-2">@Model.UserData?.FullName</span>
@@ -87,56 +54,36 @@
             </ul>
         </nav>
     </header>
-    
-    <!-- Sidebar -->
+
     <aside id="sidebar" class="sidebar">
-        @await Html.PartialAsync("_slidebar")
+        @await Html.PartialAsync("_RoleSidebar", Model)
     </aside>
-    
-    <!-- Main Content -->
+
     <main id="main" class="main">
         @RenderBody()
     </main>
-    
-    <!-- Footer -->
+
     <footer id="footer" class="footer">
         <div class="copyright">
             &copy; 2025 <strong><span>crmHuman</span></strong>. All Rights Reserved
         </div>
     </footer>
-    
-    <!-- Back to top button -->
+
     <a href="#" class="back-to-top d-flex align-items-center justify-content-center" aria-label="Back to top">
         <i class="bi bi-arrow-up-short"></i>
     </a>
-    
-    <!-- Scripts - Deferred for performance -->
-    <script defer src="~/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script defer src="~/js/jquery-3.7.1.min.js"></script>
-    <script defer src="~/js/common.js"></script>
-    <script defer src="~/js/main.js"></script>
-    <script defer src="~/js/employer.js"></script>
-    <script defer src="~/assets/js/main.js"></script>
-    
-    <!-- External Scripts - Async -->
-    <script async src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script async src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
-    <script async src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Section Scripts -->
+
+    @await Html.PartialAsync("_LayoutScripts")
     @await RenderSectionAsync("Scripts", required: false)
-    
-    <!-- Performance monitoring (optional) -->
+
     <script>
-        // Log page load performance
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             if ('performance' in window) {
-                const perfData = window.performance.timing;
-                const pageLoadTime = perfData.loadEventEnd - perfData.navigationStart;
+                const { timing } = window.performance;
+                const pageLoadTime = timing.loadEventEnd - timing.navigationStart;
                 console.log('Page load time:', pageLoadTime + 'ms');
             }
         });
     </script>
 </body>
 </html>
-
