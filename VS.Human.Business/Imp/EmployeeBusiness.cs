@@ -32,6 +32,7 @@ namespace VS.Human.Business.Imp
             item.Noted = itemAdd.Noted;
             item.Dob = itemAdd.Dob;
             item.IsActive = itemAdd.IsActive;
+            item.Status = itemAdd.Status;
 
             item.PermanentAddress = itemAdd.PermanentAddress;
             item.TemporaryAddress = itemAdd.TemporaryAddress;

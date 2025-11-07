@@ -34,6 +34,7 @@ namespace VS.Human.Rep
                 item.Position,
                 item.StatusHuman,
                 item.ManagerId,
+                item.Referrer,
                 item.Noted
             };
             return await this.ExecuteSQL("sp_candidate_update", parameter);
@@ -41,7 +42,7 @@ namespace VS.Human.Rep
         private async Task<bool> Add(Candidate item)
         {
 
-            item.Status = 0;
+            item.Status = 91;
 
             var parameter = new
             {
@@ -87,6 +88,7 @@ namespace VS.Human.Rep
                     itemUpdate.DepartmentId = item.DepartmentId;
                     itemUpdate.Position = item.Position;
                     itemUpdate.UpdatedBy = item.UpdatedBy;
+                    itemUpdate.Referrer = item.Referrer;
 
                     return await Update(itemUpdate);
                 }

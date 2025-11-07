@@ -22,6 +22,7 @@ namespace VS.Human.Business.Imp
             var item = new Candidate()
             {
                 Name = itemAdd.Name,
+                Referrer = itemAdd.Referrer,
                 Code = itemAdd.Code,
                 DepartmentId = itemAdd.DepartmentId,
                 Position = itemAdd.Position,
@@ -61,7 +62,7 @@ namespace VS.Human.Business.Imp
 
 
             };
-
+            item.Referrer = itemUpdate.Referrer;
             item.UpdatedBy = GetUserId();
             item.Dob = itemUpdate.Dob;
             item.Phone = itemUpdate.Phone;

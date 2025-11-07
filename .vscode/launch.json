@@ -1,27 +1,30 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": ".NET Launch crmHuman",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build crmHuman",
-            "program": "${workspaceFolder}/crmHuman/bin/Debug/net7.0/crmHuman.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/crmHuman",
-            "stopAtEntry": false,
-            "serverReadyAction": {
-                "action": "openExternally",
-                "pattern": "Now listening on:\\s+(https?://\\S+)"
-            },
-            "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
-            }
-        },
-        {
-            "name": ".NET Attach",
-            "type": "coreclr",
-            "request": "attach"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": ".NET Core Launch (crmHuman)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/crmHuman/bin/Debug/net7.0/crmHuman.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/crmHuman",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "sourceFileMap": {
+        "/Views": "${workspaceFolder}/Views"
+      }
+    },
+    {
+      "name": ".NET Core Attach",
+      "type": "coreclr",
+      "request": "attach"
+    }
+  ]
 }

@@ -2033,6 +2033,7 @@ function saveCanddiateOrder(idEmp) {
     var cbcandidateId = getValueControl("cbcandidateId");
     var txtFullName = getValueControl("txtFullName");
     var dobCan = getValueControl("dob");
+    var txtReferrerInput = getValueControl("txtReferrer");
     var phoneNumber = getValueControl("txtPhone");
     var EmailText = getValueControl("txtEmail");
     var txtShortDes = "";
@@ -2061,21 +2062,23 @@ function saveCanddiateOrder(idEmp) {
     }
   
     
-    var bodyRequest = {
-        CandidateId: cbcandidateId,
+        var bodyRequest = {
+        Name: txtFullName,
+        Dob: dobCan,
+        Phone: phoneNumber,
+        ManagerId: cbManagerId,
+        CandidateId: idEmp,
         ShortDes: txtShortDes,
         CVLink: cvLinkInput,
         // statusAplly: statusAplly,
-        Phone: phoneNumber,
         Email: EmailText,
-        Name: txtFullName,
-        ManagerId: cbManagerId,
-        Dob: dobCan,
+        Referrer      : txtReferrerInput,
         NotedCan: txtNotedCand, 
         DepartmentId:  cbDepartmentIdInput,
         Position:  cbPositionInput,
         ShortDesOrder :txtNotedCand
-    };
+        };
+   console.log(bodyRequest);
       $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -2143,10 +2146,10 @@ function saveCanddiateDetail(idEmp) {
         ManagerId : cbManagerInput,
         StatusHuman :cbStatusHumanInput,
         Status  : txtStatusInput,
-        referrer : txtReferrerInput
+        Referrer : txtReferrerInput
     };
 
-
+  debugger;
       $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -2168,16 +2171,10 @@ function saveCanddiateDetail(idEmp) {
 }
 
 function saveImpact(orderCode) {
-
- 
-    
     var cbPartnerId2Value = getValueControl("cbpartnerId3");
     var cbSelectStatus1 = getValueControl("cbSelectStatus");
-  
     var dateFromVal1 = getValueControl("dateFrom");
-
     var txtTimer1 = getValueControl("txtTimer");
-
     var txtPlace1 = getValueControl("txtPlace");
     var txtNotedExtra1 = getValueControl("txtNotedExtra");
  

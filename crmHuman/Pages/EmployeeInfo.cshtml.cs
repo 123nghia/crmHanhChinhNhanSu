@@ -1,5 +1,6 @@
 ﻿using crmHuman.DisplayModel;
 using crmHuman.Model;
+using DocumentFormat.OpenXml.Office2016.Excel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VS.Human.Business;
@@ -163,7 +164,6 @@ namespace crmHuman.Pages
         public async Task<IActionResult> OnPostAddHDLDItem
         (HDLDItemAdd request)
         {
-
             var listEror = new List<object>();
             if (listEror.Count > 0)
             {
@@ -432,6 +432,10 @@ namespace crmHuman.Pages
             }
             GetInfoUser();
             var idInput = request.Id.HasValue == true ? request.Id.Value : -1;
+            if(idInput ==-1)
+            {
+                idInput = 74;
+            }
             var dataAllMaster = await _masterDataBussiness.GetAll(new CommonRequest()
             {
 
