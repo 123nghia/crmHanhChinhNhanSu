@@ -239,15 +239,7 @@ namespace crmHuman.Pages
            (EmployeeInfoOther request)
         {
             var listEror = new List<object>();
-            //if (request.UserId < 1)
-            //{
-            //    var itemError = new
-            //    {
 
-            //        Content = "Thiếu thông tin đối tượng Id"
-            //    };
-            //    listEror.Add(itemError);
-            //}
 
             if (listEror.Count > 0)
             {
@@ -257,9 +249,7 @@ namespace crmHuman.Pages
                 };
             }
             var dataReponse = true;
-            //update bhxh
             await _employeeExtraBusiness.UpdateEmployeeInfother(request);
-            //update tax
             return new JsonResult(dataReponse)
             {
                 StatusCode = StatusCodes.Status200OK
@@ -434,7 +424,7 @@ namespace crmHuman.Pages
             var idInput = request.Id.HasValue == true ? request.Id.Value : -1;
             if(idInput ==-1)
             {
-                idInput = 74;
+                idInput = -1;
             }
             var dataAllMaster = await _masterDataBussiness.GetAll(new CommonRequest()
             {

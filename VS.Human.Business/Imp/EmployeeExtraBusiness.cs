@@ -107,7 +107,6 @@ namespace VS.Human.Business.Imp
                 return await _unitOfWork.EmployeeRep.AddOrUpdate(employee);
             }
             var bhxhItem = await _unitOfWork.BHXHItemRep.GetInfo(employee.UserName);
-            var taxCodeitem = await _unitOfWork.TaxtItemRep.GetInfo(employee.UserName);
             if (bhxhItem == null || bhxhItem.Id < 1)
             {
                 bhxhItem = new BHXHItem
@@ -119,10 +118,15 @@ namespace VS.Human.Business.Imp
             }
             bhxhItem.IsConfirmletter = requestAdd.IsThuXacNhan;
             bhxhItem.ChungTuThue = requestAdd.ChungTuThue;
-
             bhxhItem.NumberCode = requestAdd.TaxCode;
             bhxhItem.Dependent = requestAdd.Dependent;
             bhxhItem.DependentName = requestAdd.DependentName;
+            if (requestAdd.TypeUpdate == 2)
+            {
+
+              return  await _unitOfWork.BHXHItemRep.AddOrUpdate(bhxhItem);
+            }
+            var taxCodeitem = await _unitOfWork.TaxtItemRep.GetInfo(employee.UserName);
             if (taxCodeitem == null || taxCodeitem.Id < 1)
             {
                 taxCodeitem = new TaxItem
@@ -135,16 +139,8 @@ namespace VS.Human.Business.Imp
             taxCodeitem.PageTax = requestAdd.PageTax;
             taxCodeitem.CodeId = requestAdd.CodeBHXH;
             taxCodeitem.RegBHYT = requestAdd.RegBHYT;
-            if (requestAdd.TypeUpdate == 2)
-            {
-
-                await _unitOfWork.BHXHItemRep.AddOrUpdate(bhxhItem);
-            }
-            if (requestAdd.TypeUpdate == 1)
-            {
-                await _unitOfWork.TaxtItemRep.AddOrUpdate(taxCodeitem);
-            }
-            return true;
+           return  await _unitOfWork.TaxtItemRep.AddOrUpdate(taxCodeitem);
+           
         }
 
 

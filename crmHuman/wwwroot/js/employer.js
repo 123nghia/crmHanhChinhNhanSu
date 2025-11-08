@@ -3333,6 +3333,8 @@ function UpdateOtherInfoEmployee(employId, typeUpdate) {
             DependentName : inputDependentName
     };
 
+debugger;
+
     $.ajax({
     headers: {
         "RequestVerificationToken":
