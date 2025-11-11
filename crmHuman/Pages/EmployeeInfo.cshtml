@@ -5,6 +5,7 @@
     var itemResult = Model.ResultModel;
     var dataSchedulelist = Model.DataHistory;
     var dataFile = Model.DataFile;
+    var dataDepartments = Model?.DataDepartment ?? new List<DisplayModel.DataMasterItem>();
     var dataRelation = itemResult.DataRelation;
     var hdld = itemResult.HDLD;
     var bhxhItem = itemResult.BHXHItem;
@@ -194,7 +195,7 @@
                              <div class="form-group">
                                 <label class="form-label">Bộ phận</label>
                                 <select name="DepartmentId" class="form-select" id="cbDepartmentId" aria-label="">
-                                    @foreach (var item in Model.DataDepartment)
+                                    @foreach (var item in dataDepartments)
                                     {
 
                                         var itemMasterData = item;
@@ -226,7 +227,7 @@
                                     <label class="form-label">Vị trí</label>
                                     <select name="position" id="cbPosition" class="form-select"  aria-label="">
                                         <option  value="-1">Chọn vị trí</option>
-                                        @foreach (var item in Model.DataDepartment)
+                                        @foreach (var item in dataDepartments)
                                         {
                                             var itemMasterData = item;
                                             if(itemMasterData.TypeData != 2)
@@ -291,7 +292,7 @@
  <div class="form-group">
                                 <label class="form-label">Trình độ học vấn</label>
                                 <select name="EducationLevel:" id="cBEducationLevel" class="form-select" aria-label="">
-                                    @foreach (var item in Model.DataDepartment)
+                                    @foreach (var item in dataDepartments)
                                     {
                                        
                                          var itemMasterData = item;
@@ -327,7 +328,7 @@
                              <div class="form-group">
                                 <label class="form-label">Tình trạng hôn nhân</label>
                                 <select name="Maritalstatus:" id="cBMaritalStatus" class="form-select" aria-label="">
-                                    @foreach (var item in Model.DataDepartment)
+                                    @foreach (var item in dataDepartments)
                                     {
                                        
                                          var itemMasterData = item;
@@ -398,7 +399,7 @@
                                 <div class="form-group">
                                 <label class="form-label">Trạng thái làm việc </label>
                                 <select name="StatusWork" id="cbStatusWork" class="form-select" aria-label="">
-                                    @foreach (DisplayModel.DataMasterItem item in Model.DataDepartment)
+                                    @foreach (DisplayModel.DataMasterItem item in dataDepartments)
                                     {
                                        
                                         var itemMasterData = item;
@@ -433,7 +434,7 @@
                              <div class="form-group">
                                 <label class="form-label">Trạng thái chứng từ</label>
                                 <select name="StatusHuman" id="cbStatusHuman" class="form-select" aria-label="">
-                                    @foreach (var item in Model.DataDepartment)
+                                    @foreach (var item in dataDepartments)
                                     {
                                        
                                          var itemMasterData = item;
@@ -468,7 +469,7 @@
                           <div class="form-group">
                                 <label class="form-label">Trạng thái</label>
                                 <select name="Status" id="cbStatus" class="form-select" aria-label="">
-                                    @foreach (var item in Model.DataDepartment)
+                                    @foreach (var item in dataDepartments)
                                     {
                                         var itemMasterData = item;
                                         if(itemMasterData.TypeData != 9)
@@ -572,7 +573,7 @@
                                <label class="form-label">Mối quan hệ</label>
 
                              <select id="txtRelaRelationCode" class="form-select" aria-label="">
-                                        @foreach (var item in Model.DataDepartment)
+                                        @foreach (var item in dataDepartments)
                                         {
 
                                             var itemMasterData = item as dynamic;
@@ -642,25 +643,27 @@
                                <label class="form-label">Loại hợp đồng</label>
                                         <select name="DocumentType" id="cbLoaiHopDong" class="form-select" aria-label="">
                                           <option  value="-1">--Chọn Loại hợp đồng----</option>
-                                        @foreach (var item in Model.DataDepartment)
-                                        {
+@foreach (var item in dataDepartments)
+    {
+        var itemMasterData = item as dynamic;
 
-                                            var itemMasterData = item as dynamic;
-                                            if( itemMasterData.TypeData != 1)
-                                            {
-                                                continue;
-                                            }
-                                            if (itemMasterData.Code == hdld?.CodeId)
-                                            {
-                                                <option selected value="@itemMasterData.Code">@itemMasterData.Name</option>
-                                            }
-                                            else
-                                            {
-                                                <option value="@itemMasterData.Code">@itemMasterData.Name</option>
-                                            }
+        // Bỏ qua những loại không có TypeData = 1
+        if (itemMasterData.TypeData != 1)
+        {
+            continue;
+        }
+
+        // So sánh và set selected nếu trùng Code
+        if (itemMasterData.Code == hdld?.CodeId)
+        {
+            <option selected value="@itemMasterData.Code">@itemMasterData.Name</option>
+        }
+        else
+        {
+            <option value="@itemMasterData.Code">@itemMasterData.Name</option>
+        }
+    }
                                             
-                                        }
-
                                         </select>
                                         <div class="invalid-feedback-cs">
 
@@ -677,17 +680,17 @@
 
                                
 
-                             <div class="form-group">
+                       <div class="form-group">
                                <label class="form-label">Ngày bắt đầu</label>
-                                <input type="date" value="" name="Noted" id="dtpHDLDBeginDate"
+                                <input type="date" value="@(hdld.Start?.ToString("yyyy-MM-dd"))"   id="dtpHDLDBeginDate"
                                  class="form-control" required placeholder="" />
                                 <div class="invalid-feedback-cs">
                                   </div>
                              </div>
 
-                             <div class="form-group">
+                           <div class="form-group">
                                <label class="form-label">Ngày kết thúc</label>
-                                <input type="date" value="" name="Noted" id="dtpHDLDEndDate"
+                                <input type="date" value="@(hdld.End?.ToString("yyyy-MM-dd"))"   id="dtpHDLDEndDate"
                                  class="form-control" required placeholder="" />
                                 <div class="invalid-feedback-cs"> </div>
                             </div>
@@ -734,12 +737,16 @@
                                    <div class="invalid-feedback-cs"> </div>
                             </div>
 
-                             <div class="form-group">
-                               <label class="form-label">Thư xác nhận thuế nhập</label>
-                                <input type="text" value="@bhxhItem.IsConfirmletter" name="Noted" id="cbThuXacNhan"
-                                 class="form-control" required placeholder="" />
-                                 <div class="invalid-feedback-cs"> </div>
+                         <div class="form-group">
+                            <label class="form-label" for="cbThuXacNhan">Thư xác nhận thuế nhập</label>
+                            <select class="form-select" id="cbThuXacNhan" name="IsThuXacNhan">
+                            <option value="">-- Chọn --</option>
+                            <option value="true" selected="@(bhxhItem.IsConfirmletter == true)">Có</option>
+                            <option value="false" selected="@(bhxhItem.IsConfirmletter == false)">Không</option>
+                            </select>
+                            <div class="invalid-feedback-cs"></div>
                             </div>
+
 
                             
 
@@ -827,24 +834,24 @@
                                         <div class="form-group">
                                             <label class="form-label">Chọn loại chứng từ</label>
                                             <select name="DocumentType" id="cbDocumentType" class="form-select" aria-label="">
-                                                            @foreach (var item in Model.DataDepartment)
-                                                            {
-                                                                var itemMasterData = item as dynamic;
+                                                           
+        @if (dataDepartments.Any())
+        {
+            foreach (var item in dataDepartments)
+            {
+                var itemMasterData = item as dynamic;
 
-                                                                if(itemMasterData.TypeData != 7)
-                                                                {
-                                                                continue;
-                                                                }
-
-                                                                if( itemMasterData.ApplyFor == 0  )
-                                                                {
-                                                                continue;
-                                                                }
-
-                                                                 var departmentCheck = itemResult.Status;
-                                                                var departmentCheckText = "-1";
-                                                                 <option value="@itemMasterData.Code">@itemMasterData.Name</option>
-                                                            }
+                // Chỉ hiển thị những mục có TypeData == 7 và ApplyFor != 0
+                if (itemMasterData.TypeData == 7 && itemMasterData.ApplyFor != 0)
+                {
+                    <option value="@itemMasterData.Code">@itemMasterData.Name</option>
+                }
+            }
+        }
+        else
+        {
+            <option disabled>Không có dữ liệu</option>
+        }
                                              </select>
                                         </div>
 

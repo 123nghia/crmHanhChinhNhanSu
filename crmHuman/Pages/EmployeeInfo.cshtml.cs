@@ -426,23 +426,29 @@ namespace crmHuman.Pages
             {
                 idInput = -1;
             }
-            var dataAllMaster = await _masterDataBussiness.GetAll(new CommonRequest()
+            var dataAllMaster = await _masterDataBussiness.GetAll(new CommonRequest());
+            DataMasterData = dataAllMaster ?? new BaseList { Data = new List<object>() };
+            if (DataDepartment == null)
+                DataDepartment = new List<DataMasterItem>();
+            
+            if (dataAllMaster?.Data != null)
             {
-
-            });
-            DataMasterData = dataAllMaster;
-            foreach (var item in dataAllMaster.Data)
-            {
-                var tempItem = item as dynamic;
-                var itemInsert = new DataMasterItem()
+                foreach (var item in dataAllMaster.Data)
                 {
-                    Name = tempItem.Name,
-                    TypeData = tempItem.TypeData,
-                    Code = tempItem.Code,
-                    ApplyFor = tempItem.ApplyFor,
-                    IsActive = tempItem.IsActive
-                };
-                DataDepartment.Add(itemInsert);
+                    var tempItem = item as dynamic;
+                    if (tempItem != null)
+                    {
+                        var itemInsert = new DataMasterItem()
+                        {
+                            Name = tempItem.Name ?? string.Empty,
+                            TypeData = tempItem.TypeData ?? 0,
+                            Code = tempItem.Code ?? string.Empty,
+                            ApplyFor = tempItem.ApplyFor ?? string.Empty,
+                            IsActive = tempItem.IsActive ?? false
+                        };
+                        DataDepartment.Add(itemInsert);
+                    }
+                }
             }
             DataPostion = dataAllMaster;
             var itemInfo = await _empBusiness.GetById(idInput);
@@ -513,6 +519,8 @@ namespace crmHuman.Pages
 
             });
             DataLead = await _empBusiness.GetAllManager();
+
+           
             return Page();
         }
 

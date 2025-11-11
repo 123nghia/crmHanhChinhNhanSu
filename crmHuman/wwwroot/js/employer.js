@@ -3313,6 +3313,10 @@ function UpdateOtherInfoEmployee(employId, typeUpdate) {
     // tax code
     var inputTaxCode = getValueControl("txtTaxCodeInput");
     var inputCbThuXacNhan = getValueControl("cbThuXacNhan");
+    // Convert string "true"/"false" to boolean
+    if (inputCbThuXacNhan === "true") inputCbThuXacNhan = true;
+    else if (inputCbThuXacNhan === "false") inputCbThuXacNhan = false;
+    else inputCbThuXacNhan = null;
     var intputCbChungTuThue = getValueControl("cbChungTuThue");
     var inputDependent = getValueControl("txtDependentNumber");
     var inputDependentName = getValueControl("txtDependentName");
@@ -3320,11 +3324,11 @@ function UpdateOtherInfoEmployee(employId, typeUpdate) {
     var bodyRequest =  {
             EmployeeId: employId,
             TypeUpdate: typeUpdate,
-            PageTax : cbToroiBaoHiemInput,
+          PageTax : cbToroiBaoHiemInput,
             BiaSo: txtBiaSoBaoHiem,
             CodeBHXH: masobaohiemInput,
             TaxCode: inputTaxCode,
-            IsThuXacNhan:  inputCbThuXacNhan,
+            IsThuXacNhan: inputCbThuXacNhan, // Đã được convert thành boolean/null ở trên
             ChungTuThue :intputCbChungTuThue,
             BankAccount :txtBankAccountInput, 
             BankName :txtBankNameInput,
