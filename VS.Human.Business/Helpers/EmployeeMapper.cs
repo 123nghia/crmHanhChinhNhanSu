@@ -39,7 +39,12 @@ namespace VS.Human.Business.Helpers
                 BankName = request.BankName,
                 EducationLevel = request.EducationLevel,
                 Maritalstatus = request.Maritalstatus,
-                DocumentCheck = request.DocumentCheck
+                DocumentCheck = request.DocumentCheck,
+                Gender = request.Gender,
+                PlaceOfBirth = request.PlaceOfBirth,
+                Religion = request.Religion,
+                PersonalEmail = request.PersonalEmail,
+                BeneficiaryName = request.BeneficiaryName
             };
         }
 
@@ -81,7 +86,12 @@ namespace VS.Human.Business.Helpers
                 UpdatedBy = employee.UpdatedBy,
                 CreateAt = employee.CreateAt,
                 UpdateAt = employee.UpdateAt,
-                IsActive = employee.IsActive
+                IsActive = employee.IsActive,
+                Gender = employee.Gender,
+                PlaceOfBirth = employee.PlaceOfBirth,
+                Religion = employee.Religion,
+                PersonalEmail = employee.PersonalEmail,
+                BeneficiaryName = employee.BeneficiaryName
             };
         }
 
@@ -119,6 +129,13 @@ namespace VS.Human.Business.Helpers
             item.Maritalstatus = itemUpdate.Maritalstatus;
             item.DocumentCheck = itemUpdate.DocumentCheck;
             item.StatusWork = itemUpdate.StatusWork;
+            
+            // Các trường mới
+            item.Gender = itemUpdate.Gender;
+            item.PlaceOfBirth = itemUpdate.PlaceOfBirth;
+            item.Religion = itemUpdate.Religion;
+            item.PersonalEmail = itemUpdate.PersonalEmail;
+            item.BeneficiaryName = itemUpdate.BeneficiaryName;
 
             // Handle CreatedBy, CreateAt, UserName, and Pass
             if (existingEmployee != null)

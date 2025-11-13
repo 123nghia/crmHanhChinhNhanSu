@@ -86,6 +86,46 @@
                                             <div class="invalid-feedback-cs">
                                             </div>
                                         </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Giới tính</label>
+                                            <select name="gender" id="cbGender" class="form-select" aria-label="">
+                                                <option value="">-- Chọn giới tính --</option>
+                                                @if (itemResult.Gender == "Nam")
+                                                {
+                                                    <option value="Nam" selected>Nam</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="Nam">Nam</option>
+                                                }
+                                                @if (itemResult.Gender == "Nữ")
+                                                {
+                                                    <option value="Nữ" selected>Nữ</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="Nữ">Nữ</option>
+                                                }
+                                                @if (itemResult.Gender == "Khác")
+                                                {
+                                                    <option value="Khác" selected>Khác</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="Khác">Khác</option>
+                                                }
+                                            </select>
+                                            <div class="invalid-feedback-cs">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Nơi sinh</label>
+                                            <input type="text" value="@itemResult.PlaceOfBirth" name="placeOfBirth" id="txtPlaceOfBirth" class="form-control" placeholder="" />
+                                            <div class="invalid-feedback-cs">
+                                            </div>
+                                        </div>
             </div>
 </div>
 
@@ -257,8 +297,16 @@
     
                           
                             <div class=" form-group">
-                                <label class="form-label">Email</label>
+                                <label class="form-label">Email (Công ty)</label>
                                 <input type="text" value="@itemResult.Email" name="email" id="txtEmail" class="form-control" required placeholder="" />
+                                <div class="invalid-feedback-cs">
+                                </div>
+
+                            </div>
+                            
+                            <div class=" form-group">
+                                <label class="form-label">Email cá nhân</label>
+                                <input type="text" value="@itemResult.PersonalEmail" name="personalEmail" id="txtPersonalEmail" class="form-control" placeholder="" />
                                 <div class="invalid-feedback-cs">
                                 </div>
 
@@ -321,6 +369,13 @@
                                 </select>
                                 <div class="invalid-feedback-cs">
                                     Please choose a username.
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Tôn giáo</label>
+                                <input type="text" value="@itemResult.Religion" name="religion" id="txtReligion" class="form-control" placeholder="" />
+                                <div class="invalid-feedback-cs">
                                 </div>
                             </div>
 
@@ -637,6 +692,15 @@
                                 </div>
 
                             </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Tên chủ tài khoản</label>
+                                <input type="text" value="@itemResult.BeneficiaryName"  name="beneficiaryName" id="txtBeneficiaryName"
+                                 class="form-control" placeholder="" />
+                                <div class="invalid-feedback-cs">
+                                </div>
+
+                            </div>
                             <button type="button" onclick="UpdateOtherInfoEmployee(@itemResult.Id,3)" class="btn btn-primary">Cập nhật</button> </br>
                             <strong> Thông tin HĐLĐ </strong>
 
@@ -751,6 +815,20 @@
                                <label class="form-label">Mã số thuế</label>
                                 <input type="text" value="@bhxhItem.NumberCode" name="Noted" id="txtTaxCodeInput"
                                  class="form-control" required placeholder="" />
+                                   <div class="invalid-feedback-cs"> </div>
+                            </div>
+                            
+                            <div class="form-group">
+                               <label class="form-label">Ngày cấp mã số thuế</label>
+                                <input type="date" value="@(taxtItem.PITDate?.ToString("yyyy-MM-dd"))" name="pitDate" id="txtPITDate"
+                                 class="form-control" placeholder="" />
+                                   <div class="invalid-feedback-cs"> </div>
+                            </div>
+                            
+                            <div class="form-group">
+                               <label class="form-label">Hiệu lực từ</label>
+                                <input type="date" value="@(taxtItem.EffectedFrom?.ToString("yyyy-MM-dd"))" name="effectedFrom" id="txtEffectedFrom"
+                                 class="form-control" placeholder="" />
                                    <div class="invalid-feedback-cs"> </div>
                             </div>
 

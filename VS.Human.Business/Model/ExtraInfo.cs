@@ -42,6 +42,8 @@ namespace VS.Human.Business.Model
         public int PageTax { get;  set; }
         public string CodeBHXH { get;  set; }
         public string RegBHYT { get;  set; }
+        public DateTime? PITDate { get; set; }
+        public DateTime? EffectedFrom { get; set; }
     }
 
 

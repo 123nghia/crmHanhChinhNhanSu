@@ -14,6 +14,10 @@ namespace VS.Human.Rep.Model
         public string Number { get; set; } = string.Empty;
         public string RegBHYT { get; set; } = string.Empty;
         public int PageTax { get; set; } 
-         public int BiaSo{ get; set; }
+        public int BiaSo { get; set; }
+        
+        // Các trường mới bổ sung từ yêu cầu
+        public DateTime? PITDate { get; set; }          // Ngày cấp mã số thuế
+        public DateTime? EffectedFrom { get; set; }     // Hiệu lực từ
     }
 }

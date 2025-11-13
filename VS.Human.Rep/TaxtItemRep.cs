@@ -25,8 +25,9 @@ namespace VS.Human.Rep
                 item.RegBHYT,
                 item.PageTax,
                 item.BiaSo,
-                item.UpdatedBy
-
+                item.UpdatedBy,
+                item.PITDate,
+                item.EffectedFrom
             };
             return await this.ExecuteSQL("sp_tax_udpate", parameter);
 
@@ -42,7 +43,9 @@ namespace VS.Human.Rep
                 item.PageTax,
                 item.BiaSo,
                 item.RegBHYT,
-                item.CreatedBy
+                item.CreatedBy,
+                item.PITDate,
+                item.EffectedFrom
             };
             return await this.ExecuteSQL("sp_tax_insert", parameter);
         }
@@ -59,6 +62,8 @@ namespace VS.Human.Rep
                     itemUpdate.CodeId = item.CodeId;
                     itemUpdate.UpdatedBy = item.UpdatedBy;
                     itemUpdate.RegBHYT = item.RegBHYT;
+                    itemUpdate.PITDate = item.PITDate;
+                    itemUpdate.EffectedFrom = item.EffectedFrom;
                     return await Update(itemUpdate);
                 }
             }

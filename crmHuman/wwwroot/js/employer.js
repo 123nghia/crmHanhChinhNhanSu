@@ -397,7 +397,10 @@ function SaveEmployee(idEmp) {
     var roleCodeText = getValueControl("txtRoleCode");
     var txtColorCode = getValueControl("txtColor");
     var cbStatusWork = getValueControl("cbStatusWork");
-
+    var cbGenderInput = getValueControl("cbGender");
+    var txtPlaceOfBirthInput = getValueControl("txtPlaceOfBirth");
+    var txtReligionInput = getValueControl("txtReligion");
+    var txtPersonalEmailInput = getValueControl("txtPersonalEmail");
 
     var isActiveCb = 1;
     var txtNotedText = getValueControl("txtNoted");
@@ -458,7 +461,11 @@ function SaveEmployee(idEmp) {
             Pass: passText,
             StatusWork: cbStatusWork,
             Dob: dobcb, 
-            IsActive: isActiveCb
+            IsActive: isActiveCb,
+            Gender: cbGenderInput,
+            PlaceOfBirth: txtPlaceOfBirthInput,
+            Religion: txtReligionInput,
+            PersonalEmail: txtPersonalEmailInput
         },
         success: function (data) {
         
@@ -3066,6 +3073,11 @@ function saveEmployeeDetail(idEmp) {
     var txtBankNameInput = getValueControl("txtBankName");
     var inputcBEducationLevel = getValueControl("cBEducationLevel");
     var intpucBMaritalStatus = getValueControl("cBMaritalStatus");
+    var cbGenderInput = getValueControl("cbGender");
+    var txtPlaceOfBirthInput = getValueControl("txtPlaceOfBirth");
+    var txtReligionInput = getValueControl("txtReligion");
+    var txtPersonalEmailInput = getValueControl("txtPersonalEmail");
+    var txtBeneficiaryNameInput = getValueControl("txtBeneficiaryName");
 
       var cbStatusWorkInput = getValueControl("cbStatusWork");
 
@@ -3107,7 +3119,12 @@ function saveEmployeeDetail(idEmp) {
         BankAccount : txtBankAccountInput ,
         EducationLevel :inputcBEducationLevel,
         Maritalstatus : intpucBMaritalStatus ,
-        DocumentCheck:  valueSelectCheck
+        DocumentCheck:  valueSelectCheck,
+        Gender: cbGenderInput,
+        PlaceOfBirth: txtPlaceOfBirthInput,
+        Religion: txtReligionInput,
+        PersonalEmail: txtPersonalEmailInput,
+        BeneficiaryName: txtBeneficiaryNameInput
     };
 
       $.ajax({
@@ -3318,6 +3335,8 @@ function UpdateOtherInfoEmployee(employId, typeUpdate) {
     var inputDependent = getValueControl("txtDependentNumber");
     var inputDependentName = getValueControl("txtDependentName");
     var inptutxtRegBHYT = getValueControl("txtRegBHYT");
+    var txtPITDateInput = getValueControl("txtPITDate");
+    var txtEffectedFromInput = getValueControl("txtEffectedFrom");
     var bodyRequest =  {
             EmployeeId: employId,
             TypeUpdate: typeUpdate,
@@ -3331,7 +3350,9 @@ function UpdateOtherInfoEmployee(employId, typeUpdate) {
             BankName :txtBankNameInput,
             Dependent : inputDependent ,
             RegBHYT : inptutxtRegBHYT,
-            DependentName : inputDependentName
+            DependentName : inputDependentName,
+            PITDate: txtPITDateInput,
+            EffectedFrom: txtEffectedFromInput
     };
 
 debugger;

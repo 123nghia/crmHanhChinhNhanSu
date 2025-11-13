@@ -139,6 +139,8 @@ namespace VS.Human.Business.Imp
             taxCodeitem.PageTax = requestAdd.PageTax;
             taxCodeitem.CodeId = requestAdd.CodeBHXH;
             taxCodeitem.RegBHYT = requestAdd.RegBHYT;
+            taxCodeitem.PITDate = requestAdd.PITDate;
+            taxCodeitem.EffectedFrom = requestAdd.EffectedFrom;
            return  await _unitOfWork.TaxtItemRep.AddOrUpdate(taxCodeitem);
            
         }

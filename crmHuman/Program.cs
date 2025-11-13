@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Quartz.Impl;
 using VS.Human.Business;
+using crmHuman.Services;
+
 namespace crmHuman
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddRazorPages();
@@ -19,8 +21,25 @@ namespace crmHuman
                 options.LoginPath = "/Login";
             });
             builder.Services.AddHttpContextAccessor();
+            
+            // Đăng ký DatabaseMigrationService
+            builder.Services.AddSingleton<DatabaseMigrationService>();
+            
             //builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
             var app = builder.Build();
+            
+            // Chạy database migration khi startup
+            try
+            {
+                var migrationService = app.Services.GetRequiredService<DatabaseMigrationService>();
+                await migrationService.RunMigrationsAsync();
+            }
+            catch (Exception ex)
+            {
+                var logger = app.Services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "Lỗi khi chạy database migration. Ứng dụng vẫn sẽ tiếp tục khởi động.");
+            }
+            
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {

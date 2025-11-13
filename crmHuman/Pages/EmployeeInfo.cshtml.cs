@@ -329,7 +329,12 @@ namespace crmHuman.Pages
         .Split(',', StringSplitOptions.RemoveEmptyEntries)
         .Select(x => x.Trim())
         .ToList() : new List<string>(),
-                StatusWork = itemInfo.StatusWork
+                StatusWork = itemInfo.StatusWork,
+                Gender = itemInfo.Gender,
+                PlaceOfBirth = itemInfo.PlaceOfBirth,
+                Religion = itemInfo.Religion,
+                PersonalEmail = itemInfo.PersonalEmail,
+                BeneficiaryName = itemInfo.BeneficiaryName
 
             };
 

@@ -57,7 +57,12 @@ namespace VS.Human.Rep
                 item.EducationLevel,
                 item.Maritalstatus,
                 item.DocumentCheck,
-                item.StatusWork
+                item.StatusWork,
+                item.Gender,
+                item.PlaceOfBirth,
+                item.Religion,
+                item.PersonalEmail,
+                item.BeneficiaryName
             };
 
             return await this.ExecuteSQL("sp_emp_update", parameter);
@@ -99,7 +104,12 @@ namespace VS.Human.Rep
                 item.Maritalstatus,
                 item.StatusWork,
                 item.BankAccount,
-                item.BankName
+                item.BankName,
+                item.Gender,
+                item.PlaceOfBirth,
+                item.Religion,
+                item.PersonalEmail,
+                item.BeneficiaryName
             };
 
             return await this.ExecuteSQL("sp_emp_insert", parameter);

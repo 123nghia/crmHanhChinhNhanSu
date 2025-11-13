@@ -39,5 +39,12 @@
 
         public string StatusWork { get; set; } = string.Empty;
 
+        // Các trường mới bổ sung từ yêu cầu
+        public string? Gender { get; set; }              // Giới tính
+        public string? PlaceOfBirth { get; set; }        // Nơi sinh
+        public string? Religion { get; set; }           // Tôn giáo
+        public string? PersonalEmail { get; set; }      // Email cá nhân
+        public string? BeneficiaryName { get; set; }     // Tên chủ tài khoản
+
     }
 }

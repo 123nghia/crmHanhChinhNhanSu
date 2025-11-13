@@ -106,6 +106,46 @@
                    value="@dateText"
                         name="dob" class="form-control">
                 </div>
+                
+                <div class="col-12 form-group">
+                    <label class="form-label">Giới tính</label>
+                    <select name="gender" id="cbGender" class="form-select" aria-label="">
+                        <option value="">-- Chọn giới tính --</option>
+                        @if (Model.Gender == "Nam")
+                        {
+                            <option value="Nam" selected>Nam</option>
+                        }
+                        else
+                        {
+                            <option value="Nam">Nam</option>
+                        }
+                        @if (Model.Gender == "Nữ")
+                        {
+                            <option value="Nữ" selected>Nữ</option>
+                        }
+                        else
+                        {
+                            <option value="Nữ">Nữ</option>
+                        }
+                        @if (Model.Gender == "Khác")
+                        {
+                            <option value="Khác" selected>Khác</option>
+                        }
+                        else
+                        {
+                            <option value="Khác">Khác</option>
+                        }
+                    </select>
+                    <div class="invalid-feedback-cs">
+                    </div>
+                </div>
+                
+                <div class="col-12 form-group">
+                    <label class="form-label">Nơi sinh</label>
+                    <input type="text" value="@Model.PlaceOfBirth" name="placeOfBirth" id="txtPlaceOfBirth" class="form-control" placeholder="" />
+                    <div class="invalid-feedback-cs">
+                    </div>
+                </div>
 
         <div class="col-12 form-group">
             <label class="form-label">Chức vụ</label>
@@ -134,7 +174,7 @@
 
         <div class="col-12 form-group">
             <label class="form-label">Email cá nhân </label>
-            <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
+            <input type="text" value="@Model.PersonalEmail" name="personalEmail" id="txtPersonalEmail" class="form-control" placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
 
@@ -357,6 +397,13 @@
                 <div class="col-12">
                     <label class="form-label">Hình ảnh đại diện</label>
                     <input class="form-control" type="file" id="formFile">
+                </div>
+
+                <div class="col-12 form-group">
+                    <label class="form-label">Tôn giáo</label>
+                    <input type="text" value="@Model.Religion" name="religion" id="txtReligion" class="form-control" placeholder="" />
+                    <div class="invalid-feedback-cs">
+                    </div>
                 </div>
 
                 <div class="col-12">
