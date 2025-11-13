@@ -67,7 +67,6 @@ namespace VS.Human.Rep
             item.CreateAt = DateTime.Now;
             item.UpdateAt = DateTime.Now;
 
-
             var parameter = new
             {
                 item.FullName,
@@ -96,8 +95,11 @@ namespace VS.Human.Rep
                 item.UpdateAt,
                 item.IsActive,
                 item.EducationLevel,
-                item.DocumentCheck
-              
+                item.DocumentCheck,
+                item.Maritalstatus,
+                item.StatusWork,
+                item.BankAccount,
+                item.BankName
             };
 
             return await this.ExecuteSQL("sp_emp_insert", parameter);

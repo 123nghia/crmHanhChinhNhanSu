@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using VS.Human.Business.Helpers;
 using VS.Human.Business.Model;
 using VS.Human.Item;
 using VS.Human.Rep;
@@ -57,89 +58,46 @@ namespace VS.Human.Business.Imp
         }
         public async Task<bool> Update(EmployeeInfoAdd itemUpdate)
         {
-            var item = new Employee();
-            item.FullName = itemUpdate.FullName;
-            item.Id = itemUpdate.Id;
-            item.RoleCode = itemUpdate.RoleCode;
-            item.Dob = itemUpdate.Dob;
-            item.ManagerId = itemUpdate.ManagerId;
-            item.DepartmentCode = itemUpdate.DepartmentCode;
-            item.PositionCode = itemUpdate.PositionCode;
-            item.Email = itemUpdate.Email;
-            item.CVLink = itemUpdate.CVLink;
-            item.Phone = itemUpdate.Phone;
-            item.IsActive = itemUpdate.IsActive;
-            item.Noted = itemUpdate.Noted;
-            item.Onboard = itemUpdate.Onboard;
-            item.PermanentAddress = itemUpdate.PermanentAddress;
-            item.TemporaryAddress = itemUpdate.TemporaryAddress;
-            item.NationalId = itemUpdate.NationalId;
-            item.NationalDate = itemUpdate.NationalDate;
-            item.NationalPlace = itemUpdate.NationalPlace;
-            item.DocumentStatus = itemUpdate.DocumentStatus;
-            item.Status = itemUpdate.Status;
-            item.BankAccount = itemUpdate.BankAccount;
-            item.BankName = itemUpdate.BankName;
-            item.EducationLevel = itemUpdate.EducationLevel;
-            item.Maritalstatus = itemUpdate.Maritalstatus;
-            item.DocumentCheck = itemUpdate.DocumentCheck;
-            item.StatusWork = itemUpdate.StatusWork;
-            item.UpdatedBy = GetUserId();
-            item.UpdateAt = DateTime.Now;
-            
-            // Khi thêm mới nhân viên (Id < 0), cần set UserName và Pass
+            // Set UpdatedBy và UpdatedAt
+            itemUpdate.UpdatedBy = GetUserId();
+            itemUpdate.UpdateAt = DateTime.Now;
+
+            // Get existing employee if updating
+            Employee? existingEmployee = null;
+            if (itemUpdate.Id > 0)
+            {
+                existingEmployee = await _unitOfWork.EmployeeRep.GetById(itemUpdate.Id);
+            }
+
+            // Handle new employee (Id < 0)
             if (itemUpdate.Id < 0)
             {
-                // Generate UserName từ email hoặc phone nếu chưa có
+                // Generate UserName if not provided
                 if (string.IsNullOrEmpty(itemUpdate.UserName))
                 {
-                    if (!string.IsNullOrEmpty(itemUpdate.Email))
-                    {
-                        // Lấy phần trước @ của email làm UserName
-                        item.UserName = itemUpdate.Email.Split('@')[0];
-                    }
-                    else if (!string.IsNullOrEmpty(itemUpdate.Phone))
-                    {
-                        // Dùng phone làm UserName nếu không có email
-                        item.UserName = itemUpdate.Phone;
-                    }
-                    else
-                    {
-                        // Nếu không có cả email và phone, dùng FullName (loại bỏ dấu cách)
-                        item.UserName = itemUpdate.FullName?.Replace(" ", "").ToLower() ?? "user" + DateTime.Now.Ticks;
-                    }
+                    itemUpdate.UserName = EmployeeMapper.GenerateUserName(itemUpdate.Email, itemUpdate.Phone, itemUpdate.FullName);
                 }
-                else
-                {
-                    item.UserName = itemUpdate.UserName;
-                }
-                
-                // Set mật khẩu mặc định nếu chưa có
+
+                // Set default password if not provided
                 if (string.IsNullOrEmpty(itemUpdate.Pass))
                 {
-                    item.Pass = getMD5("Vietstar@2024"); // Mật khẩu mặc định
+                    itemUpdate.Pass = "Vietstar@2024"; // Default password (will be hashed later)
                 }
-                else
-                {
-                    item.Pass = getMD5(itemUpdate.Pass);
-                }
-                
-                item.CreateAt = DateTime.Now;
-                item.CreatedBy = GetUserId();
+
+                itemUpdate.CreatedBy = GetUserId();
+                itemUpdate.CreateAt = DateTime.Now;
             }
-            else
+
+            // Map to Employee entity
+            var item = EmployeeMapper.MapToEmployee(itemUpdate, existingEmployee);
+
+            // Hash password for new employees (existing employees keep their password)
+            if (itemUpdate.Id < 0 && !string.IsNullOrEmpty(item.Pass))
             {
-                // Khi update, lấy thông tin từ database để giữ nguyên UserName, Pass, CreatedBy, CreateAt
-                var existingEmployee = await _unitOfWork.EmployeeRep.GetById(itemUpdate.Id);
-                if (existingEmployee != null)
-                {
-                    item.UserName = existingEmployee.UserName;
-                    item.Pass = existingEmployee.Pass; // Giữ nguyên password cũ khi update
-                    item.CreatedBy = existingEmployee.CreatedBy; // Giữ nguyên CreatedBy
-                    item.CreateAt = existingEmployee.CreateAt; // Giữ nguyên CreateAt
-                }
+                // Hash password for new employee
+                item.Pass = getMD5(item.Pass);
             }
-            
+
             return await _unitOfWork.EmployeeRep.AddOrUpdate(item);
         }
         public Task<bool> Delete(int id, bool reactive = false)

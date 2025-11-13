@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using crmHuman.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VS.Human.Business;
 using VS.Human.Business.Model;
@@ -56,83 +57,55 @@ namespace crmHuman.Pages
 
         }
 
-        public async Task<IActionResult> OnPostChangePassword
-         (PasswordAdd request)
+        public async Task<IActionResult> OnPostChangePassword(PasswordAdd request)
         {
-            var listEror = new List<object>();
-            if (string.IsNullOrEmpty(request.NewPassword))
+            var errors = new List<object>();
+            ValidationHelper.ValidateRequired(request.NewPassword, "txtrenewPassword", "mật khẩu mới", errors);
+            
+            if (ValidationHelper.HasErrors(errors))
             {
-                var itemError = new
-                {
-                    name = "txtrenewPassword",
-                    Content = "Thiếu thông tin họ và tên"
-                };
-                listEror.Add(itemError);
-            }
-            if (listEror.Count > 0)
-            {
-                return new JsonResult(listEror)
-                {
-                    StatusCode = StatusCodes.Status400BadRequest
-                };
+                return ApiResponseHelper.BadRequest(errors);
             }
 
-            int IdEmployer = -1;
+            // Reset password if requested
             if (request.ResetPass == true)
             {
                 request.NewPassword = "Vietstar@2024";
             }
+
+            // Determine employee ID
+            int employeeId = -1;
             if (request.Id.HasValue && request.Id.Value > 0)
             {
-                IdEmployer = request.Id.Value;
+                employeeId = request.Id.Value;
             }
             else
             {
                 GetInfoUser();
-                var userId = UserData.UserId;
-                IdEmployer = userId;
+                employeeId = UserData.UserId;
             }
 
-
-            var result = await _empBusiness.ChangePassword(request.NewPassword, IdEmployer);
-            var dataReponse = new
-            {
-                success = result,
-
-            };
-            return new JsonResult(dataReponse)
-            {
-                StatusCode = StatusCodes.Status200OK
-
-            };
+            var result = await _empBusiness.ChangePassword(request.NewPassword, employeeId);
+            return ApiResponseHelper.SuccessResponse(new { success = result });
         }
 
 
-        public async Task<IActionResult> OnPostUpdateInfo
-         (EmployeeAdd request)
+        public async Task<IActionResult> OnPostUpdateInfo(EmployeeAdd request)
         {
-            var listEror = new List<object>();
-            if (string.IsNullOrEmpty(request.FullName))
+            var errors = new List<object>();
+            ValidationHelper.ValidateFullName(request.FullName, "txtUpdateName", errors);
+            
+            if (ValidationHelper.HasErrors(errors))
             {
-                var itemError = new
-                {
-                    name = "txtUpdateName",
-                    Content = "Thiếu thông tin họ và tên"
-                };
-                listEror.Add(itemError);
+                return ApiResponseHelper.BadRequest(errors);
             }
-            if (listEror.Count > 0)
-            {
-                return new JsonResult(listEror)
-                {
-                    StatusCode = StatusCodes.Status400BadRequest
-                };
-            }
+
             GetInfoUser();
             var userId = UserData.UserId;
             var employee = await _empBusiness.GetById(userId);
             employee.FullName = request.FullName;
             employee.Noted = request.Noted;
+            
             var itemUpdate = new EmployeeInfoAdd()
             {
                 Status = employee.Status,
@@ -155,59 +128,36 @@ namespace crmHuman.Pages
                 UpdatedBy = employee.UpdatedBy,
                 Pass = employee.Pass
             };
+            
             if (UserData.RoleCode == "1")
             {
                 itemUpdate.IsActive = request.IsActive;
             }
             itemUpdate.UpdatedBy = userId;
+            
             var result = await _empBusiness.Update(itemUpdate);
-            var dataReponse = new
-            {
-                success = result,
-
-            };
-            return new JsonResult(dataReponse)
-            {
-                StatusCode = StatusCodes.Status200OK
-
-            };
+            return ApiResponseHelper.SuccessResponse(new { success = result });
         }
 
-        public async Task<IActionResult> OnPostConvertToEmployee
-          (ConvertToEmployeeAdd request)
+        public async Task<IActionResult> OnPostConvertToEmployee(ConvertToEmployeeAdd request)
         {
-            var listEror = new List<object>();
-            if (request.Id.Value < 1)
+            var errors = new List<object>();
+            if (request.Id.HasValue)
             {
-                var itemError = new
-                {
-
-                    Content = "Thiếu đối tượng ID"
-                };
-                listEror.Add(itemError);
+                ValidationHelper.ValidateId(request.Id.Value, "Id", "đối tượng ID", errors);
             }
-            if (listEror.Count > 0)
+            else
             {
-                return new JsonResult(listEror)
-                {
-                    StatusCode = StatusCodes.Status400BadRequest
-                };
+                errors.Add(new { Content = "Thiếu đối tượng ID" });
             }
-            // GetInfoUser();
-            // var userId = UserData.UserId;
-
+            
+            if (ValidationHelper.HasErrors(errors))
+            {
+                return ApiResponseHelper.BadRequest(errors);
+            }
 
             var result = await _empBusiness.ConvertToEmployeeFromCandidate(request.Id.Value);
-            var dataReponse = new
-            {
-                success = result,
-
-            };
-            return new JsonResult(dataReponse)
-            {
-                StatusCode = StatusCodes.Status200OK
-
-            };
+            return ApiResponseHelper.SuccessResponse(new { success = result });
         }
 
         public async Task<ActionResult> OnGet([FromQuery] EmployeeRequest request)
@@ -287,83 +237,33 @@ namespace crmHuman.Pages
             return Partial("formChangePassword", resultView);
         }
 
-        public async Task<IActionResult> OnPostDelete
-      (int Id = -1)
+        public async Task<IActionResult> OnPostDelete(int Id = -1)
         {
-
-            var listEror = new List<object>();
-
-            if (Id < 0)
+            var errors = new List<object>();
+            ValidationHelper.ValidateIdForDelete(Id, errors);
+            
+            if (ValidationHelper.HasErrors(errors))
             {
-                var itemError = new
-                {
-                    name = "id",
-                    Content = "Thiếu thông tin cần xoá"
-                };
-                listEror.Add(itemError);
-
-            }
-            if (listEror.Count > 0)
-            {
-                return new JsonResult(listEror)
-                {
-                    StatusCode = StatusCodes.Status400BadRequest
-                };
+                return ApiResponseHelper.BadRequest(errors);
             }
 
-            var result = true;
-
-            result = await _empBusiness.Delete(Id);
-            var dataReponse = new
-            {
-                success = result,
-
-            };
-            return new JsonResult(dataReponse)
-            {
-                StatusCode = StatusCodes.Status200OK
-
-            };
+            var result = await _empBusiness.Delete(Id);
+            return ApiResponseHelper.SuccessResponse(new { success = result });
         }
 
 
-        public async Task<IActionResult> OnPostReactive
-     (int Id = -1)
+        public async Task<IActionResult> OnPostReactive(int Id = -1)
         {
-
-            var listEror = new List<object>();
-
-            if (Id < 0)
+            var errors = new List<object>();
+            ValidationHelper.ValidateIdForDelete(Id, errors);
+            
+            if (ValidationHelper.HasErrors(errors))
             {
-                var itemError = new
-                {
-                    name = "id",
-                    Content = "Thiếu thông tin cần xoá"
-                };
-                listEror.Add(itemError);
-
-            }
-            if (listEror.Count > 0)
-            {
-                return new JsonResult(listEror)
-                {
-                    StatusCode = StatusCodes.Status400BadRequest
-                };
+                return ApiResponseHelper.BadRequest(errors);
             }
 
-            var result = true;
-
-            result = await _empBusiness.Delete(Id, true);
-            var dataReponse = new
-            {
-                success = result,
-
-            };
-            return new JsonResult(dataReponse)
-            {
-                StatusCode = StatusCodes.Status200OK
-
-            };
+            var result = await _empBusiness.Delete(Id, true);
+            return ApiResponseHelper.SuccessResponse(new { success = result });
         }
 
 
