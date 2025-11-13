@@ -33,15 +33,15 @@ namespace VS.Human.Business.Model
 
         public string BankAccount { get; set; }
         public string BankName { get; set; }
-        public bool? IsThuXacNhan { get; internal set; }
-        public string ChungTuThue { get; internal set; }
-        public string TaxCode { get; internal set; }
-        public string Dependent { get; internal set; }
-        public string DependentName { get; internal set; }
-        public int BiaSo { get; internal set; }
-        public int PageTax { get; internal set; }
-        public string CodeBHXH { get; internal set; }
-        public string RegBHYT { get; internal set; }
+        public bool? IsThuXacNhan { get;  set; }
+        public string ChungTuThue { get;  set; }
+        public string TaxCode { get;  set; }
+        public string Dependent { get;  set; }
+        public string DependentName { get;  set; }
+        public int BiaSo { get;  set; }
+        public int PageTax { get;  set; }
+        public string CodeBHXH { get;  set; }
+        public string RegBHYT { get;  set; }
     }
 
 

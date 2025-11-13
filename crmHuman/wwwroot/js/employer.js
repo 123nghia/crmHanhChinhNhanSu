@@ -3043,7 +3043,7 @@ function AddDocument( idCandidate, dataType =1)
 
 function saveEmployeeDetail(idEmp) {
 
-    var employeeIdIdInput = getValueControl("inputId");
+     var employeeIdIdInput = getValueControl("inputId");
     var txtFullName = getValueControl("txtFullName");
     var txtNationnalInput = getValueControl("txtNationnal");
     var txtNationnalDateInput = getValueControl("txtNationnalDate");
@@ -3057,16 +3057,13 @@ function saveEmployeeDetail(idEmp) {
     var txtEmailInput = getValueControl("txtEmail");
     var txtfileCV = getValueControl("inputCvlink");
     var cbRoleCodeInput = getValueControl("cbRoleCode");
-    
     var txtNotedCandInput = getValueControl("txtNotedCand");
     var txtPermanentAddressInput = getValueControl("txtPermanentAddress");
     var txtTemporaryAddressInput = getValueControl("txtTemporaryAddress");
      var cbStatusHumanInput = getValueControl("cbStatusHuman");
      var txtStatusInput = getValueControl("cbStatus");
-
     var txtBankAccountInput = getValueControl("txtBankAccount");
     var txtBankNameInput = getValueControl("txtBankName");
-
     var inputcBEducationLevel = getValueControl("cBEducationLevel");
     var intpucBMaritalStatus = getValueControl("cBMaritalStatus");
 

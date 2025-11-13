@@ -59,7 +59,6 @@ namespace VS.Human.Business.Imp
         {
             var item = new Employee();
             item.FullName = itemUpdate.FullName;
-            item.CreatedBy = itemUpdate.CreatedBy;
             item.Id = itemUpdate.Id;
             item.RoleCode = itemUpdate.RoleCode;
             item.Dob = itemUpdate.Dob;
@@ -87,6 +86,60 @@ namespace VS.Human.Business.Imp
             item.StatusWork = itemUpdate.StatusWork;
             item.UpdatedBy = GetUserId();
             item.UpdateAt = DateTime.Now;
+            
+            // Khi thêm mới nhân viên (Id < 0), cần set UserName và Pass
+            if (itemUpdate.Id < 0)
+            {
+                // Generate UserName từ email hoặc phone nếu chưa có
+                if (string.IsNullOrEmpty(itemUpdate.UserName))
+                {
+                    if (!string.IsNullOrEmpty(itemUpdate.Email))
+                    {
+                        // Lấy phần trước @ của email làm UserName
+                        item.UserName = itemUpdate.Email.Split('@')[0];
+                    }
+                    else if (!string.IsNullOrEmpty(itemUpdate.Phone))
+                    {
+                        // Dùng phone làm UserName nếu không có email
+                        item.UserName = itemUpdate.Phone;
+                    }
+                    else
+                    {
+                        // Nếu không có cả email và phone, dùng FullName (loại bỏ dấu cách)
+                        item.UserName = itemUpdate.FullName?.Replace(" ", "").ToLower() ?? "user" + DateTime.Now.Ticks;
+                    }
+                }
+                else
+                {
+                    item.UserName = itemUpdate.UserName;
+                }
+                
+                // Set mật khẩu mặc định nếu chưa có
+                if (string.IsNullOrEmpty(itemUpdate.Pass))
+                {
+                    item.Pass = getMD5("Vietstar@2024"); // Mật khẩu mặc định
+                }
+                else
+                {
+                    item.Pass = getMD5(itemUpdate.Pass);
+                }
+                
+                item.CreateAt = DateTime.Now;
+                item.CreatedBy = GetUserId();
+            }
+            else
+            {
+                // Khi update, lấy thông tin từ database để giữ nguyên UserName, Pass, CreatedBy, CreateAt
+                var existingEmployee = await _unitOfWork.EmployeeRep.GetById(itemUpdate.Id);
+                if (existingEmployee != null)
+                {
+                    item.UserName = existingEmployee.UserName;
+                    item.Pass = existingEmployee.Pass; // Giữ nguyên password cũ khi update
+                    item.CreatedBy = existingEmployee.CreatedBy; // Giữ nguyên CreatedBy
+                    item.CreateAt = existingEmployee.CreateAt; // Giữ nguyên CreateAt
+                }
+            }
+            
             return await _unitOfWork.EmployeeRep.AddOrUpdate(item);
         }
         public Task<bool> Delete(int id, bool reactive = false)

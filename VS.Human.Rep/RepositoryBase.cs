@@ -425,11 +425,7 @@ namespace VS.Human.Rep
         }
         public async Task<bool> DeleteBase(int id, int delete = 1, string tableDelete = "")
         {
-            var _baseTable = tableName;
-            if (!string.IsNullOrEmpty(tableDelete))
-            {
-                tableName = tableDelete;
-            }
+            var _baseTable = string.IsNullOrEmpty(tableDelete) ? tableName : tableDelete;
             var sql = "UPDATE " + "[" + _baseTable + "]" + " SET Deleted= @del, UpdateAt = getdate()   WHERE Id = @id";
             return await ExecuteSQL(sql, new
             {
@@ -440,16 +436,11 @@ namespace VS.Human.Rep
 
         public async Task<bool> DeleteReal(int id, int delete = 1, string tableDelete = "")
         {
-            var _baseTable = tableName;
-            if (!string.IsNullOrEmpty(tableDelete))
-            {
-                tableName = tableDelete;
-            }
+            var _baseTable = string.IsNullOrEmpty(tableDelete) ? tableName : tableDelete;
             var sql = "delete from  " + "[" + _baseTable + "]" + "  WHERE Id = @id";
             return await ExecuteSQL(sql, new
             {
-                Id = id,
-                del = delete
+                Id = id
             });
         }
 

@@ -422,10 +422,11 @@ namespace crmHuman.Pages
             }
             GetInfoUser();
             var idInput = request.Id.HasValue == true ? request.Id.Value : -1;
-            if(idInput ==-1)
+            if (idInput == -1)
             {
                 idInput = -1;
             }
+            
             var dataAllMaster = await _masterDataBussiness.GetAll(new CommonRequest());
             DataMasterData = dataAllMaster ?? new BaseList { Data = new List<object>() };
             if (DataDepartment == null)
@@ -451,11 +452,13 @@ namespace crmHuman.Pages
                 }
             }
             DataPostion = dataAllMaster;
-            var itemInfo = await _empBusiness.GetById(idInput);
             if (idInput < 1)
             {
                 TitlePage = "Thêm mới nhân viên";
             }
+
+            var itemInfo = await _empBusiness.GetById(idInput);
+            
             var dataRelation = await _employeeExtraBusiness.GetInfo(itemInfo.UserName);
             var hdldItem = await _employeeExtraBusiness.GetHDLD(itemInfo.Id.ToString());
             var bhxhItem = await _employeeExtraBusiness.GetBHXH(itemInfo.UserName);
@@ -528,7 +531,6 @@ namespace crmHuman.Pages
         public virtual async Task<PartialViewResult> OnGetFormChangePassword(int id)
 
         {
-
             var resultView = new
             {
                 Id = id

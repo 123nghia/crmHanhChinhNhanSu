@@ -7,9 +7,9 @@
     var dataFile = Model.DataFile;
     var dataDepartments = Model?.DataDepartment ?? new List<DisplayModel.DataMasterItem>();
     var dataRelation = itemResult.DataRelation;
-    var hdld = itemResult.HDLD;
-    var bhxhItem = itemResult.BHXHItem;
-    var taxtItem = itemResult.TaxItem;
+    var hdld = itemResult?.HDLD??new VS.Human.Rep.Model.HDLD();
+    var bhxhItem =  itemResult?.BHXHItem ?? new VS.Human.Rep.Model.BHXHItem();
+    var taxtItem = itemResult?.TaxItem?? new VS.Human.Rep.Model.TaxItem();
 
     var textTiltel  =  "Thông tin nhân viên";
     if(itemResult.Id < 1)
@@ -573,6 +573,7 @@
                                <label class="form-label">Mối quan hệ</label>
 
                              <select id="txtRelaRelationCode" class="form-select" aria-label="">
+                                       <option  value="-1">--Chọn----</option>
                                         @foreach (var item in dataDepartments)
                                         {
 
@@ -643,27 +644,43 @@
                                <label class="form-label">Loại hợp đồng</label>
                                         <select name="DocumentType" id="cbLoaiHopDong" class="form-select" aria-label="">
                                           <option  value="-1">--Chọn Loại hợp đồng----</option>
-@foreach (var item in dataDepartments)
+
+                                              @foreach (var item in dataDepartments)
     {
         var itemMasterData = item as dynamic;
-
-        // Bỏ qua những loại không có TypeData = 1
-        if (itemMasterData.TypeData != 1)
+        
+        // Kiểm tra null cho itemMasterData
+        if (itemMasterData == null)
         {
             continue;
         }
-
-        // So sánh và set selected nếu trùng Code
-        if (itemMasterData.Code == hdld?.CodeId)
+        
+        // Kiểm tra TypeData có tồn tại và bằng 1
+        if (itemMasterData.TypeData == null || itemMasterData.TypeData != 1)
         {
-            <option selected value="@itemMasterData.Code">@itemMasterData.Name</option>
+            continue;
+        }
+        
+        // Kiểm tra Code và Name có tồn tại
+        if (itemMasterData.Code == null || itemMasterData.Name == null)
+        {
+            continue;
+        }
+        
+        // Lấy giá trị Code an toàn
+        string codeValue = itemMasterData.Code.ToString();
+        string codeId = hdld?.CodeId ?? string.Empty;
+        
+        // So sánh và set selected nếu trùng Code
+        if (codeValue == codeId)
+        {
+            <option selected value="@codeValue">@itemMasterData.Name</option>
         }
         else
         {
-            <option value="@itemMasterData.Code">@itemMasterData.Name</option>
+            <option value="@codeValue">@itemMasterData.Name</option>
         }
     }
-                                            
                                         </select>
                                         <div class="invalid-feedback-cs">
 

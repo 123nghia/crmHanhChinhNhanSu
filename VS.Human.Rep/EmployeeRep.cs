@@ -94,7 +94,10 @@ namespace VS.Human.Rep
                 item.UpdatedBy,
                 item.CreateAt,
                 item.UpdateAt,
-                item.IsActive
+                item.IsActive,
+                item.EducationLevel,
+                item.DocumentCheck
+              
             };
 
             return await this.ExecuteSQL("sp_emp_insert", parameter);
