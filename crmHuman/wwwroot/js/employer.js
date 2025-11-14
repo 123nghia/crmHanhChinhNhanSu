@@ -3337,6 +3337,7 @@ function UpdateOtherInfoEmployee(employId, typeUpdate) {
     var inptutxtRegBHYT = getValueControl("txtRegBHYT");
     var txtPITDateInput = getValueControl("txtPITDate");
     var txtEffectedFromInput = getValueControl("txtEffectedFrom");
+        var txtBeneficiaryNameInput = getValueControl("txtBeneficiaryName");
     var bodyRequest =  {
             EmployeeId: employId,
             TypeUpdate: typeUpdate,
@@ -3352,10 +3353,12 @@ function UpdateOtherInfoEmployee(employId, typeUpdate) {
             RegBHYT : inptutxtRegBHYT,
             DependentName : inputDependentName,
             PITDate: txtPITDateInput,
-            EffectedFrom: txtEffectedFromInput
+            EffectedFrom: txtEffectedFromInput,
+            
+        BeneficiaryName: txtBeneficiaryNameInput
     };
 
-debugger;
+
 
     $.ajax({
     headers: {
