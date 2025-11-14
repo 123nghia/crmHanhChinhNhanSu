@@ -1,1 +1,21 @@
 .invalid-feedback-cs{display:none}.hasError .invalid-feedback-cs{font-size:.875em;display:block !important;color:var(--bs-form-invalid-color)}.hasError input{border-color:red}.buttonRight{float:right;margin-top:10px;margin-bottom:10px}.btn-primary{background-color:#98181c;border:#98181c}.btn-primary:hover{background-color:#98181c !important;opacity:.8}.header-nav .nav-profile{color:#98181c}.logo span{font-size:26px;font-weight:700;color:#98181c}.pagetitle h1{font-size:24px;margin-bottom:0;font-weight:600;color:#98181c}.sameline{display:flex;justify-content:space-between}.addButon{color:blue}.logo{justify-content:center !important}.logo img{max-height:50px !important}.iconResult img{width:32px;height:32px}.blueStatus{color:blue !important}.readStatus{color:#98181c !important}.colorApply{font-weight:bold;margin-top:10px;color:#98181c}.combobox input{width:100%;outline:none;border-radius:5px}.combobox datalist{position:absolute;background-color:#fff;border:1px solid blue;border-radius:0 0 5px 5px;border-top:none;font-family:sans-serif;width:100%;padding:5px;max-height:10rem;overflow-y:auto}.combobox option{background-color:#fff;padding:4px;margin-bottom:1px;cursor:pointer}.combobox option:hover,.combobox .active{background-color:#add8e6}.badgeIcon{background-color:red;color:#fff;padding:4px 8px;border-radius:50% !important;text-align:center;border-radius:5px;margin-left:10px}.show{display:block !important}.nav-tabs{display:flex;justify-content:start;flex-wrap:wrap;background:#f1f3f5;padding:0;border:none;border-radius:12px 12px 0 0;box-shadow:inset 0 -1px 0 #dee2e6;overflow:auto}.nav-tabs .nav-item{flex:1 1 auto;text-align:center;border-right:1px solid #dee2e6}.nav-tabs .nav-item:last-child{border-right:none}.nav-tabs .nav-link{border:none;background-color:rgba(0,0,0,0);color:#495057;padding:14px 0;font-weight:600;border-radius:0;transition:all .3s ease-in-out;position:relative;width:100%}.nav-tabs .nav-link:hover{background-color:#e9ecef;color:#0d6efd}.nav-tabs .nav-link.active{background:#fff;color:#0d6efd;font-weight:bold;border-bottom:3px solid #0d6efd;box-shadow:inset 0 1px 0 rgba(0,0,0,.05)}.tab-content{background-color:#fff;border:1px solid #dee2e6;border-top:none;padding:24px;border-radius:0 0 12px 12px;box-shadow:0 4px 12px rgba(0,0,0,.05)}.tab-pane .form-group{margin-bottom:20px}.tab-pane .form-label{font-weight:600;margin-bottom:6px;display:inline-block;color:#495057}.tab-pane .form-control{border-radius:8px;border:1px solid #ced4da;padding:10px 14px;font-size:15px;transition:border-color .2s ease,box-shadow .2s ease}.tab-pane .form-control:focus{border-color:#0d6efd;box-shadow:0 0 0 .15rem rgba(13,110,253,.25);outline:none}.invalid-feedback-cs{color:#dc3545;font-size:.9rem;margin-top:5px;display:none}
+
+/* Force date format dd/MM/yyyy trên Firefox */
+@-moz-document url-prefix() {
+    /* Firefox specific styles */
+    td, th, span, div, p, a, label {
+        /* Force text rendering để ngăn Firefox auto-format date */
+        text-rendering: auto;
+        -webkit-font-feature-settings: normal;
+        font-feature-settings: normal;
+    }
+}
+
+/* Class cho date display - force format */
+.date-display {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    white-space: nowrap;
+    direction: ltr;
+    unicode-bidi: embed;
+}

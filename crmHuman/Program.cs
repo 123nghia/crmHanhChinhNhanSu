@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Localization;
 using Quartz.Impl;
+using System.Globalization;
 using VS.Human.Business;
 using crmHuman.Services;
 
@@ -10,6 +12,20 @@ namespace crmHuman
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            // Force dd/MM/yyyy formatting globally via the Vietnamese culture.
+            var vietnamCulture = new CultureInfo("vi-VN");
+            vietnamCulture.DateTimeFormat.ShortDatePattern = "dd/MM/yyyy";
+            vietnamCulture.DateTimeFormat.LongDatePattern = "dd/MM/yyyy HH:mm:ss";
+            vietnamCulture.DateTimeFormat.FullDateTimePattern = "dd/MM/yyyy HH:mm:ss";
+            CultureInfo.DefaultThreadCurrentCulture = vietnamCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = vietnamCulture;
+            var localizationOptions = new RequestLocalizationOptions
+            {
+                DefaultRequestCulture = new RequestCulture(vietnamCulture),
+                SupportedCultures = new[] { vietnamCulture },
+                SupportedUICultures = new[] { vietnamCulture },
+                ApplyCurrentCultureToResponseHeaders = true
+            };
             builder.Services.AddRazorPages();
             builder.Services.Config();
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -46,6 +62,7 @@ namespace crmHuman
                 app.UseExceptionHandler("/Error");
                 app.UseHsts();
             }
+            app.UseRequestLocalization(localizationOptions);
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();

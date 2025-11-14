@@ -1,5 +1,6 @@
-﻿
+
 using NAudio.Wave;
+using System.Globalization;
 using System.Net;
 namespace VS.Human.Utility
 {
@@ -173,6 +174,86 @@ namespace VS.Human.Utility
             path = path + "" + callDate.Value.Day.ToString("00") + "/";
             path = path + fileAudio;
             return path;
+        }
+
+        /// <summary>
+        /// Format DateTime thành định dạng dd/MM/yyyy
+        /// Sử dụng HTML entities để ngăn Firefox tự động parse date
+        /// </summary>
+        public static string ToDisplayDate(this DateTime? date)
+        {
+            if (!date.HasValue)
+                return "";
+            return date.Value.ToDisplayDate();
+        }
+
+        /// <summary>
+        /// Format DateTime thành định dạng dd/MM/yyyy
+        /// Sử dụng format đặc biệt để Firefox không tự động parse
+        /// Thay slash bằng dấu chấm, JavaScript sẽ convert lại
+        /// </summary>
+        public static string ToDisplayDate(this DateTime date)
+        {
+            var formatted = date.ToString("dd/MM/yyyy");
+            // Thay slash bằng dấu chấm để Firefox không parse date
+            // JavaScript sẽ convert lại thành dd/MM/yyyy
+            return formatted.Replace("/", ".");
+        }
+        
+        /// <summary>
+        /// Format DateTime thành HTML với span có data attribute để JavaScript nhận biết
+        /// </summary>
+        public static string ToDisplayDateHtml(this DateTime? date)
+        {
+            if (!date.HasValue)
+                return "";
+            return date.Value.ToDisplayDateHtml();
+        }
+
+        /// <summary>
+        /// Format DateTime thành HTML với span có data attribute để JavaScript nhận biết
+        /// </summary>
+        public static string ToDisplayDateHtml(this DateTime date)
+        {
+            var formatted = date.ToString("dd/MM/yyyy");
+            // Wrap trong span với class để JavaScript format lại nếu cần
+            return $"<span class=\"date-display\" data-date-format=\"dd/MM/yyyy\">{formatted}</span>";
+        }
+
+        /// <summary>
+        /// Format DateTime thành định dạng dd/MM/yyyy HH:mm
+        /// </summary>
+        public static string ToDisplayDateTime(this DateTime? date)
+        {
+            if (!date.HasValue)
+                return "";
+            return date.Value.ToString("dd/MM/yyyy HH:mm");
+        }
+
+        /// <summary>
+        /// Format DateTime thành định dạng dd/MM/yyyy HH:mm
+        /// </summary>
+        public static string ToDisplayDateTime(this DateTime date)
+        {
+            return date.ToString("dd/MM/yyyy HH:mm");
+        }
+
+        /// <summary>
+        /// Format DateTime thành định dạng yyyy-MM-dd (cho input type="date")
+        /// </summary>
+        public static string ToInputDate(this DateTime? date)
+        {
+            if (!date.HasValue)
+                return "";
+            return date.Value.ToString("yyyy-MM-dd",  CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Format DateTime thành định dạng yyyy-MM-dd (cho input type="date")
+        /// </summary>
+        public static string ToInputDate(this DateTime date)
+        {
+            return date.ToString("yyyy-MM-dd");
         }
     }
 }

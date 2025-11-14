@@ -813,6 +813,24 @@
         },
 
         formatDateTime(value) {
+            // Sử dụng DateFormatter nếu có
+            if (typeof DateFormatter !== 'undefined' && DateFormatter.format) {
+                return DateFormatter.format(value);
+            }
+            // Fallback: Nếu là string và có format mm/dd/yyyy, chuyển sang dd/MM/yyyy
+            if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value.trim())) {
+                const parts = value.trim().split('/');
+                // Nếu format là mm/dd/yyyy (tháng > 12 hoặc tháng <= 12 và ngày <= 12)
+                if (parts.length === 3) {
+                    const month = parseInt(parts[0], 10);
+                    const day = parseInt(parts[1], 10);
+                    // Nếu month > 12 hoặc (month <= 12 và day <= 12), có thể là mm/dd/yyyy
+                    if (month > 12 || (month <= 12 && day <= 12)) {
+                        // Đổi sang dd/MM/yyyy
+                        return `${parts[1]}/${parts[0]}/${parts[2]}`;
+                    }
+                }
+            }
             return value;
         },
 

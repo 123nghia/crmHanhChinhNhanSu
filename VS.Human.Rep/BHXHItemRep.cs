@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using VS.Human.Item;
 using VS.Human.Rep.Model;
 
@@ -25,7 +25,8 @@ namespace VS.Human.Rep
                 item.ChungTuThue,
                 item.DependentName,
                 item.Dependent,
-
+                item.EffectedFrom,
+                item.PITDate,
                 item.UpdatedBy,
 
             };
@@ -43,7 +44,9 @@ namespace VS.Human.Rep
                 item.ChungTuThue,
                 item.CreatedBy,
                 item.Dependent,
-                item.DependentName
+                item.DependentName,
+                item.PITDate,
+                item.EffectedFrom
             };
             return await this.ExecuteSQL("sp_BHXHItem_insert", parameter);
         }
@@ -60,6 +63,8 @@ namespace VS.Human.Rep
                     itemUpdate.IsConfirmletter = item.IsConfirmletter;
                     itemUpdate.UpdatedBy = item.UpdatedBy;
                     itemUpdate.NumberCode = item.NumberCode;
+                    itemUpdate.EffectedFrom = item.EffectedFrom;
+                    itemUpdate.PITDate = item.PITDate;
 
                     return await Update(itemUpdate);
                 }

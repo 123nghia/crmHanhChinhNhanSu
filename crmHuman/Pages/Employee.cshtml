@@ -52,11 +52,11 @@
                                  i++;
                                 var itemInfo = itemData as dynamic;
                                 var datetimeCreate = "";
-                                datetimeCreate  =@itemInfo.CreateAt.ToString("dd/MM/yyyy HH:mm");
+                                datetimeCreate  =@itemInfo.CreateAt.ToString("dd/MM/yyyy");
                                 var datetimeUpdate = "";
                                 if (@itemInfo.UpdateAt != null)
                                 {
-                                    datetimeUpdate = @itemInfo.UpdateAt.ToString("dd/MM/yyyy HH:mm");
+                                    datetimeUpdate = @itemInfo.UpdateAt.ToString("dd/MM/yyyy");
                                     if (@itemInfo.UpdateAt > @itemInfo.CreateAt)
                                     {
                                         datetimeCreate = datetimeUpdate;

@@ -1,4 +1,5 @@
-﻿using VS.Human.Rep.Model;
+using System.Globalization;
+using VS.Human.Rep.Model;
 
 namespace crmHuman.DisplayModel
 {
@@ -10,7 +11,7 @@ namespace crmHuman.DisplayModel
             {
                 if (Dob.HasValue)
                 {
-                    return Dob.Value.ToString("yyyy-MM-dd");
+                    return Dob.Value.ToString("yyyy-MM-dd",  CultureInfo.InvariantCulture);
                 }
                 return string.Empty;
             }
@@ -23,7 +24,7 @@ namespace crmHuman.DisplayModel
             {
                 if (NationalDate.HasValue)
                 {
-                    return NationalDate.Value.ToString("yyyy-MM-dd");
+                    return NationalDate.Value.ToString("yyyy-MM-dd",  CultureInfo.InvariantCulture);
                 }
                 return string.Empty;
             }
@@ -34,7 +35,7 @@ namespace crmHuman.DisplayModel
             {
                 if (Onboard.HasValue)
                 {
-                    return Onboard.Value.ToString("yyyy-MM-dd");
+                    return Onboard.Value.ToString("yyyy-MM-dd",  CultureInfo.InvariantCulture);
                 }
                 return string.Empty;
             }

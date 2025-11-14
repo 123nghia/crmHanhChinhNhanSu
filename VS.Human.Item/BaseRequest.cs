@@ -1,4 +1,6 @@
-﻿namespace VS.Human.Item
+using System.Globalization;
+
+namespace VS.Human.Item
 {
     public class BaseRequest
     {
@@ -18,7 +20,7 @@
             {
                 if (From.HasValue)
                 {
-                    return From.Value.ToString("yyyy-MM-dd");
+                    return From.Value.ToString("yyyy-MM-dd",  CultureInfo.InvariantCulture);
                     //return From.Value.ToString("dd/MM/yyyy");
                 }
                 return "";
@@ -30,7 +32,7 @@
             {
                 if (To.HasValue)
                 {
-                    return To.Value.ToString("yyyy-MM-dd");
+                    return To.Value.ToString("yyyy-MM-dd",  CultureInfo.InvariantCulture);
                     //return To.Value.ToString("dd-MM-yyyy");
                 }
                 return "";

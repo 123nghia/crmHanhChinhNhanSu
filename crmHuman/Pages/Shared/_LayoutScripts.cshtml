@@ -13,6 +13,26 @@
 <script src="~/js/dom-utils.js" asp-append-version="true"></script>
 <script src="~/js/crm-api.js" asp-append-version="true"></script>
 <script src="~/js/common.js" asp-append-version="true"></script>
+<script src="~/js/date-formatter.js" asp-append-version="true"></script>
+<script>
+    // Format dates ngay khi script load (trước khi DOM ready) - đặc biệt cho Firefox
+    (function() {
+        if (typeof DateFormatter !== 'undefined' && DateFormatter.formatDatesInContainer) {
+            // Format ngay nếu DOM đã sẵn sàng
+            if (document.body) {
+                DateFormatter.formatDatesInContainer(document);
+            }
+            // Format lại sau khi DOM ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(function() {
+                        DateFormatter.formatDatesInContainer(document);
+                    }, 50);
+                });
+            }
+        }
+    })();
+</script>
 <script src="~/js/main.js" asp-append-version="true"></script>
 <script src="~/js/employer.js" asp-append-version="true"></script>
 

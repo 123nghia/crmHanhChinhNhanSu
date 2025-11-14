@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.Extensions.Configuration;
 using VS.Human.Item;
 using VS.Human.Rep.Model;
@@ -171,6 +171,11 @@ namespace VS.Human.Rep
                     itemUpdate.Maritalstatus = item.Maritalstatus;
                     itemUpdate.DocumentCheck = item.DocumentCheck;
                     itemUpdate.StatusWork = item.StatusWork;
+                    itemUpdate.Religion = item.Religion;
+                    itemUpdate.Gender = item.Gender;
+                    itemUpdate.PlaceOfBirth = item.PlaceOfBirth;
+                    itemUpdate.PersonalEmail = item.PersonalEmail;
+                    itemUpdate.BeneficiaryName = item.BeneficiaryName;
                     return await Update(itemUpdate);
                 }
             }

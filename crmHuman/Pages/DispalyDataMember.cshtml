@@ -22,11 +22,11 @@
             <tbody>
                 @foreach (var item in Model)
                 {
-                    var datetimeCreate = @item.CreateAt.ToString("dd/MM/yyyy HH:mm");
+                    var datetimeCreate = @item.CreateAt.ToString("dd/MM/yyyy");
                     var datetimeUpdate = "";
                     if (@item.UpdateAt != null)
                     {
-                        datetimeUpdate = @item.UpdateAt.ToString("dd/MM/yyyy HH:mm");
+                        datetimeUpdate = @item.UpdateAt.ToString("dd/MM/yyyy");
                     }
                     <tr>
                         <td>1</td>

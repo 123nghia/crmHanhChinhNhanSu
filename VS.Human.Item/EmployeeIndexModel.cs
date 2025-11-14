@@ -1,4 +1,6 @@
-﻿namespace VS.Human.Item
+using System.Globalization;
+
+namespace VS.Human.Item
 {
     public class EmployeeIndexModel : BaseIndexModel
     {
@@ -34,7 +36,7 @@
             {
                 if (Onboard.HasValue)
                 {
-                    return Onboard.Value.ToString("yyyy-MM-dd");
+                    return Onboard.Value.ToString("yyyy-MM-dd",  CultureInfo.InvariantCulture);
                 }
                 return string.Empty;
             }

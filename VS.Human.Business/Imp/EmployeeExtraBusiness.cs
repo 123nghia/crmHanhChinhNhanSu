@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using VS.Human.Business.Model;
 using VS.Human.Rep;
 using VS.Human.Rep.Model;
@@ -104,6 +104,7 @@ namespace VS.Human.Business.Imp
 
                 employee.BankAccount = requestAdd.BankAccount;
                 employee.BankName = requestAdd.BankName;
+                employee.BeneficiaryName = requestAdd.BeneficiaryName;
                 return await _unitOfWork.EmployeeRep.AddOrUpdate(employee);
             }
             var bhxhItem = await _unitOfWork.BHXHItemRep.GetInfo(employee.UserName);
@@ -123,8 +124,9 @@ namespace VS.Human.Business.Imp
             bhxhItem.DependentName = requestAdd.DependentName;
             if (requestAdd.TypeUpdate == 2)
             {
-
-              return  await _unitOfWork.BHXHItemRep.AddOrUpdate(bhxhItem);
+                bhxhItem.PITDate = requestAdd.PITDate;
+                bhxhItem.EffectedFrom = requestAdd.EffectedFrom;
+                return  await _unitOfWork.BHXHItemRep.AddOrUpdate(bhxhItem);
             }
             var taxCodeitem = await _unitOfWork.TaxtItemRep.GetInfo(employee.UserName);
             if (taxCodeitem == null || taxCodeitem.Id < 1)
@@ -139,8 +141,7 @@ namespace VS.Human.Business.Imp
             taxCodeitem.PageTax = requestAdd.PageTax;
             taxCodeitem.CodeId = requestAdd.CodeBHXH;
             taxCodeitem.RegBHYT = requestAdd.RegBHYT;
-            taxCodeitem.PITDate = requestAdd.PITDate;
-            taxCodeitem.EffectedFrom = requestAdd.EffectedFrom;
+          
            return  await _unitOfWork.TaxtItemRep.AddOrUpdate(taxCodeitem);
            
         }

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+using System.Collections;
+using System.Globalization;
 
 namespace VS.Human.Item
 {
@@ -63,7 +64,7 @@ namespace VS.Human.Item
             {
                 if (From.HasValue)
                 {
-                    return From.Value.ToString("yyyy-MM-dd");
+                    return From.Value.ToString("yyyy-MM-dd",  CultureInfo.InvariantCulture);
                 }
                 return "";
             }
@@ -74,7 +75,7 @@ namespace VS.Human.Item
             {
                 if (To.HasValue)
                 {
-                    return To.Value.ToString("yyyy-MM-dd");
+                    return To.Value.ToString("yyyy-MM-dd",  CultureInfo.InvariantCulture);
                 }
                 return "";
             }

@@ -1,3 +1,4 @@
+
 namespace VS.Human.Rep.Model
 {
     public class BHXHItem : BaseModel
@@ -12,5 +13,7 @@ namespace VS.Human.Rep.Model
         public string UserName { get; set; } = string.Empty;
     
         public string ChungTuThue { get; set; } = string.Empty;
+        public DateTime? PITDate { get; set; }
+        public DateTime? EffectedFrom { get; set; }
     }
 }

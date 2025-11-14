@@ -93,12 +93,12 @@
                             @foreach (var itemData in Model.DataAll.Data)
                             {
                                 var itemInfo = itemData as dynamic;
-                                var datetimeCreate = @itemInfo.CreateAt.ToString("dd/MM/yyyy HH:mm");
+                                var datetimeCreate = @itemInfo.CreateAt.ToString("dd/MM/yyyy");
                                 var datetimeUpdate = "";
 
                                 if (@itemInfo.UpdateAt != null)
                                 {
-                                    datetimeUpdate = @itemInfo.UpdateAt.ToString("dd/MM/yyyy HH:mm");
+                                    datetimeUpdate = @itemInfo.UpdateAt.ToString("dd/MM/yyyy");
                                 }
                                 i++;
 
@@ -127,7 +127,7 @@
                                             <td>@partnerText </td>
                                             <td>@itemInfo.StatusText</td>
                                             <td>@itemInfo.AssigeeName</td>
-                                            <td>@itemInfo.DateGet</td>
+                                            <td>@(itemInfo.DateGet != null ? ((DateTime)itemInfo.DateGet).ToString("dd/MM/yyyy") : "")</td>
                                              <td>@itemInfo.SourceName</td>
                                             <td>@datetimeCreate</td>
                                             <td>@datetimeUpdate</td>

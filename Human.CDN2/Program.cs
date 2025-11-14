@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Localization;
+using System.Globalization;
+
 namespace Human.CDN2
 {
     public class Program
@@ -5,6 +8,20 @@ namespace Human.CDN2
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // Force every DateTime render/bind to use dd/MM/yyyy by default.
+            var vietnamCulture = new CultureInfo("vi-VN");
+            vietnamCulture.DateTimeFormat.ShortDatePattern = "dd/MM/yyyy";
+            vietnamCulture.DateTimeFormat.LongDatePattern = "dd/MM/yyyy HH:mm:ss";
+            CultureInfo.DefaultThreadCurrentCulture = vietnamCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = vietnamCulture;
+            var localizationOptions = new RequestLocalizationOptions
+            {
+                DefaultRequestCulture = new RequestCulture(vietnamCulture),
+                SupportedCultures = new[] { vietnamCulture },
+                SupportedUICultures = new[] { vietnamCulture },
+                ApplyCurrentCultureToResponseHeaders = true
+            };
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
@@ -19,6 +36,7 @@ namespace Human.CDN2
                 app.UseHsts();
             }
 
+            app.UseRequestLocalization(localizationOptions);
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
