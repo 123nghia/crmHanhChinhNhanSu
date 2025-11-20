@@ -5,6 +5,8 @@ using VS.Human.Business;
 using VS.Human.Business.Model;
 using VS.Human.Item;
 using VS.Human.Rep.Model;
+using System;
+using System.Linq;
 
 namespace crmHuman.Pages
 {
@@ -13,6 +15,7 @@ namespace crmHuman.Pages
     {
         private readonly ILogger<EmployeeModel> _logger;
         private readonly IEmpBusiness _empBusiness;
+        private readonly IEmployeeImportBusiness _employeeImportBusiness;
 
         private readonly ICandidateBusiness _candidateBusiness;
 
@@ -33,11 +36,13 @@ namespace crmHuman.Pages
         }
         public EmployeeModel(ILogger<EmployeeModel> logger,
             IEmpBusiness empBusiness,
+            IEmployeeImportBusiness employeeImportBusiness,
             ICandidateBusiness candidateBusiness
             )
         {
             _logger = logger;
             _empBusiness = empBusiness;
+            _employeeImportBusiness = employeeImportBusiness;
             TitlePage = "Danh sách nhân viên";
             KeyPage = "Employee";
 
@@ -235,6 +240,52 @@ namespace crmHuman.Pages
                 Id = id
             };
             return Partial("formChangePassword", resultView);
+        }
+
+        public virtual PartialViewResult OnGetFormImportEmployee()
+        {
+            return Partial("FormImportEmployee", null);
+        }
+
+        [RequestSizeLimit(5242880)]
+        public async Task<IActionResult> OnPostImportEmployee([FromForm] ImportSourceFileAdd request)
+        {
+            if (request?.FileRequest == null || request.FileRequest.Length == 0)
+            {
+                var listEror = new List<object>();
+                listEror.Add(new { content = "File không hợp lệ" });
+                return ApiResponseHelper.BadRequest(listEror);
+            }
+
+            try
+            {
+                GetInfoUser();
+                var importResult = await _employeeImportBusiness.ImportAsync(request.FileRequest, UserData.UserId);
+                var formattedErrors = importResult.Errors
+                    .Select(e => (object)new { e.Row, e.Content })
+                    .ToList();
+                var response = new
+                {
+                    success = importResult.TotalError == 0,
+                    importResult.Total,
+                    importResult.TotalSuccess,
+                    importResult.TotalError,
+                    errors = formattedErrors
+                };
+
+                if (importResult.TotalError > 0)
+                {
+                    var errs = string.Join(" | ", importResult.Errors.Select(e => $"Row {e.Row}: {e.Content}"));
+                    _logger.LogWarning("Import employee failed: {Errors}", errs);
+                    return ApiResponseHelper.BadRequest(formattedErrors);
+                }
+                return ApiResponseHelper.SuccessResponse(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while importing employees");
+                return ApiResponseHelper.Error("Lỗi hệ thống khi import. Vui lòng thử lại sau.");
+            }
         }
 
         public async Task<IActionResult> OnPostDelete(int Id = -1)

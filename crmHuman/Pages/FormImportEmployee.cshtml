@@ -1,0 +1,20 @@
+<div class="modal-header">
+    <h5 class="modal-title">Import nhân viên</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <form id="formImportEmployee" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label class="form-label">File Excel (.xlsx)</label>
+            <input type="file" name="FileRequest" accept=".xlsx" class="form-control" required />
+            <div class="form-text">Dùng file mẫu: <a href="/fileImport.xlsx" download>fileImport.xlsx</a></div>
+        </div>
+        <div class="mb-1">
+            <small class="text-muted">Hàng tiêu đề ở dòng 2, dữ liệu bắt đầu từ dòng 3.</small>
+        </div>
+    </form>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+    <button type="button" class="btn btn-primary" onclick="submitImportEmployee()">Import</button>
+</div>
