@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace crmHuman.Services
 {
@@ -12,22 +14,28 @@ namespace crmHuman.Services
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<DatabaseMigrationService> _logger;
+        private readonly IWebHostEnvironment _environment;
         private const string ConnectionStringName = "stringConnect7";
+        private const string MigrationsDirectory = "migrations";
 
-        public DatabaseMigrationService(IConfiguration configuration, ILogger<DatabaseMigrationService> logger)
+        public DatabaseMigrationService(
+            IConfiguration configuration, 
+            ILogger<DatabaseMigrationService> logger,
+            IWebHostEnvironment environment)
         {
             _configuration = configuration;
             _logger = logger;
+            _environment = environment;
         }
 
         /// <summary>
-        /// Chạy migration tự động
+        /// Chạy migration tự động từ thư mục migrations/
         /// </summary>
         public async Task RunMigrationsAsync()
         {
             try
             {
-                _logger.LogInformation("Bắt đầu chạy database migration...");
+                _logger.LogInformation("=== Bắt đầu chạy database migration ===");
 
                 var connectionString = _configuration.GetConnectionString(ConnectionStringName);
                 if (string.IsNullOrEmpty(connectionString))
@@ -39,214 +47,231 @@ namespace crmHuman.Services
                 using var connection = new SqlConnection(connectionString);
                 await connection.OpenAsync();
 
-                // Chạy các migration
-                await AddEmployeeColumnsAsync(connection);
-                await AddTaxItemColumnsAsync(connection);
+                // Đảm bảo bảng __MigrationHistory tồn tại
+                await EnsureMigrationHistoryTableAsync(connection);
 
-                _logger.LogInformation("Database migration hoàn thành thành công!");
+                // Lấy danh sách migrations đã chạy
+                var appliedMigrations = await GetAppliedMigrationsAsync(connection);
+                _logger.LogInformation("Đã tìm thấy {Count} migration(s) đã được áp dụng", appliedMigrations.Count);
+
+                // Đọc tất cả file migration
+                var migrationFiles = GetMigrationFiles();
+                if (migrationFiles.Count == 0)
+                {
+                    _logger.LogWarning("Không tìm thấy file migration nào trong thư mục '{Directory}'", MigrationsDirectory);
+                    return;
+                }
+
+                _logger.LogInformation("Tìm thấy {Count} file migration trong thư mục '{Directory}'", 
+                    migrationFiles.Count, MigrationsDirectory);
+
+                // Chạy các migration chưa được áp dụng
+                var pendingMigrations = migrationFiles
+                    .Where(m => !appliedMigrations.Contains(m.Version))
+                    .OrderBy(m => m.Version)
+                    .ToList();
+
+                if (pendingMigrations.Count == 0)
+                {
+                    _logger.LogInformation("Tất cả migrations đã được áp dụng. Không có migration mới cần chạy.");
+                }
+                else
+                {
+                    _logger.LogInformation("Có {Count} migration(s) pending cần chạy", pendingMigrations.Count);
+
+                    foreach (var migration in pendingMigrations)
+                    {
+                        await ApplyMigrationAsync(connection, migration);
+                    }
+                }
+
+                _logger.LogInformation("=== Database migration hoàn thành thành công! ===");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi chạy database migration");
                 // Không throw exception để ứng dụng vẫn có thể khởi động
-                // Nếu cần thiết, có thể throw để dừng ứng dụng
             }
         }
 
         /// <summary>
-        /// Thêm các cột mới vào bảng Employees
+        /// Đảm bảo bảng __MigrationHistory tồn tại
         /// </summary>
-        private async Task AddEmployeeColumnsAsync(IDbConnection connection)
+        private async Task EnsureMigrationHistoryTableAsync(SqlConnection connection)
         {
-            // Kiểm tra tên bảng thực tế (có thể là Employees hoặc Employee)
-            var tableName = await GetTableNameAsync(connection, new[] { "Employees", "Employee" }) ?? "Employees";
+            var sql = @"
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = '__MigrationHistory')
+                BEGIN
+                    CREATE TABLE [dbo].[__MigrationHistory](
+                        [MigrationId] INT IDENTITY(1,1) PRIMARY KEY,
+                        [Version] VARCHAR(10) NOT NULL UNIQUE,
+                        [Description] NVARCHAR(255) NOT NULL,
+                        [FileName] VARCHAR(255) NOT NULL,
+                        [AppliedOn] DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        [ExecutionTime] INT NULL,
+                        [Success] BIT NOT NULL DEFAULT 1,
+                        [ErrorMessage] NVARCHAR(MAX) NULL
+                    );
+                END";
 
-            var columns = new[]
-            {
-                new { Name = "Gender", Type = "NVARCHAR(50)", Description = "Giới tính" },
-                new { Name = "PlaceOfBirth", Type = "NVARCHAR(255)", Description = "Nơi sinh" },
-                new { Name = "Religion", Type = "NVARCHAR(100)", Description = "Tôn giáo" },
-                new { Name = "PersonalEmail", Type = "NVARCHAR(255)", Description = "Email cá nhân" },
-                new { Name = "BeneficiaryName", Type = "NVARCHAR(255)", Description = "Tên chủ tài khoản" }
-            };
-
-            foreach (var column in columns)
-            {
-                if (await ColumnExistsAsync(connection, tableName, column.Name))
-                {
-                    _logger.LogInformation("Cột {ColumnName} ({Description}) đã tồn tại trong bảng {TableName}", 
-                        column.Name, column.Description, tableName);
-                    continue;
-                }
-
-                try
-                {
-                    var sql = $@"ALTER TABLE [dbo].[{tableName}] ADD [{column.Name}] {column.Type} NULL;";
-                    using var command = connection.CreateCommand();
-                    command.CommandText = sql;
-                    
-                    // Sử dụng SqlCommand để có async methods
-                    if (command is SqlCommand sqlCommand)
-                    {
-                        await sqlCommand.ExecuteNonQueryAsync();
-                    }
-                    else
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                    
-                    _logger.LogInformation("Đã thêm cột {ColumnName} ({Description}) vào bảng {TableName}", 
-                        column.Name, column.Description, tableName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Không thể thêm cột {ColumnName} vào bảng {TableName}. Có thể cột đã tồn tại.", 
-                        column.Name, tableName);
-                }
-            }
+            using var command = new SqlCommand(sql, connection);
+            await command.ExecuteNonQueryAsync();
         }
 
         /// <summary>
-        /// Thêm các cột mới vào bảng TaxItem
+        /// Lấy danh sách version của các migration đã chạy
         /// </summary>
-        private async Task AddTaxItemColumnsAsync(IDbConnection connection)
+        private async Task<HashSet<string>> GetAppliedMigrationsAsync(SqlConnection connection)
         {
-            var tableName = "TaxItem";
+            var appliedMigrations = new HashSet<string>();
 
-            var columns = new[]
+            var sql = "SELECT Version FROM __MigrationHistory WHERE Success = 1";
+            using var command = new SqlCommand(sql, connection);
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
             {
-                new { Name = "PITDate", Type = "DATETIME", Description = "Ngày cấp mã số thuế" },
-                new { Name = "EffectedFrom", Type = "DATETIME", Description = "Hiệu lực từ" }
-            };
-
-            foreach (var column in columns)
-            {
-                if (await ColumnExistsAsync(connection, tableName, column.Name))
-                {
-                    _logger.LogInformation("Cột {ColumnName} ({Description}) đã tồn tại trong bảng {TableName}", 
-                        column.Name, column.Description, tableName);
-                    continue;
-                }
-
-                try
-                {
-                    var sql = $@"ALTER TABLE [dbo].[{tableName}] ADD [{column.Name}] {column.Type} NULL;";
-                    using var command = connection.CreateCommand();
-                    command.CommandText = sql;
-                    
-                    // Sử dụng SqlCommand để có async methods
-                    if (command is SqlCommand sqlCommand)
-                    {
-                        await sqlCommand.ExecuteNonQueryAsync();
-                    }
-                    else
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                    
-                    _logger.LogInformation("Đã thêm cột {ColumnName} ({Description}) vào bảng {TableName}", 
-                        column.Name, column.Description, tableName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Không thể thêm cột {ColumnName} vào bảng {TableName}. Có thể cột đã tồn tại.", 
-                        column.Name, tableName);
-                }
+                appliedMigrations.Add(reader.GetString(0));
             }
+
+            return appliedMigrations;
         }
 
         /// <summary>
-        /// Lấy tên bảng thực tế từ danh sách các tên có thể
+        /// Lấy danh sách file migration từ thư mục migrations/
         /// </summary>
-        private async Task<string?> GetTableNameAsync(IDbConnection connection, string[] possibleNames)
+        private List<MigrationFile> GetMigrationFiles()
         {
-            try
+            var migrations = new List<MigrationFile>();
+
+            // Tìm thư mục migrations - thử cả ContentRootPath và parent directory
+            var contentRoot = _environment.ContentRootPath;
+            var migrationPath = Path.Combine(contentRoot, MigrationsDirectory);
+            
+            _logger.LogInformation("ContentRootPath: {ContentRoot}", contentRoot);
+            _logger.LogInformation("Đang tìm thư mục migration tại: {Path}", migrationPath);
+            
+            if (!Directory.Exists(migrationPath))
             {
-                foreach (var tableName in possibleNames)
+                // Thử tìm ở parent directory (project root)
+                var parentPath = Directory.GetParent(contentRoot)?.FullName;
+                if (parentPath != null)
                 {
-                    var sql = @"
-                        SELECT COUNT(*) 
-                        FROM INFORMATION_SCHEMA.TABLES 
-                        WHERE TABLE_TYPE = 'BASE TABLE' 
-                        AND TABLE_NAME = @TableName";
-
-                    using var command = connection.CreateCommand();
-                    command.CommandText = sql;
-                    
-                    var param = command.CreateParameter();
-                    param.ParameterName = "@TableName";
-                    param.Value = tableName;
-                    command.Parameters.Add(param);
-
-                    object? result;
-                    // Sử dụng SqlCommand để có async methods
-                    if (command is SqlCommand sqlCommand)
-                    {
-                        result = await sqlCommand.ExecuteScalarAsync();
-                    }
-                    else
-                    {
-                        result = command.ExecuteScalar();
-                    }
-                    
-                    if (result != null && Convert.ToInt32(result) > 0)
-                    {
-                        return tableName;
-                    }
+                    migrationPath = Path.Combine(parentPath, MigrationsDirectory);
+                    _logger.LogInformation("Thử tìm ở parent directory: {Path}", migrationPath);
                 }
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Lỗi khi kiểm tra tên bảng");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Kiểm tra xem cột đã tồn tại chưa
-        /// </summary>
-        private async Task<bool> ColumnExistsAsync(IDbConnection connection, string tableName, string columnName)
-        {
-            try
-            {
-                var sql = @"
-                    SELECT COUNT(*) 
-                    FROM INFORMATION_SCHEMA.COLUMNS 
-                    WHERE TABLE_NAME = @TableName 
-                    AND COLUMN_NAME = @ColumnName";
-
-                using var command = connection.CreateCommand();
-                command.CommandText = sql;
                 
-                var tableParam = command.CreateParameter();
-                tableParam.ParameterName = "@TableName";
-                tableParam.Value = tableName;
-                command.Parameters.Add(tableParam);
-                
-                var columnParam = command.CreateParameter();
-                columnParam.ParameterName = "@ColumnName";
-                columnParam.Value = columnName;
-                command.Parameters.Add(columnParam);
-
-                object? result;
-                // Sử dụng SqlCommand để có async methods
-                if (command is SqlCommand sqlCommand)
+                if (!Directory.Exists(migrationPath))
                 {
-                    result = await sqlCommand.ExecuteScalarAsync();
+                    _logger.LogWarning("Thư mục migration không tồn tại: {Path}", migrationPath);
+                    _logger.LogWarning("Vui lòng đảm bảo thư mục 'migrations' nằm ở project root");
+                    return migrations;
+                }
+            }
+
+            // Đọc tất cả file .sql
+            var files = Directory.GetFiles(migrationPath, "V*.sql", SearchOption.TopDirectoryOnly);
+
+            foreach (var file in files)
+            {
+                var fileName = Path.GetFileName(file);
+                var match = Regex.Match(fileName, @"^V(\d{3})__(.+)\.sql$");
+
+                if (match.Success)
+                {
+                    migrations.Add(new MigrationFile
+                    {
+                        Version = match.Groups[1].Value,
+                        Description = match.Groups[2].Value.Replace("_", " "),
+                        FileName = fileName,
+                        FilePath = file
+                    });
                 }
                 else
                 {
-                    result = command.ExecuteScalar();
+                    _logger.LogWarning("File migration không đúng format: {FileName}", fileName);
                 }
-                
-                return result != null && Convert.ToInt32(result) > 0;
+            }
+
+            return migrations;
+        }
+
+        /// <summary>
+        /// Áp dụng một migration
+        /// </summary>
+        private async Task ApplyMigrationAsync(SqlConnection connection, MigrationFile migration)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            _logger.LogInformation("Đang áp dụng migration {Version}: {Description}...", 
+                migration.Version, migration.Description);
+
+            try
+            {
+                // Đọc nội dung SQL
+                var sql = await File.ReadAllTextAsync(migration.FilePath);
+
+                // Thực thi SQL
+                using var command = new SqlCommand(sql, connection);
+                command.CommandTimeout = 300; // 5 minutes timeout
+                await command.ExecuteNonQueryAsync();
+
+                stopwatch.Stop();
+
+                // Ghi log vào __MigrationHistory
+                await RecordMigrationAsync(connection, migration, stopwatch.ElapsedMilliseconds, true, null);
+
+                _logger.LogInformation("Migration {Version} hoàn thành trong {Time}ms", 
+                    migration.Version, stopwatch.ElapsedMilliseconds);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Lỗi khi kiểm tra cột {ColumnName} trong bảng {TableName}", columnName, tableName);
-                return false;
+                stopwatch.Stop();
+                _logger.LogError(ex, "Lỗi khi áp dụng migration {Version}: {Description}", 
+                    migration.Version, migration.Description);
+
+                // Ghi log lỗi vào __MigrationHistory
+                await RecordMigrationAsync(connection, migration, stopwatch.ElapsedMilliseconds, false, ex.Message);
+
+                throw;
             }
+        }
+
+        /// <summary>
+        /// Ghi log migration vào bảng __MigrationHistory
+        /// </summary>
+        private async Task RecordMigrationAsync(
+            SqlConnection connection, 
+            MigrationFile migration, 
+            long executionTime, 
+            bool success, 
+            string? errorMessage)
+        {
+            var sql = @"
+                INSERT INTO __MigrationHistory 
+                (Version, Description, FileName, ExecutionTime, Success, ErrorMessage)
+                VALUES 
+                (@Version, @Description, @FileName, @ExecutionTime, @Success, @ErrorMessage)";
+
+            using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@Version", migration.Version);
+            command.Parameters.AddWithValue("@Description", migration.Description);
+            command.Parameters.AddWithValue("@FileName", migration.FileName);
+            command.Parameters.AddWithValue("@ExecutionTime", executionTime);
+            command.Parameters.AddWithValue("@Success", success);
+            command.Parameters.AddWithValue("@ErrorMessage", (object?)errorMessage ?? DBNull.Value);
+
+            await command.ExecuteNonQueryAsync();
+        }
+
+        /// <summary>
+        /// Represents a migration file
+        /// </summary>
+        private class MigrationFile
+        {
+            public string Version { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public string FileName { get; set; } = string.Empty;
+            public string FilePath { get; set; } = string.Empty;
         }
     }
 }

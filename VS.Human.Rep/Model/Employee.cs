@@ -45,6 +45,7 @@
         public string? Religion { get; set; }           // Tôn giáo
         public string? PersonalEmail { get; set; }      // Email cá nhân
         public string? BeneficiaryName { get; set; }     // Tên chủ tài khoản
+        public string? EmergencyContact { get; set; }    // Liên hệ khẩn cấp
 
     }
 }

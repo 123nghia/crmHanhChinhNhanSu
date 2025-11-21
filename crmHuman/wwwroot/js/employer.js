@@ -3078,6 +3078,7 @@ function saveEmployeeDetail(idEmp) {
     var txtReligionInput = getValueControl("txtReligion");
     var txtPersonalEmailInput = getValueControl("txtPersonalEmail");
     var txtBeneficiaryNameInput = getValueControl("txtBeneficiaryName");
+    var txtEmergencyContactInput = getValueControl("txtEmergencyContact");
 
       var cbStatusWorkInput = getValueControl("cbStatusWork");
 
@@ -3124,7 +3125,8 @@ function saveEmployeeDetail(idEmp) {
         PlaceOfBirth: txtPlaceOfBirthInput,
         Religion: txtReligionInput,
         PersonalEmail: txtPersonalEmailInput,
-        BeneficiaryName: txtBeneficiaryNameInput
+        BeneficiaryName: txtBeneficiaryNameInput,
+        EmergencyContact: txtEmergencyContactInput
     };
 
       $.ajax({

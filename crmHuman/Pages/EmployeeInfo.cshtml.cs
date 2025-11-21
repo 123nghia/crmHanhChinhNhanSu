@@ -334,7 +334,8 @@ namespace crmHuman.Pages
                 PlaceOfBirth = itemInfo.PlaceOfBirth,
                 Religion = itemInfo.Religion,
                 PersonalEmail = itemInfo.PersonalEmail,
-                BeneficiaryName = itemInfo.BeneficiaryName
+                BeneficiaryName = itemInfo.BeneficiaryName,
+                EmergencyContact = itemInfo.EmergencyContact
 
             };
 

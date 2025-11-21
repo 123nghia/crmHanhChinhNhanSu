@@ -159,6 +159,9 @@
             $.ajax({
                 url: "/Employee?handler=ImportEmployee",
                 type: "POST",
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
                 data: data,
                 cache: false,
                 processData: false,

@@ -4,6 +4,7 @@
 </div>
 <div class="modal-body">
     <form id="formImportEmployee" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
         <div class="mb-3">
             <label class="form-label">File Excel (.xlsx)</label>
             <input type="file" name="FileRequest" accept=".xlsx" class="form-control" required />

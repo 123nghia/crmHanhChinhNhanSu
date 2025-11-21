@@ -37,11 +37,25 @@ namespace VS.Human.Business.Imp
 
             item.PermanentAddress = itemAdd.PermanentAddress;
             item.TemporaryAddress = itemAdd.TemporaryAddress;
-            item.Noted = itemAdd.Noted;
             item.NationalId = itemAdd.NationalId;
             item.NationalDate = itemAdd.NationalDate;
             item.NationalPlace = itemAdd.NationalPlace;
-            item.Phone = itemAdd.Phone;
+            item.Email = itemAdd.Email;
+            item.DepartmentCode = itemAdd.DepartmentCode;
+            item.PositionCode = itemAdd.PositionCode;
+            item.ManagerId = itemAdd.ManagerId;
+            item.StatusWork = itemAdd.StatusWork;
+            item.BankAccount = itemAdd.BankAccount;
+            item.BankName = itemAdd.BankName;
+            item.EducationLevel = itemAdd.EducationLevel;
+            item.Maritalstatus = itemAdd.Maritalstatus;
+            item.DocumentCheck = itemAdd.DocumentCheck;
+            item.Gender = itemAdd.Gender;
+            item.PlaceOfBirth = itemAdd.PlaceOfBirth;
+            item.Religion = itemAdd.Religion;
+            item.PersonalEmail = itemAdd.PersonalEmail;
+            item.BeneficiaryName = itemAdd.BeneficiaryName;
+            
             var passNew = getMD5(itemAdd.Pass);
             item.Pass = passNew;
             item.CreateAt = DateTime.Now;

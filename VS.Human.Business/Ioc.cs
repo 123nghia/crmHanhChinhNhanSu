@@ -32,6 +32,7 @@ namespace VS.Human.Business
             services.AddSingleton<IScheduleInterviewBussiness, ScheduleInterviewBusiness>();
             services.AddSingleton<IDocumentDataBussiness, DocumentDataBussiness>();
             services.AddSingleton<IEmployeeExtraBusiness, EmployeeExtraBusiness>();
+            services.AddSingleton<IEmployeeImportBusiness, EmployeeImportBusiness>();
 
 
         }

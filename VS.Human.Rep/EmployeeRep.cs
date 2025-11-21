@@ -62,7 +62,8 @@ namespace VS.Human.Rep
                 item.PlaceOfBirth,
                 item.Religion,
                 item.PersonalEmail,
-                item.BeneficiaryName
+                item.BeneficiaryName,
+                item.EmergencyContact
             };
 
             return await this.ExecuteSQL("sp_emp_update", parameter);
@@ -109,7 +110,8 @@ namespace VS.Human.Rep
                 item.PlaceOfBirth,
                 item.Religion,
                 item.PersonalEmail,
-                item.BeneficiaryName
+                item.BeneficiaryName,
+                item.EmergencyContact
             };
 
             return await this.ExecuteSQL("sp_emp_insert", parameter);
