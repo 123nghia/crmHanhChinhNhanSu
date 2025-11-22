@@ -480,15 +480,20 @@ namespace VS.Human.Rep
                 //parameter.Limit = request.Limit;
                 //parameter.Page = request.Page;
             }
+            var sqlGet = sqlGetALl;
+            if (!string.IsNullOrEmpty(sqlPro))
+            {
+                sqlGet = sqlPro;
+            }
+            
             try
             {
                 using (var con = GetConnection())
                 {
-                    var sqlGet = sqlGetALl;
-                    if (!string.IsNullOrEmpty(sqlPro))
-                    {
-                        sqlGet = sqlPro;
-                    }
+                    // Log để debug
+                    System.Diagnostics.Debug.WriteLine($"Executing stored procedure: {sqlGet}");
+                    System.Diagnostics.Debug.WriteLine($"Parameters: {System.Text.Json.JsonSerializer.Serialize(parameter)}");
+                    
                     var result = await con.QueryAsync<TIndexModel>(sqlGet,
                         parameter as object, commandType: CommandType.StoredProcedure);
 
@@ -502,14 +507,30 @@ namespace VS.Human.Rep
                     var reponse = new BaseList()
                     {
                         Total = totalRecord,
-
                         Data = result
                     };
+                    
+                    System.Diagnostics.Debug.WriteLine($"Query result: Total={totalRecord}, Count={result?.Count() ?? 0}");
+                    
                     return reponse;
                 }
             }
             catch (Exception e)
             {
+                // Log lỗi chi tiết để debug
+                var errorMsg = $"Error in GetBaseAll - SP: {sqlGet}, Error: {e.Message}";
+                if (e.InnerException != null)
+                {
+                    errorMsg += $", InnerException: {e.InnerException.Message}";
+                }
+                
+                System.Diagnostics.Debug.WriteLine(errorMsg);
+                System.Diagnostics.Debug.WriteLine($"StackTrace: {e.StackTrace}");
+                
+                // Trả về empty list nhưng log lỗi để debug
+                // Caller có thể check logs để biết lỗi
+                Console.WriteLine($"[ERROR] {errorMsg}");
+                
                 return new BaseList()
                 {
                     Data = new List<Object>(),

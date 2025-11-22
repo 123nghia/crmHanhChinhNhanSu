@@ -1,21 +1,35 @@
-<div class="modal-header">
-    <h5 class="modal-title">Import nhân viên</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal-header bg-primary text-white">
+    <h5 class="modal-title"><i class="bi bi-file-earmark-spreadsheet-fill me-2"></i>Import Nhân Viên</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 <div class="modal-body">
     <form id="formImportEmployee" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
-        <div class="mb-3">
-            <label class="form-label">File Excel (.xlsx)</label>
-            <input type="file" name="FileRequest" accept=".xlsx" class="form-control" required />
-            <div class="form-text">Dùng file mẫu: <a href="/fileImport.xlsx" download>fileImport.xlsx</a></div>
+        
+        <div class="alert alert-info d-flex align-items-center" role="alert">
+            <i class="bi bi-info-circle-fill flex-shrink-0 me-2"></i>
+            <div>
+                Sử dụng file mẫu để đảm bảo dữ liệu chính xác.
+                <a href="/fileImport.xlsx" download class="fw-bold text-decoration-underline">Tải file mẫu tại đây</a>
+            </div>
         </div>
-        <div class="mb-1">
-            <small class="text-muted">Hàng tiêu đề ở dòng 2, dữ liệu bắt đầu từ dòng 3.</small>
+
+        <div class="mb-4">
+            <label class="form-label fw-bold">Chọn File Excel (.xlsx)</label>
+            <div class="input-group">
+                <input type="file" name="FileRequest" accept=".xlsx" class="form-control" required id="fileInputImport">
+                <label class="input-group-text" for="fileInputImport"><i class="bi bi-upload"></i></label>
+            </div>
+            <div class="form-text mt-2">
+                <i class="bi bi-check-circle-fill text-success small"></i> Hàng tiêu đề ở dòng 2<br>
+                <i class="bi bi-check-circle-fill text-success small"></i> Dữ liệu bắt đầu từ dòng 3
+            </div>
         </div>
     </form>
 </div>
-<div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-    <button type="button" class="btn btn-primary" onclick="submitImportEmployee()">Import</button>
+<div class="modal-footer bg-light">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+    <button type="button" class="btn btn-primary px-4" onclick="submitImportEmployee()">
+        <i class="bi bi-cloud-upload-fill me-1"></i> Import Dữ Liệu
+    </button>
 </div>

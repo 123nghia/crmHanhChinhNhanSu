@@ -135,55 +135,5 @@
     </div>
 </div><!-- End Large Modal-->
 
-@section Scripts{
-    <script>
-        function openImportEmployee() {
-            $("#contentModal").html("");
-            $("#formModal").modal("show");
-            $.get("/Employee?handler=FormImportEmployee", function (rs) {
-                $("#contentModal").html(rs);
-            });
-        }
-        function submitImportEmployee() {
-            const form = document.getElementById("formImportEmployee");
-            if (!form) {
-                alert("Không tìm thấy form import");
-                return;
-            }
-            const fileInput = form.querySelector("input[name='FileRequest']");
-            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-                alert("Vui lòng chọn file .xlsx");
-                return;
-            }
-            const data = new FormData(form);
-            $.ajax({
-                url: "/Employee?handler=ImportEmployee",
-                type: "POST",
-                headers: {
-                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
-                },
-                data: data,
-                cache: false,
-                processData: false,
-                contentType: false,
-                success: function (res) {
-                    if (res && res.success) {
-                        alert(`Import thành công: ${res.totalSuccess} dòng. Lỗi: ${res.totalError}`);
-                        $("#formModal").modal("hide");
-                        location.reload();
-                    } else {
-                        alert("Import không thành công");
-                    }
-                },
-                error: function (xhr) {
-                    let msg = "Import thất bại";
-                    if (xhr && xhr.responseJSON && xhr.responseJSON.length) {
-                        msg += "\n" + xhr.responseJSON.map(x => `${x?.Row ?? ''}: ${x?.Content ?? ''}`).join("\n");
-                    }
-                    alert(msg);
-                }
-            });
-        }
-    </script>
-}
+    <script src="/js/pages/employee.js?v=@DateTime.Now.Ticks"></script>
 
