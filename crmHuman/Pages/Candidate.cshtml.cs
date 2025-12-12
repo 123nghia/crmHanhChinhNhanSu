@@ -91,7 +91,7 @@ namespace crmHuman.Pages
                     StatusCode = StatusCodes.Status400BadRequest
                 };
             }
-            var result = true;
+            bool result = false;
             if (request.Id < 0)
             {
                 request.Status = 91;

@@ -93,18 +93,22 @@ namespace crmHuman.Pages
                 };
             }
 
-            var result = true;
+            Employee? result = null;
             if (request.Id < 0)
             {
                 result = await _empBusiness.Add(request);
             }
             else
             {
-                result = await _empBusiness.Update(request);
+                var ok = await _empBusiness.Update(request);
+                if (ok)
+                {
+                    result = await _empBusiness.CheckDuplicate(request.Email ?? string.Empty, request.Phone ?? string.Empty);
+                }
             }
             var dataReponse = new
             {
-                success = result,
+                success = result != null && result.Id > 0,
 
             };
             return new JsonResult(dataReponse)

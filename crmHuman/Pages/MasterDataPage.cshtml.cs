@@ -44,6 +44,9 @@ namespace crmHuman.Pages
                         return "trang-thai-hon-nhan";
                      case 14:
                         return "trinh-do-hoc-van";
+
+                       case 20:
+                        return "ton-giao";
                     default:
                         return "";
                 }
