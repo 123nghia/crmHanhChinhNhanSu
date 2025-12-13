@@ -18,7 +18,7 @@ namespace VS.Human.Business.Imp
 
         }
 
-        public async Task<bool> Add(EmployeeInfoAdd itemAdd)
+        public async Task<Employee?> Add(EmployeeInfoAdd itemAdd)
         {
             var item = new Employee();
             item.FullName = itemAdd.FullName;
@@ -60,7 +60,16 @@ namespace VS.Human.Business.Imp
             item.Pass = passNew;
             item.CreateAt = DateTime.Now;
             item.CreatedBy = GetUserId();
-            return await _unitOfWork.EmployeeRep.AddOrUpdate(item);
+            var ok = await _unitOfWork.EmployeeRep.AddOrUpdate(item);
+            if (!ok) return null;
+
+            // Try to fetch the created employee to get real Id/UserName
+            var created = await _unitOfWork.EmployeeRep.GetLastByEmailOrPhone(item.Email ?? string.Empty, item.Phone ?? string.Empty);
+            if (created != null && created.Id > 0) return created;
+            // Fallback to duplicate check
+            created = await _unitOfWork.EmployeeRep.CheckDuplicate(item.Email ?? string.Empty, item.Phone ?? string.Empty);
+            if (created != null && created.Id > 0) return created;
+            return null;
         }
 
 

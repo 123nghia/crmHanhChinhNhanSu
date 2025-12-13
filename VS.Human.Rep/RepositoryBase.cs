@@ -102,17 +102,15 @@ namespace VS.Human.Rep
             {
                 using (var _con = GetConnection())
                 {
-                    var result = await _con.ExecuteAsync(sql, param: parameter, commandType: commandType);
-
-                    return true;
+                    var affected = await _con.ExecuteAsync(sql, param: parameter, commandType: commandType);
+                    // Stored procedures with SET NOCOUNT ON often return -1 even when successful
+                    return affected != 0;
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return false;
-
             }
-
         }
 
 
@@ -394,20 +392,13 @@ namespace VS.Human.Rep
             {
                 using (var _con = GetConnection())
                 {
-                    var result = await _con.ExecuteAsync(sql, param: parameter);
-
-                    if (result == null)
-                    {
-                        return false;
-                    }
-                    return true;
+                    var affected = await _con.ExecuteAsync(sql, param: parameter);
+                    return affected != 0;
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-
                 return false;
-
             }
 
         }

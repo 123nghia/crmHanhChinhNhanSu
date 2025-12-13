@@ -110,8 +110,7 @@ namespace VS.Human.Rep
                 item.PlaceOfBirth,
                 item.Religion,
                 item.PersonalEmail,
-                item.BeneficiaryName,
-                item.EmergencyContact
+                item.BeneficiaryName
             };
 
             return await this.ExecuteSQL("sp_emp_insert", parameter);
@@ -126,6 +125,22 @@ namespace VS.Human.Rep
             };
             var result = await ExecuteSQL<Employee>("sp_Check_Duplicate", parameter);
             return result;
+        }
+
+        public async Task<Employee> GetByUserName(string userName)
+        {
+            var parameter = new { userName };
+            var sql = "SELECT TOP 1 * FROM Employees WHERE UserName = @userName AND ISNULL(Deleted,0)=0";
+            return await ExecuteSQL<Employee>(sql, parameter);
+        }
+
+        public async Task<Employee> GetLastByEmailOrPhone(string email, string phone)
+        {
+            var parameter = new { email, phone };
+            var sql = @"SELECT TOP 1 * FROM Employees 
+                        WHERE (Email = @email OR Phone = @phone)
+                        ORDER BY Id DESC";
+            return await ExecuteSQL<Employee>(sql, parameter);
         }
         public async Task<bool> ChangePassword(string password, int id)
         {

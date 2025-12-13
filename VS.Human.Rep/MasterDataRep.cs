@@ -81,9 +81,18 @@ namespace VS.Human.Rep
             return result;
         }
 
+        public async Task<MasterData?> GetByCode(string code, int typeData)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return null;
+            var sql = "SELECT TOP 1 * FROM MasterData WHERE Code = @code AND TypeData = @typeData AND ISNULL(Deleted,0) = 0";
+            return await ExecuteSQL<MasterData>(sql, new { code, typeData });
+        }
 
-
-
-
+        public async Task<MasterData?> GetByName(string name, int typeData)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var sql = "SELECT TOP 1 * FROM MasterData WHERE Name = @name AND TypeData = @typeData AND ISNULL(Deleted,0) = 0";
+            return await ExecuteSQL<MasterData>(sql, new { name, typeData });
+        }
     }
 }

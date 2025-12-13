@@ -18,6 +18,7 @@ namespace VS.Human.Business.Imp
             _handleReportBussiness = handleReportBussiness;
         }
 
+
         public async Task<bool> CalculatingTalktime()
         {
             var timerun = DateTime.Now;

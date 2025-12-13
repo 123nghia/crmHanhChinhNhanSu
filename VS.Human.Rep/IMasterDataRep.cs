@@ -10,6 +10,8 @@ namespace VS.Human.Rep
         Task<bool> Delete(int id);
 
         Task<MasterData> GetById(int id);
+        Task<MasterData?> GetByCode(string code, int typeData);
+        Task<MasterData?> GetByName(string name, int typeData);
 
 
 

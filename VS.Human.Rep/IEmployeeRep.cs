@@ -12,6 +12,8 @@ namespace VS.Human.Rep
         Task<bool> Delete(int id, bool reactive = false);
         Task<Employee> GetById(int id);
         Task<Employee> CheckDuplicate(string email, string phone);
+        Task<Employee> GetByUserName(string userName);
+        Task<Employee> GetLastByEmailOrPhone(string email, string phone);
         Task<BaseList> GetAll(EmployeeRequest id);
         Task<BaseList> GetAllManager(int leadgroup = -1);
         Task<Account> GetByLineCode(string lineCode);

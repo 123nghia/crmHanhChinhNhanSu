@@ -10,16 +10,17 @@ namespace VS.Human.Business.Helpers
         {
             var errors = new List<string>();
 
-
-
             if (string.IsNullOrWhiteSpace(employee.FullName))
-                errors.Add("Họ tên không được để trống");
+                errors.Add("Ho ten khong duoc de trong");
+
+            if (string.IsNullOrWhiteSpace(employee.Phone))
+                errors.Add("So dien thoai bat buoc");
 
             if (!string.IsNullOrWhiteSpace(employee.Phone) && !IsPhoneNumber(employee.Phone))
-                errors.Add("Số điện thoại không hợp lệ");
+                errors.Add("So dien thoai khong hop le");
 
             if (!string.IsNullOrWhiteSpace(employee.Email) && !IsEmail(employee.Email))
-                errors.Add("Email không hợp lệ");
+                errors.Add("Email khong hop le");
 
             if (errors.Any())
                 return string.Join(", ", errors);
