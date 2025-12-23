@@ -21,6 +21,7 @@ public class PermisionUser
     public bool? Assignee {get;set;}
 
      public bool? ImportMasketting {get;set;}
+    public bool? Approve { get; set; }
     public PermisionUser()
     {
         Delete = true;
@@ -32,5 +33,6 @@ public class PermisionUser
         SearchGrop = true;
         Assignee=false;
         ImportMasketting = false;
+        Approve = false;
     }
 }

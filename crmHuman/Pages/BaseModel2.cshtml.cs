@@ -186,6 +186,26 @@ namespace crmHuman.Pages
                 UserData.LineCode = lineCode;
 
                 UserDataGlobal.AddOrUpdate(idUser, userName, fullName);
+
+                // Dynamic Permission Loading
+                if (!string.IsNullOrEmpty(roleCode) && !string.IsNullOrEmpty(KeyPage))
+                {
+                    // Use Service Locator pattern since simple constructor injection is hard in Base Class here
+                    var permissionBusiness = HttpContext.RequestServices.GetService(typeof(VS.Human.Business.IPermissionBusiness)) as VS.Human.Business.IPermissionBusiness;
+                    if (permissionBusiness != null)
+                    {
+                        var perms = permissionBusiness.GetPermissionsByRoleSync(roleCode);
+                        var pagePerm = perms.FirstOrDefault(p => p.PageCode == KeyPage);
+                        if (pagePerm != null)
+                        {
+                            Permision.View = pagePerm.IsView;
+                            Permision.Add = pagePerm.IsAdd;
+                            Permision.Edit = pagePerm.IsEdit;
+                            Permision.Delete = pagePerm.IsDelete;
+                            Permision.Approve = pagePerm.IsApprove; 
+                        }
+                    }
+                }
             }
 
         }

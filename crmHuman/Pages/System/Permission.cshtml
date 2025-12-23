@@ -1,0 +1,103 @@
+@page
+@model crmHuman.Pages.System.PermissionModel
+@{
+    Layout = "_Layout";
+}
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">@Model.TitlePage</h5>
+
+        <div class="row mb-3">
+            <label class="col-sm-2 col-form-label">Chọn Vai trò</label>
+            <div class="col-sm-4">
+                <select class="form-select" id="roleSelect" onchange="changeRole()">
+                    @foreach (var role in Model.arrayRol)
+                    {
+                        <!option value="@role.Code" @(Model.RoleCode == role.Code ? "selected" : "")>@role.Name</!option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6 text-end">
+                <button type="button" class="btn btn-primary" onclick="savePermissions()">Lưu thay đổi</button>
+            </div>
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Chức năng (Page)</th>
+                    <th>Nhóm</th>
+                    <th class="text-center">Xem (View)</th>
+                    <th class="text-center">Thêm (Add)</th>
+                    <th class="text-center">Sửa (Edit)</th>
+                    <th class="text-center">Xóa (Delete)</th>
+                    <th class="text-center">Duyệt (Approve)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Permissions)
+                {
+                    <tr data-page="@item.PageCode">
+                        <td>@item.PageName <br/> <small class="text-muted">@item.PageCode</small></td>
+                        <td>@item.Group</td>
+                        <td class="text-center"><input type="checkbox" class="form-check-input perm-check" data-type="IsView" @(item.IsView ? "checked" : "") /></td>
+                        <td class="text-center"><input type="checkbox" class="form-check-input perm-check" data-type="IsAdd" @(item.IsAdd ? "checked" : "") /></td>
+                        <td class="text-center"><input type="checkbox" class="form-check-input perm-check" data-type="IsEdit" @(item.IsEdit ? "checked" : "") /></td>
+                        <td class="text-center"><input type="checkbox" class="form-check-input perm-check" data-type="IsDelete" @(item.IsDelete ? "checked" : "") /></td>
+                        <td class="text-center"><input type="checkbox" class="form-check-input perm-check" data-type="IsApprove" @(item.IsApprove ? "checked" : "") /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function changeRole() {
+            var role = document.getElementById('roleSelect').value;
+            window.location.href = '?RoleCode=' + role;
+        }
+
+        function savePermissions() {
+            var role = document.getElementById('roleSelect').value;
+            var permissions = [];
+
+            document.querySelectorAll('tbody tr').forEach(row => {
+                var pageCode = row.getAttribute('data-page');
+                var isView = row.querySelector('input[data-type="IsView"]').checked;
+                var isAdd = row.querySelector('input[data-type="IsAdd"]').checked;
+                var isEdit = row.querySelector('input[data-type="IsEdit"]').checked;
+                var isDelete = row.querySelector('input[data-type="IsDelete"]').checked;
+                var isApprove = row.querySelector('input[data-type="IsApprove"]').checked;
+
+                permissions.push({
+                    PageCode: pageCode,
+                    IsView: isView,
+                    IsAdd: isAdd,
+                    IsEdit: isEdit,
+                    IsDelete: isDelete,
+                    IsApprove: isApprove
+                });
+            });
+
+            fetch('?handler=Save&RoleCode=' + role, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.getElementsByName('__RequestVerificationToken')[0].value
+                },
+                body: JSON.stringify(permissions)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Lưu thành công!');
+                } else {
+                    alert('Lưu thất bại: ' + (data.message || 'Lỗi không xác định'));
+                }
+            });
+        }
+    </script>
+}

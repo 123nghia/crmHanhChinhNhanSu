@@ -1,0 +1,97 @@
+@page
+@model crmHuman.Pages.Leave.LeaveApprovalModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+}
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Duyệt nghỉ phép</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Danh sách chờ duyệt</h5>
+
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nhân viên</th>
+                                <th>Loại nghỉ</th>
+                                <th>Từ ngày</th>
+                                <th>Đến ngày</th>
+                                <th class="text-center">Số ngày</th>
+                                <th>Lý do</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int i = 0;
+                            }
+                            @foreach (var item in Model.LeaveList.Data)
+                            {
+                                i++;
+                                var info = item as dynamic;
+                                <tr>
+                                    <td>@i</td>
+                                    <td>@info.EmployeeName</td>
+                                    <td>@info.LeaveTypeName</td>
+                                    <td>@info.FromDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@info.ToDate.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">@info.NumDays</td>
+                                    <td>@info.Reason</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-success" onclick="approveLeave(@info.Id, 1)">Duyệt</button>
+                                        <button class="btn btn-sm btn-danger" onclick="approveLeave(@info.Id, 2)">Từ chối</button>
+                                    </td>
+                                </tr>
+                            }
+                            @if (i == 0)
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center">Không có yêu cầu chờ duyệt</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal for Rejection Comment -->
+<div class="modal fade" id="commentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ghi chú duyệt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="approveId" />
+                <input type="hidden" id="approveStatus" />
+                <div class="mb-3">
+                    <label class="form-label">Ý kiến phản hồi</label>
+                    <textarea class="form-control" id="approveComment" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="submitApproval()">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/pages/leave-approval.js?v=@DateTime.Now.Ticks"></script>
