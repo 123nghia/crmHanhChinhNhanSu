@@ -9,7 +9,9 @@ namespace VS.Human.Rep
         Task<bool> Delete(int id);
         Task<DocumentData> GetById(int id);
         Task<BaseList> GetAll(DocumentDataRquest request);
-
-
+        Task<List<int>> GetShares(int documentId);
+        Task<bool> AddShare(int documentId, int userId);
+        Task<bool> RemoveShare(int documentId, int userId);
+        Task<DocumentData?> GetByToken(string token);
     }
 }

@@ -587,10 +587,67 @@ namespace VS.Human.Rep
             using (var con = GetConnection())
             {
                 return await con.ExecuteScalarAsync<int>(query.ToString(), entity);
+            }
+        }
 
+        public async Task<T> ExecuteSQLScalar<T>(string sql, object parameter = null)
+        {
+            if (string.IsNullOrEmpty(sql))
+            {
+                return default;
+            }
+            if (parameter == null)
+            {
+                parameter = new DynamicParameters();
+            }
+
+            try
+            {
+                using (var _con = GetConnection())
+                {
+                    var result = await _con.ExecuteScalarAsync<T>(sql, param: parameter);
+                    return result;
+                }
+            }
+            catch (Exception)
+            {
+                return default;
             }
         }
 
 
+
+        public List<TIndexModel> ExecuteSQLListSync<TIndexModel>(string sql = "",
+            object parameter = null,
+            CommandType commandType = CommandType.StoredProcedure)
+            where TIndexModel : BaseIndexModel
+        {
+            if (string.IsNullOrEmpty(sql))
+            {
+                return new List<TIndexModel>();
+            }
+            if (parameter == null)
+            {
+                parameter = new DynamicParameters();
+            }
+
+            try
+            {
+                using (var _con = GetConnection())
+                {
+                    var result = _con.Query<TIndexModel>(sql, param: parameter, commandType: commandType);
+
+                    if (result.Any())
+                    {
+                        return result.ToList();
+                    }
+                    return new List<TIndexModel>();
+                }
+            }
+            catch (Exception e)
+            {
+                return new List<TIndexModel>();
+            }
+        }
     }
 }

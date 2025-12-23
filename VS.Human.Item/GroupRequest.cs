@@ -83,13 +83,13 @@
     {
         public int? RelId { get; set; }
         public string? RelCode { get; set; }
-
         public int DataType { get; set; }
+        public int ParentId { get; set; }
+        public int CurrentUserId { get; set; }
 
         public DocumentDataRquest() : base()
         {
-
+            ParentId = -1;
         }
-
     }
 }

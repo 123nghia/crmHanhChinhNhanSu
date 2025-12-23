@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Dapper;
+using Microsoft.Extensions.Configuration;
 using VS.Human.Item;
 using VS.Human.Rep.Model;
 
@@ -93,6 +94,24 @@ namespace VS.Human.Rep
             if (string.IsNullOrWhiteSpace(name)) return null;
             var sql = "SELECT TOP 1 * FROM MasterData WHERE Name = @name AND TypeData = @typeData AND ISNULL(Deleted,0) = 0";
             return await ExecuteSQL<MasterData>(sql, new { name, typeData });
+        }
+
+        public async Task<int> GetNextAvailableTypeData()
+        {
+            var sql = "SELECT ISNULL(MAX(TypeData), 100) + 1 FROM MasterData WHERE ISNULL(Deleted,0) = 0";
+            var result = await ExecuteSQLScalar<int>(sql, new { });
+            // Ensure we start from at least 100 to avoid conflicts with existing system types
+            return result < 100 ? 100 : result;
+        }
+
+        public async Task<List<MasterData>> GetByTypeData(int typeData)
+        {
+            var sql = "SELECT * FROM MasterData WHERE TypeData = @typeData AND ISNULL(Deleted,0) = 0";
+            using (var _con = GetConnection())
+            {
+                var result = await _con.QueryAsync<MasterData>(sql, new { typeData });
+                return result.ToList();
+            }
         }
     }
 }

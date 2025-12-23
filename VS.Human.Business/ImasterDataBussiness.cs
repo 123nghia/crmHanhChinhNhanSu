@@ -18,5 +18,6 @@ namespace VS.Human.Business
         Task<BaseList> GetAll(CommonRequest request);
 
         Task<BaseList> GetallRegional();
+        Task<List<MasterData>> GetallByTypeData(int typeData);
     }
 }

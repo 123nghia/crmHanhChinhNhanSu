@@ -16,6 +16,8 @@ namespace VS.Human.Rep
 
 
         Task<BaseList> GetAll(CommonRequest request);
+        Task<List<MasterData>> GetByTypeData(int typeData);
+        Task<int> GetNextAvailableTypeData();
 
 
 

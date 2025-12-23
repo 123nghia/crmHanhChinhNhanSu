@@ -37,6 +37,9 @@ namespace VS.Human.Business.Imp
             return await _unitOfWork.MasterDataRep.GetById(id);
         }
 
-
+        public async Task<List<MasterData>> GetallByTypeData(int typeData)
+        {
+            return await _unitOfWork.MasterDataRep.GetByTypeData(typeData);
+        }
     }
 }

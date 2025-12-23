@@ -33,6 +33,8 @@ namespace VS.Human.Rep
             services.AddSingleton<IRelationItemRep, RelationItemRep>();
 
             services.AddSingleton<IBHXHItemRep, BHXHItemRep>();
+            services.AddSingleton<IPermissionRep, PermissionRep>();
+            services.AddSingleton<ILeaveRep, LeaveRep>();
 
         }
     }

@@ -30,6 +30,8 @@
 
         public IRelationItemRep RelationItemRep { get; set; }
         public IHDLDItemRep HDLDItemRep { get; set; }
+        public IPermissionRep PermissionRep { get; set; }
+        public ILeaveRep LeaveRep { get; set; }
         public UnitOfWork(
             IHDLDItemRep hDLDItemRep,
             IRelationItemRep relationItemRep,
@@ -51,7 +53,9 @@
             IReportRepository _reportRepository,
             IReportTalkTimeGroupByDay reportTalkTimeGroupByDay,
             IScheduleInterviewRep scheduleInterviewRep,
-            IDocumentDataRep documentDataRep
+            IDocumentDataRep documentDataRep,
+            IPermissionRep permissionRep,
+            ILeaveRep leaveRep
             )
         {
             this.BHXHItemRep = bHXHItemRep;
@@ -76,6 +80,8 @@
             ReportTalkTimeGroupByDay = reportTalkTimeGroupByDay;
             ScheduleInterviewRep = scheduleInterviewRep;
             DocumentDataRep = documentDataRep;
+            PermissionRep = permissionRep;
+            LeaveRep = leaveRep;
         }
     }
 }

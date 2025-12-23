@@ -1,0 +1,16 @@
+using System;
+using System.Threading.Tasks;
+using VS.Human.Item;
+using VS.Human.Rep.Model;
+
+namespace VS.Human.Business
+{
+    public interface ILeaveBusiness
+    {
+        Task<BaseList> GetLeaveList(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit);
+        Task<LeaveIndexModel> GetLeaveById(int id);
+        Task<int> CreateOrUpdateLeave(LeaveAddUpdate model, int userId);
+        Task<bool> ApproveLeave(int id, int status, int approverId, string comment);
+        Task<bool> DeleteLeave(int id, int userId);
+    }
+}

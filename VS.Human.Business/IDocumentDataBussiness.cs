@@ -14,7 +14,14 @@ namespace VS.Human.Business
         Task<DocumentData> GetById(int id);
 
         Task<BaseList> GetAll(DocumentDataRquest request);
-
+        Task<BaseList> GetDocuments(int? parentId, int currentUserId, int page = 1, int limit = 20);
+        Task<int> CreateFolder(string name, int? parentId, int userId);
+        Task<int> SaveFile(string name, string filePath, int? parentId, int userId);
+        Task<List<int>> GetShares(int documentId);
+        Task<bool> UpdateShares(int documentId, List<int> userIds);
+        Task<bool> UpdateAccessLevel(int documentId, int accessLevel, int userId);
+        Task<DocumentData?> GetByToken(string token);
+        Task<bool> UpdateDisplayText(int id, string text, int userId);
         Task<BaseList> GetallRegional();
     }
 }

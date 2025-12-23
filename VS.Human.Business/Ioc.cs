@@ -33,6 +33,8 @@ namespace VS.Human.Business
             services.AddSingleton<IDocumentDataBussiness, DocumentDataBussiness>();
             services.AddSingleton<IEmployeeExtraBusiness, EmployeeExtraBusiness>();
             services.AddSingleton<IEmployeeImportBusiness, EmployeeImportBusiness>();
+            services.AddSingleton<IPermissionBusiness, PermissionBusiness>();
+            services.AddSingleton<ILeaveBusiness, LeaveBusiness>();
 
 
         }

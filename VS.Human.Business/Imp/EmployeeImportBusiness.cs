@@ -52,13 +52,21 @@ namespace VS.Human.Business.Imp
                 if (rows.Count < 2)
                     return ErrorResult(result, "File Excel khong co du lieu");
 
-                int dataStartIndex = FindDataStartRow(rows, workbookPart);
-                if (dataStartIndex == -1)
-                    return ErrorResult(result, "Khong tim thay dung du lieu (Cot 0: STT, Cot 1: Ho ten)");
+                int headerRowIndex = FindHeaderRow(rows, workbookPart);
+                if (headerRowIndex == -1)
+                    return ErrorResult(result, "Khong tim thay dong tieu de (header) hop le.");
+
+                var headerMap = GetHeaderMap(rows[headerRowIndex], workbookPart);
+                if (!headerMap.Any())
+                    return ErrorResult(result, "Khong tim thay cot du lieu trong file Excel.");
+
+                int dataStartIndex = headerRowIndex + 1;
+                if (dataStartIndex >= rows.Count)
+                    return ErrorResult(result, "File Excel khong co du lieu sau dong tieu de.");
 
                 for (int i = dataStartIndex; i < rows.Count; i++)
                 {
-                    await ProcessRow(rows[i], i + 1, workbookPart, userId, result);
+                    await ProcessRow(rows[i], i + 1, workbookPart, userId, result, headerMap);
                 }
             }
             catch (Exception ex)
@@ -87,21 +95,23 @@ namespace VS.Human.Business.Imp
             return result;
         }
 
-        private async Task ProcessRow(Row row, int rowIndex, WorkbookPart workbookPart, int userId, EmployeeImportResult result)
+        private async Task ProcessRow(Row row, int rowIndex, WorkbookPart workbookPart, int userId, EmployeeImportResult result, System.Collections.Generic.Dictionary<string, int> headerMap)
         {
             result.Total++;
             try
             {
                 var values = ExcelHelper.GetRowValues(row, workbookPart).ToList();
                 if (values.All(string.IsNullOrWhiteSpace)) return;
+                // Use headerMap for dynamic column access
+                string GetByHeader(string header) => headerMap.TryGetValue(header, out var idx) && idx < values.Count ? values[idx]?.Trim() ?? string.Empty : string.Empty;
 
-                var rawPosition = values.Count > 3 ? values[3] : string.Empty;
-                var rawDepartment = values.Count > 4 ? values[4] : string.Empty;
-                var rawEducation = values.Count > 9 ? values[9] : string.Empty;
-                var rawMarital = values.Count > 10 ? values[10] : string.Empty;
-                var rawReligion = values.Count > 8 ? values[8] : string.Empty;
-                var contractData = CreateContractData(values);
-                var insuranceData = CreateInsuranceData(values);
+                var rawPosition = GetByHeader("Position");
+                var rawDepartment = GetByHeader("Department");
+                var rawEducation = GetByHeader("EducationLevel");
+                var rawMarital = GetByHeader("Maritalstatus");
+                var rawReligion = GetByHeader("Religion");
+                var contractData = CreateContractData(headerMap, values);
+                var insuranceData = CreateInsuranceData(headerMap, values);
 
                 var positionCode = await EnsureMasterDataAsync(rawPosition, 2, userId);    // TypeData 2 = Position
                 var departmentCode = await EnsureMasterDataAsync(rawDepartment, 5, userId); // TypeData 5 = Department
@@ -115,7 +125,7 @@ namespace VS.Human.Business.Imp
                     contractData.ContractTypeCode = await EnsureMasterDataAsync(contractData.ContractTypeRaw, 1, userId);
                 }
 
-                var employee = CreateEmployeeFromRow(values, positionCode, departmentCode, educationCode, maritalCode, religionCode);
+                var employee = CreateEmployeeFromRow(headerMap, values, positionCode, departmentCode, educationCode, maritalCode, religionCode);
                 var validationError = EmployeeImportValidator.ValidateRow(EmployeeMapper.MapToEmployeeInfoAdd(employee));
 
                 if (validationError != null)
@@ -163,35 +173,35 @@ namespace VS.Human.Business.Imp
             }
         }
 
-        private ContractRowData CreateContractData(List<string> values)
+        private ContractRowData CreateContractData(System.Collections.Generic.Dictionary<string, int> headerMap, System.Collections.Generic.List<string> values)
         {
-            string Get(int index) => index < values.Count ? values[index]?.Trim() ?? "" : "";
+            string GetByHeader(string header) => headerMap.TryGetValue(header, out var idx) && idx < values.Count ? values[idx]?.Trim() ?? "" : "";
 
             var data = new ContractRowData
             {
-                NoAgree = Get(29),
-                CodeId = Get(29),
-                ContractTypeRaw = Get(30)
+                NoAgree = GetByHeader("ContractNo"),
+                CodeId = GetByHeader("ContractCode"),
+                ContractTypeRaw = GetByHeader("ContractType")
             };
 
-            if (ExcelHelper.TryParseDate(Get(31), out var start)) data.Start = start;
-            if (ExcelHelper.TryParseDate(Get(32), out var end)) data.End = end;
+            if (ExcelHelper.TryParseDate(GetByHeader("ContractStart"), out var start)) data.Start = start;
+            if (ExcelHelper.TryParseDate(GetByHeader("ContractEnd"), out var end)) data.End = end;
 
             return data;
         }
 
-        private InsuranceRowData CreateInsuranceData(List<string> values)
+        private InsuranceRowData CreateInsuranceData(System.Collections.Generic.Dictionary<string, int> headerMap, System.Collections.Generic.List<string> values)
         {
-            string Get(int index) => index < values.Count ? values[index]?.Trim() ?? "" : "";
+            string GetByHeader(string header) => headerMap.TryGetValue(header, out var idx) && idx < values.Count ? values[idx]?.Trim() ?? "" : "";
             var data = new InsuranceRowData
             {
-                PITDateRaw = Get(24),
-                Dependent = Get(25),
-                NumberCode = Get(27),   // Mã BHXH/BHYT
-                RegHospital = Get(28)   // Tên bệnh viện
+                PITDateRaw = GetByHeader("PITDate"),
+                Dependent = GetByHeader("Dependent"),
+                NumberCode = GetByHeader("InsuranceNumber"),   // Mã BHXH/BHYT
+                RegHospital = GetByHeader("RegHospital")   // Tên bệnh viện
             };
 
-            if (ExcelHelper.TryParseDate(Get(26), out var effected)) data.EffectedFrom = effected; // EffectedFrom ở cột 26
+            if (ExcelHelper.TryParseDate(GetByHeader("EffectedFrom"), out var effected)) data.EffectedFrom = effected; // EffectedFrom ở cột 26
             if (ExcelHelper.TryParseDate(data.PITDateRaw, out var pit)) data.PITDate = pit;
             return data;
         }
@@ -290,41 +300,43 @@ namespace VS.Human.Business.Imp
                 !string.IsNullOrWhiteSpace(Dependent);
         }
 
-        private Employee CreateEmployeeFromRow(List<string> values, string? positionCode, string? departmentCode, string? educationCode, string? maritalCode, string? religionCode)
+        private Employee CreateEmployeeFromRow(System.Collections.Generic.Dictionary<string, int> headerMap, System.Collections.Generic.List<string> values, string? positionCode, string? departmentCode, string? educationCode, string? maritalCode, string? religionCode)
         {
-            string Get(int index) => index < values.Count ? values[index]?.Trim() ?? "" : "";
+            string GetByHeader(string header) => headerMap.TryGetValue(header, out var idx) && idx < values.Count ? values[idx]?.Trim() ?? "" : "";
 
             var employee = new Employee
             {
-                FullName = Get(1),
-                Phone = Get(18),
-                PositionCode = positionCode ?? NormalizeCode(Get(3)),
-                DepartmentCode = departmentCode ?? NormalizeCode(Get(4)),
-                Gender = NormalizeGender(Get(5)),
-                PlaceOfBirth = Get(7),
-                Religion = religionCode ?? Get(8),
-                EducationLevel = educationCode ?? Get(9),
-                Maritalstatus = maritalCode ?? Get(10),
-                NationalId = Get(11),
-                NationalPlace = Get(13),
-                PermanentAddress = Get(14),
-                TemporaryAddress = Get(15),
-                Email = Get(16),
-                PersonalEmail = Get(17),
-                EmergencyContact = Get(19),
-                BeneficiaryName = Get(20),
-                BankAccount = Get(21),
-                BankName = Get(22),
-                Noted = Get(33)
+                FullName = GetByHeader("FullName"),
+                Phone = GetByHeader("Phone"),
+                PositionCode = positionCode ?? NormalizeCode(GetByHeader("Position")),
+                DepartmentCode = departmentCode ?? NormalizeCode(GetByHeader("Department")),
+                Gender = NormalizeGender(GetByHeader("Gender")),
+                PlaceOfBirth = GetByHeader("PlaceOfBirth"),
+                Religion = religionCode ?? GetByHeader("Religion"),
+                EducationLevel = educationCode ?? GetByHeader("EducationLevel"),
+                Maritalstatus = maritalCode ?? GetByHeader("Maritalstatus"),
+                NationalId = GetByHeader("NationalId"),
+                NationalPlace = GetByHeader("NationalPlace"),
+                PermanentAddress = GetByHeader("PermanentAddress"),
+                TemporaryAddress = GetByHeader("TemporaryAddress"),
+                Email = GetByHeader("Email"),
+                PersonalEmail = GetByHeader("PersonalEmail"),
+                EmergencyContact = GetByHeader("EmergencyContact"),
+                BeneficiaryName = GetByHeader("BeneficiaryName"),
+                BankAccount = GetByHeader("BankAccount"),
+                BankName = GetByHeader("BankName"),
+                Noted = GetByHeader("Noted")
             };
 
-            if (ExcelHelper.TryParseDate(Get(2), out var onboard)) employee.Onboard = onboard;
-            if (ExcelHelper.TryParseDate(Get(6), out var dob)) employee.Dob = dob;
-            if (ExcelHelper.TryParseDate(Get(12), out var nationalDate)) employee.NationalDate = nationalDate;
+            if (ExcelHelper.TryParseDate(GetByHeader("Onboard"), out var onboard)) employee.Onboard = onboard;
+            if (ExcelHelper.TryParseDate(GetByHeader("Dob"), out var dob)) employee.Dob = dob;
+            if (ExcelHelper.TryParseDate(GetByHeader("NationalDate"), out var nationalDate)) employee.NationalDate = nationalDate;
 
             return employee;
         }
 
+        // Ensure master data exists; if not, create it with the given typeData
+        // If a value already exists (by name), reuse its code regardless of typeData
         private async Task<string?> EnsureMasterDataAsync(string rawValue, int typeData, int userId)
         {
             var trimmed = rawValue?.Trim() ?? string.Empty;
@@ -332,18 +344,18 @@ namespace VS.Human.Business.Imp
 
             var normalized = NormalizeCode(trimmed);
 
-            // Try by code first (for numeric codes)
+            // 1. Try by code first within the same typeData (for numeric codes)
             if (!string.IsNullOrWhiteSpace(normalized))
             {
                 var existingByCode = await _unitOfWork.MasterDataRep.GetByCode(normalized, typeData);
                 if (existingByCode != null && existingByCode.Id > 0) return existingByCode.Code;
             }
 
-            // Try by exact name match
+            // 2. Try by exact name match within the same typeData
             var existingByName = await _unitOfWork.MasterDataRep.GetByName(trimmed, typeData);
             if (existingByName != null && existingByName.Id > 0) return existingByName.Code;
 
-            // Insert new master data
+            // 3. Not found, insert new master data with the specified typeData
             var newItem = new MasterDataAdd
             {
                 Name = trimmed,
@@ -354,11 +366,12 @@ namespace VS.Human.Business.Imp
 
             if (await _unitOfWork.MasterDataRep.AddOrUpdate(newItem))
             {
+                // Retrieve the newly inserted item to get its Code
                 var inserted = await _unitOfWork.MasterDataRep.GetByName(trimmed, typeData);
                 if (inserted != null && inserted.Id > 0) return inserted.Code;
             }
 
-            // Fallback to normalized numeric code (if any)
+            // Fallback: return the raw normalized code if insertion failed
             return normalized;
         }
 
@@ -380,24 +393,87 @@ namespace VS.Human.Business.Imp
             return "0"; // Default to Unknown
         }
 
-        private int FindDataStartRow(List<Row> rows, WorkbookPart workbookPart)
+        // Find the row index where actual data starts (first row after header)
+        private int FindHeaderRow(List<Row> rows, WorkbookPart workbookPart)
         {
             for (int i = 0; i < rows.Count; i++)
             {
                 var values = ExcelHelper.GetRowValues(rows[i], workbookPart).ToList();
+                // A header row typically contains text that is not easily parsed as a number in the first column
+                // and might contain common header names.
+                // We look for a row where the first column is not a number, but the second column (FullName) is present.
                 if (values.Count > 1)
                 {
                     var col0 = values[0]?.Trim() ?? "";
-                    var col1 = values[1]?.Trim() ?? "";
-                    if (int.TryParse(col0, out _) && !string.IsNullOrWhiteSpace(col1) 
-                        && !col1.Contains("Full Name", StringComparison.OrdinalIgnoreCase) 
-                        && !col1.Contains("Ten nhan vien", StringComparison.OrdinalIgnoreCase))
+                    var col1 = values[1]?.Trim() ?? ""; // Assuming FullName is often the second column
+                    if (!int.TryParse(col0, out _) && 
+                        (col1.Contains("Full Name", StringComparison.OrdinalIgnoreCase) || 
+                         col1.Contains("Ten nhan vien", StringComparison.OrdinalIgnoreCase)))
                     {
-                        return i;
+                        return i; // This row is likely the header
                     }
                 }
             }
             return -1;
+        }
+
+        private Dictionary<string, int> GetHeaderMap(Row headerRow, WorkbookPart workbookPart)
+        {
+            var headerMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var headerValues = ExcelHelper.GetRowValues(headerRow, workbookPart).ToList();
+
+            var standardHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                {"STT", "STT"},
+                {"Full Name", "FullName"}, {"Họ tên", "FullName"}, {"Ho ten", "FullName"},
+                {"Onboard", "Onboard"}, {"Ngày vào", "Onboard"}, {"Ngay vao", "Onboard"},
+                {"Position", "Position"}, {"Chức danh", "Position"}, {"Chuc danh", "Position"},
+                {"Department", "Department"}, {"Phòng ban", "Department"}, {"Phong ban", "Department"},
+                {"Gender", "Gender"}, {"Giới tính", "Gender"}, {"Gioi tinh", "Gender"},
+                {"Dob", "Dob"}, {"Ngày sinh", "Dob"}, {"Ngay sinh", "Dob"},
+                {"PlaceOfBirth", "PlaceOfBirth"}, {"Nơi sinh", "PlaceOfBirth"}, {"Noi sinh", "PlaceOfBirth"},
+                {"Religion", "Religion"}, {"Tôn giáo", "Religion"}, {"Ton giao", "Religion"},
+                {"EducationLevel", "EducationLevel"}, {"Trình độ học vấn", "EducationLevel"}, {"Trinh do hoc van", "EducationLevel"},
+                {"Maritalstatus", "Maritalstatus"}, {"Tình trạng hôn nhân", "Maritalstatus"}, {"Tinh trang hon nhan", "Maritalstatus"},
+                {"NationalId", "NationalId"}, {"CMND/CCCD", "NationalId"}, {"CMND", "NationalId"}, {"CCCD", "NationalId"},
+                {"NationalDate", "NationalDate"}, {"Ngày cấp", "NationalDate"}, {"Ngay cap", "NationalDate"},
+                {"NationalPlace", "NationalPlace"}, {"Nơi cấp", "NationalPlace"}, {"Noi cap", "NationalPlace"},
+                {"PermanentAddress", "PermanentAddress"}, {"Địa chỉ thường trú", "PermanentAddress"}, {"Dia chi thuong tru", "PermanentAddress"},
+                {"TemporaryAddress", "TemporaryAddress"}, {"Địa chỉ tạm trú", "TemporaryAddress"}, {"Dia chi tam tru", "TemporaryAddress"},
+                {"Email", "Email"},
+                {"PersonalEmail", "PersonalEmail"}, {"Email cá nhân", "PersonalEmail"}, {"Email ca nhan", "PersonalEmail"},
+                {"Phone", "Phone"}, {"Số điện thoại", "Phone"}, {"So dien thoai", "Phone"},
+                {"EmergencyContact", "EmergencyContact"}, {"Người liên hệ khẩn cấp", "EmergencyContact"}, {"Nguoi lien he khan cap", "EmergencyContact"},
+                {"BeneficiaryName", "BeneficiaryName"}, {"Người thụ hưởng", "BeneficiaryName"}, {"Nguoi thu huong", "BeneficiaryName"},
+                {"BankAccount", "BankAccount"}, {"Số tài khoản", "BankAccount"}, {"So tai khoan", "BankAccount"},
+                {"BankName", "BankName"}, {"Tên ngân hàng", "BankName"}, {"Ten ngan hang", "BankName"},
+                {"PITDate", "PITDate"}, {"Ngày tính thuế TNCN", "PITDate"}, {"Ngay tinh thue TNCN", "PITDate"},
+                {"Dependent", "Dependent"}, {"Số người phụ thuộc", "Dependent"}, {"So nguoi phu thuoc", "Dependent"},
+                {"EffectedFrom", "EffectedFrom"}, {"Ngày hiệu lực BHXH", "EffectedFrom"}, {"Ngay hieu luc BHXH", "EffectedFrom"},
+                {"InsuranceNumber", "InsuranceNumber"}, {"Mã BHXH/BHYT", "InsuranceNumber"}, {"Ma BHXH/BHYT", "InsuranceNumber"},
+                {"RegHospital", "RegHospital"}, {"Nơi đăng ký KCB", "RegHospital"}, {"Noi dang ky KCB", "RegHospital"},
+                {"ContractNo", "ContractNo"}, {"Số HĐLĐ", "ContractNo"}, {"So HDLD", "ContractNo"},
+                {"ContractType", "ContractType"}, {"Loại HĐLĐ", "ContractType"}, {"Loai HDLD", "ContractType"},
+                {"ContractStart", "ContractStart"}, {"Ngày bắt đầu HĐ", "ContractStart"}, {"Ngay bat dau HD", "ContractStart"},
+                {"ContractEnd", "ContractEnd"}, {"Ngày kết thúc HĐ", "ContractEnd"}, {"Ngay ket thuc HD", "ContractEnd"},
+                {"Noted", "Noted"}, {"Ghi chú", "Noted"}, {"Ghi chu", "Noted"}
+            };
+
+            for (int i = 0; i < headerValues.Count; i++)
+            {
+                var headerText = headerValues[i]?.Trim();
+                if (!string.IsNullOrWhiteSpace(headerText))
+                {
+                    if (standardHeaders.TryGetValue(headerText, out var mappedName))
+                    {
+                        if (!headerMap.ContainsKey(mappedName)) // Only add the first occurrence if duplicates exist
+                        {
+                            headerMap.Add(mappedName, i);
+                        }
+                    }
+                }
+            }
+            return headerMap;
         }
 
         private EmployeeImportResult ErrorResult(EmployeeImportResult result, string message)

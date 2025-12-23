@@ -44,7 +44,8 @@ namespace VS.Human.Business.Helpers
                 PlaceOfBirth = request.PlaceOfBirth,
                 Religion = request.Religion,
                 PersonalEmail = request.PersonalEmail,
-                BeneficiaryName = request.BeneficiaryName
+                BeneficiaryName = request.BeneficiaryName,
+                EmergencyContact = request.EmergencyContact
             };
         }
 
@@ -91,7 +92,8 @@ namespace VS.Human.Business.Helpers
                 PlaceOfBirth = employee.PlaceOfBirth,
                 Religion = employee.Religion,
                 PersonalEmail = employee.PersonalEmail,
-                BeneficiaryName = employee.BeneficiaryName
+                BeneficiaryName = employee.BeneficiaryName,
+                EmergencyContact = employee.EmergencyContact
             };
         }
 
@@ -136,6 +138,7 @@ namespace VS.Human.Business.Helpers
             item.Religion = itemUpdate.Religion;
             item.PersonalEmail = itemUpdate.PersonalEmail;
             item.BeneficiaryName = itemUpdate.BeneficiaryName;
+            item.EmergencyContact = itemUpdate.EmergencyContact;
 
             // Handle CreatedBy, CreateAt, UserName, and Pass
             if (existingEmployee != null)

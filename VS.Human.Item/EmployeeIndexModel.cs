@@ -29,6 +29,9 @@ namespace VS.Human.Item
         public string? DepartmentText { get; set; }
         public string? PositionText { get; set; }
         public string? DocumentStatusText { get; set; }
+        public string? ReligionText { get; set; }
+        public string? EducationLevelText { get; set; }
+        public string? MaritalstatusText { get; set; }
 
         public string OnboardDateDisplay
         {
@@ -166,11 +169,13 @@ namespace VS.Human.Item
         public int? RelId { get; set; }
         public string? RelCode { get; set; }
         public int? Type { get; set; }
-        public string Code { get; set; }
-        public string DisplayText { get; set; }
-
-        public string ValueFile { get; set; }
-
+        public string? Code { get; set; }
+        public string? DisplayText { get; set; }
+        public string? ValueFile { get; set; }
+        public int? ParentId { get; set; }
+        public bool IsFolder { get; set; }
+        public int AccessLevel { get; set; }
+        public string? AuthorName { get; set; }
     }
 
     public class CandidateIndexModel : BaseIndexModel
