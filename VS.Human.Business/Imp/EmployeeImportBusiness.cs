@@ -102,16 +102,14 @@ namespace VS.Human.Business.Imp
             {
                 var values = ExcelHelper.GetRowValues(row, workbookPart).ToList();
                 if (values.All(string.IsNullOrWhiteSpace)) return;
-                // Use headerMap for dynamic column access
-                string GetByHeader(string header) => headerMap.TryGetValue(header, out var idx) && idx < values.Count ? values[idx]?.Trim() ?? string.Empty : string.Empty;
-
-                var rawPosition = GetByHeader("Position");
-                var rawDepartment = GetByHeader("Department");
-                var rawEducation = GetByHeader("EducationLevel");
-                var rawMarital = GetByHeader("Maritalstatus");
-                var rawReligion = GetByHeader("Religion");
-                var contractData = CreateContractData(headerMap, values);
-                var insuranceData = CreateInsuranceData(headerMap, values);
+                // Fetch values by column index (1-based, so index = column - 1)
+                var rawPosition = values.Count > 3 ? values[3]?.Trim() ?? "" : "";
+                var rawDepartment = values.Count > 4 ? values[4]?.Trim() ?? "" : "";
+                var rawEducation = values.Count > 8 ? values[8]?.Trim() ?? "" : "";
+                var rawMarital = values.Count > 10 ? values[10]?.Trim() ?? "" : "";
+                var rawReligion = values.Count > 8 ? values[8]?.Trim() ?? "" : "";
+                var contractData = CreateContractData(values);
+                var insuranceData = CreateInsuranceData(values);
 
                 var positionCode = await EnsureMasterDataAsync(rawPosition, 2, userId);    // TypeData 2 = Position
                 var departmentCode = await EnsureMasterDataAsync(rawDepartment, 5, userId); // TypeData 5 = Department
@@ -125,7 +123,9 @@ namespace VS.Human.Business.Imp
                     contractData.ContractTypeCode = await EnsureMasterDataAsync(contractData.ContractTypeRaw, 1, userId);
                 }
 
-                var employee = CreateEmployeeFromRow(headerMap, values, positionCode, departmentCode, educationCode, maritalCode, religionCode);
+                contractData.CodeId = Guid.NewGuid().ToString("N").Substring(0,8).ToUpper();
+
+                var employee = CreateEmployeeFromRow(values, positionCode, departmentCode, educationCode, maritalCode, religionCode);
                 var validationError = EmployeeImportValidator.ValidateRow(EmployeeMapper.MapToEmployeeInfoAdd(employee));
 
                 if (validationError != null)
@@ -173,35 +173,32 @@ namespace VS.Human.Business.Imp
             }
         }
 
-        private ContractRowData CreateContractData(System.Collections.Generic.Dictionary<string, int> headerMap, System.Collections.Generic.List<string> values)
+        private ContractRowData CreateContractData(System.Collections.Generic.List<string> values)
         {
-            string GetByHeader(string header) => headerMap.TryGetValue(header, out var idx) && idx < values.Count ? values[idx]?.Trim() ?? "" : "";
-
             var data = new ContractRowData
             {
-                NoAgree = GetByHeader("ContractNo"),
-                CodeId = GetByHeader("ContractCode"),
-                ContractTypeRaw = GetByHeader("ContractType")
+                NoAgree = values.Count > 29 ? values[29]?.Trim() ?? "" : "",
+                ContractTypeRaw = values.Count > 30 ? values[30]?.Trim() ?? "" : ""
             };
 
-            if (ExcelHelper.TryParseDate(GetByHeader("ContractStart"), out var start)) data.Start = start;
-            if (ExcelHelper.TryParseDate(GetByHeader("ContractEnd"), out var end)) data.End = end;
+            if (values.Count > 31 && ExcelHelper.TryParseDate(values[31], out var start)) data.Start = start;
+            if (values.Count > 32 && ExcelHelper.TryParseDate(values[32], out var end)) data.End = end;
 
             return data;
         }
 
-        private InsuranceRowData CreateInsuranceData(System.Collections.Generic.Dictionary<string, int> headerMap, System.Collections.Generic.List<string> values)
+        private InsuranceRowData CreateInsuranceData(System.Collections.Generic.List<string> values)
         {
-            string GetByHeader(string header) => headerMap.TryGetValue(header, out var idx) && idx < values.Count ? values[idx]?.Trim() ?? "" : "";
             var data = new InsuranceRowData
             {
-                PITDateRaw = GetByHeader("PITDate"),
-                Dependent = GetByHeader("Dependent"),
-                NumberCode = GetByHeader("InsuranceNumber"),   // Mã BHXH/BHYT
-                RegHospital = GetByHeader("RegHospital")   // Tên bệnh viện
+                PITDateRaw = values.Count > 24 ? values[24]?.Trim() ?? "" : "",
+                Dependent = values.Count > 25 ? values[25]?.Trim() ?? "" : "",
+                NumberCode = values.Count > 27 ? values[27]?.Trim() ?? "" : "",
+                RegHospital = values.Count > 28 ? values[28]?.Trim() ?? "" : "",
+                TaxCode = values.Count > 29 ? values[29]?.Trim() ?? "" : ""
             };
 
-            if (ExcelHelper.TryParseDate(GetByHeader("EffectedFrom"), out var effected)) data.EffectedFrom = effected; // EffectedFrom ở cột 26
+            if (values.Count > 26 && ExcelHelper.TryParseDate(values[26], out var effected)) data.EffectedFrom = effected;
             if (ExcelHelper.TryParseDate(data.PITDateRaw, out var pit)) data.PITDate = pit;
             return data;
         }
@@ -249,19 +246,20 @@ namespace VS.Human.Business.Imp
                 return;
             }
 
-            if (!string.IsNullOrWhiteSpace(insuranceData.RegHospital))
+            if (!string.IsNullOrWhiteSpace(insuranceData.RegHospital) || !string.IsNullOrWhiteSpace(insuranceData.TaxCode))
             {
                 var tax = await _unitOfWork.TaxtItemRep.GetInfo(employee.UserName) ?? new TaxItem();
                 tax.UserName = employee.UserName;
                 tax.CodeId = string.IsNullOrWhiteSpace(tax.CodeId) ? employee.Id.ToString() : tax.CodeId;
-                tax.RegBHYT = insuranceData.RegHospital;
+                tax.RegBHYT = insuranceData.RegHospital ?? tax.RegBHYT;
+                tax.Number = insuranceData.TaxCode ?? tax.Number;
                 tax.CreatedBy = tax.CreatedBy == 0 ? userId : tax.CreatedBy;
                 tax.UpdatedBy = userId;
 
                 var savedTax = await _unitOfWork.TaxtItemRep.AddOrUpdate(tax);
                 if (!savedTax)
                 {
-                    AddError(result, rowIndex, "Khong luu duoc thong tin RegBHYT");
+                    AddError(result, rowIndex, "Khong luu duoc thong tin Tax");
                 }
             }
         }
@@ -291,46 +289,46 @@ namespace VS.Human.Business.Imp
             public DateTime? EffectedFrom { get; set; }
             public DateTime? PITDate { get; set; }
             public string? Dependent { get; set; }
+            public string? TaxCode { get; set; }
 
             public bool HasData =>
                 !string.IsNullOrWhiteSpace(NumberCode) ||
                 !string.IsNullOrWhiteSpace(RegHospital) ||
                 EffectedFrom.HasValue ||
                 PITDate.HasValue ||
-                !string.IsNullOrWhiteSpace(Dependent);
+                !string.IsNullOrWhiteSpace(Dependent) ||
+                !string.IsNullOrWhiteSpace(TaxCode);
         }
 
-        private Employee CreateEmployeeFromRow(System.Collections.Generic.Dictionary<string, int> headerMap, System.Collections.Generic.List<string> values, string? positionCode, string? departmentCode, string? educationCode, string? maritalCode, string? religionCode)
+        private Employee CreateEmployeeFromRow(System.Collections.Generic.List<string> values, string? positionCode, string? departmentCode, string? educationCode, string? maritalCode, string? religionCode)
         {
-            string GetByHeader(string header) => headerMap.TryGetValue(header, out var idx) && idx < values.Count ? values[idx]?.Trim() ?? "" : "";
-
             var employee = new Employee
             {
-                FullName = GetByHeader("FullName"),
-                Phone = GetByHeader("Phone"),
-                PositionCode = positionCode ?? NormalizeCode(GetByHeader("Position")),
-                DepartmentCode = departmentCode ?? NormalizeCode(GetByHeader("Department")),
-                Gender = NormalizeGender(GetByHeader("Gender")),
-                PlaceOfBirth = GetByHeader("PlaceOfBirth"),
-                Religion = religionCode ?? GetByHeader("Religion"),
-                EducationLevel = educationCode ?? GetByHeader("EducationLevel"),
-                Maritalstatus = maritalCode ?? GetByHeader("Maritalstatus"),
-                NationalId = GetByHeader("NationalId"),
-                NationalPlace = GetByHeader("NationalPlace"),
-                PermanentAddress = GetByHeader("PermanentAddress"),
-                TemporaryAddress = GetByHeader("TemporaryAddress"),
-                Email = GetByHeader("Email"),
-                PersonalEmail = GetByHeader("PersonalEmail"),
-                EmergencyContact = GetByHeader("EmergencyContact"),
-                BeneficiaryName = GetByHeader("BeneficiaryName"),
-                BankAccount = GetByHeader("BankAccount"),
-                BankName = GetByHeader("BankName"),
-                Noted = GetByHeader("Noted")
+                FullName = values.Count > 1 ? values[1]?.Trim() ?? "" : "",
+                Phone = values.Count > 18 ? values[18]?.Trim() ?? "" : "",
+                PositionCode = positionCode ?? NormalizeCode(values.Count > 3 ? values[2]?.Trim() ?? "" : ""),
+                DepartmentCode = departmentCode ?? NormalizeCode(values.Count > 4 ? values[3]?.Trim() ?? "" : ""),
+                Gender = NormalizeGender(values.Count > 5 ? values[5]?.Trim() ?? "" : ""),
+                PlaceOfBirth = values.Count > 7 ? values[7]?.Trim() ?? "" : "",
+                Religion = religionCode ?? (values.Count > 8 ? values[8]?.Trim() ?? "" : ""),
+                EducationLevel = educationCode ?? (values.Count > 9 ? values[9]?.Trim() ?? "" : ""),
+                Maritalstatus = maritalCode ?? (values.Count > 10 ? values[10]?.Trim() ?? "" : ""),
+                NationalId = values.Count > 11 ? values[11]?.Trim() ?? "" : "",
+                NationalPlace = values.Count > 13 ? values[13]?.Trim() ?? "" : "",
+                PermanentAddress = values.Count > 14 ? values[14]?.Trim() ?? "" : "",
+                TemporaryAddress = values.Count > 15 ? values[15]?.Trim() ?? "" : "",
+                Email = values.Count > 16 ? values[16]?.Trim() ?? "" : "",
+                PersonalEmail = values.Count > 17 ? values[17]?.Trim() ?? "" : "",
+                EmergencyContact = values.Count > 19 ? values[19]?.Trim() ?? "" : "",
+                BeneficiaryName = values.Count > 20 ? values[20]?.Trim() ?? "" : "",
+                BankAccount = values.Count > 21 ? values[21]?.Trim() ?? "" : "",
+                BankName = values.Count >22 ? values[22]?.Trim() ?? "" : "",
+                Noted = values.Count > 33 ? values[33]?.Trim() ?? "" : ""
             };
 
-            if (ExcelHelper.TryParseDate(GetByHeader("Onboard"), out var onboard)) employee.Onboard = onboard;
-            if (ExcelHelper.TryParseDate(GetByHeader("Dob"), out var dob)) employee.Dob = dob;
-            if (ExcelHelper.TryParseDate(GetByHeader("NationalDate"), out var nationalDate)) employee.NationalDate = nationalDate;
+            if (values.Count > 2 && ExcelHelper.TryParseDate(values[2], out var onboard)) employee.Onboard = onboard;
+            if (values.Count > 6 && ExcelHelper.TryParseDate(values[6], out var dob)) employee.Dob = dob;
+            if (values.Count > 12 && ExcelHelper.TryParseDate(values[12], out var nationalDate)) employee.NationalDate = nationalDate;
 
             return employee;
         }
