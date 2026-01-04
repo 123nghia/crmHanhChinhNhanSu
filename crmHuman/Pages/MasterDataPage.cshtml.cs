@@ -201,7 +201,10 @@ namespace crmHuman.Pages
         {
             RequestSearch = request2;
             request2.UserId = UserData.UserId;
-            request2.Type = 4;
+            if (!request2.Type.HasValue || request2.Type.Value <= 0)
+            {
+                request2.Type = 4;
+            }
             DataAll = await _business.GetAll(request2);
             return new JsonResult(DataAll) { StatusCode = StatusCodes.Status200OK };
         }

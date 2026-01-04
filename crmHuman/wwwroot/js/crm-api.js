@@ -18,6 +18,7 @@
         projects: (relId) => BaseService.getJSON(`/common?handler=GetAllParrentChild&idRel=${relId}`),
         addresses: (relId) => BaseService.getJSON(`/common?handler=GetAllParrentAddress&idRel=${relId}`),
         statuses: () => BaseService.getJSON('/StatusPage?handler=AllData'),
+        masterDataByType: (type) => BaseService.getJSON('/MasterDataPage?handler=AllData', { Type: type }),
         jobFullText: (jobId) => BaseService.getJSON(`/job?handler=FullText&id=${jobId}`),
         uploadFile: (formData) => BaseService.postFormData('/file?handler=Upload', formData),
         makeCall: (payload) =>

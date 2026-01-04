@@ -24,7 +24,7 @@
                     </div>
             
                     @{
-                        Html.RenderPartial("formSearch/searchForm", Model);
+                        Html.RenderPartial(partialViewName: "formSearch/searchForm", Model);
                     }
                     @{
                         var columnText = Model.TableColumnText;
@@ -134,6 +134,12 @@
         </div>
     </div>
 </div><!-- End Large Modal-->
+
+<script>
+    var groupSearch = "@Model.RequestSearch.GroupId";
+    var memberSearch = "@Model.RequestSearch.MemberId";
+    var extraSearchRequest = { groupSearch, memberSearch };
+</script>
 
     <script src="/js/pages/employee.js?v=@DateTime.Now.Ticks"></script>
 

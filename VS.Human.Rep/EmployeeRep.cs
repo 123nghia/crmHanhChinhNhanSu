@@ -203,19 +203,25 @@ namespace VS.Human.Rep
 
         public async Task<BaseList> GetAll(EmployeeRequest request)
         {
+            var page = request.Page;
+            var limit = request.Limit;
+            ProcessInputPaging(ref page, ref limit, out var offset);
+
             var result = await this.GetBaseAll<EmployeeIndexModel>(request,
             new
             {
-                request.From,
-                request.To,
-                request.Page,
-                request.Token,
-                request.GroupId,
-                request.MemberId,
-                request.IsDeleted,
-                request.UserId,
-                request.Limit,
-                request.OrderBy
+                offset,
+                limit,
+                fromDate = request.From,
+                toDate = request.To,
+                 request.Status,
+                request.DocumentStatus,
+                 request.Token,
+                 request.GroupId,
+              request.MemberId,
+                IsDeleted = request.IsDeleted ?? false,
+                UserId = request.UserId,
+                OrderBy = request.OrderBy
 
 
             });

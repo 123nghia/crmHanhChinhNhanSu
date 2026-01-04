@@ -7,6 +7,7 @@
         public int? MemberId { get; set; }
 
         public int? Status { get; set; }
+        public string? DocumentStatus { get; set; }
 
 
 

@@ -1,7 +1,7 @@
-﻿<form class="row g-3" method="get" action="/Employee">
+<form class="row g-3" method="get" action="/Employee">
 
     <div class="col-md-6">
-        <label class="form-label">Từ Ngày</label>
+        <label class="form-label">Từ ngày</label>
         <input value="@Model.RequestSearch.FromText" type="date" name="from" class="form-control">
     </div>
     <div class="col-md-6">
@@ -23,10 +23,8 @@
     {
     <div class="col-md-6">
         <label class="form-label">Trạng thái</label>
-        <select name="status" value="@Model.RequestSearch.Status" class="form-select" aria-label="">
+        <select id="cbstatus" name="documentStatus" data-master-type="8" data-value-key="code" data-selected-value="@Model.RequestSearch.DocumentStatus" class="form-select" aria-label="">
             <option value="-1">Tất cả</option>
-            <option value="1">Hoạt động</option>
-            <option value="0">Không hoạt động</option>
 
         </select>
     </div>
@@ -34,7 +32,7 @@
   
         <div class="col-md-6">
             <label class="form-label">Nhóm</label>
-            <select name="group" id="cbgroup" class="form-select" aria-label="">
+            <select name="groupId" id="cbgroup" class="form-select" aria-label="">
                 <option value="-1" selected>Tất cả</option>
 
 
@@ -43,7 +41,7 @@
 
         <div class="col-md-6">
             <label class="form-label">Thành viên</label>
-            <select name="member" id="cbmember" class="form-select" aria-label="">
+            <select name="memberId" id="cbmember" class="form-select" aria-label="">
                 <option value="-1" selected>Tất cả</option>
 
 

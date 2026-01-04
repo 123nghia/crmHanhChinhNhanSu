@@ -1,8 +1,32 @@
--- Add Cloud Storage and Sharing support to DocumentData
-ALTER TABLE [dbo].[DocumentData] ADD [ParentId] [int] NULL;
-ALTER TABLE [dbo].[DocumentData] ADD [IsFolder] [bit] NULL DEFAULT 0;
-ALTER TABLE [dbo].[DocumentData] ADD [AccessLevel] [int] NULL DEFAULT 0; -- 0-Private, 1-Internal, 2-Restricted
-ALTER TABLE [dbo].[DocumentData] ADD [ShareToken] [nvarchar](50) NULL;
+-- =============================================
+-- Migration: V009__Cloud_Storage_And_Sharing
+-- Author: System
+-- Date: 2025-12-23
+-- Description: Add cloud storage and sharing support to DocumentData
+-- =============================================
+
+BEGIN TRANSACTION;
+
+PRINT 'Applying migration V009: Cloud Storage And Sharing...';
+
+IF OBJECT_ID(N'dbo.DocumentData', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.DocumentData', 'ParentId') IS NULL
+        ALTER TABLE [dbo].[DocumentData] ADD [ParentId] [int] NULL;
+
+    IF COL_LENGTH('dbo.DocumentData', 'IsFolder') IS NULL
+        ALTER TABLE [dbo].[DocumentData] ADD [IsFolder] [bit] NULL DEFAULT 0;
+
+    IF COL_LENGTH('dbo.DocumentData', 'AccessLevel') IS NULL
+        ALTER TABLE [dbo].[DocumentData] ADD [AccessLevel] [int] NULL DEFAULT 0;
+
+    IF COL_LENGTH('dbo.DocumentData', 'ShareToken') IS NULL
+        ALTER TABLE [dbo].[DocumentData] ADD [ShareToken] [nvarchar](50) NULL;
+END
+ELSE
+BEGIN
+    PRINT '  DocumentData table not found. Skipping column updates.';
+END
 
 -- Create DocumentShares table for Restricted sharing
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DocumentShares]') AND type = 'U')
@@ -12,26 +36,21 @@ BEGIN
         [DocumentId] [int] NOT NULL,
         [UserId] [int] NOT NULL,
         [CreateAt] [datetime] NULL DEFAULT (getdate()),
-    PRIMARY KEY CLUSTERED 
-    (
-        [Id] ASC
-    )
-    ) ON [PRIMARY];
+        PRIMARY KEY CLUSTERED ([Id] ASC)
+    );
 END
-
-GO
 
 -- Update sp_DocumentData_getAll to support folder navigation and access control
 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_DocumentData_getAll]') AND type IN (N'P', N'PC'))
     DROP PROCEDURE [dbo].[sp_DocumentData_getAll];
-GO
 
+EXEC(N'
 CREATE PROCEDURE [dbo].[sp_DocumentData_getAll]
 (
-    @Token nvarchar(30) = '',
-    @OrderBy varchar(30) = '',
+    @Token nvarchar(30) = '''',
+    @OrderBy varchar(30) = '''',
     @RelId int = -1,
-    @RelCode varchar(10) = '',
+    @RelCode varchar(10) = '''',
     @DataType int = 0,
     @ParentId int = -1,
     @Page int = 1,
@@ -50,27 +69,27 @@ BEGIN
     LEFT JOIN Employees u ON d.CreatedBy = u.Id
     WHERE (ISNULL(d.Deleted, 0) = 0)
       AND (@RelId = -1 OR d.RelId = @RelId)
-      AND (@RelCode = '' OR d.RelCode = @RelCode)
+      AND (@RelCode = '''' OR d.RelCode = @RelCode)
       AND (@DataType = 0 OR d.dataType = @DataType)
       AND (
-          @ParentId = -2 -- Special value for "all shared with me" or something
+          @ParentId = -2
           OR d.ParentId = (CASE WHEN @ParentId = -1 THEN NULL ELSE @ParentId END)
       )
       AND (
-          d.CreatedBy = @CurrentUserId -- Owner always has access
-          OR d.AccessLevel = 1 -- Internal (everyone)
-          OR (d.AccessLevel = 2 AND EXISTS (SELECT 1 FROM DocumentShares s WHERE s.DocumentId = d.Id AND s.UserId = @CurrentUserId)) -- Restricted
+          d.CreatedBy = @CurrentUserId
+          OR d.AccessLevel = 1
+          OR (d.AccessLevel = 2 AND EXISTS (SELECT 1 FROM DocumentShares s WHERE s.DocumentId = d.Id AND s.UserId = @CurrentUserId))
       )
     ORDER BY d.IsFolder DESC, d.UpdateAt DESC, d.CreateAt DESC
     OFFSET @offset ROWS FETCH NEXT @Limit ROWS ONLY;
 END
-GO
+');
 
 -- Create sp_DocumentData_GetById
 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_DocumentData_GetById]') AND type IN (N'P', N'PC'))
     DROP PROCEDURE [dbo].[sp_DocumentData_GetById];
-GO
 
+EXEC(N'
 CREATE PROCEDURE [dbo].[sp_DocumentData_GetById]
 (
     @Id int
@@ -82,13 +101,13 @@ BEGIN
     LEFT JOIN Employees u ON d.CreatedBy = u.Id
     WHERE d.Id = @Id;
 END
-GO
+');
 
 -- Update sp_DocumentData_insert
 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_DocumentData_insert]') AND type IN (N'P', N'PC'))
     DROP PROCEDURE [dbo].[sp_DocumentData_insert];
-GO
 
+EXEC(N'
 CREATE PROCEDURE [dbo].[sp_DocumentData_insert]
 (
     @RelId int,
@@ -106,7 +125,7 @@ AS
 BEGIN
     INSERT INTO [dbo].[DocumentData]
     (
-        [RelId], [RelCode], [DisplayText], [ValueFile], [Code], [dataType], 
+        [RelId], [RelCode], [DisplayText], [ValueFile], [Code], [dataType],
         [ParentId], [IsFolder], [AccessLevel], [CreatedBy], [CreateAt], [UpdateAt], [IsActive], [Deleted]
     )
     VALUES
@@ -116,13 +135,13 @@ BEGIN
     );
     SELECT SCOPE_IDENTITY();
 END
-GO
+');
 
 -- Update sp_DocumentData_update
 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_DocumentData_update]') AND type IN (N'P', N'PC'))
     DROP PROCEDURE [dbo].[sp_DocumentData_update];
-GO
 
+EXEC(N'
 CREATE PROCEDURE [dbo].[sp_DocumentData_update]
 (
     @Id int,
@@ -143,4 +162,8 @@ BEGIN
         [UpdateAt] = GETDATE()
     WHERE [Id] = @Id;
 END
-GO
+');
+
+PRINT 'Migration V009 completed successfully';
+
+COMMIT TRANSACTION;

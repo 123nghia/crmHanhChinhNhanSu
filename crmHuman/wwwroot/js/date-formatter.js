@@ -54,55 +54,7 @@
             container = document;
         }
 
-        // Format tất cả text content trong elements
-        const selectors = 'td, th, span, div, p, a, label, li, dt, dd, strong, b, em, i, small, h1, h2, h3, h4, h5, h6';
-        const elements = container.querySelectorAll 
-            ? container.querySelectorAll(selectors) 
-            : [];
-        
-        elements.forEach(element => {
-            if (formattedElements.has(element)) {
-                return;
-            }
-            
-            const text = element.textContent;
-            if (!text || !text.trim()) {
-                return;
-            }
-            
-            // Tìm tất cả date patterns
-            const datePattern = /\b(\d{1,2}\/\d{1,2}\/\d{4})\b/g;
-            const dates = [];
-            let match;
-            
-            while ((match = datePattern.exec(text)) !== null) {
-                dates.push(match[1]);
-            }
-            
-            if (dates.length === 0) {
-                return;
-            }
-            
-            let newText = text;
-            let hasChanges = false;
-            
-            dates.forEach(dateStr => {
-                const formatted = formatDateToDDMMYYYY(dateStr);
-                if (formatted !== dateStr) {
-                    hasChanges = true;
-                    // Escape special regex characters
-                    const escaped = dateStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    newText = newText.replace(new RegExp(escaped, 'g'), formatted);
-                }
-            });
-            
-            if (hasChanges) {
-                element.textContent = newText;
-                formattedElements.add(element);
-            }
-        });
-
-        // Format text nodes trực tiếp (cho trường hợp text node không có parent element)
+        // Format text nodes directly to avoid wiping nested markup.
         const walker = document.createTreeWalker(
             container,
             NodeFilter.SHOW_TEXT,

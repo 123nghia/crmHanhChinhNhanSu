@@ -134,12 +134,18 @@
 
             DomUtils.populateSelect(select, [], { defaultOption: DEFAULT_OPTIONS.all });
 
-            if (!groupId || safeNumber(groupId) < 0) {
+            if (groupId === undefined || groupId === null) {
+                return [];
+            }
+
+            const numericGroupId = Number(groupId);
+            if (Number.isNaN(numericGroupId)) {
                 return [];
             }
 
             try {
-                const response = await CrmApi.groupMembers(groupId);
+                const effectiveGroupId = numericGroupId < 0 ? -1 : numericGroupId;
+                const response = await CrmApi.groupMembers(effectiveGroupId);
                 const members = CrmApi.toArray(response);
 
                 DomUtils.populateSelect(select, members, {
@@ -314,16 +320,31 @@
                 return [];
             }
 
+            const masterType = select.dataset.masterType;
+            const valueKey = select.dataset.valueKey || (masterType ? 'code' : 'id');
+            const textKey = select.dataset.textKey || 'name';
+            const selectedValue = select.dataset.selectedValue;
+            const hasSelectedValue = selectedValue !== undefined &&
+                selectedValue !== null &&
+                String(selectedValue) !== '' &&
+                String(selectedValue) !== '-1';
+
             DomUtils.populateSelect(select, [], { defaultOption: DEFAULT_OPTIONS.all });
 
             try {
-                const response = await CrmApi.statuses();
+                const response = masterType
+                    ? await CrmApi.masterDataByType(masterType)
+                    : await CrmApi.statuses();
                 const statuses = CrmApi.toArray(response);
-
                 DomUtils.populateSelect(select, statuses, {
-                    textKey: 'name',
-                    valueKey: 'id',
-                    defaultOption: DEFAULT_OPTIONS.all
+                    textKey,
+                    valueKey,
+                    defaultOption: DEFAULT_OPTIONS.all,
+                    onOption: (option, item) => {
+                        if (hasSelectedValue && String(item[valueKey]) === String(selectedValue)) {
+                            option.selected = true;
+                        }
+                    }
                 });
 
                 DomUtils.dispatchChange(select);

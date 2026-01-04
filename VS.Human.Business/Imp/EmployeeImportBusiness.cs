@@ -33,7 +33,6 @@ namespace VS.Human.Business.Imp
                 IsolationLevel = IsolationLevel.ReadCommitted
             };
 
-            // Ensure the whole import is atomic; any row error will rollback previous inserts
             using var scope = new TransactionScope(TransactionScopeOption.Required, transactionOptions, TransactionScopeAsyncFlowOption.Enabled);
 
             try
@@ -60,13 +59,14 @@ namespace VS.Human.Business.Imp
                 if (!headerMap.Any())
                     return ErrorResult(result, "Khong tim thay cot du lieu trong file Excel.");
 
-                int dataStartIndex = headerRowIndex + 1;
+                int dataStartIndex = headerRowIndex + 2;
                 if (dataStartIndex >= rows.Count)
                     return ErrorResult(result, "File Excel khong co du lieu sau dong tieu de.");
 
                 for (int i = dataStartIndex; i < rows.Count; i++)
                 {
-                    await ProcessRow(rows[i], i + 1, workbookPart, userId, result, headerMap);
+                   
+                    await ProcessRow(rows[i], i , workbookPart, userId, result, headerMap);
                 }
             }
             catch (Exception ex)
@@ -97,35 +97,38 @@ namespace VS.Human.Business.Imp
 
         private async Task ProcessRow(Row row, int rowIndex, WorkbookPart workbookPart, int userId, EmployeeImportResult result, System.Collections.Generic.Dictionary<string, int> headerMap)
         {
-            result.Total++;
             try
             {
                 var values = ExcelHelper.GetRowValues(row, workbookPart).ToList();
-                if (values.All(string.IsNullOrWhiteSpace)) return;
-                // Fetch values by column index (1-based, so index = column - 1)
-                var rawPosition = values.Count > 3 ? values[3]?.Trim() ?? "" : "";
-                var rawDepartment = values.Count > 4 ? values[4]?.Trim() ?? "" : "";
-                var rawEducation = values.Count > 8 ? values[8]?.Trim() ?? "" : "";
-                var rawMarital = values.Count > 10 ? values[10]?.Trim() ?? "" : "";
-                var rawReligion = values.Count > 8 ? values[8]?.Trim() ?? "" : "";
-                var contractData = CreateContractData(values);
-                var insuranceData = CreateInsuranceData(values);
 
+                var fullName = GetValue(headerMap, values, "FullName");
+                if (string.IsNullOrWhiteSpace(fullName))
+                {
+                    return;
+                }
+                if (values.All(string.IsNullOrWhiteSpace)) return;
+
+                result.Total++;
+                var rawPosition = GetValue(headerMap, values, "Position");
+                var rawDepartment = GetValue(headerMap, values, "Department");
+                var rawEducation = GetValue(headerMap, values, "EducationLevel");
+                var rawMarital = GetValue(headerMap, values, "Maritalstatus");
+                var rawReligion = GetValue(headerMap, values, "Religion");
+                var contractData = CreateContractData(values, headerMap);
+                var insuranceData = CreateInsuranceData(values, headerMap);
                 var positionCode = await EnsureMasterDataAsync(rawPosition, 2, userId);    // TypeData 2 = Position
                 var departmentCode = await EnsureMasterDataAsync(rawDepartment, 5, userId); // TypeData 5 = Department
                 var educationCode = await EnsureMasterDataAsync(rawEducation, 14, userId);  // TypeData 14 = Education level
                 var maritalCode = await EnsureMasterDataAsync(rawMarital, 13, userId);      // TypeData 13 = Marital status
-                var religionCode = await EnsureMasterDataAsync(rawReligion, 20, userId);    // TypeData 10 = Religion
+                var religionCode = await EnsureMasterDataAsync(rawReligion, 20, userId);    // TypeData 20 = Religion
 
                 if (!string.IsNullOrWhiteSpace(contractData.ContractTypeRaw))
                 {
                     // TypeData 1 = Loại HĐ (master data)
                     contractData.ContractTypeCode = await EnsureMasterDataAsync(contractData.ContractTypeRaw, 1, userId);
                 }
-
                 contractData.CodeId = Guid.NewGuid().ToString("N").Substring(0,8).ToUpper();
-
-                var employee = CreateEmployeeFromRow(values, positionCode, departmentCode, educationCode, maritalCode, religionCode);
+                var employee = CreateEmployeeFromRow(values, headerMap, positionCode, departmentCode, educationCode, maritalCode, religionCode);
                 var validationError = EmployeeImportValidator.ValidateRow(EmployeeMapper.MapToEmployeeInfoAdd(employee));
 
                 if (validationError != null)
@@ -140,6 +143,15 @@ namespace VS.Human.Business.Imp
             {
                 AddError(result, rowIndex, $"Loi xu ly: {ex.Message}");
             }
+        }
+
+        private string GetValue(Dictionary<string, int> headerMap, List<string> values, string key)
+        {
+            if (headerMap.TryGetValue(key, out var idx) && idx < values.Count)
+            {
+                return values[idx]?.Trim() ?? "";
+            }
+            return "";
         }
 
         private async Task SaveEmployee(Employee employee, ContractRowData contractData, InsuranceRowData insuranceData, int userId, int rowIndex, EmployeeImportResult result)
@@ -164,8 +176,8 @@ namespace VS.Human.Business.Imp
             if (createdEmployee != null && createdEmployee.Id > 0)
             {
                 result.TotalSuccess++;
-                await TrySaveContractAsync(createdEmployee, contractData, userId, rowIndex, result);
-                await TrySaveInsuranceAsync(createdEmployee, insuranceData, userId, rowIndex, result);
+                // await TrySaveContractAsync(createdEmployee, contractData, userId, rowIndex, result);
+                // await TrySaveInsuranceAsync(createdEmployee, insuranceData, userId, rowIndex, result);
             }
             else
             {
@@ -173,32 +185,36 @@ namespace VS.Human.Business.Imp
             }
         }
 
-        private ContractRowData CreateContractData(System.Collections.Generic.List<string> values)
+        private ContractRowData CreateContractData(System.Collections.Generic.List<string> values, Dictionary<string, int> headerMap)
         {
             var data = new ContractRowData
             {
-                NoAgree = values.Count > 29 ? values[29]?.Trim() ?? "" : "",
-                ContractTypeRaw = values.Count > 30 ? values[30]?.Trim() ?? "" : ""
+                NoAgree = GetValue(headerMap, values, "ContractNo"),
+                ContractTypeRaw = GetValue(headerMap, values, "ContractType")
             };
 
-            if (values.Count > 31 && ExcelHelper.TryParseDate(values[31], out var start)) data.Start = start;
-            if (values.Count > 32 && ExcelHelper.TryParseDate(values[32], out var end)) data.End = end;
+            var startStr = GetValue(headerMap, values, "ContractStart");
+            if (!string.IsNullOrWhiteSpace(startStr) && ExcelHelper.TryParseDate(startStr, out var start)) data.Start = start;
+
+            var endStr = GetValue(headerMap, values, "ContractEnd");
+            if (!string.IsNullOrWhiteSpace(endStr) && ExcelHelper.TryParseDate(endStr, out var end)) data.End = end;
 
             return data;
         }
 
-        private InsuranceRowData CreateInsuranceData(System.Collections.Generic.List<string> values)
+        private InsuranceRowData CreateInsuranceData(System.Collections.Generic.List<string> values, Dictionary<string, int> headerMap)
         {
             var data = new InsuranceRowData
             {
-                PITDateRaw = values.Count > 24 ? values[24]?.Trim() ?? "" : "",
-                Dependent = values.Count > 25 ? values[25]?.Trim() ?? "" : "",
-                NumberCode = values.Count > 27 ? values[27]?.Trim() ?? "" : "",
-                RegHospital = values.Count > 28 ? values[28]?.Trim() ?? "" : "",
-                TaxCode = values.Count > 29 ? values[29]?.Trim() ?? "" : ""
+                PITDateRaw = GetValue(headerMap, values, "PITDate"),
+                Dependent = GetValue(headerMap, values, "Dependent"),
+                NumberCode = GetValue(headerMap, values, "InsuranceNumber"),
+                RegHospital = GetValue(headerMap, values, "RegHospital"),
+                TaxCode = GetValue(headerMap, values, "TaxCode")
             };
 
-            if (values.Count > 26 && ExcelHelper.TryParseDate(values[26], out var effected)) data.EffectedFrom = effected;
+            var effectedStr = GetValue(headerMap, values, "EffectedFrom");
+            if (!string.IsNullOrWhiteSpace(effectedStr) && ExcelHelper.TryParseDate(effectedStr, out var effected)) data.EffectedFrom = effected;
             if (ExcelHelper.TryParseDate(data.PITDateRaw, out var pit)) data.PITDate = pit;
             return data;
         }
@@ -300,35 +316,40 @@ namespace VS.Human.Business.Imp
                 !string.IsNullOrWhiteSpace(TaxCode);
         }
 
-        private Employee CreateEmployeeFromRow(System.Collections.Generic.List<string> values, string? positionCode, string? departmentCode, string? educationCode, string? maritalCode, string? religionCode)
+        private Employee CreateEmployeeFromRow(System.Collections.Generic.List<string> values, Dictionary<string, int> headerMap, string? positionCode, string? departmentCode, string? educationCode, string? maritalCode, string? religionCode)
         {
             var employee = new Employee
             {
-                FullName = values.Count > 1 ? values[1]?.Trim() ?? "" : "",
-                Phone = values.Count > 18 ? values[18]?.Trim() ?? "" : "",
-                PositionCode = positionCode ?? NormalizeCode(values.Count > 3 ? values[2]?.Trim() ?? "" : ""),
-                DepartmentCode = departmentCode ?? NormalizeCode(values.Count > 4 ? values[3]?.Trim() ?? "" : ""),
-                Gender = NormalizeGender(values.Count > 5 ? values[5]?.Trim() ?? "" : ""),
-                PlaceOfBirth = values.Count > 7 ? values[7]?.Trim() ?? "" : "",
-                Religion = religionCode ?? (values.Count > 8 ? values[8]?.Trim() ?? "" : ""),
-                EducationLevel = educationCode ?? (values.Count > 9 ? values[9]?.Trim() ?? "" : ""),
-                Maritalstatus = maritalCode ?? (values.Count > 10 ? values[10]?.Trim() ?? "" : ""),
-                NationalId = values.Count > 11 ? values[11]?.Trim() ?? "" : "",
-                NationalPlace = values.Count > 13 ? values[13]?.Trim() ?? "" : "",
-                PermanentAddress = values.Count > 14 ? values[14]?.Trim() ?? "" : "",
-                TemporaryAddress = values.Count > 15 ? values[15]?.Trim() ?? "" : "",
-                Email = values.Count > 16 ? values[16]?.Trim() ?? "" : "",
-                PersonalEmail = values.Count > 17 ? values[17]?.Trim() ?? "" : "",
-                EmergencyContact = values.Count > 19 ? values[19]?.Trim() ?? "" : "",
-                BeneficiaryName = values.Count > 20 ? values[20]?.Trim() ?? "" : "",
-                BankAccount = values.Count > 21 ? values[21]?.Trim() ?? "" : "",
-                BankName = values.Count >22 ? values[22]?.Trim() ?? "" : "",
-                Noted = values.Count > 33 ? values[33]?.Trim() ?? "" : ""
+                FullName = GetValue(headerMap, values, "FullName"),
+                Phone = GetValue(headerMap, values, "Phone"),
+                PositionCode = positionCode ?? NormalizeCode(GetValue(headerMap, values, "Position")),
+                DepartmentCode = departmentCode ?? NormalizeCode(GetValue(headerMap, values, "Department")),
+                Gender = NormalizeGender(GetValue(headerMap, values, "Gender")),
+                PlaceOfBirth = GetValue(headerMap, values, "PlaceOfBirth"),
+                Religion = religionCode ?? GetValue(headerMap, values, "Religion"),
+                EducationLevel = educationCode ?? GetValue(headerMap, values, "EducationLevel"),
+                Maritalstatus = maritalCode ?? GetValue(headerMap, values, "Maritalstatus"),
+                NationalId = GetValue(headerMap, values, "NationalId"),
+                NationalPlace = GetValue(headerMap, values, "NationalPlace"),
+                PermanentAddress = GetValue(headerMap, values, "PermanentAddress"),
+                TemporaryAddress = GetValue(headerMap, values, "TemporaryAddress"),
+                Email = GetValue(headerMap, values, "Email"),
+                PersonalEmail = GetValue(headerMap, values, "PersonalEmail"),
+                EmergencyContact = GetValue(headerMap, values, "EmergencyContact"),
+                BeneficiaryName = GetValue(headerMap, values, "BeneficiaryName"),
+                BankAccount = GetValue(headerMap, values, "BankAccount"),
+                BankName = GetValue(headerMap, values, "BankName"),
+                Noted = GetValue(headerMap, values, "Noted")
             };
 
-            if (values.Count > 2 && ExcelHelper.TryParseDate(values[2], out var onboard)) employee.Onboard = onboard;
-            if (values.Count > 6 && ExcelHelper.TryParseDate(values[6], out var dob)) employee.Dob = dob;
-            if (values.Count > 12 && ExcelHelper.TryParseDate(values[12], out var nationalDate)) employee.NationalDate = nationalDate;
+            var onboardStr = GetValue(headerMap, values, "Onboard");
+            if (!string.IsNullOrWhiteSpace(onboardStr) && ExcelHelper.TryParseDate(onboardStr, out var onboard)) employee.Onboard = onboard;
+
+            var dobStr = GetValue(headerMap, values, "Dob");
+            if (!string.IsNullOrWhiteSpace(dobStr) && ExcelHelper.TryParseDate(dobStr, out var dob)) employee.Dob = dob;
+
+            var nationalDateStr = GetValue(headerMap, values, "NationalDate");
+            if (!string.IsNullOrWhiteSpace(nationalDateStr) && ExcelHelper.TryParseDate(nationalDateStr, out var nationalDate)) employee.NationalDate = nationalDate;
 
             return employee;
         }
@@ -394,23 +415,10 @@ namespace VS.Human.Business.Imp
         // Find the row index where actual data starts (first row after header)
         private int FindHeaderRow(List<Row> rows, WorkbookPart workbookPart)
         {
-            for (int i = 0; i < rows.Count; i++)
+            // Assume header is always the first row (index 0)
+            if (rows.Count > 0)
             {
-                var values = ExcelHelper.GetRowValues(rows[i], workbookPart).ToList();
-                // A header row typically contains text that is not easily parsed as a number in the first column
-                // and might contain common header names.
-                // We look for a row where the first column is not a number, but the second column (FullName) is present.
-                if (values.Count > 1)
-                {
-                    var col0 = values[0]?.Trim() ?? "";
-                    var col1 = values[1]?.Trim() ?? ""; // Assuming FullName is often the second column
-                    if (!int.TryParse(col0, out _) && 
-                        (col1.Contains("Full Name", StringComparison.OrdinalIgnoreCase) || 
-                         col1.Contains("Ten nhan vien", StringComparison.OrdinalIgnoreCase)))
-                    {
-                        return i; // This row is likely the header
-                    }
-                }
+                return 0;
             }
             return -1;
         }
