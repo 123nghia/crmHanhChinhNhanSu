@@ -18,6 +18,7 @@ namespace crmHuman.Pages
         private readonly IEmployeeImportBusiness _employeeImportBusiness;
 
         private readonly ICandidateBusiness _candidateBusiness;
+        private readonly ImasterDataBussiness _masterDataBussiness;
 
         public List<string> TableColumnTextAdmin { get; set; }
         public EmployeeRequest RequestSearch { get; set; }
@@ -37,7 +38,8 @@ namespace crmHuman.Pages
         public EmployeeModel(ILogger<EmployeeModel> logger,
             IEmpBusiness empBusiness,
             IEmployeeImportBusiness employeeImportBusiness,
-            ICandidateBusiness candidateBusiness
+            ICandidateBusiness candidateBusiness,
+            ImasterDataBussiness masterDataBussiness
             )
         {
             _logger = logger;
@@ -59,6 +61,7 @@ namespace crmHuman.Pages
                 ,"Vai trò", "Vị trí", "Bộ phận","Nhóm","Trạng thái", "Trạng thái chứng từ", "Ngày Onboard","Cập nhật gần nhất","Thao tác"
             };
             _candidateBusiness = candidateBusiness;
+            _masterDataBussiness = masterDataBussiness;
 
         }
 
@@ -228,6 +231,8 @@ namespace crmHuman.Pages
             {
                 resultView = await _empBusiness.GetById(id);
             }
+            var religionOptions = await _masterDataBussiness.GetallByTypeData(20);
+            ViewData["ReligionOptions"] = religionOptions;
             return Partial("editOrUpdateEmployee", resultView);
         }
 

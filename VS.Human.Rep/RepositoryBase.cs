@@ -396,7 +396,7 @@ namespace VS.Human.Rep
                     return affected != 0;
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 return false;
             }

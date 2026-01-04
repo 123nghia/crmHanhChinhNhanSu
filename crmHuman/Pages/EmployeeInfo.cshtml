@@ -380,7 +380,31 @@
                             
                             <div class="form-group">
                                 <label class="form-label">Tôn giáo</label>
-                                <input type="text" value="@itemResult.Religion" name="religion" id="txtReligion" class="form-control" placeholder="" />
+                                <select name="religion" id="txtReligion" class="form-select" aria-label="">
+                                    @foreach (var item in dataDepartments)
+                                    {
+                                        var itemMasterData = item;
+                                        if(itemMasterData.TypeData != 20)
+                                        {
+                                            continue;
+                                        }
+
+                                        if(itemMasterData.ApplyFor == 0)
+                                        {
+                                            continue;
+                                        }
+
+                                        var departmentCheck = itemResult.Religion;
+                                        if (itemMasterData.Code == departmentCheck)
+                                        {
+                                            <option selected value="@itemMasterData.Code">@itemMasterData.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@itemMasterData.Code">@itemMasterData.Name</option>
+                                        }
+                                    }
+                                </select>
                                 <div class="invalid-feedback-cs">
                                 </div>
                             </div>
@@ -786,14 +810,14 @@
                               <strong> Thông tin BHXH </strong>
                               <div class="form-group">
                                <label class="form-label">Mã số BHXH</label>
-                                <input type="text" value="@taxtItem.CodeId" name="Noted" id="txtMaSoBaoHiem"
+                                <input type="text" value="@bhxhItem.NumberCode" name="Noted" id="txtMaSoBaoHiem"
                                  class="form-control" required placeholder="" />
                                 <div class="invalid-feedback-cs"> </div>
                             </div>
 
                              <div class="form-group">
                                <label class="form-label">Tờ rơi</label>
-                                <input type="text" value="@taxtItem.PageTax" name="Noted" id="cbToroiBaoHiem"
+                                <input type="text" value="@bhxhItem.RegPageNumber" name="Noted" id="cbToroiBaoHiem"
                                  class="form-control" required placeholder="" />
                                   <div class="invalid-feedback-cs"> </div>
                             </div>
@@ -802,13 +826,13 @@
 
                              <div class="form-group">
                                <label class="form-label">Bìa số</label>
-                                <input type="text" value="@taxtItem.BiaSo" name="Noted" id="txtBiaSoBaoHiem"
+                                <input type="text" value="@bhxhItem.Number" name="Noted" id="txtBiaSoBaoHiem"
                                  class="form-control" required placeholder="" />
                                    <div class="invalid-feedback-cs"> </div>
                             </div>
                             <div class="form-group">
                             <label class="form-label"> Đăng ký BHYT</label>
-                                <input type="text" value="@taxtItem.RegBHYT" name="RegBHYT" id="txtRegBHYT"
+                                <input type="text" value="@bhxhItem.RegBHYT" name="RegBHYT" id="txtRegBHYT"
                                  class="form-control" required placeholder="" />
                                 <div class="invalid-feedback-cs"> </div>
                             </div>
@@ -819,21 +843,21 @@
 
                               <div class="form-group">
                                <label class="form-label">Mã số thuế</label>
-                                <input type="text" value="@bhxhItem.NumberCode" name="Noted" id="txtTaxCodeInput"
+                                <input type="text" value="@taxtItem.Number" name="Noted" id="txtTaxCodeInput"
                                  class="form-control" required placeholder="" />
                                    <div class="invalid-feedback-cs"> </div>
                             </div>
                             
                             <div class="form-group">
                                <label class="form-label">Ngày cấp mã số thuế</label>
-                                <input type="date" value="@(bhxhItem.PITDate?.ToString("yyyy-MM-dd"))" name="pitDate" id="txtPITDate"
+                                <input type="date" value="@(taxtItem.PITDate?.ToString("yyyy-MM-dd"))" name="pitDate" id="txtPITDate"
                                  class="form-control" placeholder="" />
                                    <div class="invalid-feedback-cs"> </div>
                             </div>
                             
                             <div class="form-group">
                                <label class="form-label">Hiệu lực từ</label>
-                                <input type="date" value="@(bhxhItem.EffectedFrom?.ToString("yyyy-MM-dd"))" name="effectedFrom" id="txtEffectedFrom"
+                                <input type="date" value="@(taxtItem.EffectedFrom?.ToString("yyyy-MM-dd"))" name="effectedFrom" id="txtEffectedFrom"
                                  class="form-control" placeholder="" />
                                    <div class="invalid-feedback-cs"> </div>
                             </div>
@@ -842,8 +866,8 @@
                             <label class="form-label" for="cbThuXacNhan">Thư xác nhận thuế nhập</label>
                             <select class="form-select" id="cbThuXacNhan" name="IsThuXacNhan">
                             <option value="">-- Chọn --</option>
-                            <option value="true" selected="@(bhxhItem.IsConfirmletter == true)">Có</option>
-                            <option value="false" selected="@(bhxhItem.IsConfirmletter == false)">Không</option>
+                            <option value="true" selected="@(taxtItem.IsConfirmletter == true)">Có</option>
+                            <option value="false" selected="@(taxtItem.IsConfirmletter == false)">Không</option>
                             </select>
                             <div class="invalid-feedback-cs"></div>
                             </div>
@@ -853,21 +877,28 @@
 
                              <div class="form-group">
                                <label class="form-label">Chứng từ thuế</label>
-                                <input type="text" value="@bhxhItem.ChungTuThue" name="Noted" id="cbChungTuThue"
+                                <input type="text" value="@taxtItem.ChungTuThue" name="Noted" id="cbChungTuThue"
                                  class="form-control" required placeholder="" />
                                    <div class="invalid-feedback-cs"> </div>
                             </div>
 
                              <div class="form-group">
                                <label class="form-label">Người phụ thuộc</label>
-                                <input type="text" value="@bhxhItem.DependentName" name="Noted" id="txtDependentName"
+                                <input type="text" value="@taxtItem.DependentName" name="Noted" id="txtDependentName"
                                  class="form-control" required placeholder="" />
                                    <div class="invalid-feedback-cs"> </div>
                             </div>
 
-                                  <div class="form-group">
-                               <label class="form-label">Mã số người phụ thuộc</label>
-                                <input type="text" value="@bhxhItem.Dependent" name="Noted" id="txtDependentNumber"
+                            <div class="form-group">
+                               <label class="form-label">Số người phụ thuộc</label>
+                                <input type="text" value="@taxtItem.Dependent" name="Noted" id="txtDependentNumber"
+                                 class="form-control" required placeholder="" />
+                                   <div class="invalid-feedback-cs"> </div>
+                            </div>
+
+                            <div class="form-group">
+                               <label class="form-label">Mã người phụ thuộc</label>
+                                <input type="text" value="@taxtItem.DependentCode" name="Noted" id="txtDependentCode"
                                  class="form-control" required placeholder="" />
                                    <div class="invalid-feedback-cs"> </div>
                             </div>

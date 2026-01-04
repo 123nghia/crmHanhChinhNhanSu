@@ -16,7 +16,7 @@ namespace VS.Human.Business.Helpers
             if (string.IsNullOrWhiteSpace(employee.Phone))
                 errors.Add("So dien thoai bat buoc");
 
-            if (!string.IsNullOrWhiteSpace(employee.Phone) && !IsPhoneNumber(employee.Phone))
+            if (string.IsNullOrWhiteSpace(employee.Phone))
                 errors.Add("So dien thoai khong hop le");
 
             if (!string.IsNullOrWhiteSpace(employee.Email) && !IsEmail(employee.Email))

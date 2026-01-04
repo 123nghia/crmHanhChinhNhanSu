@@ -20,13 +20,13 @@ namespace VS.Human.Rep
             var parameter = new
             {
                 item.Id,
-                item.IsConfirmletter,
+                item.Relid,
                 item.NumberCode,
-                item.ChungTuThue,
-                item.DependentName,
-                item.Dependent,
-                item.EffectedFrom,
                 item.PITDate,
+                item.EffectedFrom,
+                item.RegBHYT,
+                item.Number,
+                item.RegPageNumber,
                 item.UpdatedBy,
 
             };
@@ -39,14 +39,14 @@ namespace VS.Human.Rep
             {
                 item.UserName,
                 item.NumberCode,
-                item.IsConfirmletter,
                 item.Relid,
-                item.ChungTuThue,
-                item.CreatedBy,
-                item.Dependent,
-                item.DependentName,
                 item.PITDate,
-                item.EffectedFrom
+                item.EffectedFrom,
+                item.RegBHYT,
+                item.Number,
+                item.RegPageNumber,
+                item.CreatedBy
+               
             };
             return await this.ExecuteSQL("sp_BHXHItem_insert", parameter);
         }
@@ -57,10 +57,9 @@ namespace VS.Human.Rep
                 var itemUpdate = await GetById(item.Id);
                 if (itemUpdate != null)
                 {
-                    itemUpdate.Dependent = item.Dependent;
-                    itemUpdate.DependentName = item.DependentName;
-                    itemUpdate.ChungTuThue = item.ChungTuThue;
-                    itemUpdate.IsConfirmletter = item.IsConfirmletter;
+                    itemUpdate.Number = item.Number;   
+                    itemUpdate.RegBHYT = item.RegBHYT;
+                    itemUpdate.RegPageNumber = item.RegPageNumber;
                     itemUpdate.UpdatedBy = item.UpdatedBy;
                     itemUpdate.NumberCode = item.NumberCode;
                     itemUpdate.EffectedFrom = item.EffectedFrom;

@@ -40,6 +40,31 @@ namespace VS.Human.Business.Helpers
 
         public static string? GetCellValue(Cell cell, SharedStringTable? sharedStringTable)
         {
+            if (cell.DataType != null && cell.DataType.Value == CellValues.InlineString && cell.InlineString != null)
+            {
+                if (cell.InlineString.Text != null)
+                {
+                    return cell.InlineString.Text.Text;
+                }
+
+                var inlineBuilder = new StringBuilder();
+                foreach (var element in cell.InlineString.Elements())
+                {
+                    if (element is Text inlineText)
+                    {
+                        inlineBuilder.Append(inlineText.Text);
+                    }
+                    else if (element is Run inlineRun)
+                    {
+                        if (inlineRun.Text != null)
+                        {
+                            inlineBuilder.Append(inlineRun.Text.Text);
+                        }
+                    }
+                }
+                return inlineBuilder.ToString();
+            }
+
             if (cell.CellValue == null)
                 return null;
 
@@ -95,6 +120,19 @@ namespace VS.Human.Business.Helpers
             date = DateTime.MinValue;
             if (string.IsNullOrWhiteSpace(dateStr))
                 return false;
+
+            if (double.TryParse(dateStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var oaDate))
+            {
+                try
+                {
+                    date = DateTime.FromOADate(oaDate);
+                    return true;
+                }
+                catch (ArgumentException)
+                {
+                    // fall back to string parsing
+                }
+            }
 
             var formats = new[] { "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "d-M-yyyy", "yyyy-MM-dd", "MM/dd/yyyy" };
             foreach (var format in formats)

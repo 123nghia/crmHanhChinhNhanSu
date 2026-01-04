@@ -22,10 +22,15 @@ namespace VS.Human.Rep
                 item.UserName,
                 item.CodeId,
                 item.Number,
-                item.RegBHYT,
+                item.ChungTuThue,
                 item.PageTax,
                 item.BiaSo,
-                item.UpdatedBy
+                item.DependentName,
+                item.Dependent,
+                item.IsConfirmletter,
+                item.UpdatedBy,
+                item.PITDate,
+                item.EffectedFrom
      
             };
             return await this.ExecuteSQL("sp_tax_udpate", parameter);
@@ -36,16 +41,23 @@ namespace VS.Human.Rep
         {
             var parameter = new
             {
+             
                 item.UserName,
                 item.CodeId,
                 item.Number,
+                item.ChungTuThue,
                 item.PageTax,
                 item.BiaSo,
-                item.RegBHYT,
-                item.CreatedBy
+                item.DependentName,
+                item.Dependent,
+                item.IsConfirmletter,
+                item.CreatedBy,
+                item.PITDate,
+                item.EffectedFrom,
+             
     
             };
-            return await this.ExecuteSQL("sp_tax_insert", parameter);
+             return await this.ExecuteSQL("sp_tax_insert", parameter);
         }
 
         public async Task<bool> AddOrUpdate(TaxItem item)
@@ -59,8 +71,13 @@ namespace VS.Human.Rep
                     itemUpdate.PageTax = item.PageTax;
                     itemUpdate.CodeId = item.CodeId;
                     itemUpdate.UpdatedBy = item.UpdatedBy;
-                    itemUpdate.RegBHYT = item.RegBHYT;
- 
+                    itemUpdate.Number = item.Number;
+                    itemUpdate.ChungTuThue = item.ChungTuThue;
+                    itemUpdate.DependentName = item.DependentName;
+                    itemUpdate.Dependent = item.Dependent;
+                    itemUpdate.IsConfirmletter = item.IsConfirmletter;
+                    itemUpdate.PITDate = item.PITDate;
+                    itemUpdate.EffectedFrom = item.EffectedFrom;
                     return await Update(itemUpdate);
                 }
             }

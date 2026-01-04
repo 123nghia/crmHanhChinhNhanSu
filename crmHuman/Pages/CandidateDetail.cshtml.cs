@@ -223,6 +223,8 @@ namespace crmHuman.Pages
             {
                 resultView = await _empBusiness.GetById(id);
             }
+            var religionOptions = await _masterDataBussiness.GetallByTypeData(20);
+            ViewData["ReligionOptions"] = religionOptions;
 
             return Partial("editOrUpdateEmployee", resultView);
         }

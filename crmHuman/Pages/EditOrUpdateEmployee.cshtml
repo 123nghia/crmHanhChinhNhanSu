@@ -28,7 +28,7 @@
         };
 
 
-    var arrayStatus = new List<crmHuman.Model.SelectDisplay>()
+    List<Model.SelectDisplay>? arrayStatus = new List<crmHuman.Model.SelectDisplay>()
         {
             new Model.SelectDisplay()
             {
@@ -40,6 +40,7 @@
             }
 
         };
+    var religionOptions = ViewData["ReligionOptions"] as List<VS.Human.Rep.Model.MasterData> ?? new List<VS.Human.Rep.Model.MasterData>();
     var dateText = "";
     if (@Model.Dob != null)
     {
@@ -401,7 +402,24 @@
 
                 <div class="col-12 form-group">
                     <label class="form-label">Tôn giáo</label>
-                    <input type="text" value="@Model.Religion" name="religion" id="txtReligion" class="form-control" placeholder="" />
+                    <select name="religion" id="txtReligion" class="form-select" aria-label="">
+                        @foreach (var item in religionOptions)
+                        {
+                            if(item.ApplyFor == 0)
+                            {
+                                continue;
+                            }
+
+                            if (item.Code == Model.Religion)
+                            {
+                                <option selected value="@item.Code">@item.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@item.Code">@item.Name</option>
+                            }
+                        }
+                    </select>
                     <div class="invalid-feedback-cs">
                     </div>
                 </div>

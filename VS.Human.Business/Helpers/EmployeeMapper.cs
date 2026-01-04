@@ -49,9 +49,6 @@ namespace VS.Human.Business.Helpers
             };
         }
 
-        /// <summary>
-        /// Maps Employee to EmployeeInfoAdd
-        /// </summary>
         public static EmployeeInfoAdd MapToEmployeeInfoAdd(Employee employee)
         {
             return new EmployeeInfoAdd()
@@ -93,13 +90,12 @@ namespace VS.Human.Business.Helpers
                 Religion = employee.Religion,
                 PersonalEmail = employee.PersonalEmail,
                 BeneficiaryName = employee.BeneficiaryName,
-                EmergencyContact = employee.EmergencyContact
+                EmergencyContact = employee.EmergencyContact,
+        
             };
         }
 
-        /// <summary>
-        /// Maps EmployeeInfoAdd to Employee
-        /// </summary>
+       
         public static Employee MapToEmployee(EmployeeInfoAdd itemUpdate, Employee? existingEmployee = null)
         {
             var item = new Employee();

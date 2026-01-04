@@ -107,7 +107,6 @@ namespace VS.Human.Business.Imp
                     return;
                 }
                 if (values.All(string.IsNullOrWhiteSpace)) return;
-
                 result.Total++;
                 var rawPosition = GetValue(headerMap, values, "Position");
                 var rawDepartment = GetValue(headerMap, values, "Department");
@@ -121,22 +120,18 @@ namespace VS.Human.Business.Imp
                 var educationCode = await EnsureMasterDataAsync(rawEducation, 14, userId);  // TypeData 14 = Education level
                 var maritalCode = await EnsureMasterDataAsync(rawMarital, 13, userId);      // TypeData 13 = Marital status
                 var religionCode = await EnsureMasterDataAsync(rawReligion, 20, userId);    // TypeData 20 = Religion
-
                 if (!string.IsNullOrWhiteSpace(contractData.ContractTypeRaw))
                 {
-                    // TypeData 1 = Loại HĐ (master data)
                     contractData.ContractTypeCode = await EnsureMasterDataAsync(contractData.ContractTypeRaw, 1, userId);
                 }
                 contractData.CodeId = Guid.NewGuid().ToString("N").Substring(0,8).ToUpper();
                 var employee = CreateEmployeeFromRow(values, headerMap, positionCode, departmentCode, educationCode, maritalCode, religionCode);
                 var validationError = EmployeeImportValidator.ValidateRow(EmployeeMapper.MapToEmployeeInfoAdd(employee));
-
                 if (validationError != null)
                 {
                     AddError(result, rowIndex, validationError);
                     return;
                 }
-
                 await SaveEmployee(employee, contractData, insuranceData, userId, rowIndex, result);
             }
             catch (Exception ex)
@@ -164,9 +159,15 @@ namespace VS.Human.Business.Imp
                 : employee.UserName;
             employee.Pass = string.IsNullOrEmpty(employee.Pass) ? "Vietstar@2024" : employee.Pass;
             
-            // Set default status
-            employee.Status = 1;
-            employee.IsActive = 1;
+            // Set default status if not provided by import
+            if (employee.Status == 0)
+            {
+                employee.Status = 1;
+            }
+            if (employee.IsActive == 0)
+            {
+                employee.IsActive = 1;
+            }
 
             var employeeInfoAdd = EmployeeMapper.MapToEmployeeInfoAdd(employee);
             employeeInfoAdd.CreatedBy = userId;
@@ -176,8 +177,8 @@ namespace VS.Human.Business.Imp
             if (createdEmployee != null && createdEmployee.Id > 0)
             {
                 result.TotalSuccess++;
-                // await TrySaveContractAsync(createdEmployee, contractData, userId, rowIndex, result);
-                // await TrySaveInsuranceAsync(createdEmployee, insuranceData, userId, rowIndex, result);
+                 await TrySaveContractAsync(createdEmployee, contractData, userId, rowIndex, result);
+                 await TrySaveInsuranceAsync(createdEmployee, insuranceData, userId, rowIndex, result);
             }
             else
             {
@@ -215,7 +216,8 @@ namespace VS.Human.Business.Imp
 
             var effectedStr = GetValue(headerMap, values, "EffectedFrom");
             if (!string.IsNullOrWhiteSpace(effectedStr) && ExcelHelper.TryParseDate(effectedStr, out var effected)) data.EffectedFrom = effected;
-            if (ExcelHelper.TryParseDate(data.PITDateRaw, out var pit)) data.PITDate = pit;
+            if (ExcelHelper.TryParseDate(data.PITDateRaw, out var pit)) 
+                data.PITDate = pit;
             return data;
         }
 
@@ -229,7 +231,8 @@ namespace VS.Human.Business.Imp
                 CodeId = contractData.ContractTypeCode ?? contractData.CodeId ?? string.Empty,
                 Start = contractData.Start,
                 End = contractData.End,
-                UserId = employee.UserName,
+                UserId = employee.Id.ToString(),
+                UserName = employee.UserName,
                 CreatedBy = userId,
                 UpdatedBy = userId
             };
@@ -243,17 +246,32 @@ namespace VS.Human.Business.Imp
 
         private async Task TrySaveInsuranceAsync(Employee employee, InsuranceRowData insuranceData, int userId, int rowIndex, EmployeeImportResult result)
         {
-            if (!insuranceData.HasData) return;
+            if (!insuranceData.HasData)
+                return;
 
-            var bhxh = await _unitOfWork.BHXHItemRep.GetInfo(employee.UserName) ?? new BHXHItem();
-            bhxh.UserName = employee.UserName;
-            bhxh.Relid = employee.Id.ToString();
+            var bhxh = await _unitOfWork.BHXHItemRep.GetInfo(employee.UserName);
+            
+            if (bhxh == null)
+            {
+                
+                bhxh = new BHXHItem()
+                {
+                    UserName = employee.UserName,
+                    Relid = employee.Id.ToString(),
+                    CreatedBy = userId,
+                    UpdatedBy = userId,
+                    Number = 0,
+                    RegPageNumber = ""
+                };
+            }
             bhxh.NumberCode = insuranceData.NumberCode ?? bhxh.NumberCode;
             bhxh.EffectedFrom = insuranceData.EffectedFrom ?? bhxh.EffectedFrom;
             bhxh.PITDate = insuranceData.PITDate ?? bhxh.PITDate;
-            bhxh.Dependent = string.IsNullOrWhiteSpace(insuranceData.Dependent) ? bhxh.Dependent : insuranceData.Dependent;
             bhxh.CreatedBy = bhxh.CreatedBy == 0 ? userId : bhxh.CreatedBy;
             bhxh.UpdatedBy = userId;
+            bhxh.RegBHYT = insuranceData.RegHospital ?? bhxh.RegBHYT;
+            bhxh.Number =  0;
+            
 
             var saved = await _unitOfWork.BHXHItemRep.AddOrUpdate(bhxh);
             if (!saved)
@@ -262,15 +280,28 @@ namespace VS.Human.Business.Imp
                 return;
             }
 
-            if (!string.IsNullOrWhiteSpace(insuranceData.RegHospital) || !string.IsNullOrWhiteSpace(insuranceData.TaxCode))
+            if (!string.IsNullOrWhiteSpace(insuranceData.RegHospital) ||
+                !string.IsNullOrWhiteSpace(insuranceData.TaxCode) ||
+                !string.IsNullOrWhiteSpace(insuranceData.Dependent))
             {
-                var tax = await _unitOfWork.TaxtItemRep.GetInfo(employee.UserName) ?? new TaxItem();
-                tax.UserName = employee.UserName;
-                tax.CodeId = string.IsNullOrWhiteSpace(tax.CodeId) ? employee.Id.ToString() : tax.CodeId;
-                tax.RegBHYT = insuranceData.RegHospital ?? tax.RegBHYT;
-                tax.Number = insuranceData.TaxCode ?? tax.Number;
+                var tax = await _unitOfWork.TaxtItemRep.GetInfo(employee.UserName);
+                if (tax == null)
+                {
+                    tax = new TaxItem()
+                    {
+                        UserName = employee.UserName,
+                        CreatedBy = userId,
+                        UpdatedBy = userId,
+                        CodeId = Guid.NewGuid().ToString("N").Substring(0,8).ToUpper()
+                    };
+                }
+                tax.Number = insuranceData.TaxCode; 
+                tax.PITDate = insuranceData.PITDate;
                 tax.CreatedBy = tax.CreatedBy == 0 ? userId : tax.CreatedBy;
                 tax.UpdatedBy = userId;
+                tax.Dependent = insuranceData.Dependent;
+                tax.DependentName = "";
+                
 
                 var savedTax = await _unitOfWork.TaxtItemRep.AddOrUpdate(tax);
                 if (!savedTax)
@@ -305,6 +336,8 @@ namespace VS.Human.Business.Imp
             public DateTime? EffectedFrom { get; set; }
             public DateTime? PITDate { get; set; }
             public string? Dependent { get; set; }
+
+            public string? DependentName { get; set; }
             public string? TaxCode { get; set; }
 
             public bool HasData =>
@@ -327,7 +360,7 @@ namespace VS.Human.Business.Imp
                 Gender = NormalizeGender(GetValue(headerMap, values, "Gender")),
                 PlaceOfBirth = GetValue(headerMap, values, "PlaceOfBirth"),
                 Religion = religionCode ?? GetValue(headerMap, values, "Religion"),
-                EducationLevel = educationCode ?? GetValue(headerMap, values, "EducationLevel"),
+                EducationLevel = GetValue(headerMap, values, "EducationLevel"),
                 Maritalstatus = maritalCode ?? GetValue(headerMap, values, "Maritalstatus"),
                 NationalId = GetValue(headerMap, values, "NationalId"),
                 NationalPlace = GetValue(headerMap, values, "NationalPlace"),
@@ -339,7 +372,11 @@ namespace VS.Human.Business.Imp
                 BeneficiaryName = GetValue(headerMap, values, "BeneficiaryName"),
                 BankAccount = GetValue(headerMap, values, "BankAccount"),
                 BankName = GetValue(headerMap, values, "BankName"),
-                Noted = GetValue(headerMap, values, "Noted")
+                Noted = GetValue(headerMap, values, "Noted"),
+                RoleCode = "2",
+                Status = 9103,
+                StatusWork =  "11105",
+                DocumentStatus ="81"
             };
 
             var onboardStr = GetValue(headerMap, values, "Onboard");
@@ -354,8 +391,7 @@ namespace VS.Human.Business.Imp
             return employee;
         }
 
-        // Ensure master data exists; if not, create it with the given typeData
-        // If a value already exists (by name), reuse its code regardless of typeData
+       
         private async Task<string?> EnsureMasterDataAsync(string rawValue, int typeData, int userId)
         {
             var trimmed = rawValue?.Trim() ?? string.Empty;
@@ -403,13 +439,19 @@ namespace VS.Human.Business.Imp
 
         private string NormalizeGender(string? input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return "0";
-            
-            input = input.Trim().ToLower();
-            if (input == "nam" || input == "trai" || input == "male" || input == "m" || input == "1") return "1";
-            if (input == "nu" || input == "n\u1eef" || input == "gai" || input == "g\u00e1i" || input == "female" || input == "f" || input == "2") return "2";
-            
-            return "0"; // Default to Unknown
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return "Nam";
+            }
+
+            input = input.Trim().ToLowerInvariant();
+            if (input == "nu" || input == "n\u1eef" || input == "gai" || input == "g\u00e1i" ||
+                input == "female" || input == "f" || input == "2")
+            {
+                return "Nu";
+            }
+
+            return "Nam";
         }
 
         // Find the row index where actual data starts (first row after header)
@@ -425,61 +467,48 @@ namespace VS.Human.Business.Imp
 
         private Dictionary<string, int> GetHeaderMap(Row headerRow, WorkbookPart workbookPart)
         {
-            var headerMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            var headerValues = ExcelHelper.GetRowValues(headerRow, workbookPart).ToList();
+            return GetFixedColumnMap();
+        }
 
-            var standardHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        private static Dictionary<string, int> GetFixedColumnMap()
+        {
+            return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
-                {"STT", "STT"},
-                {"Full Name", "FullName"}, {"Họ tên", "FullName"}, {"Ho ten", "FullName"},
-                {"Onboard", "Onboard"}, {"Ngày vào", "Onboard"}, {"Ngay vao", "Onboard"},
-                {"Position", "Position"}, {"Chức danh", "Position"}, {"Chuc danh", "Position"},
-                {"Department", "Department"}, {"Phòng ban", "Department"}, {"Phong ban", "Department"},
-                {"Gender", "Gender"}, {"Giới tính", "Gender"}, {"Gioi tinh", "Gender"},
-                {"Dob", "Dob"}, {"Ngày sinh", "Dob"}, {"Ngay sinh", "Dob"},
-                {"PlaceOfBirth", "PlaceOfBirth"}, {"Nơi sinh", "PlaceOfBirth"}, {"Noi sinh", "PlaceOfBirth"},
-                {"Religion", "Religion"}, {"Tôn giáo", "Religion"}, {"Ton giao", "Religion"},
-                {"EducationLevel", "EducationLevel"}, {"Trình độ học vấn", "EducationLevel"}, {"Trinh do hoc van", "EducationLevel"},
-                {"Maritalstatus", "Maritalstatus"}, {"Tình trạng hôn nhân", "Maritalstatus"}, {"Tinh trang hon nhan", "Maritalstatus"},
-                {"NationalId", "NationalId"}, {"CMND/CCCD", "NationalId"}, {"CMND", "NationalId"}, {"CCCD", "NationalId"},
-                {"NationalDate", "NationalDate"}, {"Ngày cấp", "NationalDate"}, {"Ngay cap", "NationalDate"},
-                {"NationalPlace", "NationalPlace"}, {"Nơi cấp", "NationalPlace"}, {"Noi cap", "NationalPlace"},
-                {"PermanentAddress", "PermanentAddress"}, {"Địa chỉ thường trú", "PermanentAddress"}, {"Dia chi thuong tru", "PermanentAddress"},
-                {"TemporaryAddress", "TemporaryAddress"}, {"Địa chỉ tạm trú", "TemporaryAddress"}, {"Dia chi tam tru", "TemporaryAddress"},
-                {"Email", "Email"},
-                {"PersonalEmail", "PersonalEmail"}, {"Email cá nhân", "PersonalEmail"}, {"Email ca nhan", "PersonalEmail"},
-                {"Phone", "Phone"}, {"Số điện thoại", "Phone"}, {"So dien thoai", "Phone"},
-                {"EmergencyContact", "EmergencyContact"}, {"Người liên hệ khẩn cấp", "EmergencyContact"}, {"Nguoi lien he khan cap", "EmergencyContact"},
-                {"BeneficiaryName", "BeneficiaryName"}, {"Người thụ hưởng", "BeneficiaryName"}, {"Nguoi thu huong", "BeneficiaryName"},
-                {"BankAccount", "BankAccount"}, {"Số tài khoản", "BankAccount"}, {"So tai khoan", "BankAccount"},
-                {"BankName", "BankName"}, {"Tên ngân hàng", "BankName"}, {"Ten ngan hang", "BankName"},
-                {"PITDate", "PITDate"}, {"Ngày tính thuế TNCN", "PITDate"}, {"Ngay tinh thue TNCN", "PITDate"},
-                {"Dependent", "Dependent"}, {"Số người phụ thuộc", "Dependent"}, {"So nguoi phu thuoc", "Dependent"},
-                {"EffectedFrom", "EffectedFrom"}, {"Ngày hiệu lực BHXH", "EffectedFrom"}, {"Ngay hieu luc BHXH", "EffectedFrom"},
-                {"InsuranceNumber", "InsuranceNumber"}, {"Mã BHXH/BHYT", "InsuranceNumber"}, {"Ma BHXH/BHYT", "InsuranceNumber"},
-                {"RegHospital", "RegHospital"}, {"Nơi đăng ký KCB", "RegHospital"}, {"Noi dang ky KCB", "RegHospital"},
-                {"ContractNo", "ContractNo"}, {"Số HĐLĐ", "ContractNo"}, {"So HDLD", "ContractNo"},
-                {"ContractType", "ContractType"}, {"Loại HĐLĐ", "ContractType"}, {"Loai HDLD", "ContractType"},
-                {"ContractStart", "ContractStart"}, {"Ngày bắt đầu HĐ", "ContractStart"}, {"Ngay bat dau HD", "ContractStart"},
-                {"ContractEnd", "ContractEnd"}, {"Ngày kết thúc HĐ", "ContractEnd"}, {"Ngay ket thuc HD", "ContractEnd"},
-                {"Noted", "Noted"}, {"Ghi chú", "Noted"}, {"Ghi chu", "Noted"}
+                {"STT", 0},
+                {"FullName", 1},
+                {"Onboard", 2},
+                {"Position", 3},
+                {"Department", 4},
+                {"Gender", 5},
+                {"Dob", 6},
+                {"PlaceOfBirth", 7},
+                {"Religion", 8},
+                {"EducationLevel", 9},
+                {"Maritalstatus", 10},
+                {"NationalId", 11},
+                {"NationalDate", 12},
+                {"NationalPlace", 13},
+                {"PermanentAddress", 14},
+                {"TemporaryAddress", 15},
+                {"Email", 16},
+                {"PersonalEmail", 17},
+                {"Phone", 18},
+                {"EmergencyContact", 19},
+                {"BeneficiaryName", 20},
+                {"BankAccount", 21},
+                {"BankName", 22},
+                {"TaxCode", 23},
+                {"PITDate", 24},
+                {"Dependent", 25},
+                {"EffectedFrom", 26},
+                {"InsuranceNumber", 27},
+                {"RegHospital", 28},
+                {"ContractNo", 29},
+                {"ContractType", 30},
+                {"ContractStart", 31},
+                {"ContractEnd", 32},
+                {"Noted", 33}
             };
-
-            for (int i = 0; i < headerValues.Count; i++)
-            {
-                var headerText = headerValues[i]?.Trim();
-                if (!string.IsNullOrWhiteSpace(headerText))
-                {
-                    if (standardHeaders.TryGetValue(headerText, out var mappedName))
-                    {
-                        if (!headerMap.ContainsKey(mappedName)) // Only add the first occurrence if duplicates exist
-                        {
-                            headerMap.Add(mappedName, i);
-                        }
-                    }
-                }
-            }
-            return headerMap;
         }
 
         private EmployeeImportResult ErrorResult(EmployeeImportResult result, string message)
@@ -496,3 +525,4 @@ namespace VS.Human.Business.Imp
         }
     }
 }
+

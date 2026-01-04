@@ -50,11 +50,13 @@ namespace VS.Human.Business.Imp
             item.EducationLevel = itemAdd.EducationLevel;
             item.Maritalstatus = itemAdd.Maritalstatus;
             item.DocumentCheck = itemAdd.DocumentCheck;
+            item.DocumentStatus = itemAdd.DocumentStatus;
             item.Gender = itemAdd.Gender;
             item.PlaceOfBirth = itemAdd.PlaceOfBirth;
             item.Religion = itemAdd.Religion;
             item.PersonalEmail = itemAdd.PersonalEmail;
             item.BeneficiaryName = itemAdd.BeneficiaryName;
+            item.EmergencyContact = itemAdd.EmergencyContact;
             
             var passNew = getMD5(itemAdd.Pass);
             item.Pass = passNew;

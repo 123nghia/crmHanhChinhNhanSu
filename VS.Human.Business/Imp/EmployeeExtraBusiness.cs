@@ -107,25 +107,27 @@ namespace VS.Human.Business.Imp
                 employee.BeneficiaryName = requestAdd.BeneficiaryName;
                 return await _unitOfWork.EmployeeRep.AddOrUpdate(employee);
             }
-            var bhxhItem = await _unitOfWork.BHXHItemRep.GetInfo(employee.UserName);
-            if (bhxhItem == null || bhxhItem.Id < 1)
+          
+          
+            if (requestAdd.TypeUpdate == 1)
             {
-                bhxhItem = new BHXHItem
-                {
-                    UserName = employee.UserName,
+                 var bhxhItem = await _unitOfWork.BHXHItemRep.GetInfo(employee.UserName);
+           
 
-                    Relid = employee.Id.ToString(),
-                };
-            }
-            bhxhItem.IsConfirmletter = requestAdd.IsThuXacNhan;
-            bhxhItem.ChungTuThue = requestAdd.ChungTuThue;
-            bhxhItem.NumberCode = requestAdd.TaxCode;
-            bhxhItem.Dependent = requestAdd.Dependent;
-            bhxhItem.DependentName = requestAdd.DependentName;
-            if (requestAdd.TypeUpdate == 2)
-            {
-                bhxhItem.PITDate = requestAdd.PITDate;
-                bhxhItem.EffectedFrom = requestAdd.EffectedFrom;
+                if (bhxhItem == null || bhxhItem.Id < 1)
+                {
+                    bhxhItem = new BHXHItem
+                    {
+                        UserName = employee.UserName,
+                        Relid = employee.Id.ToString()
+                    };
+                }
+                bhxhItem.RegBHYT = requestAdd.RegBHYT;
+                // bhxhItem.PITDate = requestAdd.PITDate;
+                bhxhItem.Number = requestAdd.BiaSo;
+                bhxhItem.NumberCode= requestAdd.CodeBHXH;
+                bhxhItem.RegPageNumber = requestAdd.PageTax.ToString();
+                
                 return  await _unitOfWork.BHXHItemRep.AddOrUpdate(bhxhItem);
             }
             var taxCodeitem = await _unitOfWork.TaxtItemRep.GetInfo(employee.UserName);
@@ -137,11 +139,14 @@ namespace VS.Human.Business.Imp
                     CodeId = employee.Id.ToString()
                 };
             }
-            taxCodeitem.BiaSo = requestAdd.BiaSo;
-            taxCodeitem.PageTax = requestAdd.PageTax;
-            taxCodeitem.CodeId = requestAdd.CodeBHXH;
-            taxCodeitem.RegBHYT = requestAdd.RegBHYT;
-          
+         
+            taxCodeitem.CodeId = requestAdd.TaxCode;
+            taxCodeitem.PITDate= requestAdd.PITDate;
+            taxCodeitem.EffectedFrom = requestAdd.EffectedFrom;
+            taxCodeitem.IsConfirmletter = requestAdd.IsThuXacNhan;
+            taxCodeitem.ChungTuThue= requestAdd.ChungTuThue;
+            taxCodeitem.DependentName = requestAdd.DependentName;
+            taxCodeitem.Dependent = requestAdd.Dependent;
            return  await _unitOfWork.TaxtItemRep.AddOrUpdate(taxCodeitem);
            
         }

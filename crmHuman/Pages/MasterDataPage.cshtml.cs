@@ -179,6 +179,9 @@ namespace crmHuman.Pages
                  case "trinh-do-hoc-van":
                     inputRequest.Type = 14;
                     break;
+                case "trang-thai-ho-so":
+                    inputRequest.Type = 31;
+                    break;
                 default:
                     inputRequest.Type = -1;
                     break;
