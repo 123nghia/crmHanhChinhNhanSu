@@ -51,14 +51,14 @@ namespace crmHuman.Pages
             TableColumnText = new List<string>()
             {
                 "STT","UserName","Họ tên","Vai trò", "Vị trí", "Bộ phận","Nhóm", "Trạng thái",
-                "Trạng thái chứng từ",
+                "Trạng thái làm việc", "Trạng thái chứng từ",
                 "Ngày Onboard","Cập nhật gần nhất","Thao tác"
             };
 
             TableColumnTextAdmin = new List<string>()
             {
                 "STT","UserName","Họ tên"
-                ,"Vai trò", "Vị trí", "Bộ phận","Nhóm","Trạng thái", "Trạng thái chứng từ", "Ngày Onboard","Cập nhật gần nhất","Thao tác"
+                ,"Vai trò", "Vị trí", "Bộ phận","Nhóm","Trạng thái", "Trạng thái làm việc", "Trạng thái chứng từ", "Ngày Onboard","Cập nhật gần nhất","Thao tác"
             };
             _candidateBusiness = candidateBusiness;
             _masterDataBussiness = masterDataBussiness;

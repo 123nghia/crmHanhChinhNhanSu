@@ -22,6 +22,7 @@ namespace VS.Human.Item
         public string TypeAccount { get; set; }
         public string DepartmentCode { get; set; }
         public string DocumentStatus { get; set; }
+        public string? StatusWork { get; set; }
         public string PositionCode { get; set; }
         public string StatusText { get; set; }
 
@@ -29,6 +30,7 @@ namespace VS.Human.Item
         public string? DepartmentText { get; set; }
         public string? PositionText { get; set; }
         public string? DocumentStatusText { get; set; }
+        public string? StatusWorkText { get; set; }
         public string? ReligionText { get; set; }
         public string? EducationLevelText { get; set; }
         public string? MaritalstatusText { get; set; }

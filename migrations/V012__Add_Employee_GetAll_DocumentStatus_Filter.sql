@@ -25,6 +25,7 @@ CREATE PROCEDURE [dbo].[sp_Employee_getAll]
     @toDate DATETIME2 = NULL,
     @Status INT = NULL,
     @DocumentStatus NVARCHAR(50) = NULL,
+    @StatusWork NVARCHAR(50) = NULL,
     @Token NVARCHAR(500) = NULL,
     @GroupId INT = 0,
     @MemberId INT = 0,
@@ -45,6 +46,7 @@ BEGIN
             COUNT(1) OVER() AS TotalRecord,
             d.*,
             dbo.getDisplayMasterData(d.Status) as StatusText,
+            dbo.getDisplayMasterData(d.StatusWork) as StatusWorkText,
             dbo.getDisplayMasterData(d.DocumentStatus) as DocumentStatusText,
             dbo.getDisplayMasterData(d.DepartmentCode) as DepartmentText,
             dbo.getDisplayMasterData(d.PositionCode) as PositionText,
@@ -76,6 +78,11 @@ BEGIN
         SET @where += '' AND d.DocumentStatus = @DocumentStatus '';
     END
 
+    IF (@StatusWork IS NOT NULL AND @StatusWork <> '''' AND @StatusWork <> ''-1'')
+    BEGIN
+        SET @where += '' AND d.StatusWork = @StatusWork '';
+    END
+
     IF (@fromDate IS NOT NULL)
         SET @where += '' AND d.CreateAt >= @fromDate '';
 
@@ -94,7 +101,7 @@ BEGIN
 
     SET @mainClause = @mainClause + @where + '' OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'';
 
-    SET @params = N''@offset INT, @limit INT, @fromDate DATETIME2, @toDate DATETIME2, @Status INT, @DocumentStatus NVARCHAR(50), @Token NVARCHAR(500), @userId INT'';
+    SET @params = N''@offset INT, @limit INT, @fromDate DATETIME2, @toDate DATETIME2, @Status INT, @DocumentStatus NVARCHAR(50), @StatusWork NVARCHAR(50), @Token NVARCHAR(500), @userId INT'';
 
     EXEC sp_executesql
         @mainClause,
@@ -105,6 +112,7 @@ BEGIN
         @toDate = @toDate,
         @Status = @Status,
         @DocumentStatus = @DocumentStatus,
+        @StatusWork = @StatusWork,
         @Token = @Token,
         @userId = @userId;
 END

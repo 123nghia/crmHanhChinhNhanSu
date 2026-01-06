@@ -215,6 +215,7 @@ namespace VS.Human.Rep
                 fromDate = request.From,
                 toDate = request.To,
                  request.Status,
+                request.StatusWork,
                 request.DocumentStatus,
                  request.Token,
                  request.GroupId,

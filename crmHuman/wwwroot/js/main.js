@@ -16,6 +16,7 @@
         jobSecondary: 'cbJobId1',
         project: 'cbProject',
         status: 'cbstatus',
+        statusWorkSearch: 'cbStatusWorkSearch',
         limit: 'cbLimit',
         address: 'cbAddress'
     };
@@ -314,8 +315,8 @@
             });
         },
 
-        async statuses() {
-            const select = DomUtils.get(SELECTORS.status);
+        async populateMasterSelect(selectId) {
+            const select = DomUtils.get(selectId);
             if (!select) {
                 return [];
             }
@@ -353,6 +354,14 @@
                 ErrorHandler.notify(error);
                 return [];
             }
+        },
+
+        async statuses() {
+            return Dropdowns.populateMasterSelect(SELECTORS.status);
+        },
+
+        async statusWorkSearch() {
+            return Dropdowns.populateMasterSelect(SELECTORS.statusWorkSearch);
         }
     };
 
@@ -620,7 +629,8 @@
             const loads = [
                 Dropdowns.partners(SELECTORS.partnerPrimary),
                 Dropdowns.partners(SELECTORS.partnerSecondary),
-                Dropdowns.statuses()
+                Dropdowns.statuses(),
+                Dropdowns.statusWorkSearch()
             ];
 
             if (typeof global.extraSearchRequest !== 'undefined') {

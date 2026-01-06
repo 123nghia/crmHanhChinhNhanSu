@@ -8,6 +8,7 @@
 
         public int? Status { get; set; }
         public string? DocumentStatus { get; set; }
+        public string? StatusWork { get; set; }
 
 
 

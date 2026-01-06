@@ -13,15 +13,8 @@ namespace VS.Human.Business.Helpers
             if (string.IsNullOrWhiteSpace(employee.FullName))
                 errors.Add("Ho ten khong duoc de trong");
 
-            if (string.IsNullOrWhiteSpace(employee.Phone))
-                errors.Add("So dien thoai bat buoc");
-
-            if (string.IsNullOrWhiteSpace(employee.Phone))
-                errors.Add("So dien thoai khong hop le");
-
-            if (!string.IsNullOrWhiteSpace(employee.Email) && !IsEmail(employee.Email))
-                errors.Add("Email khong hop le");
-
+           
+      
             if (errors.Any())
                 return string.Join(", ", errors);
 
