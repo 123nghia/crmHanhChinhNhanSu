@@ -73,6 +73,9 @@
                             <i class="bi bi-plus-lg"></i> Thêm mới
                         </button>
                         <button type="button" class="btn btn-success" onclick="openImportEmployee()">Import nhân viên</button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportData()">
+                            <i class="bi bi-file-earmark-excel"></i> Export Excel
+                        </button>
                     </div>
             
                     @{
@@ -320,6 +323,38 @@
     var groupSearch = "@Model.RequestSearch.GroupId";
     var memberSearch = "@Model.RequestSearch.MemberId";
     var extraSearchRequest = { groupSearch, memberSearch };
+
+    function exportData() {
+        var searchForm = document.querySelector('form[action="/Employee"]');
+        var exportForm = document.createElement("form");
+        exportForm.method = "post";
+        exportForm.action = "/Employee?handler=Export";
+        exportForm.target = "_blank";
+        exportForm.style.display = "none";
+
+        // Copy search inputs
+        if (searchForm) {
+            Array.from(searchForm.elements).forEach(function(element) {
+                if (element.name) {
+                   var input = document.createElement("input");
+                   input.type = "hidden";
+                   input.name = element.name;
+                   input.value = element.value;
+                   exportForm.appendChild(input);
+                }
+            });
+        }
+        
+        // Add verification token
+        var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (tokenInput) {
+            exportForm.appendChild(tokenInput.cloneNode(true));
+        }
+
+        document.body.appendChild(exportForm);
+        exportForm.submit();
+        setTimeout(function() { document.body.removeChild(exportForm); }, 1000);
+    }
 </script>
 
 <script src="/js/editable-grid.js?v=@DateTime.Now.Ticks"></script>

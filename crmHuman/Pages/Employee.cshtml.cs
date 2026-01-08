@@ -8,6 +8,8 @@ using VS.Human.Rep.Model;
 using System;
 using System.Linq;
 using crmHuman.Model;
+using OfficeOpenXml;
+using System.IO;
 
 namespace crmHuman.Pages
 {
@@ -534,5 +536,121 @@ namespace crmHuman.Pages
             }
         }
 
+        public async Task<IActionResult> OnPostExport(EmployeeRequest RequestSearch)
+        {
+            try
+            {
+                GetInfoUser();
+                RequestSearch.UserId = UserData.UserId;
+
+                var data = await _empBusiness.Export(RequestSearch);
+
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                var templatePath = @"C:\Users\Nghia\Desktop\temp\blockchainHC\templateExport.xlsx";
+
+                ExcelPackage p = null;
+                try 
+                {
+                    if (global::System.IO.File.Exists(templatePath))
+                    {
+                        p = new ExcelPackage(new global::System.IO.FileInfo(templatePath));
+                    }
+                } 
+                catch (Exception ex) 
+                {
+                    Console.WriteLine($"Error loading template: {ex.Message}");
+                }
+
+                if (p == null) p = new ExcelPackage();
+
+                using (var package = p)
+                {
+                    var worksheet = package.Workbook.Worksheets.Count > 0 
+                        ? package.Workbook.Worksheets[0] 
+                        : package.Workbook.Worksheets.Add("Employees");
+                            
+                    int row = 2; // Start writing from row 2
+                    int stt = 1;
+                    
+                    if (package.Workbook.Worksheets.Count == 0) // New file fallback headers
+                    {
+                        worksheet.Cells[1,1].Value = "STT";
+                        worksheet.Cells[1,2].Value = "UserName";
+                        // ... simple headers
+                    }
+
+                    if (data != null && data.Any())
+                    {
+                        foreach (var item in data)
+                        {
+                            int col = 1;
+                            worksheet.Cells[row, col++].Value = stt++;
+                            worksheet.Cells[row, col++].Value = item.UserName;
+                            worksheet.Cells[row, col++].Value = item.FullName;
+                            worksheet.Cells[row, col++].Value = GetNameRoleCode(item.RoleCode); 
+                            worksheet.Cells[row, col++].Value = item.PositionText;
+                            worksheet.Cells[row, col++].Value = item.DepartmentText;
+                            worksheet.Cells[row, col++].Value = item.GroupName;
+                            worksheet.Cells[row, col++].Value = item.StatusText;
+                            worksheet.Cells[row, col++].Value = item.StatusWorkText;
+                            worksheet.Cells[row, col++].Value = item.DocumentStatusText;
+                            
+                            // Personal Info
+                            worksheet.Cells[row, col++].Value = item.Dob?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.Gender;
+                            worksheet.Cells[row, col++].Value = item.PlaceOfBirth;
+                            worksheet.Cells[row, col++].Value = item.NationalId;
+                            worksheet.Cells[row, col++].Value = item.NationalDate?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.NationalPlace;
+                            worksheet.Cells[row, col++].Value = item.Phone;
+                            worksheet.Cells[row, col++].Value = item.EmergencyContact;
+                            worksheet.Cells[row, col++].Value = item.Onboard?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.Email; // Company Email
+                            worksheet.Cells[row, col++].Value = item.PersonalEmail;
+                            worksheet.Cells[row, col++].Value = item.PermanentAddress;
+                            worksheet.Cells[row, col++].Value = item.TemporaryAddress;
+                            worksheet.Cells[row, col++].Value = item.EducationLevelText;
+                            worksheet.Cells[row, col++].Value = item.ReligionText;
+                            worksheet.Cells[row, col++].Value = item.MaritalstatusText;
+                            worksheet.Cells[row, col++].Value = item.BankAccount;
+                            worksheet.Cells[row, col++].Value = item.BankName;
+                            worksheet.Cells[row, col++].Value = item.BeneficiaryName;
+
+                            // HDLD
+                            worksheet.Cells[row, col++].Value = item.HD_SoHD;
+                            worksheet.Cells[row, col++].Value = item.HD_NgayBatDau?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.HD_NgayKetThuc?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.HD_LoaiHD;
+
+                            // Tax
+                            worksheet.Cells[row, col++].Value = item.Tax_MST;
+                            worksheet.Cells[row, col++].Value = item.Tax_NgayCap?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.Tax_NgayHieuLuc?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.Tax_NguoiPhuThuoc;
+                            
+
+                    // ... (mapping logic giữ nguyên) ...
+                            // BHXH
+                            worksheet.Cells[row, col++].Value = item.BHXH_SoSo;
+                            worksheet.Cells[row, col++].Value = item.BHXH_NoiDangKy;
+
+                            row++;
+                        }
+                    }
+                    
+                    var fileContents = package.GetAsByteArray();
+                    string excelName = $"EmployeeList-{DateTime.Now.ToString("yyyyMMddHHmmss")}.xlsx";
+                    return File(fileContents, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelName);
+                }
+            }
+            catch (Exception ex)
+            {
+                 // Log error to console
+                 Console.WriteLine($"Export Error: {ex.Message}");
+                 // Return error as a text file so user can see what happened
+                 var errorBytes = global::System.Text.Encoding.UTF8.GetBytes($"Lỗi xuất file: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                 return File(errorBytes, "text/plain", "Error_Log.txt");
+            }
+        }
     }
 }
