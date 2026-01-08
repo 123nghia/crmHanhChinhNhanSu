@@ -7,6 +7,7 @@ using VS.Human.Item;
 using VS.Human.Rep.Model;
 using System;
 using System.Linq;
+using crmHuman.Model;
 
 namespace crmHuman.Pages
 {
@@ -323,6 +324,195 @@ namespace crmHuman.Pages
         }
 
 
+
+        /// <summary>
+        /// Quick update - Cập nhật nhanh một hoặc nhiều trường từ editable grid
+        /// </summary>
+        public async Task<IActionResult> OnPostQuickUpdate([FromForm] EmployeeQuickUpdate request)
+        {
+            var errors = new List<object>();
+            
+            if (!request.Id.HasValue || request.Id.Value <= 0)
+            {
+                errors.Add(new { name = "Id", content = "Id không hợp lệ" });
+                return ApiResponseHelper.BadRequest(errors);
+            }
+
+            try
+            {
+                GetInfoUser();
+                var employee = await _empBusiness.GetById(request.Id.Value);
+                if (employee == null)
+                {
+                    errors.Add(new { name = "Id", content = "Không tìm thấy nhân viên" });
+                    return ApiResponseHelper.BadRequest(errors);
+                }
+
+                var itemUpdate = new EmployeeInfoAdd
+                {
+                    Id = employee.Id,
+                    FullName = !string.IsNullOrEmpty(request.FullName) ? request.FullName : employee.FullName,
+                    RoleCode = !string.IsNullOrEmpty(request.RoleCode) ? request.RoleCode : employee.RoleCode,
+                    PositionCode = !string.IsNullOrEmpty(request.PositionCode) ? request.PositionCode : employee.PositionCode,
+                    DepartmentCode = !string.IsNullOrEmpty(request.DepartmentCode) ? request.DepartmentCode : employee.DepartmentCode,
+                    Status = request.Status ?? employee.Status,
+                    StatusWork = !string.IsNullOrEmpty(request.StatusWork) ? request.StatusWork : employee.StatusWork,
+                    DocumentStatus = !string.IsNullOrEmpty(request.DocumentStatus) ? request.DocumentStatus : employee.DocumentStatus,
+                    Onboard = request.Onboard ?? employee.Onboard,
+                    UserName = employee.UserName,
+                    Phone = employee.Phone,
+                    Email = employee.Email,
+                    Pass = employee.Pass,
+                    LineCode = employee.LineCode,
+                    Dob = employee.Dob,
+                    AvatarFile = employee.AvatarFile,
+                    CreateAt = employee.CreateAt,
+                    Deleted = employee.Deleted,
+                    Noted = employee.Noted,
+                    CreatedBy = employee.CreatedBy,
+                    IsActive = employee.IsActive,
+                    UpdatedBy = UserData.UserId,
+                    UpdateAt = DateTime.Now,
+                    ColorCode = employee.ColorCode,
+                    PermanentAddress = employee.PermanentAddress,
+                    TemporaryAddress = employee.TemporaryAddress,
+                    NationalId = employee.NationalId,
+                    NationalDate = employee.NationalDate,
+                    NationalPlace = employee.NationalPlace,
+                    ManagerId = employee.ManagerId,
+                    BankAccount = employee.BankAccount,
+                    BankName = employee.BankName,
+                    EducationLevel = employee.EducationLevel,
+                    Maritalstatus = employee.Maritalstatus,
+                    DocumentCheck = employee.DocumentCheck,
+                    Gender = employee.Gender,
+                    PlaceOfBirth = employee.PlaceOfBirth,
+                    Religion = employee.Religion,
+                    PersonalEmail = employee.PersonalEmail,
+                    BeneficiaryName = employee.BeneficiaryName,
+                    EmergencyContact = employee.EmergencyContact
+                };
+
+                var result = await _empBusiness.Update(itemUpdate);
+                return ApiResponseHelper.SuccessResponse(new { success = result });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in QuickUpdate for employee {Id}", request.Id);
+                return ApiResponseHelper.Error("Lỗi khi cập nhật. Vui lòng thử lại.");
+            }
+        }
+
+        /// <summary>
+        /// Quick add - Tạo nhanh nhân viên mới từ editable grid
+        /// </summary>
+        public async Task<IActionResult> OnPostQuickAdd([FromForm] EmployeeQuickAdd request)
+        {
+            var errors = new List<object>();
+
+            if (string.IsNullOrWhiteSpace(request.FullName))
+            {
+                errors.Add(new { name = "FullName", content = "Họ tên là bắt buộc" });
+                return ApiResponseHelper.BadRequest(errors);
+            }
+
+            try
+            {
+                GetInfoUser();
+                var newEmployee = new EmployeeInfoAdd
+                {
+                    FullName = request.FullName,
+                    RoleCode = request.RoleCode ?? "2",
+                    PositionCode = request.PositionCode,
+                    DepartmentCode = request.DepartmentCode,
+                    Status = request.Status ?? 1,
+                    StatusWork = request.StatusWork ?? "1",
+                    DocumentStatus = request.DocumentStatus ?? "1",
+                    Onboard = request.Onboard ?? DateTime.Now,
+                    IsActive = 1,
+                    Pass = "Vietstar@2024",
+                    CreatedBy = UserData.UserId,
+                    CreateAt = DateTime.Now
+                };
+
+                var result = await _empBusiness.Add(newEmployee);
+                if (result != null && result.Id > 0)
+                {
+                    return ApiResponseHelper.SuccessResponse(new { success = true, id = result.Id, userName = result.UserName });
+                }
+                
+                return ApiResponseHelper.Error("Không thể tạo nhân viên mới");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in QuickAdd");
+                return ApiResponseHelper.Error("Lỗi khi tạo nhân viên. Vui lòng thử lại.");
+            }
+        }
+
+        /// <summary>
+        /// Copy row - Sao chép nhân viên để tạo bản mới
+        /// </summary>
+        public async Task<IActionResult> OnPostCopyRow([FromForm] int sourceId)
+        {
+            var errors = new List<object>();
+
+            if (sourceId <= 0)
+            {
+                errors.Add(new { name = "sourceId", content = "Id nguồn không hợp lệ" });
+                return ApiResponseHelper.BadRequest(errors);
+            }
+
+            try
+            {
+                GetInfoUser();
+                var sourceEmployee = await _empBusiness.GetById(sourceId);
+                if (sourceEmployee == null)
+                {
+                    errors.Add(new { name = "sourceId", content = "Không tìm thấy nhân viên nguồn" });
+                    return ApiResponseHelper.BadRequest(errors);
+                }
+
+                var copyEmployee = new EmployeeInfoAdd
+                {
+                    FullName = sourceEmployee.FullName + " (Copy)",
+                    RoleCode = sourceEmployee.RoleCode,
+                    PositionCode = sourceEmployee.PositionCode,
+                    DepartmentCode = sourceEmployee.DepartmentCode,
+                    Status = sourceEmployee.Status,
+                    StatusWork = sourceEmployee.StatusWork,
+                    DocumentStatus = sourceEmployee.DocumentStatus,
+                    Onboard = sourceEmployee.Onboard,
+                    Phone = "",
+                    Email = "",
+                    Pass = "Vietstar@2024",
+                    IsActive = 1,
+                    CreatedBy = UserData.UserId,
+                    CreateAt = DateTime.Now,
+                    LineCode = sourceEmployee.LineCode,
+                    ColorCode = sourceEmployee.ColorCode,
+                    Dob = sourceEmployee.Dob,
+                    Gender = sourceEmployee.Gender,
+                    PlaceOfBirth = sourceEmployee.PlaceOfBirth,
+                    Religion = sourceEmployee.Religion,
+                    EducationLevel = sourceEmployee.EducationLevel,
+                    Maritalstatus = sourceEmployee.Maritalstatus
+                };
+
+                var result = await _empBusiness.Add(copyEmployee);
+                if (result != null && result.Id > 0)
+                {
+                    return ApiResponseHelper.SuccessResponse(new { success = true, id = result.Id, userName = result.UserName });
+                }
+
+                return ApiResponseHelper.Error("Không thể sao chép nhân viên");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in CopyRow for source {SourceId}", sourceId);
+                return ApiResponseHelper.Error("Lỗi khi sao chép. Vui lòng thử lại.");
+            }
+        }
 
     }
 }

@@ -3,6 +3,9 @@
 @{
     ViewData["Title"] = Model.TitlePage;   
 }
+@section Styles {
+    <link rel="stylesheet" href="~/css/editable-grid.css" asp-append-version="true">
+}
 <div class="pagetitle">
     <h1>@Model.TitlePage</h1>
     <nav>
@@ -19,7 +22,13 @@
         <div class="col-lg-12">
             <div class="card">
                 <div class="card-body">
-                    <div class="d-flex justify-content-end mt-3 mb-2">
+                    <div class="d-flex justify-content-end mt-3 mb-2 gap-2">
+                        <button type="button" class="btn btn-outline-secondary" id="toggleEditMode" onclick="EditableGrid.toggleEditMode()">
+                            <i class="bi bi-pencil-square"></i> Bật chỉnh sửa
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="EditableGrid.addRowAtEnd()" style="display:none;" id="btnAddRow">
+                            <i class="bi bi-plus-lg"></i> Thêm mới
+                        </button>
                         <button type="button" class="btn btn-success" onclick="openImportEmployee()">Import nhân viên</button>
                     </div>
             
@@ -35,87 +44,110 @@
 
                     }
                    
-                    <table class="table  table-striped">
-                        <thead>
-                            <tr>
-                                @foreach (var item in columnText)
-                                {
-                                    <th>
-                                        @item
-                                    </th>
-                                }     
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{
-                                int i = 0;
-                            }
-                            @foreach (var itemData in Model.DataAll.Data)
-                            {
-                                 i++;
-                                var itemInfo = itemData as dynamic;
-                                var datetimeCreate = "";
-                                datetimeCreate  =@itemInfo.CreateAt.ToString("dd/MM/yyyy");
-                                var datetimeUpdate = "";
-                                if (@itemInfo.UpdateAt != null)
-                                {
-                                    datetimeUpdate = @itemInfo.UpdateAt.ToString("dd/MM/yyyy");
-                                    if (@itemInfo.UpdateAt > @itemInfo.CreateAt)
-                                    {
-                                        datetimeCreate = datetimeUpdate;
-                                    }
-                                }
-                              
+                    <div class="table-responsive">
+                        <table class="table table-striped editable-grid" id="employeeGrid">
+                            <thead>
                                 <tr>
-                                    <td>@i</td>
-                                  
-                                    <td>@itemInfo.UserName</td>
-                                    <td><a href="/EmployeeInfo?id=@itemInfo.Id" >@itemInfo.FullName</a></td>
-                                    <td>@Model.GetNameRoleCode(itemInfo.RoleCode)</td>
-                                    <td>@itemInfo.PositionText</td>
-                                    <td>@itemInfo.DepartmentText</td>
-                                  
-                                    <td>@itemInfo.GroupName</td>
-                                    <td> @itemInfo.StatusText</td>
-                                    <td> @itemInfo.StatusWorkText</td>
-                                    <td>  @itemInfo.DocumentStatusText</td>
-                                    <td>@itemInfo.OnboardDateDisplay</td>
-                                    <td>@datetimeCreate</td>
-                                    <td>
-                                       
-
-                                        @if(@itemInfo.Deleted == true)
-                                        {
-                                            <a href="javascript:void(0)" onclick="reActive(@itemInfo.Id)">
-                                                                                    <i class="bi bi-recycle"></i>
-
-                                           </a>
-                                        }
-                                        else  
-                                        {
-                                            <a href="javascript:void(0)" onclick="confirmDelete(@itemInfo.Id)">
-                                                                                    <i class="bi bi-trash-fill">
-
-                                                                            </i>
-                                           </a>
-                                        }
-                                   
-                                
-
-                                        <a href="javascript:void(0)" onclick="OpenChangPassword(@itemInfo.Id)">
-                                            <i class="bi bi-compass-fill">
-
-                                            </i>
-                                        </a>
-                                       
-                                </td>
+                                    @foreach (var item in columnText)
+                                    {
+                                        <th>
+                                            @item
+                                        </th>
+                                    }     
                                 </tr>
-                            }
-                      
+                            </thead>
+                            <tbody>
+                                @{
+                                    int i = 0;
+                                }
+                                @foreach (var itemData in Model.DataAll.Data)
+                                {
+                                     i++;
+                                    var itemInfo = itemData as dynamic;
+                                    var datetimeCreate = "";
+                                    datetimeCreate  =@itemInfo.CreateAt.ToString("dd/MM/yyyy");
+                                    var datetimeUpdate = "";
+                                    if (@itemInfo.UpdateAt != null)
+                                    {
+                                        datetimeUpdate = @itemInfo.UpdateAt.ToString("dd/MM/yyyy");
+                                        if (@itemInfo.UpdateAt > @itemInfo.CreateAt)
+                                        {
+                                            datetimeCreate = datetimeUpdate;
+                                        }
+                                    }
+                                    
+                                    // Get raw values for data attributes
+                                    string onboardDate = "";
+                                    if (itemInfo.Onboard != null)
+                                    {
+                                        try { onboardDate = ((DateTime)itemInfo.Onboard).ToString("yyyy-MM-dd"); } catch {}
+                                    }
+                                  
+                                    <tr data-id="@itemInfo.Id">
+                                        <td>@i</td>
+                                      
+                                        <td>@itemInfo.UserName</td>
+                                        <td class="editable-cell" data-field="FullName" data-value="@itemInfo.FullName">
+                                            <a href="/EmployeeInfo?id=@itemInfo.Id">@itemInfo.FullName</a>
+                                        </td>
+                                        <td class="editable-cell" data-field="RoleCode" data-value="@itemInfo.RoleCode">
+                                            @Model.GetNameRoleCode(itemInfo.RoleCode)
+                                        </td>
+                                        <td class="editable-cell" data-field="PositionCode" data-value="@itemInfo.PositionCode">
+                                            @itemInfo.PositionText
+                                        </td>
+                                        <td class="editable-cell" data-field="DepartmentCode" data-value="@itemInfo.DepartmentCode">
+                                            @itemInfo.DepartmentText
+                                        </td>
+                                        <td>
+                                            @itemInfo.GroupName
+                                        </td>
+                                        <td class="editable-cell" data-field="Status" data-value="@itemInfo.Status">
+                                            @itemInfo.StatusText
+                                        </td>
+                                        <td class="editable-cell" data-field="StatusWork" data-value="@itemInfo.StatusWork">
+                                            @itemInfo.StatusWorkText
+                                        </td>
+                                        <td class="editable-cell" data-field="DocumentStatus" data-value="@itemInfo.DocumentStatus">
+                                            @itemInfo.DocumentStatusText
+                                        </td>
+                                        <td class="editable-cell" data-field="Onboard" data-value="@onboardDate">
+                                            @itemInfo.OnboardDateDisplay
+                                        </td>
+                                        <td>@datetimeCreate</td>
+                                        <td>
+                                            <a href="/EmployeeInfo?id=@itemInfo.Id" title="Xem chi tiết">
+                                                <i class="bi bi-eye-fill text-primary"></i>
+                                            </a>
+
+                                            @if(@itemInfo.Deleted == true)
+                                            {
+                                                <a href="javascript:void(0)" onclick="reActive(@itemInfo.Id)" title="Khôi phục">
+                                                    <i class="bi bi-recycle"></i>
+                                               </a>
+                                            }
+                                            else  
+                                            {
+                                                <a href="javascript:void(0)" onclick="confirmDelete(@itemInfo.Id)" title="Xóa">
+                                                    <i class="bi bi-trash-fill"></i>
+                                               </a>
+                                            }
+                                       
+                                    
+
+                                            <a href="javascript:void(0)" onclick="OpenChangPassword(@itemInfo.Id)" title="Đổi mật khẩu">
+                                                <i class="bi bi-compass-fill"></i>
+                                            </a>
+                                           
+                                    </td>
+                                    </tr>
+                                }
+                          
                             
                             
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                     @{
                         Html.RenderPartial("formSearch/pagination", Model);
                     }
@@ -142,5 +174,5 @@
     var extraSearchRequest = { groupSearch, memberSearch };
 </script>
 
-    <script src="/js/pages/employee.js?v=@DateTime.Now.Ticks"></script>
-
+<script src="/js/editable-grid.js?v=@DateTime.Now.Ticks"></script>
+<script src="/js/pages/employee.js?v=@DateTime.Now.Ticks"></script>
