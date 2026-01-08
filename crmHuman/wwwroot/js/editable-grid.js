@@ -16,6 +16,7 @@ var EditableGrid = (function () {
         copiedRowData: null,
         masterData: {},
         fieldTypes: {
+            // Các trường cơ bản
             'FullName': 'text',
             'RoleCode': 'dropdown',
             'PositionCode': 'dropdown',
@@ -24,7 +25,37 @@ var EditableGrid = (function () {
             'Status': 'dropdown',
             'StatusWork': 'dropdown',
             'DocumentStatus': 'dropdown',
-            'Onboard': 'date'
+            'Onboard': 'date',
+
+            // Các trường mở rộng - Thông tin cá nhân
+            'Dob': 'date',
+            'Gender': 'dropdown',
+            'PlaceOfBirth': 'text',
+
+            // CCCD
+            'NationalId': 'text',
+            'NationalDate': 'date',
+            'NationalPlace': 'text',
+
+            // Liên hệ
+            'Phone': 'text',
+            'EmergencyContact': 'text',
+            'Email': 'text',
+            'PersonalEmail': 'text',
+
+            // Địa chỉ
+            'PermanentAddress': 'text',
+            'TemporaryAddress': 'text',
+
+            // Học vấn, tình trạng
+            'EducationLevel': 'dropdown',
+            'Religion': 'dropdown',
+            'Maritalstatus': 'dropdown',
+
+            // Ngân hàng
+            'BankAccount': 'text',
+            'BankName': 'text',
+            'BeneficiaryName': 'text'
         },
         masterDataTypes: {
             'RoleCode': 'role',
@@ -33,7 +64,11 @@ var EditableGrid = (function () {
             'GroupId': 'group',
             'Status': 9,
             'StatusWork': 11,
-            'DocumentStatus': 8
+            'DocumentStatus': 8,
+            'Gender': 'gender',
+            'EducationLevel': 14,
+            'Religion': 20,
+            'Maritalstatus': 13
         }
     };
 
@@ -68,11 +103,15 @@ var EditableGrid = (function () {
     /**
      * Toggle Edit Mode
      */
+    /**
+     * Toggle Edit Mode
+     */
     function toggleEditMode() {
         state.isEditModeEnabled = !state.isEditModeEnabled;
 
         var btn = document.getElementById('toggleEditMode');
         var btnAdd = document.getElementById('btnAddRow');
+        var gridContainer = document.getElementById('gridContainer');
 
         if (state.isEditModeEnabled) {
             if (btn) {
@@ -81,6 +120,8 @@ var EditableGrid = (function () {
                 btn.innerHTML = '<i class="bi bi-pencil-square"></i> Tắt chỉnh sửa';
             }
             if (btnAdd) btnAdd.style.display = 'inline-block';
+            if (gridContainer) gridContainer.classList.add('edit-mode');
+
             showToast('Đã BẬT chế độ chỉnh sửa. Click vào ô để sửa.', 'info');
             document.querySelector(config.tableSelector).classList.add('edit-mode-active');
         } else {
@@ -90,6 +131,7 @@ var EditableGrid = (function () {
                 btn.innerHTML = '<i class="bi bi-pencil-square"></i> Bật chỉnh sửa';
             }
             if (btnAdd) btnAdd.style.display = 'none';
+            if (gridContainer) gridContainer.classList.remove('edit-mode');
 
             // Hủy các thay đổi chưa lưu nếu tắt chế độ edit
             finishEditing();
@@ -113,7 +155,9 @@ var EditableGrid = (function () {
     async function loadMasterData() {
         try {
             // Load các loại masterdata cần thiết
-            var types = [2, 5, 8, 9, 11]; // Position, Department, DocumentStatus, Candidate Status, StatusWork
+            // 2: Position, 5: Department, 8: DocumentStatus, 9: Status, 11: StatusWork
+            // 13: Maritalstatus, 14: EducationLevel, 20: Religion
+            var types = [2, 5, 8, 9, 11, 13, 14, 20];
 
             for (var i = 0; i < types.length; i++) {
                 var type = types[i];
@@ -129,6 +173,13 @@ var EditableGrid = (function () {
                 { Code: '4', Name: 'Marketting' },
                 { Code: '6', Name: 'Trưởng CTV' },
                 { Code: '7', Name: 'CTV' }
+            ];
+
+            // Load gender options (hardcoded)
+            config.masterData['gender'] = [
+                { Code: 'Nam', Name: 'Nam' },
+                { Code: 'Nữ', Name: 'Nữ' },
+                { Code: 'Khác', Name: 'Khác' }
             ];
 
             // Load groups

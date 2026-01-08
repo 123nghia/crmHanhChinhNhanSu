@@ -5,6 +5,49 @@
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/editable-grid.css" asp-append-version="true">
+    <style>
+        /* Extended grid scroll container */
+        .extended-scroll-container {
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+        }
+        .extended-scroll-container .table {
+            min-width: auto;
+        }
+        .extended-scroll-container.edit-mode .table {
+            min-width: 2500px; /* Rộng hơn khi edit mode */
+        }
+        .extended-scroll-container .table th,
+        .extended-scroll-container .table td {
+            white-space: nowrap;
+            min-width: 100px;
+        }
+        .extended-scroll-container .table th.col-narrow,
+        .extended-scroll-container .table td.col-narrow {
+            min-width: 50px;
+            max-width: 80px;
+        }
+        .extended-scroll-container .table th.col-wide,
+        .extended-scroll-container .table td.col-wide {
+            min-width: 180px;
+        }
+        /* Header row styling */
+        .extended-scroll-container .table thead th {
+            background: #344767 !important;
+            color: #fff;
+        }
+        /* Cột mở rộng - ẩn mặc định, hiển thị khi edit mode */
+        .extended-col {
+            display: none;
+        }
+        .extended-scroll-container.edit-mode .extended-col {
+            display: table-cell;
+        }
+        .table-striped tbody tr:nth-of-type(odd) td {
+            background-color: rgba(0,0,0,.02);
+        }
+    </style>
 }
 <div class="pagetitle">
     <h1>@Model.TitlePage</h1>
@@ -35,25 +78,49 @@
                     @{
                         Html.RenderPartial(partialViewName: "formSearch/searchForm", Model);
                     }
-                    @{
-                        var columnText = Model.TableColumnText;
-                        if(Model.UserData.RoleCode =="1")
-                        {
-                            columnText = Model.TableColumnTextAdmin;
-                        }
-
-                    }
-                   
-                    <div class="table-responsive">
+                    
+                    <div class="extended-scroll-container" id="gridContainer">
                         <table class="table table-striped editable-grid" id="employeeGrid">
                             <thead>
                                 <tr>
-                                    @foreach (var item in columnText)
-                                    {
-                                        <th>
-                                            @item
-                                        </th>
-                                    }     
+                                    <!-- Cột cố định - luôn hiển thị -->
+                                    <th class="col-narrow">STT</th>
+                                    <th>UserName</th>
+                                    <th class="col-wide">Họ tên</th>
+                                    
+                                    <!-- Cột cơ bản - luôn hiển thị -->
+                                    <th>Vai trò</th>
+                                    <th>Vị trí</th>
+                                    <th>Bộ phận</th>
+                                    <th>Nhóm</th>
+                                    <th>Trạng thái</th>
+                                    <th>TT làm việc</th>
+                                    <th>TT chứng từ</th>
+                                    
+                                    <!-- Cột mở rộng - chỉ hiển thị khi edit mode -->
+                                    <th class="extended-col">Ngày sinh</th>
+                                    <th class="extended-col">Giới tính</th>
+                                    <th class="extended-col col-wide">Nơi sinh</th>
+                                    <th class="extended-col">CCCD</th>
+                                    <th class="extended-col">Ngày cấp</th>
+                                    <th class="extended-col col-wide">Nơi cấp</th>
+                                    <th class="extended-col">SĐT</th>
+                                    <th class="extended-col col-wide">LH khẩn cấp</th>
+                                    <th class="extended-col">Ngày Onboard</th>
+                                    <th class="extended-col">Email (Cty)</th>
+                                    <th class="extended-col">Email cá nhân</th>
+                                    <th class="extended-col col-wide">Địa chỉ thường trú</th>
+                                    <th class="extended-col col-wide">Địa chỉ hiện tại</th>
+                                    <th class="extended-col">Trình độ</th>
+                                    <th class="extended-col">Tôn giáo</th>
+                                    <th class="extended-col">Hôn nhân</th>
+                                    <th class="extended-col">Số TK</th>
+                                    <th class="extended-col">Ngân hàng</th>
+                                    <th class="extended-col col-wide">Chủ TK</th>
+                                    
+                                    <!-- Cột cuối - luôn hiển thị -->
+                                    <th>Cập nhật</th>
+                                    <th>Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -62,10 +129,10 @@
                                 }
                                 @foreach (var itemData in Model.DataAll.Data)
                                 {
-                                     i++;
+                                    i++;
                                     var itemInfo = itemData as dynamic;
                                     var datetimeCreate = "";
-                                    datetimeCreate  =@itemInfo.CreateAt.ToString("dd/MM/yyyy");
+                                    datetimeCreate = @itemInfo.CreateAt.ToString("dd/MM/yyyy");
                                     var datetimeUpdate = "";
                                     if (@itemInfo.UpdateAt != null)
                                     {
@@ -82,14 +149,28 @@
                                     {
                                         try { onboardDate = ((DateTime)itemInfo.Onboard).ToString("yyyy-MM-dd"); } catch {}
                                     }
+                                    
+                                    string dobDate = "";
+                                    if (itemInfo.Dob != null)
+                                    {
+                                        try { dobDate = ((DateTime)itemInfo.Dob).ToString("yyyy-MM-dd"); } catch {}
+                                    }
+                                    
+                                    string nationalDateStr = "";
+                                    if (itemInfo.NationalDate != null)
+                                    {
+                                        try { nationalDateStr = ((DateTime)itemInfo.NationalDate).ToString("yyyy-MM-dd"); } catch {}
+                                    }
                                   
                                     <tr data-id="@itemInfo.Id">
-                                        <td>@i</td>
-                                      
+                                        <!-- Cột cố định -->
+                                        <td class="col-narrow">@i</td>
                                         <td>@itemInfo.UserName</td>
-                                        <td class="editable-cell" data-field="FullName" data-value="@itemInfo.FullName">
+                                        <td class="editable-cell col-wide" data-field="FullName" data-value="@itemInfo.FullName">
                                             <a href="/EmployeeInfo?id=@itemInfo.Id">@itemInfo.FullName</a>
                                         </td>
+                                        
+                                        <!-- Cột cơ bản -->
                                         <td class="editable-cell" data-field="RoleCode" data-value="@itemInfo.RoleCode">
                                             @Model.GetNameRoleCode(itemInfo.RoleCode)
                                         </td>
@@ -111,9 +192,77 @@
                                         <td class="editable-cell" data-field="DocumentStatus" data-value="@itemInfo.DocumentStatus">
                                             @itemInfo.DocumentStatusText
                                         </td>
-                                        <td class="editable-cell" data-field="Onboard" data-value="@onboardDate">
+                                        
+                                        <!-- Cột mở rộng - Thông tin cá nhân -->
+                                        <td class="editable-cell extended-col" data-field="Dob" data-value="@dobDate">
+                                            @(itemInfo.Dob != null ? ((DateTime)itemInfo.Dob).ToString("dd/MM/yyyy") : "--")
+                                        </td>
+                                        <td class="editable-cell extended-col" data-field="Gender" data-value="@itemInfo.Gender">
+                                            @(itemInfo.Gender ?? "--")
+                                        </td>
+                                        <td class="editable-cell extended-col col-wide" data-field="PlaceOfBirth" data-value="@itemInfo.PlaceOfBirth">
+                                            @(itemInfo.PlaceOfBirth ?? "--")
+                                        </td>
+                                        
+                                        <!-- CCCD -->
+                                        <td class="editable-cell extended-col" data-field="NationalId" data-value="@itemInfo.NationalId">
+                                            @(itemInfo.NationalId ?? "--")
+                                        </td>
+                                        <td class="editable-cell extended-col" data-field="NationalDate" data-value="@nationalDateStr">
+                                            @(itemInfo.NationalDate != null ? ((DateTime)itemInfo.NationalDate).ToString("dd/MM/yyyy") : "--")
+                                        </td>
+                                        <td class="editable-cell extended-col col-wide" data-field="NationalPlace" data-value="@itemInfo.NationalPlace">
+                                            @(itemInfo.NationalPlace ?? "--")
+                                        </td>
+                                        
+                                        <!-- Liên hệ -->
+                                        <td class="editable-cell extended-col" data-field="Phone" data-value="@itemInfo.Phone">
+                                            @(itemInfo.Phone ?? "--")
+                                        </td>
+                                        <td class="editable-cell extended-col col-wide" data-field="EmergencyContact" data-value="@itemInfo.EmergencyContact">
+                                            @(itemInfo.EmergencyContact ?? "--")
+                                        </td>
+                                        <td class="editable-cell extended-col" data-field="Onboard" data-value="@onboardDate">
                                             @itemInfo.OnboardDateDisplay
                                         </td>
+                                        <td class="editable-cell extended-col" data-field="Email" data-value="@itemInfo.Email">
+                                            @(itemInfo.Email ?? "--")
+                                        </td>
+                                        <td class="editable-cell extended-col" data-field="PersonalEmail" data-value="@itemInfo.PersonalEmail">
+                                            @(itemInfo.PersonalEmail ?? "--")
+                                        </td>
+                                        
+                                        <!-- Địa chỉ -->
+                                        <td class="editable-cell extended-col col-wide" data-field="PermanentAddress" data-value="@itemInfo.PermanentAddress">
+                                            @(itemInfo.PermanentAddress ?? "--")
+                                        </td>
+                                        <td class="editable-cell extended-col col-wide" data-field="TemporaryAddress" data-value="@itemInfo.TemporaryAddress">
+                                            @(itemInfo.TemporaryAddress ?? "--")
+                                        </td>
+                                        
+                                        <!-- Học vấn -->
+                                        <td class="editable-cell extended-col" data-field="EducationLevel" data-value="@itemInfo.EducationLevel">
+                                            @(itemInfo.EducationLevelText ?? "--")
+                                        </td>
+                                        <td class="editable-cell extended-col" data-field="Religion" data-value="@itemInfo.Religion">
+                                            @(itemInfo.ReligionText ?? "--")
+                                        </td>
+                                        <td class="editable-cell extended-col" data-field="Maritalstatus" data-value="@itemInfo.Maritalstatus">
+                                            @(itemInfo.MaritalstatusText ?? "--")
+                                        </td>
+                                        
+                                        <!-- Ngân hàng -->
+                                        <td class="editable-cell extended-col" data-field="BankAccount" data-value="@itemInfo.BankAccount">
+                                            @(itemInfo.BankAccount ?? "--")
+                                        </td>
+                                        <td class="editable-cell extended-col" data-field="BankName" data-value="@itemInfo.BankName">
+                                            @(itemInfo.BankName ?? "--")
+                                        </td>
+                                        <td class="editable-cell extended-col col-wide" data-field="BeneficiaryName" data-value="@itemInfo.BeneficiaryName">
+                                            @(itemInfo.BeneficiaryName ?? "--")
+                                        </td>
+                                        
+                                        <!-- Cột cuối -->
                                         <td>@datetimeCreate</td>
                                         <td>
                                             <a href="/EmployeeInfo?id=@itemInfo.Id" title="Xem chi tiết">
@@ -133,7 +282,6 @@
                                                </a>
                                             }
                                        
-                                    
 
                                             <a href="javascript:void(0)" onclick="OpenChangPassword(@itemInfo.Id)" title="Đổi mật khẩu">
                                                 <i class="bi bi-compass-fill"></i>

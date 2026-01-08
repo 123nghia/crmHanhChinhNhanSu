@@ -196,7 +196,8 @@ namespace crmHuman.Pages
                 request2.IsDeleted = false;
             }
 
-            DataAll = await _empBusiness.GetAll(request2);
+            // Sử dụng GetAllExtended để lấy đầy đủ dữ liệu cho chế độ chỉnh sửa mở rộng
+            DataAll = await _empBusiness.GetAllExtended(request2);
 
             if (UserData.RoleCode == "6")
             {
@@ -327,6 +328,7 @@ namespace crmHuman.Pages
 
         /// <summary>
         /// Quick update - Cập nhật nhanh một hoặc nhiều trường từ editable grid
+        /// Hỗ trợ cả các trường cơ bản và mở rộng
         /// </summary>
         public async Task<IActionResult> OnPostQuickUpdate([FromForm] EmployeeQuickUpdate request)
         {
@@ -351,6 +353,8 @@ namespace crmHuman.Pages
                 var itemUpdate = new EmployeeInfoAdd
                 {
                     Id = employee.Id,
+                    
+                    // Các trường cơ bản
                     FullName = !string.IsNullOrEmpty(request.FullName) ? request.FullName : employee.FullName,
                     RoleCode = !string.IsNullOrEmpty(request.RoleCode) ? request.RoleCode : employee.RoleCode,
                     PositionCode = !string.IsNullOrEmpty(request.PositionCode) ? request.PositionCode : employee.PositionCode,
@@ -360,12 +364,41 @@ namespace crmHuman.Pages
                     StatusWork = !string.IsNullOrEmpty(request.StatusWork) ? request.StatusWork : employee.StatusWork,
                     DocumentStatus = !string.IsNullOrEmpty(request.DocumentStatus) ? request.DocumentStatus : employee.DocumentStatus,
                     Onboard = request.Onboard ?? employee.Onboard,
+                    
+                    // Các trường mở rộng - Thông tin cá nhân
+                    Dob = request.Dob ?? employee.Dob,
+                    Gender = !string.IsNullOrEmpty(request.Gender) ? request.Gender : employee.Gender,
+                    PlaceOfBirth = !string.IsNullOrEmpty(request.PlaceOfBirth) ? request.PlaceOfBirth : employee.PlaceOfBirth,
+                    
+                    // CCCD
+                    NationalId = !string.IsNullOrEmpty(request.NationalId) ? request.NationalId : employee.NationalId,
+                    NationalDate = request.NationalDate ?? employee.NationalDate,
+                    NationalPlace = !string.IsNullOrEmpty(request.NationalPlace) ? request.NationalPlace : employee.NationalPlace,
+                    
+                    // Liên hệ
+                    Phone = !string.IsNullOrEmpty(request.Phone) ? request.Phone : employee.Phone,
+                    EmergencyContact = !string.IsNullOrEmpty(request.EmergencyContact) ? request.EmergencyContact : employee.EmergencyContact,
+                    Email = !string.IsNullOrEmpty(request.Email) ? request.Email : employee.Email,
+                    PersonalEmail = !string.IsNullOrEmpty(request.PersonalEmail) ? request.PersonalEmail : employee.PersonalEmail,
+                    
+                    // Địa chỉ
+                    PermanentAddress = !string.IsNullOrEmpty(request.PermanentAddress) ? request.PermanentAddress : employee.PermanentAddress,
+                    TemporaryAddress = !string.IsNullOrEmpty(request.TemporaryAddress) ? request.TemporaryAddress : employee.TemporaryAddress,
+                    
+                    // Học vấn, tình trạng
+                    EducationLevel = !string.IsNullOrEmpty(request.EducationLevel) ? request.EducationLevel : employee.EducationLevel,
+                    Religion = !string.IsNullOrEmpty(request.Religion) ? request.Religion : employee.Religion,
+                    Maritalstatus = !string.IsNullOrEmpty(request.Maritalstatus) ? request.Maritalstatus : employee.Maritalstatus,
+                    
+                    // Ngân hàng
+                    BankAccount = !string.IsNullOrEmpty(request.BankAccount) ? request.BankAccount : employee.BankAccount,
+                    BankName = !string.IsNullOrEmpty(request.BankName) ? request.BankName : employee.BankName,
+                    BeneficiaryName = !string.IsNullOrEmpty(request.BeneficiaryName) ? request.BeneficiaryName : employee.BeneficiaryName,
+                    
+                    // Các trường không thay đổi
                     UserName = employee.UserName,
-                    Phone = employee.Phone,
-                    Email = employee.Email,
                     Pass = employee.Pass,
                     LineCode = employee.LineCode,
-                    Dob = employee.Dob,
                     AvatarFile = employee.AvatarFile,
                     CreateAt = employee.CreateAt,
                     Deleted = employee.Deleted,
@@ -375,23 +408,8 @@ namespace crmHuman.Pages
                     UpdatedBy = UserData.UserId,
                     UpdateAt = DateTime.Now,
                     ColorCode = employee.ColorCode,
-                    PermanentAddress = employee.PermanentAddress,
-                    TemporaryAddress = employee.TemporaryAddress,
-                    NationalId = employee.NationalId,
-                    NationalDate = employee.NationalDate,
-                    NationalPlace = employee.NationalPlace,
                     ManagerId = employee.ManagerId,
-                    BankAccount = employee.BankAccount,
-                    BankName = employee.BankName,
-                    EducationLevel = employee.EducationLevel,
-                    Maritalstatus = employee.Maritalstatus,
-                    DocumentCheck = employee.DocumentCheck,
-                    Gender = employee.Gender,
-                    PlaceOfBirth = employee.PlaceOfBirth,
-                    Religion = employee.Religion,
-                    PersonalEmail = employee.PersonalEmail,
-                    BeneficiaryName = employee.BeneficiaryName,
-                    EmergencyContact = employee.EmergencyContact
+                    DocumentCheck = employee.DocumentCheck
                 };
 
                 var result = await _empBusiness.Update(itemUpdate);
