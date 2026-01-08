@@ -210,10 +210,17 @@ namespace crmHuman.Services
                 // Đọc nội dung SQL
                 var sql = await File.ReadAllTextAsync(migration.FilePath);
 
-                // Thực thi SQL
-                using var command = new SqlCommand(sql, connection);
-                command.CommandTimeout = 300; // 5 minutes timeout
-                await command.ExecuteNonQueryAsync();
+                // Tách SQL thành các batch bằng lệnh GO
+                var batches = Regex.Split(sql, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+                foreach (var batch in batches)
+                {
+                    if (string.IsNullOrWhiteSpace(batch)) continue;
+
+                    using var command = new SqlCommand(batch, connection);
+                    command.CommandTimeout = 300; // 5 minutes timeout
+                    await command.ExecuteNonQueryAsync();
+                }
 
                 stopwatch.Stop();
 
@@ -247,10 +254,24 @@ namespace crmHuman.Services
             string? errorMessage)
         {
             var sql = @"
-                INSERT INTO __MigrationHistory 
-                (Version, Description, FileName, ExecutionTime, Success, ErrorMessage)
-                VALUES 
-                (@Version, @Description, @FileName, @ExecutionTime, @Success, @ErrorMessage)";
+                IF EXISTS (SELECT 1 FROM __MigrationHistory WHERE Version = @Version)
+                BEGIN
+                    UPDATE __MigrationHistory 
+                    SET Description = @Description, 
+                        FileName = @FileName, 
+                        ExecutionTime = @ExecutionTime, 
+                        Success = @Success, 
+                        ErrorMessage = @ErrorMessage,
+                        AppliedOn = GETDATE()
+                    WHERE Version = @Version
+                END
+                ELSE
+                BEGIN
+                    INSERT INTO __MigrationHistory 
+                    (Version, Description, FileName, ExecutionTime, Success, ErrorMessage)
+                    VALUES 
+                    (@Version, @Description, @FileName, @ExecutionTime, @Success, @ErrorMessage)
+                END";
 
             using var command = new SqlCommand(sql, connection);
             command.Parameters.AddWithValue("@Version", migration.Version);

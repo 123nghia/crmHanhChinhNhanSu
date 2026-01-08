@@ -69,9 +69,20 @@ namespace crmHuman
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapRazorPages();
+
+            // Khởi chạy Quartz scheduler
+            try 
+            {
+                var scheduler = await StdSchedulerFactory.GetDefaultScheduler();
+                await scheduler.Start();
+            }
+            catch (Exception ex)
+            {
+                var logger = app.Services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "Lỗi khi khởi chạy Quartz scheduler.");
+            }
+
             app.Run();
-            var scheduler = StdSchedulerFactory.GetDefaultScheduler();
-            scheduler.Start();
         }
     }
 }

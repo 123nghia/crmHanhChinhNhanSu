@@ -29,11 +29,11 @@ var EditableGrid = (function () {
         masterDataTypes: {
             'RoleCode': 'role',
             'PositionCode': 2,
-            'DepartmentCode': 1,
+            'DepartmentCode': 5,
             'GroupId': 'group',
-            'Status': 3,
-            'StatusWork': 8,
-            'DocumentStatus': 9
+            'Status': 9,
+            'StatusWork': 11,
+            'DocumentStatus': 8
         }
     };
 
@@ -91,9 +91,17 @@ var EditableGrid = (function () {
             }
             if (btnAdd) btnAdd.style.display = 'none';
 
-            // Hủy các thay đổi chưa lưu nếu tắt chế độ edit? 
-            // Hoặc chỉ đơn giản là không cho edit tiếp. Ở đây ta chọn không cho edit tiếp.
+            // Hủy các thay đổi chưa lưu nếu tắt chế độ edit
             finishEditing();
+
+            var dirtyRows = document.querySelectorAll('.row-dirty');
+            if (dirtyRows.length > 0) {
+                dirtyRows.forEach(row => {
+                    revertRow(row);
+                });
+                showToast('Đã hủy các thay đổi chưa lưu.', 'info');
+            }
+
             document.querySelector(config.tableSelector).classList.remove('edit-mode-active');
             showToast('Đã TẮT chế độ chỉnh sửa.', 'info');
         }
@@ -105,7 +113,7 @@ var EditableGrid = (function () {
     async function loadMasterData() {
         try {
             // Load các loại masterdata cần thiết
-            var types = [1, 2, 3, 8, 9]; // Department, Position, Status, StatusWork, DocumentStatus
+            var types = [2, 5, 8, 9, 11]; // Position, Department, DocumentStatus, Candidate Status, StatusWork
 
             for (var i = 0; i < types.length; i++) {
                 var type = types[i];
@@ -154,7 +162,7 @@ var EditableGrid = (function () {
      */
     async function fetchGroups() {
         try {
-            var response = await fetch('/Group?handler=AllData');
+            var response = await fetch('/GroupPage?handler=AllGroup');
             if (response.ok) {
                 var result = await response.json();
                 return result.Data || result.data || result || [];
@@ -429,19 +437,18 @@ var EditableGrid = (function () {
      */
     function cancelRow(button) {
         var row = button.closest('tr');
+        revertRow(row);
+    }
 
+    /**
+     * Revert row to original state
+     */
+    function revertRow(row) {
         // Revert all cells
         row.querySelectorAll('.' + config.editableCellClass).forEach(function (cell) {
             if (cell.dataset.originalValue !== undefined) {
                 cell.dataset.value = cell.dataset.originalValue;
-                // Re-render text (cần logic mapping lại text từ value cho đúng nếu là dropdown, nhưng tạm thời text cũ chắc vẫn còn nếu ta không reload lại trang? Không, ta đã thay đổi textContent rồi)
-                // Dễ nhất: nếu cancel thì buộc reload lại cell? 
-                // Ta có thể lưu originalText content nữa.
-                // Thôi đơn giản: reload lại trang hoặc chỉ revert value. 
-                // Cải tiến: load lại text hiển thị.
 
-                // Reset về text hiển thị
-                // Với Dropdown, cần tìm text theo value
                 var field = cell.dataset.field;
                 var fieldType = config.fieldTypes[field];
 
@@ -467,7 +474,7 @@ var EditableGrid = (function () {
 
         // Revert action cell
         var actionCell = row.querySelector('td:last-child');
-        if (actionCell.dataset.originalContent) {
+        if (actionCell && actionCell.dataset.originalContent) {
             actionCell.innerHTML = actionCell.dataset.originalContent;
         }
 
