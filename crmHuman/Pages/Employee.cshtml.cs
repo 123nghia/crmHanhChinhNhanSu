@@ -542,8 +542,17 @@ namespace crmHuman.Pages
             {
                 GetInfoUser();
                 RequestSearch.UserId = UserData.UserId;
+                
+                // Debug Log
+                Console.WriteLine($"[Export Debug] UserId: {RequestSearch.UserId}");
+                Console.WriteLine($"[Export Debug] Token: '{RequestSearch.Token}'");
+                Console.WriteLine($"[Export Debug] GroupId: {RequestSearch.GroupId}");
+                Console.WriteLine($"[Export Debug] Status: {RequestSearch.Status}");
+                Console.WriteLine($"[Export Debug] From: {RequestSearch.From}, To: {RequestSearch.To}");
 
                 var data = await _empBusiness.Export(RequestSearch);
+                
+                Console.WriteLine($"[Export Debug] Found {data?.Count ?? 0} records.");
 
                 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
                 var templatePath = @"C:\Users\Nghia\Desktop\temp\blockchainHC\templateExport.xlsx";
@@ -569,7 +578,7 @@ namespace crmHuman.Pages
                         ? package.Workbook.Worksheets[0] 
                         : package.Workbook.Worksheets.Add("Employees");
                             
-                    int row = 2; // Start writing from row 2
+                    int row = 3; // Start writing from row 3 as requested
                     int stt = 1;
                     
                     if (package.Workbook.Worksheets.Count == 0) // New file fallback headers
@@ -583,56 +592,49 @@ namespace crmHuman.Pages
                     {
                         foreach (var item in data)
                         {
+                            // Debug log per row (temporary)
+                            // Console.WriteLine($"[Export Row] {item.UserName} - TaxMST: '{item.Tax_MST}', PITDate: '{item.Tax_NgayCap}'");
+
                             int col = 1;
                             worksheet.Cells[row, col++].Value = stt++;
-                            worksheet.Cells[row, col++].Value = item.UserName;
-                            worksheet.Cells[row, col++].Value = item.FullName;
-                            worksheet.Cells[row, col++].Value = GetNameRoleCode(item.RoleCode); 
-                            worksheet.Cells[row, col++].Value = item.PositionText;
-                            worksheet.Cells[row, col++].Value = item.DepartmentText;
-                            worksheet.Cells[row, col++].Value = item.GroupName;
-                            worksheet.Cells[row, col++].Value = item.StatusText;
-                            worksheet.Cells[row, col++].Value = item.StatusWorkText;
-                            worksheet.Cells[row, col++].Value = item.DocumentStatusText;
-                            
-                            // Personal Info
-                            worksheet.Cells[row, col++].Value = item.Dob?.ToString("dd/MM/yyyy");
-                            worksheet.Cells[row, col++].Value = item.Gender;
-                            worksheet.Cells[row, col++].Value = item.PlaceOfBirth;
-                            worksheet.Cells[row, col++].Value = item.NationalId;
-                            worksheet.Cells[row, col++].Value = item.NationalDate?.ToString("dd/MM/yyyy");
-                            worksheet.Cells[row, col++].Value = item.NationalPlace;
-                            worksheet.Cells[row, col++].Value = item.Phone;
-                            worksheet.Cells[row, col++].Value = item.EmergencyContact;
-                            worksheet.Cells[row, col++].Value = item.Onboard?.ToString("dd/MM/yyyy");
-                            worksheet.Cells[row, col++].Value = item.Email; // Company Email
-                            worksheet.Cells[row, col++].Value = item.PersonalEmail;
-                            worksheet.Cells[row, col++].Value = item.PermanentAddress;
-                            worksheet.Cells[row, col++].Value = item.TemporaryAddress;
-                            worksheet.Cells[row, col++].Value = item.EducationLevelText;
-                            worksheet.Cells[row, col++].Value = item.ReligionText;
-                            worksheet.Cells[row, col++].Value = item.MaritalstatusText;
-                            worksheet.Cells[row, col++].Value = item.BankAccount;
-                            worksheet.Cells[row, col++].Value = item.BankName;
-                            worksheet.Cells[row, col++].Value = item.BeneficiaryName;
+                            worksheet.Cells[row, col++].Value = item.FullName; // Col 2
+                            worksheet.Cells[row, col++].Value = item.Onboard?.ToString("dd/MM/yyyy"); // Col 3
+                            worksheet.Cells[row, col++].Value = item.PositionText; // Col 4
+                            worksheet.Cells[row, col++].Value = item.DepartmentText; // Col 5
+                            worksheet.Cells[row, col++].Value = item.Gender; // Col 6
+                            worksheet.Cells[row, col++].Value = item.Dob?.ToString("dd/MM/yyyy"); // Col 7
+                            worksheet.Cells[row, col++].Value = item.PlaceOfBirth; // Col 8
+                            worksheet.Cells[row, col++].Value = item.ReligionText; // Col 9
+                            worksheet.Cells[row, col++].Value = item.EducationLevelText; // Col 10
+                            worksheet.Cells[row, col++].Value = item.MaritalstatusText; // Col 11
+                            worksheet.Cells[row, col++].Value = item.NationalId; // Col 12
+                            worksheet.Cells[row, col++].Value = item.NationalDate?.ToString("dd/MM/yyyy"); // Col 13
+                            worksheet.Cells[row, col++].Value = item.NationalPlace; // Col 14
+                            worksheet.Cells[row, col++].Value = item.PermanentAddress; // Col 15
+                            worksheet.Cells[row, col++].Value = item.TemporaryAddress; // Col 16
+                            worksheet.Cells[row, col++].Value = item.Email; // Col 17 Email Cty
+                            worksheet.Cells[row, col++].Value = item.PersonalEmail; // Col 18 Email Ca nhan
+                            worksheet.Cells[row, col++].Value = item.Phone; // Col 19
+                            worksheet.Cells[row, col++].Value = item.EmergencyContact; // Col 20
+                            worksheet.Cells[row, col++].Value = item.BeneficiaryName; // Col 21
+                            worksheet.Cells[row, col++].Value = item.BankAccount; // Col 22
+                            worksheet.Cells[row, col++].Value = item.BankName; // Col 23
 
-                            // HDLD
-                            worksheet.Cells[row, col++].Value = item.HD_SoHD;
-                            worksheet.Cells[row, col++].Value = item.HD_NgayBatDau?.ToString("dd/MM/yyyy");
-                            worksheet.Cells[row, col++].Value = item.HD_NgayKetThuc?.ToString("dd/MM/yyyy");
-                            worksheet.Cells[row, col++].Value = item.HD_LoaiHD;
+                            // Tax Info (PIT Code, PIT Date, Dependants, Effected From)
+                            worksheet.Cells[row, col++].Value = item.Tax_MST; // Col 24
+                            worksheet.Cells[row, col++].Value = item.Tax_NgayCap?.ToString("dd/MM/yyyy"); // Col 25
+                            worksheet.Cells[row, col++].Value = item.Tax_NguoiPhuThuoc; // Col 26 (Số người phụ thuộc)
+                            worksheet.Cells[row, col++].Value = item.Tax_NgayHieuLuc?.ToString("dd/MM/yyyy"); // Col 27
 
-                            // Tax
-                            worksheet.Cells[row, col++].Value = item.Tax_MST;
-                            worksheet.Cells[row, col++].Value = item.Tax_NgayCap?.ToString("dd/MM/yyyy");
-                            worksheet.Cells[row, col++].Value = item.Tax_NgayHieuLuc?.ToString("dd/MM/yyyy");
-                            worksheet.Cells[row, col++].Value = item.Tax_NguoiPhuThuoc;
-                            
+                            // BHXH (Insurance No, Hospital Name)
+                            worksheet.Cells[row, col++].Value = item.BHXH_SoSo; // Col 28
+                            worksheet.Cells[row, col++].Value = item.BHXH_NoiDangKy; // Col 29
 
-                    // ... (mapping logic giữ nguyên) ...
-                            // BHXH
-                            worksheet.Cells[row, col++].Value = item.BHXH_SoSo;
-                            worksheet.Cells[row, col++].Value = item.BHXH_NoiDangKy;
+                            // HDLD (Contract No, Type, Start, End)
+                            worksheet.Cells[row, col++].Value = item.HD_SoHD; // Col 30
+                            worksheet.Cells[row, col++].Value = item.HD_LoaiHD; // Col 31
+                            worksheet.Cells[row, col++].Value = item.HD_NgayBatDau?.ToString("dd/MM/yyyy"); // Col 32
+                            worksheet.Cells[row, col++].Value = item.HD_NgayKetThuc?.ToString("dd/MM/yyyy"); // Col 33
 
                             row++;
                         }
