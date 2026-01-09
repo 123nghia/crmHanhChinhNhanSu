@@ -46,6 +46,7 @@ namespace VS.Human.Rep
             p.Add("@ToDate", model.ToDate);
             p.Add("@NumDays", model.NumDays);
             p.Add("@Reason", model.Reason);
+            p.Add("@HandoverEmployeeId", model.HandoverEmployeeId);
             p.Add("@UserId", userId);
 
             return await ExecuteSQLScalar<int>("sp_Leave_Save", p);
@@ -60,6 +61,50 @@ namespace VS.Human.Rep
             p.Add("@Comment", comment);
 
             return await ExecuteSQL("sp_Leave_Approve", p);
+        }
+
+        public async Task<bool> ApproveWorkflow(int id, string action, int approverId, string roleCode, string comment)
+        {
+            var p = new DynamicParameters();
+            p.Add("@Id", id);
+            p.Add("@Action", action);
+            p.Add("@ApproverId", approverId);
+            p.Add("@RoleCode", roleCode);
+            p.Add("@Comment", comment);
+
+            return await ExecuteSQL("sp_Leave_Approve_Workflow", p);
+        }
+
+        public async Task<List<LeaveHistory>> GetHistory(int leaveId)
+        {
+            var p = new DynamicParameters();
+            p.Add("@LeaveId", leaveId);
+
+            return await GetDataList<LeaveHistory>("sp_Leave_GetHistory", p);
+        }
+
+        public async Task<dynamic> GetLeaveSummary(int? employeeId, string roleCode)
+        {
+            using (var con = GetConnection())
+            {
+                // Logic based on role:
+                // TL (3): Sees status 0
+                // HCNS (2): Sees status 1
+                // BGĐ (1): Sees status 2
+                int levelStatus = -1;
+                if (roleCode == "3") levelStatus = 0;
+                else if (roleCode == "2") levelStatus = 1;
+                else if (roleCode == "1") levelStatus = 2;
+
+                var sql = @"
+                    SELECT 
+                        (SELECT COUNT(*) FROM LeaveRequests WHERE Deleted = 0 AND Status = @levelStatus) as PendingApproval,
+                        (SELECT COUNT(*) FROM LeaveRequests WHERE Deleted = 0 AND Status IN (3,4) AND MONTH(CreateAt) = MONTH(GETDATE())) as ApprovedMonth,
+                        (SELECT AllowedLeaveDays - ISNULL(UsedLeaveDays, 0) FROM Employees WHERE Id = @empId) as RemainingLeave
+                ";
+
+                return await con.QueryFirstOrDefaultAsync<dynamic>(sql, new { levelStatus, empId = employeeId });
+            }
         }
 
         public new async Task<bool> Delete(int id, int userId)

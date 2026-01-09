@@ -28,8 +28,8 @@ namespace VS.Human.Rep.Model
     public class PermissionConfigViewModel : BaseIndexModel
     {
         public string PageCode { get; set; }
-        public string PageName { get; set; }
-        public string Group { get; set; }
+        public string? PageName { get; set; }
+        public string? Group { get; set; }
         public bool IsView { get; set; }
         public bool IsAdd { get; set; }
         public bool IsEdit { get; set; }

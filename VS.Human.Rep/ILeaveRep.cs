@@ -12,6 +12,9 @@ namespace VS.Human.Rep
         Task<LeaveIndexModel> GetById(int id);
         Task<int> Save(LeaveAddUpdate model, int userId);
         Task<bool> Approve(int id, int status, int approverId, string comment);
+        Task<bool> ApproveWorkflow(int id, string action, int approverId, string roleCode, string comment);
+        Task<List<LeaveHistory>> GetHistory(int leaveId);
+        Task<dynamic> GetLeaveSummary(int? employeeId, string roleCode);
         Task<bool> Delete(int id, int userId);
     }
 }

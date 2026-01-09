@@ -28,7 +28,11 @@ namespace VS.Human.Business.Imp
                     Code = item1.Code,
                     DisplayText = item1.DisplayText,
                     ValueFile = item1.ValueFile,
-                    RelId = relId
+                    RelId = relId,
+                    dataType = item.DataType,
+                    RelCode = "EMP",
+                    CreatedBy = item.UserId,
+                    UpdatedBy = item.UserId
                 };
                 await _unitOfWork.DocumentDataRep.AddOrUpdate(itemDocumentAdd);
             }

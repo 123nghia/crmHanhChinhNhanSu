@@ -73,7 +73,8 @@ BEGIN
       AND (@DataType = 0 OR d.dataType = @DataType)
       AND (
           @ParentId = -2
-          OR d.ParentId = (CASE WHEN @ParentId = -1 THEN NULL ELSE @ParentId END)
+          OR (@ParentId = -1 AND d.ParentId IS NULL)
+          OR (d.ParentId = @ParentId)
       )
       AND (
           d.CreatedBy = @CurrentUserId

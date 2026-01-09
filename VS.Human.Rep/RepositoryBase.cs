@@ -107,8 +107,10 @@ namespace VS.Human.Rep
                     return affected != 0;
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Console.WriteLine("--- ExecuteSQL error: " + e.Message);
+                if (e.InnerException != null) Console.WriteLine("--- Inner: " + e.InnerException.Message);
                 return false;
             }
         }

@@ -257,21 +257,67 @@ namespace VS.Human.Rep
         /// </summary>
         public async Task<List<EmployeeExtendedModel>> ExecuteExport(EmployeeRequest request)
         {
-            var dbParams = new
-            {
-                Token = request.Token,
-                OrderBy = request.OrderBy,
-                UserId = request.UserId,
-                GroupId = request.GroupId,
-                Status = request.Status ?? -1,
-                StatusWork = request.StatusWork,
-                DocumentStatus = request.DocumentStatus,
-                fromDate = request.From,
-                toDate = request.To,
-                IsDeleted = false
-            };
+            // var dbParams = new
+            // {
+            //     Token = request.Token,
+            //     OrderBy = request.OrderBy,
+            //     // UserId = request.UserId,
+            //     UserId = -1,
+            //     GroupId = request.GroupId,
+            //     Status = request.Status ?? -1,
+            //     StatusWork = request.StatusWork,
+            //     DocumentStatus = request.DocumentStatus,
+            //     // fromDate = request.From,
+            //     // toDate = request.To,
+            //     IsDeleted = false
+            // };
 
-            return await ExecuteSQL<EmployeeExtendedModel>("sp_Employee_Export", dbParams, System.Data.CommandType.StoredProcedure);
+            // return await ExecuteSQL<EmployeeExtendedModel>("sp_Employee_Export", dbParams, System.Data.CommandType.StoredProcedure);
+            
+            // DEBUG HARDCODE
+            // var sql = "EXEC sp_Employee_Export @UserId = -1, @Status = -1, @StatusWork = '-1', @DocumentStatus = '-1', @IsDeleted = 0";
+            
+            // SUPER DEBUG: Select directly
+            // var sql = "SELECT * FROM Employees WHERE Isnull(Deleted,0)=0";
+            
+            // Revert to SP with explicit NULLs to ensure no filtering
+            // var sql = "EXEC sp_Employee_Export @Token='', @OrderBy='', @UserId=-1, @MemberId=NULL, @GroupId=-1, @Status=-1, @StatusWork=NULL, @DocumentStatus=NULL, @fromDate=NULL, @toDate=NULL, @IsDeleted=0";
+            
+            // MANUAL SQL QUERY TO BYPASS STORED PROCEDURE ISSUES
+            var sql = @"
+    SELECT 
+        d.*, 
+        dbo.getDisplayMasterData(d.Status) AS StatusText,
+        dbo.getDisplayMasterData(d.StatusWork) AS StatusWorkText,
+        dbo.getDisplayMasterData(d.DocumentStatus) AS DocumentStatusText,
+        dbo.getDisplayMasterdata(d.DepartmentCode) AS DepartmentText,
+        dbo.getDisplayMasterdata(d.PositionCode) AS PositionText,
+        dbo.getDisplayMasterdata(d.EducationLevel) AS EducationLevelText,
+        dbo.getDisplayMasterdata(d.Maritalstatus) AS MaritalstatusText,
+        dbo.getDisplayMasterdata(d.Religion) AS ReligionText,
+        
+        -- HDLD (Join by Id because UserId in HDLD is 1079, not 001079)
+        (SELECT TOP 1 NoAgree FROM hdldItem h WHERE h.UserId = CAST(d.Id AS NVARCHAR(50)) AND ISNULL(h.Deleted,0)=0 ORDER BY h.Start DESC, h.Id DESC) as HD_SoHD,
+        (SELECT TOP 1 Start FROM hdldItem h WHERE h.UserId = CAST(d.Id AS NVARCHAR(50)) AND ISNULL(h.Deleted,0)=0 ORDER BY h.Start DESC, h.Id DESC) as HD_NgayBatDau,
+        (SELECT TOP 1 [End] FROM hdldItem h WHERE h.UserId = CAST(d.Id AS NVARCHAR(50)) AND ISNULL(h.Deleted,0)=0 ORDER BY h.Start DESC, h.Id DESC) as HD_NgayKetThuc,
+        (SELECT TOP 1 dbo.getDisplayMasterData(CodeId) FROM hdldItem h WHERE h.UserId = CAST(d.Id AS NVARCHAR(50)) AND ISNULL(h.Deleted,0)=0 ORDER BY h.Start DESC, h.Id DESC) as HD_LoaiHD,
+
+        -- Tax (Trim spaces just in case)
+        (SELECT TOP 1 Number FROM TaxItem t WHERE t.UserName = d.UserName AND ISNULL(t.Deleted,0)=0 ORDER BY t.Id DESC) as Tax_MST,
+        (SELECT TOP 1 PITDate FROM TaxItem t WHERE t.UserName = d.UserName AND ISNULL(t.Deleted,0)=0 ORDER BY t.Id DESC) as Tax_NgayCap,
+        (SELECT TOP 1 EffectedFrom FROM TaxItem t WHERE t.UserName = d.UserName AND ISNULL(t.Deleted,0)=0 ORDER BY t.Id DESC) as Tax_NgayHieuLuc,
+        (SELECT TOP 1 Dependent FROM TaxItem t WHERE t.UserName = d.UserName AND ISNULL(t.Deleted,0)=0 ORDER BY t.Id DESC) as Tax_NguoiPhuThuoc,
+
+        -- BHXH
+        (SELECT TOP 1 NumberCode FROM BHXHItem b WHERE b.UserName = d.UserName AND ISNULL(b.Deleted,0)=0 ORDER BY b.Id DESC) as BHXH_SoSo,
+        (SELECT TOP 1 RegBHYT FROM BHXHItem b WHERE b.UserName = d.UserName AND ISNULL(b.Deleted,0)=0 ORDER BY b.Id DESC) as BHXH_NoiDangKy
+
+    FROM Employees d
+    WHERE ISNULL(d.Deleted, 0) = 0
+    ORDER BY d.Id DESC
+            ";
+            
+            return await ExecuteSQL<EmployeeExtendedModel>(sql, null, System.Data.CommandType.Text);
         }
 
         public async Task<BaseList> GetAllExtended(EmployeeRequest request)

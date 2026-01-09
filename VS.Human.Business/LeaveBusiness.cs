@@ -50,6 +50,16 @@ namespace VS.Human.Business
             return await _unitOfWork.LeaveRep.Approve(id, status, approverId, comment);
         }
 
+        public async Task<bool> ApproveWorkflow(int id, string action, int approverId, string roleCode, string comment)
+        {
+            return await _unitOfWork.LeaveRep.ApproveWorkflow(id, action, approverId, roleCode, comment);
+        }
+
+        public async Task<List<LeaveHistory>> GetLeaveHistory(int leaveId)
+        {
+            return await _unitOfWork.LeaveRep.GetHistory(leaveId);
+        }
+
         public async Task<bool> DeleteLeave(int id, int userId)
         {
             return await _unitOfWork.LeaveRep.Delete(id, userId);

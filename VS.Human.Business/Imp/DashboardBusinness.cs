@@ -144,5 +144,10 @@ namespace VS.Human.Business.Imp
 
             return dataResult;
         }
+
+        public async Task<dynamic> GetLeaveSummary(int userId, string roleCode)
+        {
+            return await _unitOfWork.LeaveRep.GetLeaveSummary(userId, roleCode);
+        }
     }
 }

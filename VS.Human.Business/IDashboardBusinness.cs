@@ -25,5 +25,6 @@ namespace VS.Human.Business
         Task<BaseList> GetAllCountCVGroupByDate(OrderRequest request);
         Task<BaseList> GetAllCountCVApplyGroupByDate(OrderRequest request);
         Task<BaseList> GetAllCountCVOnboardGroupByDate(OrderRequest request);
+        Task<dynamic> GetLeaveSummary(int userId, string roleCode);
     }
 }

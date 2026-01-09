@@ -11,7 +11,7 @@
         public bool Deleted { get; set; }
         public int Id { get; set; }
 
-        public string AuthorName { get; set; }
+        public string? AuthorName { get; set; }
 
 
         public string CreateAtDisplay

@@ -23,6 +23,8 @@ namespace VS.Human.Rep
                 item.ValueFile,
                 item.ParentId,
                 item.AccessLevel,
+                item.Code,
+                item.dataType,
                 UpdatedBy = item.UpdatedBy
             };
             return await this.ExecuteSQL("sp_DocumentData_update", parameter);
@@ -111,6 +113,12 @@ namespace VS.Human.Rep
             {
                 return await _con.QueryFirstOrDefaultAsync<DocumentData>(sql, new { token });
             }
+        }
+
+        public async Task<DocumentData> GetById(int id)
+        {
+            var parameter = new { id };
+            return await ExecuteSQL2<DocumentData>("sp_DocumentData_GetById", parameter);
         }
     }
 }

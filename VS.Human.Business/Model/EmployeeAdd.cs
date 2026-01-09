@@ -176,8 +176,6 @@ namespace VS.Human.Business.Model
 
         public int CandidateId { get; set; }
 
-        public int ManagerId { get; set; }
-
         public EmployeeDetailUpdate()
         {
 
@@ -189,6 +187,8 @@ namespace VS.Human.Business.Model
     {
 
         public int RelId { get; set; }
+        public int DataType { get; set; }
+        public int UserId { get; set; }
 
         public List<DocumentDataItem> Data { get; set; }
 
