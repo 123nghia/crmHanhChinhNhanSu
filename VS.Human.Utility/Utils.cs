@@ -2,10 +2,21 @@
 using NAudio.Wave;
 using System.Globalization;
 using System.Net;
+using System.Text;
+using System.Text.RegularExpressions;
+
 namespace VS.Human.Utility
 {
     public static class Utils
     {
+        public static string ConvertToUnSign(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return string.Empty;
+            Regex regex = new Regex("\\p{IsCombiningDiacriticalMarks}+");
+            string temp = s.Normalize(NormalizationForm.FormD);
+            return regex.Replace(temp, String.Empty).Replace('\u0111', 'd').Replace('\u0110', 'D');
+        }
+
         static string start = "KPMG_EV";
         static string end = "KPMG_PM";
         private static readonly char[] ShortName1 = { 'A', 'B', 'C', 'D', 'E', 'F', 'Y' };

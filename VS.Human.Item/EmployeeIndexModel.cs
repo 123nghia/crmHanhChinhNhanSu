@@ -17,6 +17,7 @@ namespace VS.Human.Item
         public DateTime? Onboard { get; set; }
 
         public string? GroupName { get; set; }
+        public int? GroupId { get; set; }
 
         public string? LineCode { get; set; }
         public string TypeAccount { get; set; }
@@ -42,6 +43,86 @@ namespace VS.Human.Item
                 if (Onboard.HasValue)
                 {
                     return Onboard.Value.ToString("yyyy-MM-dd",  CultureInfo.InvariantCulture);
+                }
+                return string.Empty;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Model mở rộng cho chế độ chỉnh sửa inline
+    /// Kế thừa từ EmployeeIndexModel và thêm các trường chi tiết
+    /// </summary>
+    public class EmployeeExtendedModel : EmployeeIndexModel
+    {
+        // Thông tin cá nhân mở rộng
+        public string? Gender { get; set; }
+        public string? PlaceOfBirth { get; set; }
+
+        // HDLD Info
+        public string? HD_SoHD { get; set; }
+        public DateTime? HD_NgayBatDau { get; set; }
+        public DateTime? HD_NgayKetThuc { get; set; }
+        public string? HD_LoaiHD { get; set; }
+        
+        // Tax Info
+        public string? Tax_MST { get; set; }
+        public DateTime? Tax_NgayCap { get; set; }
+        public DateTime? Tax_NgayHieuLuc { get; set; }
+        public string? Tax_NguoiPhuThuoc { get; set; }
+        
+        // BHXH Info
+        public string? BHXH_SoSo { get; set; }
+        public string? BHXH_NoiDangKy { get; set; }
+        public string? Religion { get; set; }
+        public string? PersonalEmail { get; set; }
+        public string? Email { get; set; }
+        public string? EmergencyContact { get; set; }
+
+        // Thông tin CCCD
+        public string? NationalId { get; set; }
+        public DateTime? NationalDate { get; set; }
+        public string? NationalPlace { get; set; }
+
+        // Thông tin địa chỉ
+        public string? PermanentAddress { get; set; }
+        public string? TemporaryAddress { get; set; }
+
+        // Thông tin học vấn, hôn nhân
+        public string? EducationLevel { get; set; }
+        public string? Maritalstatus { get; set; }
+
+        // Thông tin ngân hàng
+        public string? BankName { get; set; }
+        public string? BankAccount { get; set; }
+        public string? BeneficiaryName { get; set; }
+
+        // Display texts cho các ngày
+        public string? DobDisplay { get; set; }
+        public string? NationalDateDisplay { get; set; }
+        public string? OnboardDisplay { get; set; }
+
+        // Format ngày sinh cho input date
+        public string DobInputFormat
+        {
+            get
+            {
+                if (Dob.HasValue)
+                {
+                    return Dob.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                }
+                return string.Empty;
+            }
+        }
+
+        // Format ngày cấp CCCD cho input date
+        public string NationalDateInputFormat
+        {
+            get
+            {
+                if (NationalDate.HasValue)
+                {
+                    return NationalDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                 }
                 return string.Empty;
             }
@@ -615,5 +696,3 @@ namespace VS.Human.Item
 
 
 }
-
-

@@ -15,6 +15,8 @@ namespace VS.Human.Rep
         Task<Employee> GetByUserName(string userName);
         Task<Employee> GetLastByEmailOrPhone(string email, string phone);
         Task<BaseList> GetAll(EmployeeRequest id);
+        Task<BaseList> GetAllExtended(EmployeeRequest request);
+        Task<List<EmployeeExtendedModel>> ExecuteExport(EmployeeRequest request);
         Task<BaseList> GetAllManager(int leadgroup = -1);
         Task<Account> GetByLineCode(string lineCode);
 

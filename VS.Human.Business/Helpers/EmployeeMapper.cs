@@ -27,6 +27,7 @@ namespace VS.Human.Business.Helpers
                 ManagerId = request.ManagerId,
                 DepartmentCode = request.DepartmentCode,
                 PositionCode = request.PositionCode,
+                GroupId = request.GroupId,
                 Email = request.Email,
                 Noted = request.Noted,
                 StatusWork = request.StatusWork,
@@ -65,6 +66,7 @@ namespace VS.Human.Business.Helpers
                 ManagerId = employee.ManagerId,
                 DepartmentCode = employee.DepartmentCode,
                 PositionCode = employee.PositionCode,
+                GroupId = employee.GroupId,
                 Email = employee.Email,
                 Noted = employee.Noted,
                 StatusWork = employee.StatusWork,
@@ -108,6 +110,7 @@ namespace VS.Human.Business.Helpers
             item.ManagerId = itemUpdate.ManagerId;
             item.DepartmentCode = itemUpdate.DepartmentCode;
             item.PositionCode = itemUpdate.PositionCode;
+            item.GroupId = itemUpdate.GroupId;
             item.Email = itemUpdate.Email;
             item.CVLink = itemUpdate.CVLink;
             item.Phone = itemUpdate.Phone;
@@ -175,12 +178,40 @@ namespace VS.Human.Business.Helpers
             }
             else if (!string.IsNullOrWhiteSpace(fullName))
             {
-                return fullName.Replace(" ", "").ToLower();
+                // Format: [Tên][Viết tắt Họ Đệm]
+                // Ví dụ: Nguyễn Văn Nghĩa -> nghianv
+                return GetShortUserName(fullName);
             }
             else
             {
                 return "user" + DateTime.Now.Ticks;
             }
+        }
+
+        private static string GetShortUserName(string fullName)
+        {
+            if (string.IsNullOrWhiteSpace(fullName)) return "";
+
+            // Bỏ dấu và lowercase
+            string unSignName = VS.Human.Utility.Utils.ConvertToUnSign(fullName).ToLower();
+            
+            var parts = unSignName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return "";
+            if (parts.Length == 1) return parts[0];
+
+            var firstName = parts[parts.Length - 1]; // Tên
+            var lastNameInitials = "";
+
+            // Lấy chữ cái đầu của họ và đệm
+            for (int i = 0; i < parts.Length - 1; i++)
+            {
+                if (parts[i].Length > 0)
+                {
+                    lastNameInitials += parts[i][0];
+                }
+            }
+
+            return firstName + lastNameInitials;
         }
     }
 }

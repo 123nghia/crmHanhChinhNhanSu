@@ -14,6 +14,25 @@ namespace VS.Human.Rep
 
             tableName = "Employees";
         }
+
+        public async Task<Employee> GetById(int id)
+        {
+            using (var con = GetConnection())
+            {
+                var sql = @"
+                    SELECT d.*, gm.GroupId
+                    FROM Employees d
+                    LEFT JOIN GroupMember gm ON d.Id = gm.MemberId AND ISNULL(gm.Deleted, 0) = 0
+                    WHERE d.Id = @id";
+                
+                var result = await con.QuerySingleOrDefaultAsync<Employee>(sql, new { id });
+                if (result == null)
+                {
+                    return new Employee { Id = -1 };
+                }
+                return result;
+            }
+        }
         public async Task<Employee> Login(string userName, string password)
         {
             var modelCheck = new
@@ -42,6 +61,7 @@ namespace VS.Human.Rep
                 item.RoleCode,
                 item.ManagerId,
                 item.DepartmentCode,
+                item.GroupId,
                 item.Email,
                 item.CVLink,
                 item.Noted,
@@ -88,6 +108,7 @@ namespace VS.Human.Rep
                 item.Pass,
                 item.ManagerId,
                 item.DepartmentCode,
+                item.GroupId,
                 item.Email,
                 item.CVLink,
                 item.Noted,
@@ -167,6 +188,7 @@ namespace VS.Human.Rep
                     itemUpdate.Dob = item.Dob;
                     itemUpdate.ManagerId = item.ManagerId;
                     itemUpdate.DepartmentCode = item.DepartmentCode;
+                    itemUpdate.GroupId = item.GroupId;
                     itemUpdate.PositionCode = item.PositionCode;
                     itemUpdate.Email = item.Email;
                     itemUpdate.CVLink = item.CVLink;
@@ -228,6 +250,56 @@ namespace VS.Human.Rep
             });
             return result;
         }
+
+        /// <summary>
+        /// Lấy danh sách nhân viên với đầy đủ thông tin cho chế độ chỉnh sửa mở rộng
+        /// Sử dụng stored procedure riêng sp_Employee_getAll_Extended
+        /// </summary>
+        public async Task<List<EmployeeExtendedModel>> ExecuteExport(EmployeeRequest request)
+        {
+            var dbParams = new
+            {
+                Token = request.Token,
+                OrderBy = request.OrderBy,
+                UserId = request.UserId,
+                GroupId = request.GroupId,
+                Status = request.Status ?? -1,
+                StatusWork = request.StatusWork,
+                DocumentStatus = request.DocumentStatus,
+                fromDate = request.From,
+                toDate = request.To,
+                IsDeleted = false
+            };
+
+            return await ExecuteSQL<EmployeeExtendedModel>("sp_Employee_Export", dbParams, System.Data.CommandType.StoredProcedure);
+        }
+
+        public async Task<BaseList> GetAllExtended(EmployeeRequest request)
+        {
+            var page = request.Page;
+            var limit = request.Limit;
+            ProcessInputPaging(ref page, ref limit, out var offset);
+
+            var result = await this.GetBaseAll<EmployeeExtendedModel>(request,
+            new
+            {
+                offset,
+                limit,
+                fromDate = request.From,
+                toDate = request.To,
+                request.Status,
+                request.StatusWork,
+                request.DocumentStatus,
+                request.Token,
+                request.GroupId,
+                request.MemberId,
+                IsDeleted = request.IsDeleted ?? false,
+                UserId = request.UserId,
+                OrderBy = request.OrderBy
+            }, sqlPro: "sp_Employee_getAll_Extended");
+            return result;
+        }
+
         public async Task<BaseList> GetAllManager(int leadGroup = -1)
         {
             var result = await this.GetBaseAll<ManagerLeadIndex>(new BaseRequest { },

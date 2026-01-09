@@ -100,7 +100,30 @@ namespace VS.Human.Business.Imp
                 // Generate UserName if not provided
                 if (string.IsNullOrEmpty(itemUpdate.UserName))
                 {
-                    itemUpdate.UserName = EmployeeMapper.GenerateUserName(itemUpdate.Email, itemUpdate.Phone, itemUpdate.FullName);
+                    string baseUserName = EmployeeMapper.GenerateUserName(itemUpdate.Email, itemUpdate.Phone, itemUpdate.FullName);
+                    string finalUserName = baseUserName;
+                    int counter = 1;
+
+                    // Check duplicate username
+                    while (true)
+                    {
+                        var existUser = await _unitOfWork.EmployeeRep.GetByUserName(finalUserName);
+                        // RepositoryBase returns Id = -1 on error, or Id = 0/null/default on not found
+                        // We should treat both <= 0 as "not found" or "safe to use" to prevent infinite loop on db error
+                        if (existUser == null || existUser.Id <= 0)
+                        {
+                            break; // Username is unique
+                        }
+                        
+                        // If exists (Id > 0), append counter and try again
+                        finalUserName = $"{baseUserName}{counter}";
+                        counter++;
+                        
+                        // Prevent infinite loop if something is really wrong
+                        if (counter > 100) break;
+                    }
+
+                    itemUpdate.UserName = finalUserName;
                 }
 
                 // Set default password if not provided
@@ -134,6 +157,20 @@ namespace VS.Human.Business.Imp
         public async Task<BaseList> GetAll(EmployeeRequest request)
         {
             return await _unitOfWork.EmployeeRep.GetAll(request);
+        }
+
+        /// <summary>
+        /// Lấy danh sách nhân viên với đầy đủ thông tin cho chế độ chỉnh sửa mở rộng
+        /// Sử dụng stored procedure riêng sp_Employee_getAll_Extended
+        /// </summary>
+        public async Task<BaseList> GetAllExtended(EmployeeRequest request)
+        {
+            return await _unitOfWork.EmployeeRep.GetAllExtended(request);
+        }
+
+        public async Task<List<EmployeeExtendedModel>> Export(EmployeeRequest request)
+        {
+            return await _unitOfWork.EmployeeRep.ExecuteExport(request);
         }
 
         public async Task<BaseList> GetAllManager()

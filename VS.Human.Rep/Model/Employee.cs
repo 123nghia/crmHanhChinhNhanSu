@@ -20,6 +20,7 @@
         public string DepartmentCode { get; set; } = string.Empty;
         public string DocumentStatus { get; set; } = string.Empty;
         public string PositionCode { get; set; } = string.Empty;
+        public int? GroupId { get; set; }
 
         public string? NationalId { get; set; }
 

@@ -19,6 +19,12 @@ namespace VS.Human.Business
 
 
         Task<BaseList> GetAll(EmployeeRequest request);
+        
+        /// <summary>
+        /// Lấy danh sách nhân viên với đầy đủ thông tin cho chế độ chỉnh sửa mở rộng
+        /// </summary>
+        Task<BaseList> GetAllExtended(EmployeeRequest request);
+        Task<List<EmployeeExtendedModel>> Export(EmployeeRequest request);
     }
 
 
