@@ -35,9 +35,10 @@
                                 <th>Từ ngày</th>
                                 <th>Đến ngày</th>
                                 <th class="text-center">Số ngày</th>
+                                <th>Người bàn giao</th>
                                 <th>Lý do</th>
                                 <th class="text-center">Trạng thái</th>
-                                <th>Người duyệt</th>
+                                <th>Người duyệt cuối</th>
                                 <th>Thao tác</th>
                             </tr>
                         </thead>
@@ -55,30 +56,48 @@
                                     <td>@info.FromDate.ToString("dd/MM/yyyy")</td>
                                     <td>@info.ToDate.ToString("dd/MM/yyyy")</td>
                                     <td class="text-center">@info.NumDays</td>
+                                    <td>@info.HandoverEmployeeName</td>
                                     <td>@info.Reason</td>
                                     <td class="text-center">
                                         @if (info.Status == 0)
                                         {
-                                            <span class="badge bg-warning">Đang chờ</span>
+                                            <span class="badge bg-warning text-dark">Chờ Lead duyệt</span>
                                         }
                                         else if (info.Status == 1)
                                         {
+                                            <span class="badge bg-info text-dark">Chờ HCNS duyệt</span>
+                                        }
+                                        else if (info.Status == 2)
+                                        {
+                                            <span class="badge bg-primary">Chờ BGĐ duyệt</span>
+                                        }
+                                        else if (info.Status == 3)
+                                        {
                                             <span class="badge bg-success">Đã duyệt</span>
                                         }
-                                        else
+                                        else if (info.Status == 4)
+                                        {
+                                            <span class="badge bg-success">Đã duyệt (HCNS duyệt thay)</span>
+                                        }
+                                        else if (info.Status == 5)
                                         {
                                             <span class="badge bg-danger">Từ chối</span>
+                                        }
+                                        else if (info.Status == 6)
+                                        {
+                                            <span class="badge bg-secondary">Đã hủy</span>
                                         }
                                     </td>
                                     <td>@info.ApproverName</td>
                                     <td>
                                         @if (info.Status == 0 && (Model.Permision.Edit ?? false))
                                         {
-                                            <a href="javascript:void(0)" onclick="openEditLeave(@info.Id)" class="me-2"><i class="bi bi-pencil-square"></i></a>
+                                            <a href="javascript:void(0)" onclick="openEditLeave(@info.Id)" class="me-2" title="Chỉnh sửa"><i class="bi bi-pencil-square"></i></a>
                                         }
-                                        @if (info.Status == 0 && (Model.Permision.Delete ?? false))
+                                        <a href="javascript:void(0)" onclick="viewHistory(@info.Id)" class="me-2 text-info" title="Lịch sử"><i class="bi bi-clock-history"></i></a>
+                                        @if ((info.Status == 0 || info.Status == 1 || info.Status == 2) && (Model.Permision.Delete ?? false))
                                         {
-                                            <a href="javascript:void(0)" onclick="deleteLeave(@info.Id)" class="text-danger"><i class="bi bi-trash"></i></a>
+                                            <a href="javascript:void(0)" onclick="deleteLeave(@info.Id)" class="text-danger" title="Xóa"><i class="bi bi-trash"></i></a>
                                         }
                                     </td>
                                 </tr>
@@ -132,6 +151,16 @@
                         <input type="number" step="0.5" class="form-control" id="numDays" required />
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Người bàn giao công việc</label>
+                        <select class="form-select" id="handoverEmployeeId">
+                            <option value="">-- Chọn người bàn giao --</option>
+                            @foreach (var emp in Model.EmployeeList)
+                            {
+                                <option value="@emp.Id">@emp.FullName (@emp.UserName)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Lý do</label>
                         <textarea class="form-control" id="reason" rows="3" required></textarea>
                     </div>
@@ -140,6 +169,35 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="button" class="btn btn-primary" onclick="saveLeave()">Lưu lại</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for View History -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lịch sử xử lý đơn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Người xử lý</th>
+                                <th>Hành động</th>
+                                <th>Ghi chú/Lý do</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyContent">
+                            <!-- History items will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

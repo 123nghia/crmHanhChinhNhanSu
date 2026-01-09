@@ -19,7 +19,7 @@ function openPageMember(id = -1) {
 
         },
         error: function (jqXHR, exception) {
-           
+
         },
         complete: function () {
 
@@ -28,7 +28,7 @@ function openPageMember(id = -1) {
 }
 
 function loadData(groupId) {
-   
+
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -42,11 +42,11 @@ function loadData(groupId) {
 
             $("#DataListView").empty();
             $("#DataListView").append(data);
-       
+
 
         },
         error: function (jqXHR, exception) {
-           
+
         },
         complete: function () {
 
@@ -73,7 +73,7 @@ function OpenChangPassword(id = -1, router = "employee") {
 
         },
         error: function (jqXHR, exception) {
-       
+
         },
         complete: function () {
 
@@ -81,7 +81,7 @@ function OpenChangPassword(id = -1, router = "employee") {
     });
 }
 function openFormEdit(id = -1, router = "employee") {
-  
+
     var dataString = "id=" + id;
     $.ajax({
         headers: {
@@ -89,20 +89,20 @@ function openFormEdit(id = -1, router = "employee") {
                 $('input[name="__RequestVerificationToken"]').val()
         },
         type: "GET",
-  
-        url: '/' + router + '?handler=FormEdit&id='+id,
-     
+
+        url: '/' + router + '?handler=FormEdit&id=' + id,
+
         success: function (data) {
             $("#contentModal").empty();
             $("#contentModal").append(data);
-            $('#formModal').modal('show'); 
-      
+            $('#formModal').modal('show');
 
-            
+
+
 
         },
         error: function (jqXHR, exception) {
-           
+
         },
         complete: function () {
             getAllGroup();
@@ -119,7 +119,7 @@ function openFormEdit(id = -1, router = "employee") {
 
 
 function openFormAssignee(id = -1, router = "OrderAssignee") {
-  
+
     var dataString = "id=" + id;
     $.ajax({
         headers: {
@@ -127,26 +127,26 @@ function openFormAssignee(id = -1, router = "OrderAssignee") {
                 $('input[name="__RequestVerificationToken"]').val()
         },
         type: "GET",
-  
-        url: '/' + router + '?handler=openForm&id='+id,
+
+        url: '/' + router + '?handler=openForm&id=' + id,
         success: function (data) {
             $("#contentModal").empty();
             $("#contentModal").append(data);
 
-            const sonucModal= document.getElementById('formModal');
+            const sonucModal = document.getElementById('formModal');
             const modalEl = new bootstrap.Modal(sonucModal);
             modalEl.show();
             // setTimeout(() => {
             //     $('#formModal').modal('show'); 
             // }, 2000);
-           
-         },
+
+        },
         error: function (jqXHR, exception) {
 
         },
         complete: function () {
-            
-         },
+
+        },
     });
 }
 function login() {
@@ -168,7 +168,7 @@ function login() {
     else {
         removeError("txtUserName");
     }
-   
+
     var dataRequest = {
         UserName: userName,
         Password: password
@@ -189,13 +189,13 @@ function login() {
             if (data.success == true) {
                 window.location.href = "/";
             }
-         
+
         },
         error: function (jqXHR, exception) {
-          
+
         },
         complete: function () {
-           
+
         },
     });
 
@@ -205,7 +205,7 @@ function updateEmployInfo(idEmp) {
 
     var updateName = getValueControl("txtUpdateName");
     var updateNote = getValueControl("txtUpdateNote");
-      var updatePhone = getValueControl("txtPhoneInput");
+    var updatePhone = getValueControl("txtPhoneInput");
     var dayOfBirth = getValueControl("txtDayOfBirthInput");
     removeAllEror("formUpdateEmployee");
 
@@ -216,7 +216,7 @@ function updateEmployInfo(idEmp) {
     else {
         removeError("txtUpdateName");
     }
-    
+
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -226,14 +226,14 @@ function updateEmployInfo(idEmp) {
         datatype: "JSON",
         url: '/employee?handler=UpdateInfo',
         data: {
-          
+
             FullName: updateName,
             Id: idEmp,
-            Dob:  dayOfBirth,
-            Phone : updatePhone,
+            Dob: dayOfBirth,
+            Phone: updatePhone,
             Noted: updateNote
-           
-      
+
+
         },
         success: function (data) {
 
@@ -249,15 +249,15 @@ function updateEmployInfo(idEmp) {
 }
 
 
-function changePassword(reloadPage =true) {
-    
+function changePassword(reloadPage = true) {
+
 
     var currentPassword = getValueControl("txtcurrentPassword");
     var newPassword = getValueControl("txtnewPassword");
     var renewPassword = getValueControl("txtrenewPassword");
     removeAllEror("updateChangePassword");
 
-  
+
 
     if (newPassword == "") {
         addError("txtnewPassword", "yêu cầu nhập mật khẩu mới");
@@ -290,7 +290,7 @@ function changePassword(reloadPage =true) {
         data: {
 
             newPassword: newPassword
-           
+
 
 
         },
@@ -302,7 +302,7 @@ function changePassword(reloadPage =true) {
             else {
                 openAlertAndClosePopup(1);
             }
-           
+
         },
         error: function (jqXHR, exception) {
             showError(jqXHR);
@@ -346,7 +346,7 @@ function changePassword2(reloadPage = false, idEmp, reset = false) {
     }
 
 
-    
+
 
     var isReset = reset;
     $.ajax({
@@ -430,7 +430,7 @@ function SaveEmployee(idEmp) {
             removeError("txtPass");
         }
     }
-   
+
 
     if (roleCodeText == "") {
         addError("txtRoleCode", "Yêu cầu chọn thông tin vai trò");
@@ -457,10 +457,10 @@ function SaveEmployee(idEmp) {
             LineCode: txtLineCodeTemp,
             RoleCode: roleCodeText,
             Noted: txtNotedText,
-            ColorCode :txtColorCode,
+            ColorCode: txtColorCode,
             Pass: passText,
             StatusWork: cbStatusWork,
-            Dob: dobcb, 
+            Dob: dobcb,
             IsActive: isActiveCb,
             Gender: cbGenderInput,
             PlaceOfBirth: txtPlaceOfBirthInput,
@@ -468,14 +468,14 @@ function SaveEmployee(idEmp) {
             PersonalEmail: txtPersonalEmailInput
         },
         success: function (data) {
-        
+
             successAdd(idEmp);
         },
         error: function (jqXHR, exception) {
             showError(jqXHR);
         },
         complete: function () {
-           
+
         }
     });
 }
@@ -543,7 +543,7 @@ function openFormGroupEdit(id = -1) {
             "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
         },
-        type: "GET", 
+        type: "GET",
 
         url: '/GroupPage?handler=FormEdit&id=' + id,
 
@@ -553,7 +553,7 @@ function openFormGroupEdit(id = -1) {
             $('#formModal').modal('show');
         },
         error: function (jqXHR, exception) {
-            
+
         },
         complete: function () {
 
@@ -568,10 +568,10 @@ function changePage(pageNumber) {
 
 }
 var isHasInteract = true;
-function deleteRecord(idEmp, routerInput) { 
+function deleteRecord(idEmp, routerInput) {
     isHasInteract = false;
-   
-   
+
+
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -579,7 +579,7 @@ function deleteRecord(idEmp, routerInput) {
         },
         type: "POST",
         datatype: "JSON",
-        url: routerInput  +'?handler=delete',
+        url: routerInput + '?handler=delete',
         data: {
 
             Id: idEmp,
@@ -602,10 +602,10 @@ function deleteRecord(idEmp, routerInput) {
 }
 
 
-function deleteRecord2(idEmp, routerInput) { 
+function deleteRecord2(idEmp, routerInput) {
     isHasInteract = false;
-   
-   
+
+
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -613,7 +613,7 @@ function deleteRecord2(idEmp, routerInput) {
         },
         type: "POST",
         datatype: "JSON",
-        url: routerInput  +'?handler=reactive',
+        url: routerInput + '?handler=reactive',
         data: {
 
             Id: idEmp,
@@ -670,12 +670,12 @@ function changeResult(idEmp, routerInput = "order") {
 
     const swalWithBootstrapButtons = Swal.mixin({
         customClass: {
-          confirmButton: "btn btn-success",
-          cancelButton: "btn btn-danger"
+            confirmButton: "btn btn-success",
+            cancelButton: "btn btn-danger"
         },
         buttonsStyling: false
-      });
-      swalWithBootstrapButtons.fire({
+    });
+    swalWithBootstrapButtons.fire({
         title: "Kết quả ứng tuyển",
         text: "Bạn nhấn nút để kết thúc ứng tuển",
         icon: "warning",
@@ -684,43 +684,41 @@ function changeResult(idEmp, routerInput = "order") {
         confirmButtonText: "Onboard",
         cancelButtonText: "Kết thúc ứng tuyển",
         reverseButtons: true,
-         denyButtonText: `Đóng`
-      }).then((result) => {
+        denyButtonText: `Đóng`
+    }).then((result) => {
         if (result.isConfirmed) {
-            changeResultTD(idEmp,1,swalWithBootstrapButtons );
-         
-        } else if (
-          /* Read more about handling dismissals below */
-          result.dismiss === Swal.DismissReason.cancel
-        ) {
-             changeResultTD(idEmp,2,swalWithBootstrapButtons );
-         
-        }
-      });
+            changeResultTD(idEmp, 1, swalWithBootstrapButtons);
 
-  
+        } else if (
+            /* Read more about handling dismissals below */
+            result.dismiss === Swal.DismissReason.cancel
+        ) {
+            changeResultTD(idEmp, 2, swalWithBootstrapButtons);
+
+        }
+    });
+
+
 
 }
 
 
 function changeApply(idEmp) {
 
-   
-    var  cvlink1 = getValueControl("inputCvlink");
 
-    var  cbJobId1 = getValueControl("cbJobId1");
+    var cvlink1 = getValueControl("inputCvlink");
 
-    if( cbJobId1  < 1  )
-    {
+    var cbJobId1 = getValueControl("cbJobId1");
+
+    if (cbJobId1 < 1) {
         addError("cbJobId1", "Yêu cầu Vị trí Việc làm");
         return;
     }
-        
 
-    if( cvlink1 ==""  ||  cvlink1 =="" )
-    {
-         addError("inputCvlink", "Yêu cầu có file CV");
-         return;
+
+    if (cvlink1 == "" || cvlink1 == "") {
+        addError("inputCvlink", "Yêu cầu có file CV");
+        return;
     }
 
     var cbtinhthanh = getValueControl("idProvinces");
@@ -729,37 +727,36 @@ function changeApply(idEmp) {
     var idRankLevelValue = getValueControl("idRankLevel");
     var idGenderValue = getValueControl("idGender");
     var idIntroductionValue = getValueControl("txtIntroduction");
-    var genderInput =  getValueControl("idGender");
+    var genderInput = getValueControl("idGender");
     var cbdobInput = getValueControl("dob");
     var emailInput = getValueControl("txtEmail");
 
-    if(cbtinhthanh == "" || cbtinhthanh =="-1" ||
-    schoolText == "" || 
-    idExperenceValue == "" || idExperenceValue =="-1" ||
-    idRankLevelValue == "" || idRankLevelValue =="-1" ||
-    idGenderValue == "" || idGenderValue =="-1" ||
-    idIntroductionValue == "" || idIntroductionValue =="-1" ||
-    cbdobInput =="" || cbdobInput == null ||
-    emailInput == "" ||  emailInput == null ||
-    genderInput == "" || genderInput =="-1")
-    {
+    if (cbtinhthanh == "" || cbtinhthanh == "-1" ||
+        schoolText == "" ||
+        idExperenceValue == "" || idExperenceValue == "-1" ||
+        idRankLevelValue == "" || idRankLevelValue == "-1" ||
+        idGenderValue == "" || idGenderValue == "-1" ||
+        idIntroductionValue == "" || idIntroductionValue == "-1" ||
+        cbdobInput == "" || cbdobInput == null ||
+        emailInput == "" || emailInput == null ||
+        genderInput == "" || genderInput == "-1") {
         Swal.fire({
-        icon: "error",
-        title: "Điền đầy đủ thông tin",
-        text: "vui lòng cập nhật khu vực ứng tuyển, ngày sinh, Email,  trường học, trình độ, kinh nghiệm, giới tính, mục tiêu nghề nghiệp sau khi cập nhật, quay lại thao tác đẩy", 
-        footer: 'yêu cầu nghiệp vụ'
+            icon: "error",
+            title: "Điền đầy đủ thông tin",
+            text: "vui lòng cập nhật khu vực ứng tuyển, ngày sinh, Email,  trường học, trình độ, kinh nghiệm, giới tính, mục tiêu nghề nghiệp sau khi cập nhật, quay lại thao tác đẩy",
+            footer: 'yêu cầu nghiệp vụ'
         });
         return;
 
     }
     const swalWithBootstrapButtons = Swal.mixin({
         customClass: {
-          confirmButton: "btn btn-success",
-          cancelButton: "btn btn-danger"
+            confirmButton: "btn btn-success",
+            cancelButton: "btn btn-danger"
         },
         buttonsStyling: false
-      });
-      swalWithBootstrapButtons.fire({
+    });
+    swalWithBootstrapButtons.fire({
         title: "Đẩy qua trang danh sách ứng tuyển",
         text: "Bạn nhấn nút  để xác nhận",
         icon: "warning",
@@ -768,33 +765,33 @@ function changeApply(idEmp) {
         confirmButtonText: "Đẩy qua",
         cancelButtonText: "Bỏ qua",
         reverseButtons: true,
-         denyButtonText: `Đóng`
-      }).then((result) => {
+        denyButtonText: `Đóng`
+    }).then((result) => {
         if (result.isConfirmed) {
-                pushCase(idEmp,1,swalWithBootstrapButtons );
-         
+            pushCase(idEmp, 1, swalWithBootstrapButtons);
+
         } else if (
-          /* Read more about handling dismissals below */
-          result.dismiss === Swal.DismissReason.cancel
+            /* Read more about handling dismissals below */
+            result.dismiss === Swal.DismissReason.cancel
         ) {
             //  changeResultTD(idEmp,2,swalWithBootstrapButtons );
-         
-        }
-      });
 
-  
+        }
+    });
+
+
 
 }
 function changeReturnOrderAlert(idEmp) {
 
     const swalWithBootstrapButtons = Swal.mixin({
         customClass: {
-          confirmButton: "btn btn-success",
-          cancelButton: "btn btn-danger"
+            confirmButton: "btn btn-success",
+            cancelButton: "btn btn-danger"
         },
         buttonsStyling: false
-      });
-      swalWithBootstrapButtons.fire({
+    });
+    swalWithBootstrapButtons.fire({
         title: "Đẩy qua trang danh sách khai thác lại",
         text: "Bạn nhấn nút  để xác nhận",
         icon: "warning",
@@ -803,21 +800,21 @@ function changeReturnOrderAlert(idEmp) {
         confirmButtonText: "Đẩy qua",
         cancelButtonText: "Bỏ qua",
         reverseButtons: true,
-         denyButtonText: `Đóng`
-      }).then((result) => {
+        denyButtonText: `Đóng`
+    }).then((result) => {
         if (result.isConfirmed) {
-            changeReturnOrder(idEmp,1,swalWithBootstrapButtons );
-         
+            changeReturnOrder(idEmp, 1, swalWithBootstrapButtons);
+
         } else if (
-          /* Read more about handling dismissals below */
-          result.dismiss === Swal.DismissReason.cancel
+            /* Read more about handling dismissals below */
+            result.dismiss === Swal.DismissReason.cancel
         ) {
             //  changeResultTD(idEmp,2,swalWithBootstrapButtons );
-         
-        }
-      });
 
-  
+        }
+    });
+
+
 
 }
 
@@ -826,12 +823,12 @@ function pushCVCTV(idEmp) {
 
     const swalWithBootstrapButtons = Swal.mixin({
         customClass: {
-          confirmButton: "btn btn-success",
-          cancelButton: "btn btn-danger"
+            confirmButton: "btn btn-success",
+            cancelButton: "btn btn-danger"
         },
         buttonsStyling: false
-      });
-      swalWithBootstrapButtons.fire({
+    });
+    swalWithBootstrapButtons.fire({
         title: "Đẩy qua đối tác",
         text: "Bạn nhấn nút  để xác nhận",
         icon: "warning",
@@ -840,26 +837,26 @@ function pushCVCTV(idEmp) {
         confirmButtonText: "Đẩy qua",
         cancelButtonText: "Bỏ qua",
         reverseButtons: true,
-         denyButtonText: `Đóng`
-      }).then((result) => {
+        denyButtonText: `Đóng`
+    }).then((result) => {
         if (result.isConfirmed) {
-            pushCaseCTV(idEmp,1,swalWithBootstrapButtons );
-         
+            pushCaseCTV(idEmp, 1, swalWithBootstrapButtons);
+
         } else if (
-          /* Read more about handling dismissals below */
-          result.dismiss === Swal.DismissReason.cancel
+            /* Read more about handling dismissals below */
+            result.dismiss === Swal.DismissReason.cancel
         ) {
             //  changeResultTD(idEmp,2,swalWithBootstrapButtons );
-         
-        }
-      });
 
-  
+        }
+    });
+
+
 
 }
-function pushCaseCTV(idEmp,result,swalWithBootstrapButtons) {
+function pushCaseCTV(idEmp, result, swalWithBootstrapButtons) {
 
-    
+
 
     $.ajax({
         headers: {
@@ -875,23 +872,22 @@ function pushCaseCTV(idEmp,result,swalWithBootstrapButtons) {
         },
         success: function (data) {
 
-            if(data.success == false)
-                {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Oops...",
-                        text: "Có lỗi sảy ra!",
-                        footer: ''
-                      });
-                 
-                }
-        
-                swalWithBootstrapButtons.fire({
-                    title: "Đã chuyển qua thành công!",
-                    text: ".",
-                    icon: "success"
-                  });
-          
+            if (data.success == false) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "Có lỗi sảy ra!",
+                    footer: ''
+                });
+
+            }
+
+            swalWithBootstrapButtons.fire({
+                title: "Đã chuyển qua thành công!",
+                text: ".",
+                icon: "success"
+            });
+
 
         },
         error: function (jqXHR, exception) {
@@ -902,12 +898,12 @@ function pushCaseCTV(idEmp,result,swalWithBootstrapButtons) {
         }
     });
 
-   
+
 }
 
-function changeReturnOrder(idEmp,result,swalWithBootstrapButtons) {
+function changeReturnOrder(idEmp, result, swalWithBootstrapButtons) {
 
-    
+
 
     $.ajax({
         headers: {
@@ -923,29 +919,27 @@ function changeReturnOrder(idEmp,result,swalWithBootstrapButtons) {
         },
         success: function (data) {
 
-            if(data.success == false)
-                {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Oops...",
-                        text: "Có lỗi sảy ra!",
-                        footer: ''
-                      });
-                 
-                }
-        
-            if(result ==1)
-                {
-                    swalWithBootstrapButtons.fire({
-                        title: "Đã chuyển qua thành công!",
-                        text: "Danh sách ứng tuyển.",
-                        icon: "success"
-                      });
-                }
-             else  {
-               
-             }
-          
+            if (data.success == false) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "Có lỗi sảy ra!",
+                    footer: ''
+                });
+
+            }
+
+            if (result == 1) {
+                swalWithBootstrapButtons.fire({
+                    title: "Đã chuyển qua thành công!",
+                    text: "Danh sách ứng tuyển.",
+                    icon: "success"
+                });
+            }
+            else {
+
+            }
+
 
         },
         error: function (jqXHR, exception) {
@@ -956,11 +950,11 @@ function changeReturnOrder(idEmp,result,swalWithBootstrapButtons) {
         }
     });
 
-   
-}
-function pushCase(idEmp,result,swalWithBootstrapButtons) {
 
-    
+}
+function pushCase(idEmp, result, swalWithBootstrapButtons) {
+
+
 
     $.ajax({
         headers: {
@@ -976,33 +970,31 @@ function pushCase(idEmp,result,swalWithBootstrapButtons) {
         },
         success: function (data) {
 
-            if(data.success == false)
-                {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Oops...",
-                        text: "Có lỗi sảy ra!",
-                        footer: ''
-                      });
-                 
-                }
-        
-            if(result ==1)
-                {
-                    swalWithBootstrapButtons.fire({
-                        title: "Đã chuyển qua thành công!",
-                        text: "Danh sách ứng tuyển.",
-                        icon: "success"
-                      });
-                }
-             else  {
+            if (data.success == false) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "Có lỗi sảy ra!",
+                    footer: ''
+                });
+
+            }
+
+            if (result == 1) {
+                swalWithBootstrapButtons.fire({
+                    title: "Đã chuyển qua thành công!",
+                    text: "Danh sách ứng tuyển.",
+                    icon: "success"
+                });
+            }
+            else {
                 // swalWithBootstrapButtons.fire({
                 //     title: "Ghi nhận kết quả tuyển dụng",
                 //     text: "Done",
                 //     icon: "error"
                 //   });
-             }
-          
+            }
+
 
         },
         error: function (jqXHR, exception) {
@@ -1013,11 +1005,11 @@ function pushCase(idEmp,result,swalWithBootstrapButtons) {
         }
     });
 
-   
-}
-function changeResultTD(idEmp,result,swalWithBootstrapButtons) {
 
-    
+}
+function changeResultTD(idEmp, result, swalWithBootstrapButtons) {
+
+
 
     $.ajax({
         headers: {
@@ -1034,33 +1026,31 @@ function changeResultTD(idEmp,result,swalWithBootstrapButtons) {
         },
         success: function (data) {
 
-            if(data.success == false)
-                {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Oops...",
-                        text: "Có lỗi sảy ra!",
-                        footer: ''
-                      });
-                 
-                }
-        
-            if(result ==1)
-                {
-                    swalWithBootstrapButtons.fire({
-                        title: "Ghi nhận kết quả tuyển dụng!",
-                        text: "Onboard.",
-                        icon: "success"
-                      });
-                }
-             else  {
+            if (data.success == false) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "Có lỗi sảy ra!",
+                    footer: ''
+                });
+
+            }
+
+            if (result == 1) {
+                swalWithBootstrapButtons.fire({
+                    title: "Ghi nhận kết quả tuyển dụng!",
+                    text: "Onboard.",
+                    icon: "success"
+                });
+            }
+            else {
                 swalWithBootstrapButtons.fire({
                     title: "Ghi nhận kết quả tuyển dụng",
                     text: "Done",
                     icon: "error"
-                  });
-             }
-          
+                });
+            }
+
 
         },
         error: function (jqXHR, exception) {
@@ -1071,7 +1061,7 @@ function changeResultTD(idEmp,result,swalWithBootstrapButtons) {
         }
     });
 
-   
+
 }
 
 function confirmDelete(idEmp, routerInput = "employee") {
@@ -1082,9 +1072,9 @@ function confirmDelete(idEmp, routerInput = "employee") {
     isHasInteract = false;
     if (idEmp < 1) {
         isHasInteract = true;
-        return;    
+        return;
     }
-    
+
 
     Swal.fire({
         title: "Bạn chắc chắn xoá?",
@@ -1101,7 +1091,7 @@ function confirmDelete(idEmp, routerInput = "employee") {
         else {
             isHasInteract = true;
         }
-    }); 
+    });
 }
 
 function reActive(idEmp, routerInput = "employee") {
@@ -1112,9 +1102,9 @@ function reActive(idEmp, routerInput = "employee") {
     isHasInteract = false;
     if (idEmp < 1) {
         isHasInteract = true;
-        return;    
+        return;
     }
-    
+
 
     Swal.fire({
         title: "Bạn chắc chắn thao tác?",
@@ -1131,18 +1121,18 @@ function reActive(idEmp, routerInput = "employee") {
         else {
             isHasInteract = true;
         }
-    }); 
+    });
 }
 
 
 
 function SaveMember(groupId) {
- 
+
     var isActiveCb = getValueControl("cbmemberId");
 
     if (isActiveCb == "-1")
         isActiveCb = "";
-   
+
     removeAllEror("mainFormMember");
     if (isActiveCb == "") {
         addError("cbmemberId", "yêu cầu chọn thành viên để thêm vào nhóm");
@@ -1151,7 +1141,7 @@ function SaveMember(groupId) {
     else {
         removeError("cbmemberId");
     }
-  
+
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -1181,7 +1171,7 @@ function SaveMember(groupId) {
 
 
 
-function openFormCommon(id = -1, controller = "partner", type ="") {
+function openFormCommon(id = -1, controller = "partner", type = "") {
 
     var dataString = "id=" + id;
     $.ajax({
@@ -1219,23 +1209,23 @@ function SavePartner(idEmp) {
     var isActiveCb = getValueControl("isActive");
     var txtNotedText = getValueControl("txtNoted");
     var txtShortNameValue = getValueControl("txtShortName");
-    var txtTaxCodeValue  = getValueControl("txtTaxCode");
+    var txtTaxCodeValue = getValueControl("txtTaxCode");
 
     var parrentChild = document.getElementById("lisItemAdd")
-    var allInputList =  parrentChild.querySelectorAll("input");
+    var allInputList = parrentChild.querySelectorAll("input");
 
     var arrayList = [];
 
-   
+
     for (let index = 0; index < allInputList.length; index++) {
         const intpuText = allInputList[index];
         var textValueTemp = intpuText.value;
         var idElement = intpuText.getAttribute("customvalue");
         var itemAdd = {
-            Text : textValueTemp ,
-            Id:  idElement,
+            Text: textValueTemp,
+            Id: idElement,
             RelId: idEmp,
-            Type : "1"
+            Type: "1"
         };
         arrayList.push(itemAdd);
     }
@@ -1243,20 +1233,20 @@ function SavePartner(idEmp) {
 
 
     var parrentChild2 = document.getElementById("listProject")
-    var allInputList2 =  parrentChild2.querySelectorAll("input");
+    var allInputList2 = parrentChild2.querySelectorAll("input");
 
     var arrrayProject = [];
 
-   
+
     for (let index = 0; index < allInputList2.length; index++) {
         const intpuText = allInputList2[index];
         var textValueTemp = intpuText.value;
         var idElement = intpuText.getAttribute("customvalue");
         var itemAdd = {
-            Text : textValueTemp ,
-            Id:  idElement,
+            Text: textValueTemp,
+            Id: idElement,
             RelId: idEmp,
-            Type : "2"
+            Type: "2"
         };
         arrrayProject.push(itemAdd);
     }
@@ -1264,9 +1254,9 @@ function SavePartner(idEmp) {
 
 
     removeAllEror("mainForm");
- 
 
-    
+
+
     if (fullNametext == "") {
         addError("txtFullName", "yêu cầu nhập tên đối tác");
         return;
@@ -1274,7 +1264,7 @@ function SavePartner(idEmp) {
     else {
         removeError("txtFullName");
     }
-      if (isActiveCb == "") {
+    if (isActiveCb == "") {
         addError("isActiveCb", "Yêu cầu chọn trạng thái");
         return;
     }
@@ -1282,18 +1272,18 @@ function SavePartner(idEmp) {
         removeError("isActiveCb");
     }
 
-    var bodyResquest = { 
-            Name: fullNametext,
-            addressList: arrayList,
-            projectList: arrrayProject,
-            Id: idEmp,
-            ShortName: txtShortNameValue,
-            TaxCode: txtTaxCodeValue,
-            Noted: txtNotedText,
-            IsActive: isActiveCb
-     };
+    var bodyResquest = {
+        Name: fullNametext,
+        addressList: arrayList,
+        projectList: arrrayProject,
+        Id: idEmp,
+        ShortName: txtShortNameValue,
+        TaxCode: txtTaxCodeValue,
+        Noted: txtNotedText,
+        IsActive: isActiveCb
+    };
 
-   
+
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -1302,7 +1292,7 @@ function SavePartner(idEmp) {
         type: "POST",
         datatype: "JSON",
         url: '/partner?handler=Add',
-        data:bodyResquest,
+        data: bodyResquest,
         success: function (data) {
 
             successAdd(idEmp);
@@ -1324,7 +1314,7 @@ function SaveMasterData2(idEmp, namecontroller = "nganhnghe") {
     var isActiveCb = getValueControl("isActive");
     var txtNotedText = getValueControl("txtNoted");
     var txtTypeDataText = getValueControl("txtTypeData");
-    
+
     var txtExtraText = getValueControl("txtExtra");
     var applyFor = getValueControl("applyFor");
     removeAllEror("mainForm");
@@ -1351,7 +1341,7 @@ function SaveMasterData2(idEmp, namecontroller = "nganhnghe") {
         },
         type: "POST",
         datatype: "JSON",
-        url: '/' + namecontroller +'?handler=Add',
+        url: '/' + namecontroller + '?handler=Add',
         data: {
 
             Name: fullNametext,
@@ -1360,7 +1350,7 @@ function SaveMasterData2(idEmp, namecontroller = "nganhnghe") {
             Noted: txtNotedText,
             Extra: txtExtraText,
             applyFor: applyFor,
-            typeData:  txtTypeDataText,
+            typeData: txtTypeDataText,
 
             IsActive: isActiveCb
         },
@@ -1412,7 +1402,7 @@ function SaveMasterData(idEmp, namecontroller = "nganhnghe") {
         },
         type: "POST",
         datatype: "JSON",
-        url: '/' + namecontroller +'?handler=Add',
+        url: '/' + namecontroller + '?handler=Add',
         data: {
 
             Name: fullNametext,
@@ -1464,7 +1454,7 @@ function saveJob(idEmp) {
         removeError("txtName");
     }
 
-   
+
 
     if (cbField == "") {
         addError("cbField", "Yêu cầu nhập lĩnh vực");
@@ -1493,7 +1483,7 @@ function saveJob(idEmp) {
         datatype: "JSON",
         url: '/job?handler=Add',
         data: {
-             Name: fullNametext,
+            Name: fullNametext,
             Field: cbField,
             Id: idEmp,
             CareerId: "1",
@@ -1501,9 +1491,9 @@ function saveJob(idEmp) {
             Content: contentText,
             ShortDes: shortDesText,
             IsActive: cbisActive,
-            WarrantyDate : txtWarrantyValue,
-            Inputfile : inputfileValue,
-            partnerId:  partnerIdValue,
+            WarrantyDate: txtWarrantyValue,
+            Inputfile: inputfileValue,
+            partnerId: partnerIdValue,
             projectId: projectIdValue
         },
         success: function (data) {
@@ -1528,10 +1518,9 @@ function SaveCandidatenew(idEmp) {
 
     var txtEmail = getValueControl("txtEmail");
     var txtSourceCode = 0;
-    if(txtSourceCode =="")
-        {
-            txtSourceCode = 0;
-        }
+    if (txtSourceCode == "") {
+        txtSourceCode = 0;
+    }
 
 
     var txtShortDes = getValueControl("txtNotedCand");
@@ -1556,7 +1545,7 @@ function SaveCandidatenew(idEmp) {
     else {
         removeError("txtPhone");
     }
-    
+
 
 
     if (cbisActive == "") {
@@ -1577,7 +1566,7 @@ function SaveCandidatenew(idEmp) {
         datatype: "JSON",
         url: '/candidate?handler=Add',
         data: {
-           
+
             Phone: txtPhone,
             Name: txtFullName,
             Email: txtEmail,
@@ -1585,9 +1574,9 @@ function SaveCandidatenew(idEmp) {
             Dob: dobcb,
             AvatarLink: "",
             CVLink: fileCvLinkInput,
-            ShortDes:"",
-            Noted: txtNoted ,
-            Source : 0,
+            ShortDes: "",
+            Noted: txtNoted,
+            Source: 0,
             IsActive: 1
         },
         success: function (data) {
@@ -1613,10 +1602,9 @@ function SaveCandidate(idEmp) {
     var txtEmail = getValueControl("txtEmail");
     var txtSourceCode = getValueControl("cbSource");
 
-    if(txtSourceCode =="")
-        {
-            txtSourceCode = 0;
-        }
+    if (txtSourceCode == "") {
+        txtSourceCode = 0;
+    }
 
 
     var txtShortDes = getValueControl("txtShortDes");
@@ -1641,7 +1629,7 @@ function SaveCandidate(idEmp) {
     else {
         removeError("txtPhone");
     }
-    
+
 
 
     if (cbisActive == "") {
@@ -1662,7 +1650,7 @@ function SaveCandidate(idEmp) {
         datatype: "JSON",
         url: '/candidate?handler=Add',
         data: {
-           
+
             Phone: txtPhone,
             Name: txtFullName,
             Email: txtEmail,
@@ -1671,8 +1659,8 @@ function SaveCandidate(idEmp) {
             AvatarLink: avatarFileInput,
             CVLink: fileCvLinkInput,
             ShortDes: txtShortDes,
-            Noted: txtNoted ,
-            Source : txtSourceCode,
+            Noted: txtNoted,
+            Source: txtSourceCode,
             IsActive: cbisActive
         },
         success: function (data) {
@@ -1689,7 +1677,7 @@ function SaveCandidate(idEmp) {
 }
 
 function saveOrderMarketting(idEmp) {
-     //var ProjectIdValue = getValueControl("cbProject");
+    //var ProjectIdValue = getValueControl("cbProject");
     var cbcandidateId = getValueControl("cbcandidateId");
     var cbJobId = getValueControl("cbJobId");
     // var cbPartnerId = getValueControl("cbpartnerId2");
@@ -1712,8 +1700,8 @@ function saveOrderMarketting(idEmp) {
     else {
         removeError("cbJobId");
     }
-   
-      $.ajax({
+
+    $.ajax({
         headers: {
             "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
@@ -1726,7 +1714,7 @@ function saveOrderMarketting(idEmp) {
             JobId: cbJobId,
             CVLink: cvLink,
             ShortDes: txtShortDes,
-            Noted: txtNoted, 
+            Noted: txtNoted,
             id: idEmp
         },
         success: function (data) {
@@ -1742,39 +1730,39 @@ function saveOrderMarketting(idEmp) {
     });
 }
 function assingeeOrder(idEmp) {
-   
-   var asssigneeId = getValueControl("cbAssingeeId");
-   removeAllEror("mainForm2");
-   if (asssigneeId == "") {
-       addError("cbAssingeeId", "Chọn thông tin TC");
-       return;
-   }
-   else {
-       removeError("cbAssingeeId");
-   }
-     $.ajax({
-       headers: {
-           "RequestVerificationToken":
-               $('input[name="__RequestVerificationToken"]').val()
-       },
-       type: "POST",
-       datatype: "JSON",
-       url: '/OrderAssignee?handler=Assingee',
-       data: {
+
+    var asssigneeId = getValueControl("cbAssingeeId");
+    removeAllEror("mainForm2");
+    if (asssigneeId == "") {
+        addError("cbAssingeeId", "Chọn thông tin TC");
+        return;
+    }
+    else {
+        removeError("cbAssingeeId");
+    }
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "POST",
+        datatype: "JSON",
+        url: '/OrderAssignee?handler=Assingee',
+        data: {
             Assignee: asssigneeId,
-           id: idEmp
-       },
-       success: function (data) {
+            id: idEmp
+        },
+        success: function (data) {
 
-           successAdd(idEmp);
-       },
-       error: function (jqXHR, exception) {
-           showError(jqXHR);
-       },
-       complete: function () {
+            successAdd(idEmp);
+        },
+        error: function (jqXHR, exception) {
+            showError(jqXHR);
+        },
+        complete: function () {
 
-       }
-   });
+        }
+    });
 }
 
 
@@ -1801,8 +1789,8 @@ function saveOrder(idEmp) {
     else {
         removeError("cbJobId");
     }
- 
-      $.ajax({
+
+    $.ajax({
         headers: {
             "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
@@ -1811,14 +1799,14 @@ function saveOrder(idEmp) {
         datatype: "JSON",
         url: '/order?handler=Add',
         data: {
-         
+
             CandidateId: cbcandidateId,
-            JobId: cbJobId, 
-            ProjectId:  ProjectIdValue,
-            PartnerId : cbPartnerId,
+            JobId: cbJobId,
+            ProjectId: ProjectIdValue,
+            PartnerId: cbPartnerId,
             CVLink: cvLink,
             ShortDes: txtShortDes,
-            Noted: txtNoted, 
+            Noted: txtNoted,
             id: idEmp
 
         },
@@ -1857,8 +1845,8 @@ function saveOrder2(idEmp) {
     else {
         removeError("cbJobId");
     }
-   
-      $.ajax({
+
+    $.ajax({
         headers: {
             "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
@@ -1867,13 +1855,13 @@ function saveOrder2(idEmp) {
         datatype: "JSON",
         url: '/order?handler=Add',
         data: {
-         
+
             CandidateId: cbcandidateId,
-            JobId: cbJobId, 
+            JobId: cbJobId,
             CVLink: cvLink,
             ShortDes: txtShortDes,
             PhoneNumber: phoneNumber,
-            Noted: txtNoted, 
+            Noted: txtNoted,
             id: idEmp
 
         },
@@ -1891,7 +1879,7 @@ function saveOrder2(idEmp) {
 }
 
 
-function saveInfoCV(idEmp, saveungtuyen =false) {
+function saveInfoCV(idEmp, saveungtuyen = false) {
 
     var cbtinhthanh = getValueControl("idProvinces");
     var schoolText = getValueControl("txtSchoolText");
@@ -1903,7 +1891,7 @@ function saveInfoCV(idEmp, saveungtuyen =false) {
     var fullName = getValueControl("txtFullName");
     var dobTextBox = getValueControl("dob");
     var phoneInputText = getValueControl("txtPhoneCall");
-    var txtEmail= getValueControl("txtEmail");
+    var txtEmail = getValueControl("txtEmail");
     var txtShortDes = getValueControl("txtShortDes");
     var txtNoted = getValueControl("txtNoted");
     var cvLink = getValueControl("inputCvlink");
@@ -1923,68 +1911,65 @@ function saveInfoCV(idEmp, saveungtuyen =false) {
         return;
     }
     else {
-        if(    phoneInputText.match(/\d/g).length  != 10    )
-        {
+        if (phoneInputText.match(/\d/g).length != 10) {
             addError("txtPhoneCall", "Số điện thoại không hợp lệ");
             return;
         }
-        else 
-        {
+        else {
             removeError("txtPhoneCall");
         }
     }
 
-    if(saveungtuyen ==true)
-    {
-        if (cbtinhthanh == "" || cbtinhthanh =="-1") {
+    if (saveungtuyen == true) {
+        if (cbtinhthanh == "" || cbtinhthanh == "-1") {
             addError("idProvinces", "Điền thông tin tỉnh thành khu vực ứng tuyển");
             return;
         }
         else {
             removeError("idProvinces");
         }
-    
-        if (schoolText == "" || schoolText =="-1") {
+
+        if (schoolText == "" || schoolText == "-1") {
             addError("txtSchoolText", "Trường học bắt buộc phải nhập");
             return;
         }
         else {
             removeError("txtSchoolText");
         }
-     
-        if (idRankLevelValue == "" || idRankLevelValue =="-1") {
+
+        if (idRankLevelValue == "" || idRankLevelValue == "-1") {
             addError("idRankLevel", "Chọn trình độ tương ứng với ứng cử viên");
             return;
         }
         else {
             removeError("idRankLevel");
         }
-    
-    
-        if (idExperenceValue == "" || idExperenceValue =="-1") {
+
+
+        if (idExperenceValue == "" || idExperenceValue == "-1") {
             addError("idExperence", "Chưa chọn mức giói tính");
             return;
         }
         else {
             removeError("idExperence");
         }
-    
-    
-        if (idExperenceValue == "" || idExperenceValue =="-1") {
+
+
+        if (idExperenceValue == "" || idExperenceValue == "-1") {
             addError("idExperence", "chọn  mức kinh nghiệm của ứng viên");
             return;
         }
         else {
             removeError("idExperence");
         }
-        if (idGenderValue == "" || idGenderValue =="-1") {
+        if (idGenderValue == "" || idGenderValue == "-1") {
             addError("idGender", "Chưa chọn giới tính");
             return;
         }
         else {
             removeError("idGender");
         }
-        if (idIntroductionValue == "" || idIntroductionValue =="-1") {
+        if (idIntroductionValue == "" || idIntroductionValue == "-1") {
             addError("txtIntroduction", "Chưa điền thông tin mục tiêu nghề nghiệp");
             return;
         }
@@ -1993,7 +1978,7 @@ function saveInfoCV(idEmp, saveungtuyen =false) {
         }
     }
 
-  
+
 
     var bodyData = {
         PhoneNumber: phoneInputText,
@@ -2001,19 +1986,19 @@ function saveInfoCV(idEmp, saveungtuyen =false) {
         Email: txtEmail,
         Dob: dobTextBox,
         RequestId: cbcandidateId,
-        JobId: cbJobId ,
-        ShortDes : txtShortDes ,
+        JobId: cbJobId,
+        ShortDes: txtShortDes,
         CVLink: cvLink,
-        Noted: txtNoted ,
-        regional :  cbtinhthanh,
-        schoolName :  schoolText,
-        experience :  idExperenceValue,
-        rankLevel :  idRankLevelValue,
-        Gender :  idGenderValue,
-        Introduction :idIntroductionValue
+        Noted: txtNoted,
+        regional: cbtinhthanh,
+        schoolName: schoolText,
+        experience: idExperenceValue,
+        rankLevel: idRankLevelValue,
+        Gender: idGenderValue,
+        Introduction: idIntroductionValue
     };
 
-      $.ajax({
+    $.ajax({
         headers: {
             "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
@@ -2021,7 +2006,7 @@ function saveInfoCV(idEmp, saveungtuyen =false) {
         type: "POST",
         datatype: "JSON",
         url: '/order?handler=AddInfo',
-        data: bodyData ,
+        data: bodyData,
         success: function (data) {
 
             successAdd(idEmp);
@@ -2045,11 +2030,11 @@ function saveCanddiateOrder(idEmp) {
     var EmailText = getValueControl("txtEmail");
     var txtShortDes = "";
     var txtNotedCand = getValueControl("txtNotedCand");
-     var cvLinkInput = getValueControl("inputCvlink");
-     var cbDepartmentIdInput = getValueControl("cbDepartmentId");
-     var cbPositionInput = getValueControl("cbPosition");
+    var cvLinkInput = getValueControl("inputCvlink");
+    var cbDepartmentIdInput = getValueControl("cbDepartmentId");
+    var cbPositionInput = getValueControl("cbPosition");
 
-     var cbManagerId = getValueControl("cbManager");
+    var cbManagerId = getValueControl("cbManager");
     // var statusAplly = getValueControl("statusAplly");
     // var txtShortDesOrder = getValueControl("txtShortDesOrder");
     removeAllEror("mainForm");
@@ -2067,9 +2052,9 @@ function saveCanddiateOrder(idEmp) {
     else {
         removeError("txtPhone");
     }
-  
-    
-        var bodyRequest = {
+
+
+    var bodyRequest = {
         Name: txtFullName,
         Dob: dobCan,
         Phone: phoneNumber,
@@ -2079,14 +2064,14 @@ function saveCanddiateOrder(idEmp) {
         CVLink: cvLinkInput,
         // statusAplly: statusAplly,
         Email: EmailText,
-        Referrer      : txtReferrerInput,
-        NotedCan: txtNotedCand, 
-        DepartmentId:  cbDepartmentIdInput,
-        Position:  cbPositionInput,
-        ShortDesOrder :txtNotedCand
-        };
-   console.log(bodyRequest);
-      $.ajax({
+        Referrer: txtReferrerInput,
+        NotedCan: txtNotedCand,
+        DepartmentId: cbDepartmentIdInput,
+        Position: cbPositionInput,
+        ShortDesOrder: txtNotedCand
+    };
+    console.log(bodyRequest);
+    $.ajax({
         headers: {
             "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
@@ -2094,7 +2079,7 @@ function saveCanddiateOrder(idEmp) {
         type: "POST",
         datatype: "JSON",
         url: '/Candidate?handler=Add',
-        data:  bodyRequest,
+        data: bodyRequest,
         success: function (data) {
             successAdd(idEmp);
         },
@@ -2116,13 +2101,13 @@ function saveCanddiateDetail(idEmp) {
     var EmailText = getValueControl("txtEmail");
     var txtShortDes = "";
     var txtNotedCand = getValueControl("txtNotedCand");
-     var cvLinkInput = getValueControl("inputCvlink");
-     var cbDepartmentIdInput = getValueControl("cbDepartmentId");
-     var cbPositionInput = getValueControl("cbPosition");
-     var cbManagerInput = getValueControl("cbManager");
-     var cbStatusHumanInput = getValueControl("cbStatusHuman");
-     var txtStatusInput = getValueControl("cbStatus");
-     var txtReferrerInput = getValueControl("txtReferrer");
+    var cvLinkInput = getValueControl("inputCvlink");
+    var cbDepartmentIdInput = getValueControl("cbDepartmentId");
+    var cbPositionInput = getValueControl("cbPosition");
+    var cbManagerInput = getValueControl("cbManager");
+    var cbStatusHumanInput = getValueControl("cbStatusHuman");
+    var txtStatusInput = getValueControl("cbStatus");
+    var txtReferrerInput = getValueControl("txtReferrer");
     if (txtFullName == "") {
         addError("txtFullName", "yêu cầu nhập họ và tên");
         return;
@@ -2146,18 +2131,18 @@ function saveCanddiateDetail(idEmp) {
         Email: EmailText,
         Name: txtFullName,
         Dob: dobCan,
-        Noted: txtNotedCand, 
-        DepartmentId:  cbDepartmentIdInput,
-        Position:  cbPositionInput,
-        ShortDesOrder :txtNotedCand,
-        ManagerId : cbManagerInput,
-        StatusHuman :cbStatusHumanInput,
-        Status  : txtStatusInput,
-        Referrer : txtReferrerInput
+        Noted: txtNotedCand,
+        DepartmentId: cbDepartmentIdInput,
+        Position: cbPositionInput,
+        ShortDesOrder: txtNotedCand,
+        ManagerId: cbManagerInput,
+        StatusHuman: cbStatusHumanInput,
+        Status: txtStatusInput,
+        Referrer: txtReferrerInput
     };
 
-  debugger;
-      $.ajax({
+    debugger;
+    $.ajax({
         headers: {
             "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
@@ -2165,7 +2150,7 @@ function saveCanddiateDetail(idEmp) {
         type: "POST",
         datatype: "JSON",
         url: '/CandidateDetail?handler=Update',
-        data:  bodyRequest,
+        data: bodyRequest,
         success: function (data) {
             successAdd(idEmp);
         },
@@ -2184,20 +2169,19 @@ function saveImpact(orderCode) {
     var txtTimer1 = getValueControl("txtTimer");
     var txtPlace1 = getValueControl("txtPlace");
     var txtNotedExtra1 = getValueControl("txtNotedExtra");
- 
-    var radioOther =   document.getElementById('checkDefaultAddress').checked;
 
-    if(radioOther == true)
-    {
+    var radioOther = document.getElementById('checkDefaultAddress').checked;
 
-        txtPlace1 = $('#cbAddress :selected').text(); 
-    } 
+    if (radioOther == true) {
+
+        txtPlace1 = $('#cbAddress :selected').text();
+    }
 
 
 
     removeAllEror("formSecond");
 
-    
+
 
     if (cbSelectStatus1 == "") {
         addError("cbSelectStatus", "Chưa chọn tình trạng trạng thái hồ sơ");
@@ -2208,10 +2192,9 @@ function saveImpact(orderCode) {
 
     }
 
-  
 
-    if(cbSelectStatus1 == 1 )
-    {
+
+    if (cbSelectStatus1 == 1) {
 
         if (dateFromVal1 == "") {
             addError("dateFrom", "Chưa chọn thông tin ngày");
@@ -2219,7 +2202,7 @@ function saveImpact(orderCode) {
         }
         else {
             removeError("dateFrom");
-    
+
         }
 
 
@@ -2229,10 +2212,10 @@ function saveImpact(orderCode) {
         }
         else {
             removeError("txtTimer");
-    
+
         }
 
-        
+
     }
     if (isBlank(txtNotedExtra1)) {
         addError("txtNotedExtra", "Chưa có thông tin ghi chú ");
@@ -2242,30 +2225,28 @@ function saveImpact(orderCode) {
         removeError("txtNotedExtra");
 
     }
-    
 
-if( cbSelectStatus1 == 47)
-    {
+
+    if (cbSelectStatus1 == 47) {
         if (isBlank(dateFromVal1)) {
             addError("dateFrom", "Cung cấp ngày phỏng vấn");
             return;
         }
         else {
             removeError("dateFrom");
-    
+
         }
     }
 
 
-    if( cbSelectStatus1 == 12)
-    {
+    if (cbSelectStatus1 == 12) {
         if (isBlank(dateFromVal1)) {
             addError("dateFrom", "Cung cấp ngày Onboard");
             return;
         }
         else {
             removeError("dateFrom");
-    
+
         }
     }
 
@@ -2280,15 +2261,15 @@ if( cbSelectStatus1 == 47)
         data: {
             OrderCode: orderCode,
             Noted: txtNotedExtra1,
-            dateFrom:  dateFromVal1,
+            dateFrom: dateFromVal1,
             txtTimer: txtTimer1,
-            NewStatus: cbSelectStatus1, 
-            txtPlace : txtPlace1,
-            radioOtherAdress:  radioOther,
+            NewStatus: cbSelectStatus1,
+            txtPlace: txtPlace1,
+            radioOtherAdress: radioOther,
             PartnerId: cbPartnerId2Value
         },
         success: function (data) {
-          
+
             successAddImpact(orderCode);
         },
         error: function (jqXHR, exception) {
@@ -2300,27 +2281,24 @@ if( cbSelectStatus1 == 47)
     });
 }
 
-function openFormModal()
-{
-    $('#exampleModalCenter').modal('show'); 
+function openFormModal() {
+    $('#exampleModalCenter').modal('show');
 }
 
-function closeForm()
-{
-    $('#exampleModalCenter').modal('hide'); 
-} 
+function closeForm() {
+    $('#exampleModalCenter').modal('hide');
+}
 
-function closeFormUser()
-{
-    $('#dataUser').modal('hide'); 
-} 
+function closeFormUser() {
+    $('#dataUser').modal('hide');
+}
 
 
 function UploadImage1() {
 
 
     var fileInput = document.getElementById("fileImport");
- 
+
     if (fileInput.files.length < 1)
         return;
     var fileAccess = fileInput.files[0];
@@ -2336,19 +2314,19 @@ function UploadImage1() {
         processData: false,  // tell jQuery not to process the data
         contentType: false,
         url: '/Candidate?handler=ImportSource',
-        data: formData ,
+        data: formData,
         success: function (data, reponse) {
-               
-               Swal.fire({
-                    position: "center",
-                    icon: "success",
-                    title: "import thành công",
-                    showConfirmButton: false,
-                    timer: 2000
-                }).then((result) => {
-                    // loadData(groupId);
-                });
-            
+
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "import thành công",
+                showConfirmButton: false,
+                timer: 2000
+            }).then((result) => {
+                // loadData(groupId);
+            });
+
         },
         error: function (jqXHR, exception) {
             showError(jqXHR);
@@ -2360,84 +2338,84 @@ function UploadImage1() {
 
 }
 
-function  exportFileDashboard () {
-    
+function exportFileDashboard() {
+
     Swal.fire({
         title: 'Đang chuẩn bị thông tin file '
-        });
-        Swal.showLoading();
+    });
+    Swal.showLoading();
 
-        var fromDate = getValueControl("fromDate");
-        var endDate = getValueControl("toDate");
-        var jobId = getValueControl("cbjob");
-        var statusId = getValueControl("cbstatus2");
-        $.ajax({
-            headers: {
-                "RequestVerificationToken":
-                    $('input[name="__RequestVerificationToken"]').val()
-            },
-            type: "POST",
-            url: '/FileReport?handler=FileDashboard',
+    var fromDate = getValueControl("fromDate");
+    var endDate = getValueControl("toDate");
+    var jobId = getValueControl("cbjob");
+    var statusId = getValueControl("cbstatus2");
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "POST",
+        url: '/FileReport?handler=FileDashboard',
 
-            data: {
-                From: fromDate,
-                To:  endDate,
-                job: jobId, 
-                status: statusId
-            },
-            success: function (data) {
+        data: {
+            From: fromDate,
+            To: endDate,
+            job: jobId,
+            status: statusId
+        },
+        success: function (data) {
 
-                    Swal.fire({
-                        title: "File báo cáo đã sẵn sàng",
-                        text: "nhấn nút tải xuống để tải file về!",
-                        icon: "warning",
-                        showCancelButton: true,
-                        confirmButtonColor: "#3085d6",
-                        cancelButtonColor: "#d33",
-                        confirmButtonText: "Tải file xuống"
-                    }).then((result) => {
-                        if (result.isConfirmed && data.success==true) {
+            Swal.fire({
+                title: "File báo cáo đã sẵn sàng",
+                text: "nhấn nút tải xuống để tải file về!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Tải file xuống"
+            }).then((result) => {
+                if (result.isConfirmed && data.success == true) {
 
-                            var link = document.createElement("a");
-                            var fileName= "reportDashboard_"+ new Date().getTime() + ".xlsx";
-                            link.setAttribute('download', fileName);
-                            link.href = data.linkResult;
-                            document.body.appendChild(link);
-                            link.click();
-                            link.remove(); 
-                        }
-                    });
+                    var link = document.createElement("a");
+                    var fileName = "reportDashboard_" + new Date().getTime() + ".xlsx";
+                    link.setAttribute('download', fileName);
+                    link.href = data.linkResult;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                }
+            });
 
-             },
-            error: function (jqXHR, exception) {
-                Swal.fire({
-                    icon: "error",
-                    title: "Oops...",
-                    text: "Something went wrong!",
-                    footer: '<a href="#">Why do I have this issue?</a>'
-                  });
-            },
-            complete: function () {
-    
-            },
-        });
+        },
+        error: function (jqXHR, exception) {
+            Swal.fire({
+                icon: "error",
+                title: "Oops...",
+                text: "Something went wrong!",
+                footer: '<a href="#">Why do I have this issue?</a>'
+            });
+        },
+        complete: function () {
 
-       
+        },
+    });
+
+
 }
 
 
 function isVietnamesePhoneNumber(number) {
-    
-    return /([\+84|84|0]+(3|5|7|8|9|1[2|6|8|9]))+([0-9]{8})\b/.test(number);
-  }
 
-  function validateEmail(email) {
+    return /([\+84|84|0]+(3|5|7|8|9|1[2|6|8|9]))+([0-9]{8})\b/.test(number);
+}
+
+function validateEmail(email) {
     var re = /\S+@\S+\.\S+/;
     return re.test(email);
-  }
-function saveOrderCandidateMarketting(idEmp,waysave= false) {
+}
+function saveOrderCandidateMarketting(idEmp, waysave = false) {
     //var ProjectIdValue = getValueControl("cbProject");
-   var cbcandidateId = getValueControl("cbcandidateId");
+    var cbcandidateId = getValueControl("cbcandidateId");
     var fullName = getValueControl("txtFullName");
 
     var birthDay = getValueControl("dob");
@@ -2446,156 +2424,144 @@ function saveOrderCandidateMarketting(idEmp,waysave= false) {
 
     var phoneCand = getValueControl("txtPhone");
 
-    var cbSource  = getValueControl("cbSource");
+    var cbSource = getValueControl("cbSource");
 
-   var txtNotedCand = getValueControl("txtNoted");
+    var txtNotedCand = getValueControl("txtNoted");
 
-   var cvLink = getValueControl("inputCvlink");
+    var cvLink = getValueControl("inputCvlink");
 
-   var cbJobId = getValueControl("cbJobId");
+    var cbJobId = getValueControl("cbJobId");
 
-   // var cbPartnerId = getValueControl("cbpartnerId2");
-   var txtShortDes = getValueControl("txtShortDes");
-   var txtNotedOrder = getValueControl("txtNotedOrder");
-   var txtSourceCode = getValueControl("txtNoted");
+    // var cbPartnerId = getValueControl("cbpartnerId2");
+    var txtShortDes = getValueControl("txtShortDes");
+    var txtNotedOrder = getValueControl("txtNotedOrder");
+    var txtSourceCode = getValueControl("txtNoted");
 
-   var idProvincesValue = getValueControl("idProvinces");
-  
-   removeAllEror("mainForm");
-   if (cbcandidateId == "") {
-       addError("cbcandidateId", "Chọn thông tin ứng cử viên");
-       return;
-   }
-   else {
-       removeError("cbcandidateId");
-   }
+    var idProvincesValue = getValueControl("idProvinces");
 
-    if (fullName == "") {
-            addError("txtFullName", "Chưa chọn tên");
-            return;
-    }
-    else {
-            removeError("txtFullName");
-    }
-
-
-    if( phoneCand == "" )
-    {
-        addError("txtPhone", "Số điện thoại bắt buộc nhập");
-
-    
+    removeAllEror("mainForm");
+    if (cbcandidateId == "") {
+        addError("cbcandidateId", "Chọn thông tin ứng cử viên");
         return;
     }
-   
-    else
-    {
+    else {
+        removeError("cbcandidateId");
+    }
+
+    if (fullName == "") {
+        addError("txtFullName", "Chưa chọn tên");
+        return;
+    }
+    else {
+        removeError("txtFullName");
+    }
+
+
+    if (phoneCand == "") {
+        addError("txtPhone", "Số điện thoại bắt buộc nhập");
+
+
+        return;
+    }
+
+    else {
 
         if (phoneCand.length < 10) {
             addError("txtPhone", "Số điện thoại không hợp lệ");
             return;
         }
 
-        if( phoneCand.length > 0)
-        {
-            if(!isVietnamesePhoneNumber(phoneCand))
-            {
+        if (phoneCand.length > 0) {
+            if (!isVietnamesePhoneNumber(phoneCand)) {
                 addError("txtPhone", "Số điện thoại không đúng format, vui lòng kiểm tra lại");
                 return;
-             
+
             }
-            else 
-            {
+            else {
                 removeError("txtPhone");
             }
         }
 
-        if( emailCand.length > 0)
-        {
-            if(!validateEmail(emailCand))
-            {
+        if (emailCand.length > 0) {
+            if (!validateEmail(emailCand)) {
                 addError("txtEmail", "Email không đúng format, vui lòng kiểm tra lại");
                 return;
             }
-            else 
-            {
+            else {
                 removeError("txtEmail");
             }
         }
-     }
+    }
 
 
-    if( waysave ==true)
-    {
-        if( cbJobId == ""  || cbJobId == "-1")
-            {
-                addError("cbJobId", "Chưa chọn thông tin vị trí việc làm");
-                return;
-            }
-            else 
-            { 
-                // removeError("cbJobId");
-                // if( cvLink =="" &&  txtShortDes =="" )
-                // {
-                //     addError("inputCvlink", "Chưa đính kèm CV hoặc link tài liệu");
-                //     return;
-                // }
-                // else {
-                //     removeError("inputCvlink");
-                //     removeError("txtShortDes");
-                // }
-        
-            }
+    if (waysave == true) {
+        if (cbJobId == "" || cbJobId == "-1") {
+            addError("cbJobId", "Chưa chọn thông tin vị trí việc làm");
+            return;
+        }
+        else {
+            // removeError("cbJobId");
+            // if( cvLink =="" &&  txtShortDes =="" )
+            // {
+            //     addError("inputCvlink", "Chưa đính kèm CV hoặc link tài liệu");
+            //     return;
+            // }
+            // else {
+            //     removeError("inputCvlink");
+            //     removeError("txtShortDes");
+            // }
+
+        }
 
     }
     else {
-        cbJobId  = -1;
+        cbJobId = -1;
     }
 
 
-    if( idProvincesValue == "" || idProvincesValue == "-1")
-    {
+    if (idProvincesValue == "" || idProvincesValue == "-1") {
         addError("idProvinces", "Chọn khu vực ứng tuyển");
         return;
     }
 
-    
-   
-     $.ajax({
-       headers: {
-           "RequestVerificationToken":
-               $('input[name="__RequestVerificationToken"]').val()
-       },
-       type: "POST",
-       datatype: "JSON",
-       url: '/candidate?handler=AddCandidateOrderMarketting',
-       data: {
+
+
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "POST",
+        datatype: "JSON",
+        url: '/candidate?handler=AddCandidateOrderMarketting',
+        data: {
             Id: cbcandidateId,
-           Name: fullName,
-           Dob: birthDay,
-           Email: emailCand,
-           PhoneNumber: phoneCand,
-           Source: cbSource,
-           SaveOrder: waysave,
-           CVLink: cvLink,
-           JobId: cbJobId,
-           Document: txtShortDes,
-           NotedOrder: txtNotedOrder,
-           NotedCan: txtNotedCand, 
-           regional: idProvincesValue,
-           id: idEmp
-       },
-       success: function (data) {
+            Name: fullName,
+            Dob: birthDay,
+            Email: emailCand,
+            PhoneNumber: phoneCand,
+            Source: cbSource,
+            SaveOrder: waysave,
+            CVLink: cvLink,
+            JobId: cbJobId,
+            Document: txtShortDes,
+            NotedOrder: txtNotedOrder,
+            NotedCan: txtNotedCand,
+            regional: idProvincesValue,
+            id: idEmp
+        },
+        success: function (data) {
 
-           successAdd(idEmp);
-       },
-       error: function (jqXHR, exception) {
-        debugger;
-           showError(jqXHR);
-       },
-       complete: function () {
+            successAdd(idEmp);
+        },
+        error: function (jqXHR, exception) {
+            debugger;
+            showError(jqXHR);
+        },
+        complete: function () {
 
-       }
-   });
+        }
+    });
 }
 
 
@@ -2628,13 +2594,12 @@ document.addEventListener("DOMContentLoaded", () => {
     //     new Chart(ctx,config);
 });
 
-function OpenPageOrder()
-{
-    window.location.href ="/OrderDetailNew?OrderId=-1";
+function OpenPageOrder() {
+    window.location.href = "/OrderDetailNew?OrderId=-1";
 }
 
-function editOnboard(){
-   
+function editOnboard() {
+
 
 }
 
@@ -2645,25 +2610,23 @@ function SaveOnboard(idEmp) {
     var onboarDay = getValueControl("dateOnboard");
     var cbOnboarded = getValueControl("cbOnboarded");
 
-    if( cbOnboarded ==1)
-    {
-        if(onboarDay =='')
-        {
+    if (cbOnboarded == 1) {
+        if (onboarDay == '') {
             return;
         }
     }
-     $.ajax({
+    $.ajax({
         headers: {
-                "RequestVerificationToken":
+            "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
         },
         type: "POST",
         datatype: "JSON",
         url: '/OrderOnboard?handler=Update',
         data: {
-           
+
             OrderId: idEmp,
-            Result:  cbOnboarded,
+            Result: cbOnboarded,
             DateOnboard: onboarDay
         },
         success: function (data) {
@@ -2680,15 +2643,13 @@ function SaveOnboard(idEmp) {
 }
 
 
-function openFormModalChart(itemDAta)
-{
-   renderChartCV(itemDAta);
-    $('#exampleModalCenter').modal('show'); 
+function openFormModalChart(itemDAta) {
+    renderChartCV(itemDAta);
+    $('#exampleModalCenter').modal('show');
 }
 
-function opneFormActiveUser()
-{ 
-     $('#dataUser').modal('show'); 
+function opneFormActiveUser() {
+    $('#dataUser').modal('show');
 
 }
 
@@ -2794,7 +2755,7 @@ function openFormMasterData(id = -1, controller = "partner", type = "") {
 
 
 function OpenFormImportCandidate() {
-    var controller =  "Candidate";
+    var controller = "Candidate";
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -2812,7 +2773,7 @@ function OpenFormImportCandidate() {
 
         },
         error: function (jqXHR, exception) {
-            
+
         },
         complete: function () {
 
@@ -2892,10 +2853,10 @@ function saveMasterTypeData(idEmp, namecontroller = "MasterDataPage") {
 var saveImport = true;
 function importCandidateToEmployee() {
     // saveImport =false;
-  
-     var  namecontroller = "Employee";
+
+    var namecontroller = "Employee";
     var selectCandidateid = getValueControl("cbSelectCandidate");
-  
+
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -2905,7 +2866,7 @@ function importCandidateToEmployee() {
         datatype: "JSON",
         url: '/' + namecontroller + '?handler=ConvertToEmployee',
         data: {
-           
+
             Id: selectCandidateid
         },
         success: function (data) {
@@ -2939,11 +2900,11 @@ function saveSchedule(idEmp) {
         datatype: "JSON",
         url: '/CandidateDetail?handler=AddSchedule',
         data: {
-           
-            RelId :  idEmp,
-            Noted : txtScheduleNotedInput,
-            ScheduleDate :  dateScheduleDateInput,
-            AddressInfo : txtAddressInfoInput
+
+            RelId: idEmp,
+            Noted: txtScheduleNotedInput,
+            ScheduleDate: dateScheduleDateInput,
+            AddressInfo: txtAddressInfoInput
         },
         success: function (data) {
 
@@ -2965,17 +2926,16 @@ function addDocumentSelect() {
     var valueSelected = cbSelected.options[cbSelected.selectedIndex].value;
     var textSelected = cbSelected.options[cbSelected.selectedIndex].text;
     var labelText = textSelected;
-    var nameCotrol = valueSelected  ;
-    var idControl = valueSelected + "id" ;
-    var htmlAppend =  `<div class="col-12 form-group"> <label class="form-label">`+labelText+`</label> <input type="file" onchange="UploadImage(this)" name="`+nameCotrol+`" class="form-control" required="" placeholder=""> <div class="invalid-feedback-cs"> </div> <div class="fileResult"> </div> <div class="fileValue"> <input type="hidden" id="`+idControl+`" class="valuefile" value=""> </div> </div>`;
+    var nameCotrol = valueSelected;
+    var idControl = valueSelected + "id";
+    var htmlAppend = `<div class="col-12 form-group"> <label class="form-label">` + labelText + `</label> <input type="file" onchange="UploadImage(this)" name="` + nameCotrol + `" class="form-control" required="" placeholder=""> <div class="invalid-feedback-cs"> </div> <div class="fileResult"> </div> <div class="fileValue"> <input type="hidden" id="` + idControl + `" class="valuefile" value=""> </div> </div>`;
 
-    document.getElementById("documnetList").insertAdjacentHTML('afterbegin',htmlAppend);
+    document.getElementById("documnetList").insertAdjacentHTML('afterbegin', htmlAppend);
 
 }
 
 
-function getDataDocumentUpdate()
-{
+function getDataDocumentUpdate() {
     var dataRecorded = document.getElementById("documnetList").children;
     var arrayoutput = [];
     for (let indexLoop = 0; indexLoop < dataRecorded.length; indexLoop++) {
@@ -2983,45 +2943,41 @@ function getDataDocumentUpdate()
         var labelText = itemRecord.firstElementChild.textContent;
         var valueFile = "";
         var itemValue = itemRecord.querySelector(".valuefile");
-        if(itemValue != null)
-        {
+        if (itemValue != null) {
             valueFile = itemValue.value;
         }
         var fileInput = itemRecord.querySelector('input[type="file"]');
         var valueIdItem = itemRecord.querySelector(".ValueId");
         var inputId = 0;
-        if(valueIdItem != null )
-        {
+        if (valueIdItem != null) {
             inputId = valueIdItem.value;
         }
 
-        if(inputId == "")
-        {
-            inputId =0;
+        if (inputId == "") {
+            inputId = 0;
         }
 
-        var  keyVaueContent = fileInput.name;
+        var keyVaueContent = fileInput.name;
         var itemData = {
-            Code :  keyVaueContent,
-            DisplayText :  labelText,
-            ValueFile:  valueFile,
-            Id: inputId  
+            Code: keyVaueContent,
+            DisplayText: labelText,
+            ValueFile: valueFile,
+            Id: inputId
         };
         arrayoutput.push(itemData);
     }
     return arrayoutput;
 }
 
-function AddDocument( idCandidate, dataType =1)
-{
+function AddDocument(idCandidate, dataType = 1) {
 
-   
-    var data =getDataDocumentUpdate();
+
+    var data = getDataDocumentUpdate();
 
     var bodyRequest = {
-        RelId : idCandidate,
-        Data :data,
-        DataType : dataType
+        RelId: idCandidate,
+        Data: data,
+        DataType: dataType
 
     };
     $.ajax({
@@ -3030,11 +2986,10 @@ function AddDocument( idCandidate, dataType =1)
                 $('input[name="__RequestVerificationToken"]').val()
         },
         type: "POST",
-        datatype: "JSON",
-        url: '/CandidateDetail?handler=AddDocument',
-        data: bodyRequest,
+        url: '/EmployeeInfo?handler=AddDocument',
+        contentType: 'application/json; charset=utf-8',
+        data: JSON.stringify(bodyRequest),
         success: function (data) {
-
             successAdd(idCandidate);
         },
         error: function (jqXHR, exception) {
@@ -3050,7 +3005,7 @@ function AddDocument( idCandidate, dataType =1)
 
 function saveEmployeeDetail(idEmp) {
 
-     var employeeIdIdInput = getValueControl("inputId");
+    var employeeIdIdInput = getValueControl("inputId");
     var txtFullName = getValueControl("txtFullName");
     var txtNationnalInput = getValueControl("txtNationnal");
     var txtNationnalDateInput = getValueControl("txtNationnalDate");
@@ -3067,8 +3022,8 @@ function saveEmployeeDetail(idEmp) {
     var txtNotedCandInput = getValueControl("txtNotedCand");
     var txtPermanentAddressInput = getValueControl("txtPermanentAddress");
     var txtTemporaryAddressInput = getValueControl("txtTemporaryAddress");
-     var cbStatusHumanInput = getValueControl("cbStatusHuman");
-     var txtStatusInput = getValueControl("cbStatus");
+    var cbStatusHumanInput = getValueControl("cbStatusHuman");
+    var txtStatusInput = getValueControl("cbStatus");
     var txtBankAccountInput = getValueControl("txtBankAccount");
     var txtBankNameInput = getValueControl("txtBankName");
     var inputcBEducationLevel = getValueControl("cBEducationLevel");
@@ -3080,10 +3035,10 @@ function saveEmployeeDetail(idEmp) {
     var txtBeneficiaryNameInput = getValueControl("txtBeneficiaryName");
     var txtEmergencyContactInput = getValueControl("txtEmergencyContact");
 
-      var cbStatusWorkInput = getValueControl("cbStatusWork");
+    var cbStatusWorkInput = getValueControl("cbStatusWork");
 
     const selectedDocuments = Array.from(document.querySelectorAll('input[name="Documents"]:checked'))
-    .map(checkbox => checkbox.value);
+        .map(checkbox => checkbox.value);
 
     var valueSelectCheck = selectedDocuments.join(',');
     if (txtFullName == "") {
@@ -3093,34 +3048,34 @@ function saveEmployeeDetail(idEmp) {
     else {
         removeError("txtFullName");
     }
-    
+
     var bodyRequest = {
         EmployeeId: employeeIdIdInput,
         id: employeeIdIdInput,
         fullName: txtFullName,
-        NationalId : txtNationnalInput,
+        NationalId: txtNationnalInput,
         NationalDate: txtNationnalDateInput,
-        NationalPlace : txtNationalPlaceInput,
-        PermanentAddress : txtPermanentAddressInput,
-        TemporaryAddress : txtTemporaryAddressInput,
+        NationalPlace: txtNationalPlaceInput,
+        PermanentAddress: txtPermanentAddressInput,
+        TemporaryAddress: txtTemporaryAddressInput,
         Dob: dobInput,
-        Onboard : onboardDateInput,
-        Phone:  txtPhoneInput,
+        Onboard: onboardDateInput,
+        Phone: txtPhoneInput,
         ManagerId: cbManagerInput,
-        DepartmentCode :  cbDepartmentIdInput,
+        DepartmentCode: cbDepartmentIdInput,
         Email: txtEmailInput,
-        CVLink:  txtfileCV,
-        PositionCode  : cbPositionInput,
-        Noted : txtNotedCandInput,
-        DocumentStatus :cbStatusHumanInput,
-        Status  : txtStatusInput,
-        StatusWork : cbStatusWorkInput,
-        RoleCode : cbRoleCodeInput,
-         BankName :txtBankNameInput,
-        BankAccount : txtBankAccountInput ,
-        EducationLevel :inputcBEducationLevel,
-        Maritalstatus : intpucBMaritalStatus ,
-        DocumentCheck:  valueSelectCheck,
+        CVLink: txtfileCV,
+        PositionCode: cbPositionInput,
+        Noted: txtNotedCandInput,
+        DocumentStatus: cbStatusHumanInput,
+        Status: txtStatusInput,
+        StatusWork: cbStatusWorkInput,
+        RoleCode: cbRoleCodeInput,
+        BankName: txtBankNameInput,
+        BankAccount: txtBankAccountInput,
+        EducationLevel: inputcBEducationLevel,
+        Maritalstatus: intpucBMaritalStatus,
+        DocumentCheck: valueSelectCheck,
         Gender: cbGenderInput,
         PlaceOfBirth: txtPlaceOfBirthInput,
         Religion: txtReligionInput,
@@ -3129,7 +3084,7 @@ function saveEmployeeDetail(idEmp) {
         EmergencyContact: txtEmergencyContactInput
     };
 
-      $.ajax({
+    $.ajax({
         headers: {
             "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
@@ -3137,7 +3092,7 @@ function saveEmployeeDetail(idEmp) {
         type: "POST",
         datatype: "JSON",
         url: '/EmployeeInfo?handler=Update',
-        data:  bodyRequest,
+        data: bodyRequest,
         success: function (data) {
             successAdd(idEmp);
         },
@@ -3150,7 +3105,7 @@ function saveEmployeeDetail(idEmp) {
 }
 
 
-function changePassword(reloadPage =true) {
+function changePassword(reloadPage = true) {
     var currentPassword = getValueControl("txtPasswordCurrent");
     var newPassword = getValueControl("txtnewPassword");
     var renewPassword = getValueControl("txtRepeatPasswordNew");
@@ -3175,8 +3130,8 @@ function changePassword(reloadPage =true) {
         addError("txtRepeatPasswordNew", "Hai mật khẩu không trùng khớp");
     }
     var bodyRequest = {
-    newPassword: newPassword, 
-    id: getValueControl("inputId")
+        newPassword: newPassword,
+        id: getValueControl("inputId")
     };
 
     $.ajax({
@@ -3187,15 +3142,15 @@ function changePassword(reloadPage =true) {
         type: "POST",
         datatype: "JSON",
         url: '/EmployeeInfo?handler=ChangePassword',
-        data:bodyRequest,
+        data: bodyRequest,
         success: function (data) {
-                Swal.fire({
-                    position: "center",
-                    icon: "success",
-                    title: "Đổi mật khẩu thành công",
-                    showConfirmButton: false,
-                    timer: 5000
-                });
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "Đổi mật khẩu thành công",
+                showConfirmButton: false,
+                timer: 5000
+            });
 
         },
         error: function (jqXHR, exception) {
@@ -3212,7 +3167,7 @@ function saveRelaionItem(idEmp) {
     var txtRelaRelationCodeInput = getValueControl("txtRelaRelationCode");
     var txtRelaPhoneInput = getValueControl("txtRelaPhone");
     var txtRelaAddressInput = getValueControl("txtRelaAddress");
-  
+
     if (txtRelaFullNameInput == "") {
         addError("txtRelaFullName", "yêu cầu nhập họ và tên");
         return;
@@ -3228,18 +3183,18 @@ function saveRelaionItem(idEmp) {
         removeError("txtRelaRelationCode");
     }
     var bodyRequest = {
-      
+
         Name: txtRelaFullNameInput,
-        UserName :  getValueControl("txtUserName"),
-        Relationcode : txtRelaRelationCodeInput,
-        Phone :txtRelaPhoneInput,
+        UserName: getValueControl("txtUserName"),
+        Relationcode: txtRelaRelationCodeInput,
+        Phone: txtRelaPhoneInput,
         Noted: "",
         AddressInfo: txtRelaAddressInput
-       
+
     };
 
 
-      $.ajax({
+    $.ajax({
         headers: {
             "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
@@ -3247,7 +3202,7 @@ function saveRelaionItem(idEmp) {
         type: "POST",
         datatype: "JSON",
         url: '/EmployeeInfo?handler=AddRelationItem',
-        data:  bodyRequest,
+        data: bodyRequest,
         success: function (data) {
             successAdd(idEmp, false, false);
         },
@@ -3265,7 +3220,7 @@ function SaveHDLD(idEmp) {
     var txtNumberHDLD = getValueControl("txtSoHDLD");
     var htdldBegin = getValueControl("dtpHDLDBeginDate");
     var hdldEdndInput = getValueControl("dtpHDLDEndDate");
-     var hdldLoaiHDInput = getValueControl("cbLoaiHopDong"); 
+    var hdldLoaiHDInput = getValueControl("cbLoaiHopDong");
     if (txtNumberHDLD == "") {
         addError("txtSoHDLD", "yêu cầu nhập số hợp đồng");
         return;
@@ -3281,7 +3236,7 @@ function SaveHDLD(idEmp) {
         removeError("dtpHDLDBeginDate");
     }
 
-     if (hdldEdndInput == "") {
+    if (hdldEdndInput == "") {
         addError("dtpHDLDEndDate", "Yêu cầu nhập hạn ngày hợp đồng");
         return;
     }
@@ -3289,16 +3244,16 @@ function SaveHDLD(idEmp) {
         removeError("dtpHDLDEndDate");
     }
     var bodyRequest = {
-            UserId :  cbcandidateId,
-            NoAgree :  txtNumberHDLD,
-            Start : htdldBegin,
-            End :hdldEdndInput,
-            CodeId:  hdldLoaiHDInput
+        UserId: cbcandidateId,
+        NoAgree: txtNumberHDLD,
+        Start: htdldBegin,
+        End: hdldEdndInput,
+        CodeId: hdldLoaiHDInput
     };
 
-    
-    
-      $.ajax({
+
+
+    $.ajax({
         headers: {
             "RequestVerificationToken":
                 $('input[name="__RequestVerificationToken"]').val()
@@ -3306,7 +3261,7 @@ function SaveHDLD(idEmp) {
         type: "POST",
         datatype: "JSON",
         url: '/EmployeeInfo?handler=AddHDLDItem',
-        data:  bodyRequest,
+        data: bodyRequest,
         success: function (data) {
             successAdd(idEmp, false, false);
         },
@@ -3339,50 +3294,50 @@ function UpdateOtherInfoEmployee(employId, typeUpdate) {
     var inptutxtRegBHYT = getValueControl("txtRegBHYT");
     var txtPITDateInput = getValueControl("txtPITDate");
     var txtEffectedFromInput = getValueControl("txtEffectedFrom");
-        var txtBeneficiaryNameInput = getValueControl("txtBeneficiaryName");
-    var bodyRequest =  {
-            EmployeeId: employId,
-            TypeUpdate: typeUpdate,
-          PageTax : cbToroiBaoHiemInput,
-            BiaSo: txtBiaSoBaoHiem,
-            CodeBHXH: masobaohiemInput,
-            TaxCode: inputTaxCode,
-            IsThuXacNhan: inputCbThuXacNhan, // Đã được convert thành boolean/null ở trên
-            ChungTuThue :intputCbChungTuThue,
-            BankAccount :txtBankAccountInput, 
-            BankName :txtBankNameInput,
-            Dependent : inputDependent ,
-            RegBHYT : inptutxtRegBHYT,
-            DependentName : inputDependentName,
-            PITDate: txtPITDateInput,
-            EffectedFrom: txtEffectedFromInput,
-            
+    var txtBeneficiaryNameInput = getValueControl("txtBeneficiaryName");
+    var bodyRequest = {
+        EmployeeId: employId,
+        TypeUpdate: typeUpdate,
+        PageTax: cbToroiBaoHiemInput,
+        BiaSo: txtBiaSoBaoHiem,
+        CodeBHXH: masobaohiemInput,
+        TaxCode: inputTaxCode,
+        IsThuXacNhan: inputCbThuXacNhan, // Đã được convert thành boolean/null ở trên
+        ChungTuThue: intputCbChungTuThue,
+        BankAccount: txtBankAccountInput,
+        BankName: txtBankNameInput,
+        Dependent: inputDependent,
+        RegBHYT: inptutxtRegBHYT,
+        DependentName: inputDependentName,
+        PITDate: txtPITDateInput,
+        EffectedFrom: txtEffectedFromInput,
+
         BeneficiaryName: txtBeneficiaryNameInput
     };
 
 
 
     $.ajax({
-    headers: {
-        "RequestVerificationToken":
-            $('input[name="__RequestVerificationToken"]').val()
-    },
-    type: "POST",
-    datatype: "JSON",
-    url: '/employeeInfo?handler=AddOtherInfomation',
-    data:bodyRequest,
-    success: function (data) {
-        successAdd(employId, false, false);
-    },
-    error: function (jqXHR, exception) {
-        showError(jqXHR);
-    },
-    complete: function () {
-    }
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "POST",
+        datatype: "JSON",
+        url: '/employeeInfo?handler=AddOtherInfomation',
+        data: bodyRequest,
+        success: function (data) {
+            successAdd(employId, false, false);
+        },
+        error: function (jqXHR, exception) {
+            showError(jqXHR);
+        },
+        complete: function () {
+        }
     });
 }
 
-function OpenCreateNew(){
+function OpenCreateNew() {
     window.open("/EmployeeInfo?id=-1");
 }
 
@@ -3395,10 +3350,9 @@ function updateOther(idEmp) {
 
     var txtEmail = getValueControl("txtEmail");
     var txtSourceCode = 0;
-    if(txtSourceCode =="")
-        {
-            txtSourceCode = 0;
-        }
+    if (txtSourceCode == "") {
+        txtSourceCode = 0;
+    }
     var txtShortDes = getValueControl("txtNotedCand");
     var cbisActive = 1;
     var fileCvLinkInput = getValueControl("inputCvlink1");
@@ -3417,7 +3371,7 @@ function updateOther(idEmp) {
     else {
         removeError("txtPhone");
     }
-    
+
 
 
     if (cbisActive == "") {
@@ -3439,7 +3393,7 @@ function updateOther(idEmp) {
         datatype: "JSON",
         url: '/candidate?handler=Add',
         data: {
-           
+
             Phone: txtPhone,
             Name: txtFullName,
             Email: txtEmail,
@@ -3447,9 +3401,9 @@ function updateOther(idEmp) {
             Dob: dobcb,
             AvatarLink: "",
             CVLink: fileCvLinkInput,
-            ShortDes:"",
-            Noted: txtNoted ,
-            Source : 0,
+            ShortDes: "",
+            Noted: txtNoted,
+            Source: 0,
             IsActive: 1
         },
         success: function (data) {

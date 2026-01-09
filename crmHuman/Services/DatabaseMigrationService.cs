@@ -205,8 +205,12 @@ namespace crmHuman.Services
             _logger.LogInformation("Đang áp dụng migration {Version}: {Description}...", 
                 migration.Version, migration.Description);
 
+            SqlTransaction? transaction = null;
             try
             {
+                // Bắt đầu transaction cho mỗi file migration
+                transaction = connection.BeginTransaction();
+
                 // Đọc nội dung SQL
                 var sql = await File.ReadAllTextAsync(migration.FilePath);
 
@@ -217,14 +221,16 @@ namespace crmHuman.Services
                 {
                     if (string.IsNullOrWhiteSpace(batch)) continue;
 
-                    using var command = new SqlCommand(batch, connection);
+                    using var command = new SqlCommand(batch, connection, transaction);
                     command.CommandTimeout = 300; // 5 minutes timeout
                     await command.ExecuteNonQueryAsync();
                 }
 
+                transaction.Commit();
                 stopwatch.Stop();
 
-                // Ghi log vào __MigrationHistory
+                // Ghi log vào __MigrationHistory (Ghi trên connect mới vì transaction cũ đã đóng)
+                // Hoặc bỏ qua transaction cho phần record này nêú không cần thiết
                 await RecordMigrationAsync(connection, migration, stopwatch.ElapsedMilliseconds, true, null);
 
                 _logger.LogInformation("Migration {Version} hoàn thành trong {Time}ms", 
@@ -235,6 +241,15 @@ namespace crmHuman.Services
                 stopwatch.Stop();
                 _logger.LogError(ex, "Lỗi khi áp dụng migration {Version}: {Description}", 
                     migration.Version, migration.Description);
+
+                try
+                {
+                    transaction?.Rollback();
+                }
+                catch (Exception rollbackEx)
+                {
+                    _logger.LogError(rollbackEx, "Lỗi khi rollback transaction cho migration {Version}", migration.Version);
+                }
 
                 // Ghi log lỗi vào __MigrationHistory
                 await RecordMigrationAsync(connection, migration, stopwatch.ElapsedMilliseconds, false, ex.Message);

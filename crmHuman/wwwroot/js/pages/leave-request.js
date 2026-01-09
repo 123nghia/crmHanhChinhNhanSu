@@ -28,7 +28,8 @@ async function saveLeave() {
         FromDate: $('#fromDate').val(),
         ToDate: $('#toDate').val(),
         NumDays: parseFloat($('#numDays').val()),
-        Reason: $('#reason').val()
+        Reason: $('#reason').val(),
+        HandoverEmployeeId: $('#handoverEmployeeId').val() ? parseInt($('#handoverEmployeeId').val()) : null
     };
 
     if (!data.FromDate || !data.ToDate || data.NumDays <= 0 || !data.Reason) {
@@ -95,7 +96,40 @@ function openEditLeave(id) {
             $('#toDate').val(data.toDate.split('T')[0]);
             $('#numDays').val(data.numDays);
             $('#reason').val(data.reason);
+            $('#handoverEmployeeId').val(data.handoverEmployeeId || '');
             $('#leaveModalTitle').text('Chỉnh sửa nghỉ phép');
             $('#leaveModal').modal('show');
         });
+}
+
+async function viewHistory(id) {
+    try {
+        const res = await fetch(`?handler=LeaveHistory&id=${id}`);
+        const data = await res.json();
+        let html = '';
+        data.forEach(item => {
+            html += `<tr>
+                <td>${new Date(item.actionTime).toLocaleString()}</td>
+                <td>${item.actionByName}</td>
+                <td><span class="badge ${getActionBadge(item.action)}">${item.action}</span></td>
+                <td>${item.comment || ''}</td>
+            </tr>`;
+        });
+        $('#historyContent').html(html);
+        $('#historyModal').modal('show');
+    } catch (error) {
+        console.error('Error fetching history:', error);
+    }
+}
+
+function getActionBadge(action) {
+    switch (action) {
+        case 'Create': return 'bg-primary';
+        case 'Update': return 'bg-info';
+        case 'Agree': return 'bg-success';
+        case 'Reject': return 'bg-danger';
+        case 'Acting': return 'bg-warning text-dark';
+        case 'Cancel': return 'bg-secondary';
+        default: return 'bg-light text-dark';
+    }
 }

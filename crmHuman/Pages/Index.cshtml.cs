@@ -36,6 +36,7 @@ namespace crmHuman.Pages
         public BaseList JobList { get; set; }
 
         public BaseList StatusList { get; set; }
+        public dynamic LeaveSummary { get; set; }
 
         public IndexModel(ILogger<IndexModel> logger, IDashboardBusinness dashboardBusinness, ImasterDataBussiness imasterDataBussiness,
         IJobItemBusiness jobItemBusiness)
@@ -96,29 +97,13 @@ namespace crmHuman.Pages
             {
                 return Redirect("/Login");
             }
-            var identity = HttpContext.User.Identity as ClaimsIdentity;
-            var roleCodeText = "";
+            
+            GetInfoUser();
+            var roleCodeText = UserData.RoleCode;
             RequestPage = request;
-            if (identity != null)
-            {
-                var userClaims = identity.Claims;
-                var idUser = identity.Claims.FirstOrDefault(o => o.Type == "userId")?.Value;
-                var userName = userClaims.FirstOrDefault(o => o.Type == "UserName")?.Value;
-                var roleCode = userClaims.FirstOrDefault(o => o.Type == "RoleCode")?.Value;
-                var fullName = userClaims.FirstOrDefault(o => o.Type == "FullName")?.Value;
-                var lineCode = userClaims.FirstOrDefault(o => o.Type == "LineCode")?.Value;
-                if (UserData == null)
-                {
-                    UserData = new UserDataView();
-                }
-                UserData.UserName = userName;
-                UserData.FullName = fullName;
-                UserData.UserId = int.Parse(idUser);
-                UserData.RoleCode = roleCode;
-                UserData.LineCode = lineCode;
-                roleCodeText = roleCode;
-                UserActive.DataActiveOnline.AddOrUpdate(idUser, userName, fullName);
-            }
+            
+            UserActive.DataActiveOnline.AddOrUpdate(UserData.UserId.ToString(), UserData.UserName, UserData.FullName);
+            
             RequestPage.UserId = UserData.UserId;
             RequestPage.RoleCode = UserData.RoleCode;
             if (RequestPage.RoleCode == "4")
@@ -219,6 +204,7 @@ namespace crmHuman.Pages
 
             });
             OrderList = ParamDashboard;
+            LeaveSummary = await dashboardBusinness.GetLeaveSummary(UserData.UserId, UserData.RoleCode);
             return Page();
         }
 

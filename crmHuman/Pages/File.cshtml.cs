@@ -71,26 +71,23 @@ namespace crmHuman.Pages
                     StatusCode = StatusCodes.Status400BadRequest
                 };
             }
-            var path = Path.Combine(_hostingEnvironment.WebRootPath, "assets/", "CV/", request.Type, fileRequest.FileName);
-            var pathfolder = Path.Combine(_hostingEnvironment.WebRootPath, "assets", "CV", request.Type);
+            var assetsPath = Path.Combine(_hostingEnvironment.WebRootPath, "assets", "CV", request.Type ?? "other");
 
-
-            bool folderExists = Directory.Exists(pathfolder);
-            if (!folderExists)
-
+            if (!Directory.Exists(assetsPath))
             {
-                Directory.CreateDirectory(pathfolder);
+                Directory.CreateDirectory(assetsPath);
             }
 
+            var extension = Path.GetExtension(fileRequest.FileName);
+            var fileName = $"{(request.Type ?? "file")}_{DateTime.Now:yyyyMMddHHmmss}_{new Random().Next(1000)}{extension}";
+            var fullPath = Path.Combine(assetsPath, fileName);
 
-            var fileName = request.Type + "" + DateTime.Now.Second.ToString() + new Random().Next(100) + Path.GetExtension(fileRequest.FileName);
-            var pathFile = Path.Combine(pathfolder, fileName);
-            using (FileStream stream = new FileStream(pathFile, FileMode.Create))
+            using (FileStream stream = new FileStream(fullPath, FileMode.Create))
             {
                 await fileRequest.CopyToAsync(stream);
-                stream.Close();
             }
-            var linkResult = "/assets/CV/" + request.Type + "/" + fileName;
+
+            var linkResult = $"/assets/CV/{request.Type ?? "other"}/{fileName}";
             var dataReponse = new
             {
                 success = true,

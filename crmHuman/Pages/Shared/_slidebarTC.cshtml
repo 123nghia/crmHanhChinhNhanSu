@@ -2,105 +2,151 @@
 
         <ul class="sidebar-nav" id="sidebar-nav">
 
-            <li class="nav-item">
-                <a class="nav-link " href="/">
-                    <i class="bi bi-grid"></i>
-                    <span>Dashboard</span>
+            @if (Model.HasViewPermission("Dashboard"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link " href="/">
+                        <i class="bi bi-grid"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+            }
+
+            @if (Model.HasViewPermission("Report"))
+            {
+                <li class="nav-heading">Thống kê và báo cáo</li>
+                <li class="nav-item">
+
+                <a class="nav-link" href="/OrderStatus">
+                <i class="bi bi-grid"></i>
+                <span>Theo trạng thái</span>
                 </a>
-            </li>
 
-            <li class="nav-heading">Thống kê và báo cáo</li>
-            <li class="nav-item">
+                </li>
 
-            <a class="nav-link" href="/OrderStatus">
-            <i class="bi bi-grid"></i>
-            <span>Theo trạng thái</span>
-            </a>
+                <li class="nav-item">
 
-            </li>
-
-            <li class="nav-item">
-
-            <a class="nav-link"  href="/historyImpact">
-            <i class="bi bi-grid"></i>
-            <span> Báo cáo Tác động</span>
-            </a>
-
-            </li><!-- End Components Nav -->
-            <li class="nav-heading">Ứng viên</li>
-
-            <li class="nav-item">
-
-            <a class="nav-link" href="/checkDuplicate">
-            <i class="bi bi-grid"></i>
-            <span>Kiểm tra trùng</span>
-            </a>
-
-            </li>
-  <li class="nav-item">
-               
-                 <a class="nav-link" href="/OrderOnboard">
-                    <i class="bi bi-grid"></i>
-                    <span>Danh sách onboard</span>
+                <a class="nav-link"  href="/historyImpact">
+                <i class="bi bi-grid"></i>
+                <span> Báo cáo Tác động</span>
                 </a>
-               
-            </li>
 
-            
-            <li class="nav-item">
-                <a class="nav-link " data-bs-target="#components-nav" data-bs-toggle="collapse" href="javascript:void(0)" aria-expanded="true">
-                    <i class="bi bi-menu-button-wide"></i><span>Quản lý ứng viên</span><i class="bi bi-chevron-down ms-auto"></i>
+                </li><!-- End Components Nav -->
+            }
+            @if (Model.HasViewPermission("Candidate"))
+            {
+                <li class="nav-heading">Ứng viên</li>
+
+                <li class="nav-item">
+
+                <a class="nav-link" href="/checkDuplicate">
+                <i class="bi bi-grid"></i>
+                <span>Kiểm tra trùng</span>
                 </a>
-                <ul id="components-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-                      <li>
-                        <a href="/OrderNew">
-                            <i class="bi bi-circle"></i><span>Danh sách ứng viên </span>
-                           
-                        </a>
-                    </li>
 
-                  
-
-                    <li>
-                        <a href="/OrderReturn">
-                            <i class="bi bi-circle"></i><span>Danh sách khai thác lại</span>
-                        </a>
-                    </li>
+                </li>
+                <li class="nav-item">
                    
+                     <a class="nav-link" href="/OrderOnboard">
+                        <i class="bi bi-grid"></i>
+                        <span>Danh sách onboard</span>
+                    </a>
+                   
+                </li>
+
+                
+                <li class="nav-item">
+                    <a class="nav-link " data-bs-target="#components-nav" data-bs-toggle="collapse" href="javascript:void(0)" aria-expanded="true">
+                        <i class="bi bi-menu-button-wide"></i><span>Quản lý ứng viên</span><i class="bi bi-chevron-down ms-auto"></i>
+                    </a>
+                    <ul id="components-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+                          <li>
+                            <a href="/OrderNew">
+                                <i class="bi bi-circle"></i><span>Danh sách ứng viên </span>
+                               
+                            </a>
+                        </li>
 
                       
-                   
-                </ul>
-            </li><!-- End Components Nav -->
 
-           <li class="nav-heading">Ứng tuyển</li>
-            <li class="nav-item">
-                <a class="nav-link " data-bs-target="#forms-nav" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-journal-text"></i><span>Quản lý ứng tuyển</span><i class="bi bi-chevron-down ms-auto"></i>
-                </a>
-                <ul id="forms-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-                    <li>
-                        <a href="/OrderApply">
-                            <i class="bi bi-circle"></i><span>Danh sách đang process</span>
-                           
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/OrderClose">
-                            <i class="bi bi-circle"></i><span>Danh sách kết thúc</span>
-                           
-                        </a>
-                    </li>
-                    
-                    @* <li>
-                        <a href="/order?action=add">
-                            <i class="bi bi-circle"></i><span>Tạo mới đơn</span>
-                           
-                        </a>
-                    </li> *@
-                    
-                </ul>
-            </li>
+                        <li>
+                            <a href="/OrderReturn">
+                                <i class="bi bi-circle"></i><span>Danh sách khai thác lại</span>
+                            </a>
+                        </li>
+                       
+
+                          
+                       
+                    </ul>
+                </li><!-- End Components Nav -->
+
+               <li class="nav-heading">Ứng tuyển</li>
+                <li class="nav-item">
+                    <a class="nav-link " data-bs-target="#forms-nav" data-bs-toggle="collapse" href="#">
+                        <i class="bi bi-journal-text"></i><span>Quản lý ứng tuyển</span><i class="bi bi-chevron-down ms-auto"></i>
+                    </a>
+                    <ul id="forms-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+                        <li>
+                            <a href="/OrderApply">
+                                <i class="bi bi-circle"></i><span>Danh sách đang process</span>
+                               
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/OrderClose">
+                                <i class="bi bi-circle"></i><span>Danh sách kết thúc</span>
+                               
+                            </a>
+                        </li>
+                        
+                    </ul>
+                </li>
+            }
+            @if (Model.HasViewPermission("Employee"))
+            {
+                <li class="nav-heading">Nhân sự</li>
+                <li class="nav-item">
+                    <a class="nav-link collapsed" data-bs-target="#employee-nav" data-bs-toggle="collapse" href="#">
+                        <i class="bi bi-layout-text-window-reverse"></i><span>Quản lý nhân viên</span><i class="bi bi-chevron-down ms-auto"></i>
+                    </a>
+                    <ul id="employee-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+                        <li>
+                            <a href="/Employee">
+                                <i class="bi bi-circle"></i><span>Danh sách nhân viên</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            }
+
+            @if (Model.HasViewPermission("LeaveRequest") || Model.HasViewPermission("LeaveApproval"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link collapsed" data-bs-target="#leave-nav" data-bs-toggle="collapse" href="#">
+                        <i class="bi bi-calendar-check"></i><span>Nghỉ phép</span><i class="bi bi-chevron-down ms-auto"></i>
+                    </a>
+                    <ul id="leave-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+                        @if (Model.HasViewPermission("LeaveRequest"))
+                        {
+                            <li>
+                                <a href="/Leave/LeaveRequest">
+                                    <i class="bi bi-circle"></i><span>Đăng ký nghỉ phép</span>
+                                </a>
+                            </li>
+                        }
+                        @if (Model.HasViewPermission("LeaveApproval"))
+                        {
+                            <li>
+                                <a href="/Leave/LeaveApproval">
+                                    <i class="bi bi-circle"></i><span>Duyệt nghỉ phép</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </li>
+            }
+
             <li class="nav-heading">Thông tin chung</li>
             <li class="nav-item">
                 <a class="nav-link collapsed" href="/Infomation">
@@ -108,13 +154,21 @@
                     <span>Thông tin tài khoản</span>
                 </a>
             </li>
+
+            @if (Model.HasViewPermission("CloudStorage"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="/Cloud/Storage">
+                        <i class="bi bi-cloud"></i>
+                        <span>Kho tài liệu</span>
+                    </a>
+                </li>
+            }
             
             <li class="nav-item">
                 <a class="nav-link collapsed" onclick ="logout()"  data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-bar-chart"></i><span>Đăng xuất tài khoản</span>
-                    
+                    <i class="bi bi-box-arrow-right"></i><span>Đăng xuất tài khoản</span>
                 </a>
-                
             </li>
             
 

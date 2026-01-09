@@ -31,6 +31,7 @@
                                 <th>Đến ngày</th>
                                 <th class="text-center">Số ngày</th>
                                 <th>Lý do</th>
+                                <th class="text-center">Trạng thái</th>
                                 <th class="text-center">Thao tác</th>
                             </tr>
                         </thead>
@@ -51,8 +52,29 @@
                                     <td class="text-center">@info.NumDays</td>
                                     <td>@info.Reason</td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-success" onclick="approveLeave(@info.Id, 1)">Duyệt</button>
-                                        <button class="btn btn-sm btn-danger" onclick="approveLeave(@info.Id, 2)">Từ chối</button>
+                                        @if (info.Status == 0)
+                                        {
+                                            <span class="badge bg-warning text-dark">Chờ Lead duyệt</span>
+                                        }
+                                        else if (info.Status == 1)
+                                        {
+                                            <span class="badge bg-info text-dark">Chờ HCNS duyệt</span>
+                                        }
+                                        else if (info.Status == 2)
+                                        {
+                                            <span class="badge bg-primary">Chờ BGĐ duyệt</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-info" onclick="viewHistory(@info.Id)" title="Xem lịch sử"><i class="bi bi-clock-history"></i></button>
+                                            <button class="btn btn-sm btn-success" onclick="approveLeave(@info.Id, 'Agree')">Duyệt</button>
+                                            @if (Model.UserData.RoleCode == "2" || Model.UserData.RoleCode == "1")
+                                            {
+                                                <button class="btn btn-sm btn-primary" onclick="approveLeave(@info.Id, 'Acting')">Duyệt thay BGĐ</button>
+                                            }
+                                            <button class="btn btn-sm btn-danger" onclick="approveLeave(@info.Id, 'Reject')">Từ chối</button>
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -80,7 +102,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="approveId" />
-                <input type="hidden" id="approveStatus" />
+                <input type="hidden" id="approveAction" />
                 <div class="mb-3">
                     <label class="form-label">Ý kiến phản hồi</label>
                     <textarea class="form-control" id="approveComment" rows="3"></textarea>
@@ -89,6 +111,35 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="button" class="btn btn-primary" onclick="submitApproval()">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for View History -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lịch sử xử lý đơn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Người xử lý</th>
+                                <th>Hành động</th>
+                                <th>Ghi chú/Lý do</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyContent">
+                            <!-- History items will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 using VS.Human.Business;
 using VS.Human.Rep.Model;
 using VS.Human.Item;
@@ -12,17 +13,20 @@ namespace crmHuman.Pages.Leave
     {
         private readonly ILeaveBusiness _leaveBusiness;
         private readonly ImasterDataBussiness _masterDataBusiness;
+        private readonly IEmpBusiness _employeeBusiness;
 
-        public LeaveRequestModel(ILeaveBusiness leaveBusiness, ImasterDataBussiness masterDataBusiness)
+        public LeaveRequestModel(ILeaveBusiness leaveBusiness, ImasterDataBussiness masterDataBusiness, IEmpBusiness employeeBusiness)
         {
             _leaveBusiness = leaveBusiness;
             _masterDataBusiness = masterDataBusiness;
+            _employeeBusiness = employeeBusiness;
             KeyPage = "LeaveRequest";
             TitlePage = "Quản lý nghỉ phép";
         }
 
         public BaseList LeaveList { get; set; }
         public List<VS.Human.Rep.Model.MasterData> LeaveTypes { get; set; }
+        public List<ManagerLeadIndex> EmployeeList { get; set; }
 
         public async Task OnGetAsync(int page = 1, int limit = 20)
         {
@@ -45,11 +49,31 @@ namespace crmHuman.Pages.Leave
             }
 
             LeaveTypes = await _masterDataBusiness.GetallByTypeData(30);
+            var managers = await _employeeBusiness.GetAllManager();
+            EmployeeList = managers.Data?.Cast<ManagerLeadIndex>().ToList() ?? new List<ManagerLeadIndex>();
+        }
+
+        public async Task<IActionResult> OnGetLeaveListAsync(int page = 1, int limit = 20)
+        {
+            GetInfoUser();
+            int? filterEmployeeId = null;
+            if (UserData.RoleCode != "1")
+            {
+                filterEmployeeId = UserData.UserId;
+            }
+            var result = await _leaveBusiness.GetLeaveList(filterEmployeeId, null, null, null, page, limit);
+            return new JsonResult(result);
         }
 
         public async Task<IActionResult> OnGetLeaveByIdAsync(int id)
         {
             var result = await _leaveBusiness.GetLeaveById(id);
+            return new JsonResult(result);
+        }
+
+        public async Task<IActionResult> OnGetLeaveHistoryAsync(int id)
+        {
+            var result = await _leaveBusiness.GetLeaveHistory(id);
             return new JsonResult(result);
         }
 

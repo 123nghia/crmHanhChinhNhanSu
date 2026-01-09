@@ -1,87 +1,83 @@
-﻿        <aside id="sidebar" class="sidebar">
+﻿@model crmHuman.Pages.BaseModel2
+    <aside id="sidebar" class="sidebar">
 
         <ul class="sidebar-nav" id="sidebar-nav">
 
-
-          @*  <li class="nav-item">
-                <a class="nav-link " href="/indexAdmin">
-                    <i class="bi bi-grid"></i>
-                    <span>Static</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link " href="/">
-                    <i class="bi bi-grid"></i>
-                    <span>Dashboard</span>
-                </a>
-            </li><!-- End Dashboard Nav --> *@
-           
-
-          @*   <li class="nav-heading">Lịch phỏng vấn </li>
-                    <li class="nav-item">
-                    <a class="nav-link collapsed" href="/MasterDataPage?Type=loai-hdld">
-                    <i class="bi bi-bar-chart"></i><span>Danh sách phỏng vấn</span>
-
-                    </a>
-            </li> *@
-
-            <!-- End Tables Nav -->
-          <li class="nav-heading">Ứng viên</li>
-
-        <li class="nav-item">
-            <a class="nav-link collapsed" data-bs-target="#tables-nav" data-bs-toggle="collapse" href="#">
-                <i class="bi bi-layout-text-window-reverse"></i><span>Quản lý ứng viên</span><i class="bi bi-chevron-down ms-auto"></i>
-            </a>
-            <ul id="tables-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-                <li>
-                    <a href="/candidate">
-                        <i class="bi bi-circle"></i><span>Danh sách ứng viên</span>
+            @if (Model.HasViewPermission("Dashboard"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link " href="/">
+                        <i class="bi bi-grid"></i>
+                        <span>Dashboard</span>
                     </a>
                 </li>
+            }
 
-            </ul>
-        </li><!-- End Tables Nav -->
+            @if (Model.HasViewPermission("Candidate"))
+            {
+                <li class="nav-heading">Ứng viên</li>
+                <li class="nav-item">
+                    <a class="nav-link collapsed" data-bs-target="#tables-nav-candidate" data-bs-toggle="collapse" href="#">
+                        <i class="bi bi-layout-text-window-reverse"></i><span>Quản lý ứng viên</span><i class="bi bi-chevron-down ms-auto"></i>
+                    </a>
+                    <ul id="tables-nav-candidate" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+                        <li>
+                            <a href="/candidate">
+                                <i class="bi bi-circle"></i><span>Danh sách ứng viên</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            }
 
-            
-            <li class="nav-heading">Nhân sự</li>
-            <li class="nav-item">
-                <a class="nav-link collapsed" data-bs-target="#tables-nav" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-layout-text-window-reverse"></i><span>Quản lý nhân viên</span><i class="bi bi-chevron-down ms-auto"></i>
-                </a>
-                <ul id="tables-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-                    <li>
-                        <a href="/Employee">
-                            <i class="bi bi-circle"></i><span>Danh sách nhân viên</span>
-                        </a>
-                    </li>
+            @if (Model.HasViewPermission("Employee"))
+            {
+                <li class="nav-heading">Nhân sự</li>
+                <li class="nav-item">
+                    <a class="nav-link collapsed" data-bs-target="#tables-nav-emp" data-bs-toggle="collapse" href="#">
+                        <i class="bi bi-layout-text-window-reverse"></i><span>Quản lý nhân viên</span><i class="bi bi-chevron-down ms-auto"></i>
+                    </a>
+                    <ul id="tables-nav-emp" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+                        <li>
+                            <a href="/Employee">
+                                <i class="bi bi-circle"></i><span>Danh sách nhân viên</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/groupPage">
+                                <i class="bi bi-circle"></i><span>Danh sách nhóm</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            }
 
-                   
-                    <li>
-                        <a href="/groupPage">
-                            <i class="bi bi-circle"></i><span>Danh sách nhóm</span>
-                        </a>
-                    </li>
-
-                </ul>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link collapsed" data-bs-target="#leave-nav" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-calendar-check"></i><span>Nghỉ phép</span><i class="bi bi-chevron-down ms-auto"></i>
-                </a>
-                <ul id="leave-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-                    <li>
-                        <a href="/Leave/LeaveRequest">
-                            <i class="bi bi-circle"></i><span>Đăng ký nghỉ phép</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/Leave/LeaveApproval">
-                            <i class="bi bi-circle"></i><span>Duyệt nghỉ phép</span>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-
+            @if (Model.HasViewPermission("LeaveRequest") || Model.HasViewPermission("LeaveApproval"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link collapsed" data-bs-target="#leave-nav" data-bs-toggle="collapse" href="#">
+                        <i class="bi bi-calendar-check"></i><span>Nghỉ phép</span><i class="bi bi-chevron-down ms-auto"></i>
+                    </a>
+                    <ul id="leave-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+                        @if (Model.HasViewPermission("LeaveRequest"))
+                        {
+                            <li>
+                                <a href="/Leave/LeaveRequest">
+                                    <i class="bi bi-circle"></i><span>Đăng ký nghỉ phép</span>
+                                </a>
+                            </li>
+                        }
+                        @if (Model.HasViewPermission("LeaveApproval"))
+                        {
+                            <li>
+                                <a href="/Leave/LeaveApproval">
+                                    <i class="bi bi-circle"></i><span>Duyệt nghỉ phép</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </li>
+            }
 
             <li class="nav-heading">Thông tin chung</li>
 
@@ -91,91 +87,61 @@
                     <span>Thông tin tài khoản</span>
                 </a>
             </li>
+
+            @if (Model.HasViewPermission("CloudStorage"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="/Cloud/Storage">
+                        <i class="bi bi-cloud"></i>
+                        <span>Kho tài liệu</span>
+                    </a>
+                </li>
+            }
+
+            @if (Model.HasViewPermission("System"))
+            {
+                <li class="nav-heading">Dữ liệu MasterData</li>
+                <li class="nav-item">
+                    <a class="nav-link collapsed" data-bs-target="#master-nav" data-bs-toggle="collapse" href="#">
+                        <i class="bi bi-bar-chart"></i><span>MasterData</span><i class="bi bi-chevron-down ms-auto"></i>
+                    </a>
+                    <ul id="master-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+                        <li><a href="/MasterDataPage?Type=loai-hdld"><i class="bi bi-circle"></i><span>Loại HĐLĐ</span></a></li>
+                        <li><a href="/MasterDataPage?Type=vi-tri-viec-lam"><i class="bi bi-circle"></i><span>Vị trí việc làm</span></a></li>
+                        <li><a href="/MasterDataPage?Type=bo-phan"><i class="bi bi-circle"></i><span>Bộ phận</span></a></li>
+                        <li><a href="/MasterDataPage?Type=quan-he-nguoi-than"><i class="bi bi-circle"></i><span>Quan hệ người thân</span></a></li>
+                        <li><a href="/MasterDataPage?Type=trang-thai-ho-so"><i class="bi bi-circle"></i><span>Trạng thái Hồ Sơ</span></a></li>
+                        <li><a href="/MasterDataPage?Type=trang-thai-lam-viec"><i class="bi bi-circle"></i><span>Trạng thái làm việc</span></a></li>
+                        <li><a href="/MasterDataPage?Type=trang-thai-hon-nhan"><i class="bi bi-circle"></i><span>Trạng thái hôn nhân</span></a></li>
+                        <li><a href="/MasterDataPage?Type=trinh-do-hoc-van"><i class="bi bi-circle"></i><span>Trình độ học vấn</span></a></li>
+                        <li><a href="/MasterDataPage?Type=trang-thai-chung-tu"><i class="bi bi-circle"></i><span>Trạng thái chứng từ</span></a></li>
+                        <li><a href="/MasterDataPage?Type=Loai-chung-tu"><i class="bi bi-circle"></i><span>Loại chứng từ</span></a></li>
+                        <li><a href="/StatusPage"><i class="bi bi-circle"></i><span>Danh sách trạng thái</span></a></li>
+                    </ul>
+                </li>
+
+                <li class="nav-heading">Hệ thống</li>
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="/setting">
+                        <i class="bi bi-gear"></i><span>Cài đặt</span>
+                    </a>
+                </li>
+            }
+
+            @if (Model.HasViewPermission("Permission"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="/System/Permission">
+                        <i class="bi bi-shield-lock"></i><span>Quản lý phân quyền</span>
+                    </a>
+                </li>
+            }
+
             <li class="nav-item">
-                <a class="nav-link collapsed" href="/Cloud/Storage">
-                    <i class="bi bi-cloud"></i>
-                    <span>Kho tài liệu</span>
+                <a class="nav-link collapsed" onclick="logout()" href="javascript:void(0)">
+                    <i class="bi bi-box-arrow-right"></i><span>Đăng xuất tài khoản</span>
                 </a>
             </li>
-            
-
-           
-
-
-        <li class="nav-heading">Dữ liệu MasterData</li>
-        <li class="nav-item">
-            <a class="nav-link collapsed" href="/MasterDataPage?Type=loai-hdld">
-                <i class="bi bi-bar-chart"></i><span>Loại HĐLĐ</span>
-
-            </a>
-
-            <a class="nav-link collapsed" href="/MasterDataPage?Type=vi-tri-viec-lam">
-                <i class="bi bi-bar-chart"></i><span>Vị trí việc làm</span>
-            </a>
-
-            <a class="nav-link collapsed" href="/MasterDataPage?Type=bo-phan">
-                <i class="bi bi-bar-chart"></i><span>Bộ phận</span>
-            </a>
-            <a class="nav-link collapsed" href="/MasterDataPage?Type=quan-he-nguoi-than">
-                <i class="bi bi-bar-chart"></i><span>Quan hệ người thân</span>
-            </a>
-
-             <a class="nav-link collapsed" href="/MasterDataPage?Type=trang-thai-ho-so">
-                <i class="bi bi-bar-chart"></i><span>Trạng thái Hồ Sơ</span>
-            </a>
-
-            <a class="nav-link collapsed" href="/MasterDataPage?Type=trang-thai-lam-viec">
-                <i class="bi bi-bar-chart"></i><span>Trạng thái làm việc</span>
-            </a>
-
-             <a class="nav-link collapsed" href="/MasterDataPage?Type=trang-thai-hon-nhan">
-                <i class="bi bi-bar-chart"></i><span>Trạng thái hôn nhân</span>
-
-            </a>
-             <a class="nav-link collapsed" href="/MasterDataPage?Type=trinh-do-hoc-van">
-                <i class="bi bi-bar-chart"></i><span>Trình độ học vấn</span>
-
-            </a>
-            <a class="nav-link collapsed" href="/MasterDataPage?Type=trang-thai-chung-tu">
-                <i class="bi bi-bar-chart"></i><span>Trạng thái chứng từ </span>
-            </a>
-        
-            <a class="nav-link collapsed" href="/MasterDataPage?Type=Loai-chung-tu">
-                <i class="bi bi-bar-chart"></i><span>Loại chứng từ </span>
-            </a>
-
-
-        </li><!-- End Charts Nav -->
-
-          <li class="nav-item">
-                <a class="nav-link collapsed"  href="/StatusPage">
-                    <i class="bi bi-bar-chart"></i><span>Danh sách trạng thái</span>
-                    
-                </a>
-                
-            </li>
-             <li class="nav-heading">Hệ thống</li>
-            <li class="nav-item">
-                <a class="nav-link collapsed"   href="/setting">
-                    <i class="bi bi-bar-chart"></i><span>Cài đặt</span>
-                    
-                </a>
-                
-            </li><!-- End Charts Nav -->
-            <li class="nav-item">
-                 <a class="nav-link collapsed"   href="/System/Permission">
-                    <i class="bi bi-shield-lock"></i><span>Quản lý phân quyền</span>
-                </a>
-            </li>
-             <li class="nav-item">
-                <a class="nav-link collapsed" onclick ="logout()"  data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-bar-chart"></i><span>Đăng xuất tài khoản</span>
-                    
-                </a>
-            </li><!-- End Charts Nav -->
         </ul>
-
-
-        
 
     </aside>

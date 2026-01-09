@@ -193,6 +193,9 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.BadRequest(errors);
             }
 
+            // Log DocumentCheck to help debug
+            _logger.LogInformation("Updating employee {Id}. DocumentCheck value: {DocumentCheck}", request.Id, request.DocumentCheck);
+
             var bodyRequest = EmployeeMapper.MapToEmployeeInfoAdd(request);
             var result = await _empBusiness.Update(bodyRequest);
             return ApiResponseHelper.SuccessResponse(new { success = result });
@@ -230,7 +233,7 @@ namespace crmHuman.Pages
             return ApiResponseHelper.SuccessResponse(new { success = result });
         }
 
-        public async Task<IActionResult> OnPostAddDocument(DocumentDataAddRequest request)
+        public async Task<IActionResult> OnPostAddDocument([FromBody] DocumentDataAddRequest request)
         {
             var errors = new List<object>();
             ValidationHelper.ValidateId(request.RelId, "txtFullName", "đối tượng Id", errors);
@@ -239,6 +242,9 @@ namespace crmHuman.Pages
             {
                 return ApiResponseHelper.BadRequest(errors);
             }
+
+            GetInfoUser();
+            request.UserId = UserData.UserId;
 
             var result = await _documentDataBussiness.AddOrUpdate(request);
             return ApiResponseHelper.SuccessResponse(new { success = result });

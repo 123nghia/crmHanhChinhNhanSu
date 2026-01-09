@@ -134,29 +134,80 @@
                         <!-- Sales Card -->
                         @{
                             var itemdashboard = Model.InfoDashboard;
+                            var leaveStats = Model.LeaveSummary;
                         }
                         
+                        <!-- Role-based Leave Cards -->
+                        <div class="col-xxl-4 col-md-6">
+                            <div class="card info-card revenue-card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Quỹ phép còn lại</h5>
+                                    <div class="d-flex align-items-center">
+                                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-calendar-check"></i>
+                                        </div>
+                                        <div class="ps-3">
+                                            <h6>@(leaveStats?.RemainingLeave ?? 0) ngày</h6>
+                                            <span class="text-muted small pt-2 ps-1">năm @DateTime.Now.Year</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (Model.UserData.RoleCode == "1" || Model.UserData.RoleCode == "2" || Model.UserData.RoleCode == "3")
+                        {
+                            <div class="col-xxl-4 col-md-6">
+                                <div class="card info-card sales-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Chờ tôi duyệt</h5>
+                                        <div class="d-flex align-items-center">
+                                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-person-check"></i>
+                                            </div>
+                                            <div class="ps-3">
+                                                <h6>@(leaveStats?.PendingApproval ?? 0) đơn</h6>
+                                                <a href="/Leave/LeaveApproval" class="text-primary small pt-1 fw-bold">Xử lý ngay</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div class="col-xxl-4 col-md-6">
+                                <div class="card info-card customers-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Nghỉ phép tháng này</h5>
+                                        <div class="d-flex align-items-center">
+                                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-people"></i>
+                                            </div>
+                                            <div class="ps-3">
+                                                <h6>@(leaveStats?.ApprovedMonth ?? 0) lượt</h6>
+                                                <span class="text-muted small pt-2 ps-1">toàn công ty</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (Model.UserData.RoleCode == "1" || Model.UserData.RoleCode == "2")
+                        {
+                            <!-- Recruitment Stats for Admin/HCNS -->
+                            <div class="col-xxl-4 col-md-6">
                             <div class="card info-card sales-card">
-
-
-
                                 <div class="card-body">
-
                                     <h5 class="card-title">Số lượng CV</h5>
                                     <div class="d-flex align-items-center">
                                         <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                                            <i class="bi bi-cart"></i>
+                                            <i class="bi bi-file-earmark-person"></i>
                                         </div>
                                         <div class="ps-3">
                                                 <h6>@itemdashboard.totalCVInput</h6>
-                                            <!-- <span class="text-success small pt-1 fw-bold">12%</span> <span class="text-muted small pt-2 ps-1">increase</span> -->
-
                                         </div>
                                     </div>
                                 </div> 
-
                             </div>
                         </div>
                         <div class="col-xxl-4 col-md-6">
@@ -204,6 +255,7 @@
                             </div>
 
                         </div>
+                        }
                     
                         
 
@@ -349,8 +401,41 @@
                                     </div>
                                 </div>
                             
-
                             </div>
+                        }
+                        
+                        @if (Model.UserData.RoleCode == "4")
+                        {
+                            <!-- Personal Dashboard for Members -->
+                            <div class="col-12">
+                                <div class="card recent-sales overflow-auto">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Đơn nghỉ phép của tôi</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-borderless">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Loại phép</th>
+                                                        <th>Từ ngày</th>
+                                                        <th>Đến ngày</th>
+                                                        <th>Số ngày</th>
+                                                        <th>Trạng thái</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="myLeaveList">
+                                                    <tr>
+                                                        <td colspan="5" class="text-center">Đang tải dữ liệu...</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="text-center mt-3">
+                                            <a href="/Leave/LeaveRequest" class="btn btn-sm btn-outline-primary">Quản lý phép cá nhân</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                 </div><!-- End Left side columns -->
                 <!-- Right side columns -->
                 <div class="col-lg-4">
@@ -374,8 +459,9 @@
                             <h5 class="card-title">Hoạt đông gần đây </h5>
 
                             <div class="activity">
-                        @if( Model.TopImpact != null && Model.TopImpact.Data != null)
-                        @foreach (var item in Model.TopImpact.Data)
+                        @if (Model.UserData.RoleCode != "4" && Model.TopImpact != null && Model.TopImpact.Data != null)
+                        {
+                            @foreach (var item in Model.TopImpact.Data)
                         {
                             var itemImpact = item as dynamic;
                      
@@ -391,6 +477,13 @@
 
                         
 
+                            }
+                        }
+                        else if (Model.UserData.RoleCode == "4")
+                        {
+                            <div class="text-center py-4">
+                                <p class="text-muted small">Thông báo mới nhất dành cho bạn sẽ hiển thị ở đây.</p>
+                            </div>
                         }
                         
                                
@@ -418,7 +511,57 @@
    var memberSearch = "@Model.RequestPage.MemberId";
    
    
+   var roleCode = "@Model.UserData.RoleCode";
    var extraSearchRequest  = {groupSearch,memberSearch};
+
+   if (roleCode === "4") {
+       // Fetch personal leave list for member dashboard
+       fetch('/Leave/LeaveRequest?handler=LeaveList&limit=5')
+           .then(res => res.json())
+           .then(data => {
+               let html = '';
+               if (data.data && data.data.length > 0) {
+                   data.data.forEach(item => {
+                       html += `<tr>
+                           <td>${item.leaveTypeName}</td>
+                           <td>${moment(item.fromDate).format('DD/MM/YYYY')}</td>
+                           <td>${moment(item.toDate).format('DD/MM/YYYY')}</td>
+                           <td>${item.numDays}</td>
+                           <td><span class="badge ${getStatusBadgeClass(item.status)}">${getStatusText(item.status)}</span></td>
+                       </tr>`;
+                   });
+               } else {
+                   html = '<tr><td colspan="5" class="text-center">Chưa có đơn nghỉ phép nào</td></tr>';
+               }
+               document.getElementById('myLeaveList').innerHTML = html;
+           });
+   }
+
+   function getStatusBadgeClass(status) {
+       switch (status) {
+           case 0: return 'bg-warning text-dark';
+           case 1: return 'bg-info text-dark';
+           case 2: return 'bg-primary';
+           case 3: return 'bg-success';
+           case 4: return 'bg-success';
+           case 5: return 'bg-danger';
+           case 6: return 'bg-secondary';
+           default: return 'bg-light text-dark';
+       }
+   }
+
+   function getStatusText(status) {
+       switch (status) {
+           case 0: return 'Chờ Lead duyệt';
+           case 1: return 'Chờ HCNS duyệt';
+           case 2: return 'Chờ BGĐ duyệt';
+           case 3: return 'Đã duyệt';
+           case 4: return 'HCNS duyệt thay';
+           case 5: return 'Từ chối';
+           case 6: return 'Đã hủy';
+           default: return 'Không xác định';
+       }
+   }
 
 </script>
 

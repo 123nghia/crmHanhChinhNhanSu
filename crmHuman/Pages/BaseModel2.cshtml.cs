@@ -163,6 +163,57 @@ namespace crmHuman.Pages
         }
 
 
+        private List<VS.Human.Rep.Model.PermissionConfigViewModel> _userPermissions;
+        public List<VS.Human.Rep.Model.PermissionConfigViewModel> UserPermissions 
+        { 
+            get 
+            {
+                if (_userPermissions == null || !_userPermissions.Any())
+                {
+                    LoadAllPermissions();
+                }
+                return _userPermissions ?? new List<VS.Human.Rep.Model.PermissionConfigViewModel>();
+            }
+            set => _userPermissions = value;
+        }
+
+        public bool HasViewPermission(string pageCode)
+        {
+            if (UserData?.RoleCode == "1") return true; 
+            return UserPermissions.Any(p => p.PageCode == pageCode && p.IsView);
+        }
+
+        private void LoadAllPermissions()
+        {
+            var identity = HttpContext?.User?.Identity as ClaimsIdentity;
+            if (identity != null)
+            {
+                var roleCode = identity.Claims.FirstOrDefault(o => o.Type == "RoleCode")?.Value;
+                Console.WriteLine($"[DEBUG Sidebar] HttpContext RoleCode: '{roleCode}'");
+                if (!string.IsNullOrEmpty(roleCode))
+                {
+                    var permissionBusiness = HttpContext.RequestServices.GetService(typeof(VS.Human.Business.IPermissionBusiness)) as VS.Human.Business.IPermissionBusiness;
+                    if (permissionBusiness != null)
+                    {
+                        _userPermissions = permissionBusiness.GetPermissionsByRoleSync(roleCode);
+                        Console.WriteLine($"[DEBUG Sidebar] Loaded {_userPermissions?.Count ?? 0} permissions for role {roleCode}");
+                        foreach (var p in _userPermissions ?? new List<VS.Human.Rep.Model.PermissionConfigViewModel>())
+                        {
+                            if (p.IsView) Console.WriteLine($"[DEBUG Sidebar] Page: {p.PageCode}, IsView: {p.IsView}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("[DEBUG Sidebar] IPermissionBusiness is NULL");
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine("[DEBUG Sidebar] Identity is NULL");
+            }
+        }
+
         public void GetInfoUser()
         {
             var identity = HttpContext.User.Identity as ClaimsIdentity;
@@ -181,33 +232,29 @@ namespace crmHuman.Pages
                 }
                 UserData.UserName = userName;
                 UserData.FullName = fullName;
-                UserData.UserId = int.Parse(idUser);
+                if (!string.IsNullOrEmpty(idUser)) UserData.UserId = int.Parse(idUser);
                 UserData.RoleCode = roleCode;
                 UserData.LineCode = lineCode;
 
-                UserDataGlobal.AddOrUpdate(idUser, userName, fullName);
+                if (!string.IsNullOrEmpty(idUser))
+                    UserDataGlobal.AddOrUpdate(idUser, userName, fullName);
 
-                // Dynamic Permission Loading
-                if (!string.IsNullOrEmpty(roleCode) && !string.IsNullOrEmpty(KeyPage))
+                // Initialize permissions
+                if (_userPermissions == null) LoadAllPermissions();
+
+                if (!string.IsNullOrEmpty(KeyPage) && _userPermissions != null)
                 {
-                    // Use Service Locator pattern since simple constructor injection is hard in Base Class here
-                    var permissionBusiness = HttpContext.RequestServices.GetService(typeof(VS.Human.Business.IPermissionBusiness)) as VS.Human.Business.IPermissionBusiness;
-                    if (permissionBusiness != null)
+                    var pagePerm = _userPermissions.FirstOrDefault(p => p.PageCode == KeyPage);
+                    if (pagePerm != null)
                     {
-                        var perms = permissionBusiness.GetPermissionsByRoleSync(roleCode);
-                        var pagePerm = perms.FirstOrDefault(p => p.PageCode == KeyPage);
-                        if (pagePerm != null)
-                        {
-                            Permision.View = pagePerm.IsView;
-                            Permision.Add = pagePerm.IsAdd;
-                            Permision.Edit = pagePerm.IsEdit;
-                            Permision.Delete = pagePerm.IsDelete;
-                            Permision.Approve = pagePerm.IsApprove; 
-                        }
+                        Permision.View = pagePerm.IsView;
+                        Permision.Add = pagePerm.IsAdd;
+                        Permision.Edit = pagePerm.IsEdit;
+                        Permision.Delete = pagePerm.IsDelete;
+                        Permision.Approve = pagePerm.IsApprove; 
                     }
                 }
             }
-
         }
 
 

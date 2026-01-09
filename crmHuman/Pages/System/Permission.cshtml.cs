@@ -45,7 +45,10 @@ namespace crmHuman.Pages.System
         {
              if (!ModelState.IsValid)
             {
-                return new JsonResult(new { success = false, message = "Invalid data" });
+                var errors = string.Join("; ", ModelState.Values
+                                        .SelectMany(x => x.Errors)
+                                        .Select(x => x.ErrorMessage));
+                return new JsonResult(new { success = false, message = "Invalid data: " + errors });
             }
 
             var role = Request.Query["RoleCode"].ToString();
