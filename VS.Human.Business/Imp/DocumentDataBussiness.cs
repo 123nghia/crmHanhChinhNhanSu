@@ -54,6 +54,7 @@ namespace VS.Human.Business.Imp
             {
                 ParentId = parentId ?? -1,
                 CurrentUserId = currentUserId,
+                RelCode = "CLOUD",
                 Page = page,
                 Limit = limit
             };

@@ -20,6 +20,7 @@ namespace VS.Human.Item
         public int? GroupId { get; set; }
 
         public string? LineCode { get; set; }
+        public string? FingerprintCode { get; set; }
         public string TypeAccount { get; set; }
         public string DepartmentCode { get; set; }
         public string DocumentStatus { get; set; }

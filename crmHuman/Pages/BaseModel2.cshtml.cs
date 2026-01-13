@@ -46,17 +46,9 @@ namespace crmHuman.Pages
             {
             Code ="3", Name ="TL"
             },
-            new Model.SelectDisplay()
+             new Model.SelectDisplay()
             {
-            Code ="4", Name ="Marketing"
-            },
-            new Model.SelectDisplay()
-            {
-            Code ="6", Name ="Trưởng CTV"
-            },
-            new Model.SelectDisplay()
-            {
-            Code ="7", Name ="CTV"
+            Code ="8", Name ="BGĐ"
             }
         };
 

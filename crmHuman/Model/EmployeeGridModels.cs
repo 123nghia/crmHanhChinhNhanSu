@@ -31,6 +31,7 @@ namespace crmHuman.Model
         
         // Liên hệ
         public string? Phone { get; set; }
+        public string? FingerprintCode { get; set; }
         public string? EmergencyContact { get; set; }
         public string? Email { get; set; }
         public string? PersonalEmail { get; set; }
@@ -73,6 +74,7 @@ namespace crmHuman.Model
         public DateTime? NationalDate { get; set; }
         public string? NationalPlace { get; set; }
         public string? Phone { get; set; }
+        public string? FingerprintCode { get; set; }
         public string? EmergencyContact { get; set; }
         public string? Email { get; set; }
         public string? PersonalEmail { get; set; }

@@ -124,6 +124,7 @@ namespace crmHuman.Pages
                 UserName = employee.UserName,
                 Onboard = employee.Onboard,
                 LineCode = employee.LineCode,
+                FingerprintCode = employee.FingerprintCode,
                 Dob = employee.Dob,
                 AvatarFile = employee.AvatarFile,
                 CreateAt = employee.CreateAt,
@@ -379,6 +380,7 @@ namespace crmHuman.Pages
                     
                     // Liên hệ
                     Phone = !string.IsNullOrEmpty(request.Phone) ? request.Phone : employee.Phone,
+                    FingerprintCode = !string.IsNullOrEmpty(request.FingerprintCode) ? request.FingerprintCode : employee.FingerprintCode,
                     EmergencyContact = !string.IsNullOrEmpty(request.EmergencyContact) ? request.EmergencyContact : employee.EmergencyContact,
                     Email = !string.IsNullOrEmpty(request.Email) ? request.Email : employee.Email,
                     PersonalEmail = !string.IsNullOrEmpty(request.PersonalEmail) ? request.PersonalEmail : employee.PersonalEmail,
@@ -446,6 +448,7 @@ namespace crmHuman.Pages
                     RoleCode = request.RoleCode ?? "2",
                     PositionCode = request.PositionCode,
                     DepartmentCode = request.DepartmentCode,
+                    FingerprintCode = request.FingerprintCode,
                     GroupId = request.GroupId,
                     Status = request.Status ?? 1,
                     StatusWork = request.StatusWork ?? "1",

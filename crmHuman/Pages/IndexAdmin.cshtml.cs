@@ -237,7 +237,7 @@ namespace crmHuman.Pages
 
 
             }
-            var listUser = UserActive.DataActiveOnline.GetListUser(UserData.UserId);
+            var listUser = UserActive.DataActiveOnline.GetListUser(UserData.RoleCode, UserData.UserId);
 
             string rateUV = "0";
             string rateOB = "0";

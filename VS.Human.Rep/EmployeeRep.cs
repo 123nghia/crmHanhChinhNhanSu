@@ -83,7 +83,8 @@ namespace VS.Human.Rep
                 item.Religion,
                 item.PersonalEmail,
                 item.BeneficiaryName,
-                item.EmergencyContact
+                item.EmergencyContact,
+                item.FingerprintCode
             };
 
             return await this.ExecuteSQL("sp_emp_update", parameter);
@@ -132,7 +133,8 @@ namespace VS.Human.Rep
                 item.Religion,
                 item.PersonalEmail,
                 item.BeneficiaryName,
-                item.EmergencyContact
+                item.EmergencyContact,
+                item.FingerprintCode
             };
 
             return await this.ExecuteSQL("sp_emp_insert", parameter);
@@ -217,6 +219,7 @@ namespace VS.Human.Rep
                     itemUpdate.PersonalEmail = item.PersonalEmail;
                     itemUpdate.BeneficiaryName = item.BeneficiaryName;
                     itemUpdate.EmergencyContact = item.EmergencyContact;
+                    itemUpdate.FingerprintCode = item.FingerprintCode;
                     return await Update(itemUpdate);
                 }
             }

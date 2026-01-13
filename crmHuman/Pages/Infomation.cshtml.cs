@@ -25,7 +25,7 @@ namespace crmHuman.Pages
         {
             _logger = logger;
             _empBusiness = empBusiness;
-            TitlePage = "Thông tin nhân viên";
+            TitlePage = "Thông tin tài khoản";
             KeyPage = "Infomation";
 
             TableColumnText = new List<string>()

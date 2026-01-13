@@ -278,10 +278,6 @@
                                             </thead>
                                         <tbody>
                                     @{
-                                        var listStatusReportOrder = Model.StatusListOverviewDashboard.Data; 
-
-                                       
-
                                         var rateCVNew ="0";
                                         var rateCVProcess ="0";
                                         var rateCVOnboard ="0";
@@ -323,37 +319,6 @@
                                                 <td>@itemdashboard.totalDone</td>
                                                 <td>@rateCVDone</td>
                                              </tr>
-                                             <tr>
-
-                                                <td>
-                                            <h5 class="card-title">Thông số theo trạng thái </h5>
-
-                                                </td>
-                                             </tr>
-                                            
-                                            
-                                                    @if(listStatusReportOrder != null)
-                                        
-                                                    @foreach (var item in listStatusReportOrder)
-                                                    {
-                                                            var itemorder = item as dynamic;
-                                                            var rateItem = "0";
-                                                                if(itemdashboard.totalCV > 0)
-                                                                {
-                                                                    rateItem = ((itemorder.Total / itemdashboard.totalCV) ).ToString("0.00%");
-                                                                }
-                                                                <tr>
-                                                                    <td scope="row">
-                                                                        @itemorder.Name
-                                                                    </td>
-                                                                    <td>@itemorder.Total</td>
-                                                                    <td>@rateItem</td>
-                                                        
-                                                               </tr>
-                                                    }
-                                                
-                                                    
-                                                    
                                                 </tbody>
                                             </table>
 

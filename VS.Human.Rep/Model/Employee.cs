@@ -5,6 +5,7 @@
         public string? UserName { get; set; }
         public string? Email { get; set; }
         public string? LineCode { get; set; }
+        public string? FingerprintCode { get; set; }
         public string? ColorCode { get; set; }
         public DateTime? Onboard { get; set; }
         public string? FullName { get; set; }

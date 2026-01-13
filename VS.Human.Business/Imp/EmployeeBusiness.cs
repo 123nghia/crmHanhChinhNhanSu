@@ -57,6 +57,7 @@ namespace VS.Human.Business.Imp
             item.PersonalEmail = itemAdd.PersonalEmail;
             item.BeneficiaryName = itemAdd.BeneficiaryName;
             item.EmergencyContact = itemAdd.EmergencyContact;
+            item.FingerprintCode = itemAdd.FingerprintCode;
             
             var passNew = getMD5(itemAdd.Pass);
             item.Pass = passNew;

@@ -46,7 +46,8 @@ namespace VS.Human.Business.Helpers
                 Religion = request.Religion,
                 PersonalEmail = request.PersonalEmail,
                 BeneficiaryName = request.BeneficiaryName,
-                EmergencyContact = request.EmergencyContact
+                EmergencyContact = request.EmergencyContact,
+                FingerprintCode = request.FingerprintCode
             };
         }
 
@@ -93,7 +94,7 @@ namespace VS.Human.Business.Helpers
                 PersonalEmail = employee.PersonalEmail,
                 BeneficiaryName = employee.BeneficiaryName,
                 EmergencyContact = employee.EmergencyContact,
-        
+                FingerprintCode = employee.FingerprintCode
             };
         }
 
@@ -138,6 +139,7 @@ namespace VS.Human.Business.Helpers
             item.PersonalEmail = itemUpdate.PersonalEmail;
             item.BeneficiaryName = itemUpdate.BeneficiaryName;
             item.EmergencyContact = itemUpdate.EmergencyContact;
+            item.FingerprintCode = itemUpdate.FingerprintCode;
 
             // Handle CreatedBy, CreateAt, UserName, and Pass
             if (existingEmployee != null)

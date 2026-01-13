@@ -64,30 +64,18 @@
             }
         }
 
-        public List<UserItem> GetListUser(int UserId)
+        public List<UserItem> GetListUser(string? roleCode, int userId)
         {
             lock (lockObject)
             {
-                if (UserId == 17)
-                    return new List<UserItem>(DataUsser);
-
-                if (UserId == 37)
+                if (string.IsNullOrEmpty(roleCode) || roleCode == "2")
                 {
-                    var tempCondition = new List<string> { "41", "48", "49", "50", "51", "37" };
-                    return DataUsser
-                        .Where(x => x.StatusOnline == "Online" && tempCondition.Contains(x.UserId ?? ""))
-                        .ToList();
+                    return new List<UserItem>();
                 }
 
-                if (UserId == 38)
-                {
-                    var tempCondition = new List<string> { "39", "40", "43", "44", "45", "46", "47", "38" };
-                    return DataUsser
-                        .Where(x => tempCondition.Contains(x.UserId ?? ""))
-                        .ToList();
-                }
-
-                return new List<UserItem>();
+                return DataUsser
+                    .OrderByDescending(x => x.LastUpdated ?? DateTime.MinValue)
+                    .ToList();
             }
         }
     }

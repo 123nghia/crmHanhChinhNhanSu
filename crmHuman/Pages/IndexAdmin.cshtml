@@ -91,6 +91,8 @@
         </div>
         <div class="col-lg-4 ">
 
+            @if (Model.UserData.RoleCode != "2")
+            {
             <section class="reportSection">
                 <p class="title">User đang online </p>
 
@@ -114,6 +116,7 @@
                 </div>
 
             </section>
+            }
          
 <div class="modal fade" id="exampleModalCenter" tabindex="-1" >
  <div class="modal-dialog modal-xl" >
@@ -155,6 +158,8 @@
   </div>
 </div>
 
+@if (Model.UserData.RoleCode != "2")
+{
 <div class="modal fade" id="dataUser" tabindex="-1" >
  <div class="modal-dialog modal-xl" >
     <div class="modal-content">
@@ -167,12 +172,12 @@
                         <thead>
                             <tr>    
                                 <th>STT</th>
-                                <th>Mã nhân viên</th>
+                                <th>Username</th>
                                 
                                 <th>Tên nhân viên</th>
                                 <th>Vai trò</th>
                                 <th>Trạng thái</th>
-                                <th>Truy cập gần nhất</th>
+                                <th>Last online</th>
                                 
                        
                             </tr>
@@ -184,7 +189,7 @@
                         @foreach (var itemData in infoDashboard.listUser)
                         {
                             var itemInfo = itemData as dynamic;
-                            var datetimeUpdate = itemInfo.LastUpdated.ToString("dd/MM/yyyy");
+                            var datetimeUpdate = itemInfo.LastUpdated.ToString("dd/MM/yyyy HH:mm");
                             indextemp++;
                             <tr>
                                 <td>@indextemp</td>
@@ -209,6 +214,7 @@
     </div>
   </div>
 </div>
+}
 
 
 
