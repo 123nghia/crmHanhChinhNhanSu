@@ -9,7 +9,6 @@ using System;
 using System.Linq;
 using crmHuman.Model;
 using OfficeOpenXml;
-using System.IO;
 
 namespace crmHuman.Pages
 {
@@ -558,37 +557,80 @@ namespace crmHuman.Pages
                 Console.WriteLine($"[Export Debug] Found {data?.Count ?? 0} records.");
 
                 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-                var templatePath = @"C:\Users\Nghia\Desktop\temp\blockchainHC\templateExport.xlsx";
-
-                ExcelPackage p = null;
-                try 
+                using (var package = new ExcelPackage())
                 {
-                    if (global::System.IO.File.Exists(templatePath))
-                    {
-                        p = new ExcelPackage(new global::System.IO.FileInfo(templatePath));
-                    }
-                } 
-                catch (Exception ex) 
-                {
-                    Console.WriteLine($"Error loading template: {ex.Message}");
-                }
+                    var worksheet = package.Workbook.Worksheets.Add("Employees");
 
-                if (p == null) p = new ExcelPackage();
-
-                using (var package = p)
-                {
-                    var worksheet = package.Workbook.Worksheets.Count > 0 
-                        ? package.Workbook.Worksheets[0] 
-                        : package.Workbook.Worksheets.Add("Employees");
-                            
-                    int row = 3; // Start writing from row 3 as requested
+                    const int headerRow = 3;
+                    int row = headerRow + 1;
                     int stt = 1;
-                    
-                    if (package.Workbook.Worksheets.Count == 0) // New file fallback headers
+                    var headers = new[]
                     {
-                        worksheet.Cells[1,1].Value = "STT";
-                        worksheet.Cells[1,2].Value = "UserName";
-                        // ... simple headers
+                        "STT",
+                        "MÃ VÂN TAY",
+                        "HỌ VÀ TÊN",
+                        "NGÀY OB",
+                        "CHỨC VỤ",
+                        "QUẢN LÝ TRỰC TIẾP",
+                        "BỘ PHẬN",
+                        "GIỚI TÍNH",
+                        "NGÀY SINH",
+                        "NƠI SINH",
+                        "CCCD",
+                        "NGÀY CẤP",
+                        "ĐỊA CHỈ THƯỜNG TRÚ",
+                        "ĐỊA CHỈ TẠM TRÚ",
+                        "DÂN TỘC",
+                        "TÔN GIÁO",
+                        "TÌNH TRẠNG HÔN NHÂN",
+                        "TRÌNH ĐỘ HỌC VẤN",
+                        "EMAIL NHÂN VIÊN",
+                        "EMAIL CÁ NHÂN",
+                        "SĐT",
+                        "HỌ VÀ TÊN",
+                        "MỐI QUAN HỆ",
+                        "SĐT",
+                        "ĐỊA CHỈ",
+                        "CCCD SAO Y",
+                        "SYLL",
+                        "ĐƠN XIN VIỆC",
+                        "SCAN",
+                        "LOẠI HĐ",
+                        "SỐ HĐ",
+                        "NGÀY BẮT ĐẦU",
+                        "NGÀY KẾT THÚC",
+                        "STK",
+                        "TÊN NGÂN HÀNG",
+                        "MÃ SỐ THUẾ",
+                        "SỐ NGƯỜI PHỤ THUỘC",
+                        "MÃ SỐ BHXH",
+                        "THÁNG BẮT ĐẦU",
+                        "NGÀY NGHỈ VIỆC"
+                    };
+
+                    for (var i = 0; i < headers.Length; i++)
+                    {
+                        worksheet.Cells[headerRow, i + 1].Value = headers[i];
+                    }
+
+                    static HashSet<string> BuildDocumentSet(string? documentCheck)
+                    {
+                        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        if (string.IsNullOrWhiteSpace(documentCheck))
+                        {
+                            return result;
+                        }
+
+                        foreach (var doc in documentCheck.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            var trimmed = doc.Trim();
+                            if (trimmed.Length > 0)
+                            {
+                                result.Add(trimmed);
+                            }
+                        }
+
+                        return result;
                     }
 
                     if (data != null && data.Any())
@@ -598,46 +640,58 @@ namespace crmHuman.Pages
                             // Debug log per row (temporary)
                             // Console.WriteLine($"[Export Row] {item.UserName} - TaxMST: '{item.Tax_MST}', PITDate: '{item.Tax_NgayCap}'");
 
+                            var docSet = BuildDocumentSet(item.DocumentCheck);
+                            var hasScan = docSet.Contains("BangCap") || docSet.Contains("CamKetNoiQuy") || docSet.Contains("CamKetThue");
+
                             int col = 1;
                             worksheet.Cells[row, col++].Value = stt++;
-                            worksheet.Cells[row, col++].Value = item.FullName; // Col 2
-                            worksheet.Cells[row, col++].Value = item.Onboard?.ToString("dd/MM/yyyy"); // Col 3
-                            worksheet.Cells[row, col++].Value = item.PositionText; // Col 4
-                            worksheet.Cells[row, col++].Value = item.DepartmentText; // Col 5
-                            worksheet.Cells[row, col++].Value = item.Gender; // Col 6
-                            worksheet.Cells[row, col++].Value = item.Dob?.ToString("dd/MM/yyyy"); // Col 7
-                            worksheet.Cells[row, col++].Value = item.PlaceOfBirth; // Col 8
-                            worksheet.Cells[row, col++].Value = item.ReligionText; // Col 9
-                            worksheet.Cells[row, col++].Value = item.EducationLevelText; // Col 10
-                            worksheet.Cells[row, col++].Value = item.MaritalstatusText; // Col 11
-                            worksheet.Cells[row, col++].Value = item.NationalId; // Col 12
-                            worksheet.Cells[row, col++].Value = item.NationalDate?.ToString("dd/MM/yyyy"); // Col 13
-                            worksheet.Cells[row, col++].Value = item.NationalPlace; // Col 14
-                            worksheet.Cells[row, col++].Value = item.PermanentAddress; // Col 15
-                            worksheet.Cells[row, col++].Value = item.TemporaryAddress; // Col 16
-                            worksheet.Cells[row, col++].Value = item.Email; // Col 17 Email Cty
-                            worksheet.Cells[row, col++].Value = item.PersonalEmail; // Col 18 Email Ca nhan
-                            worksheet.Cells[row, col++].Value = item.Phone; // Col 19
-                            worksheet.Cells[row, col++].Value = item.EmergencyContact; // Col 20
-                            worksheet.Cells[row, col++].Value = item.BeneficiaryName; // Col 21
-                            worksheet.Cells[row, col++].Value = item.BankAccount; // Col 22
-                            worksheet.Cells[row, col++].Value = item.BankName; // Col 23
+                            worksheet.Cells[row, col++].Value = item.FingerprintCode;
+                            worksheet.Cells[row, col++].Value = item.FullName;
+                            worksheet.Cells[row, col++].Value = item.Onboard?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.PositionText;
+                            worksheet.Cells[row, col++].Value = item.ManagerName;
+                            worksheet.Cells[row, col++].Value = item.DepartmentText;
 
-                            // Tax Info (PIT Code, PIT Date, Dependants, Effected From)
-                            worksheet.Cells[row, col++].Value = item.Tax_MST; // Col 24
-                            worksheet.Cells[row, col++].Value = item.Tax_NgayCap?.ToString("dd/MM/yyyy"); // Col 25
-                            worksheet.Cells[row, col++].Value = item.Tax_NguoiPhuThuoc; // Col 26 (Số người phụ thuộc)
-                            worksheet.Cells[row, col++].Value = item.Tax_NgayHieuLuc?.ToString("dd/MM/yyyy"); // Col 27
+                            worksheet.Cells[row, col++].Value = item.Gender;
+                            worksheet.Cells[row, col++].Value = item.Dob?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.PlaceOfBirth;
+                            worksheet.Cells[row, col++].Value = item.NationalId;
+                            worksheet.Cells[row, col++].Value = item.NationalDate?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.PermanentAddress;
+                            worksheet.Cells[row, col++].Value = item.TemporaryAddress;
+                            worksheet.Cells[row, col++].Value = string.Empty;
+                            worksheet.Cells[row, col++].Value = item.ReligionText;
+                            worksheet.Cells[row, col++].Value = item.MaritalstatusText;
+                            worksheet.Cells[row, col++].Value = item.EducationLevelText;
+                            worksheet.Cells[row, col++].Value = item.Email;
+                            worksheet.Cells[row, col++].Value = item.PersonalEmail;
+                            worksheet.Cells[row, col++].Value = item.Phone;
 
-                            // BHXH (Insurance No, Hospital Name)
-                            worksheet.Cells[row, col++].Value = item.BHXH_SoSo; // Col 28
-                            worksheet.Cells[row, col++].Value = item.BHXH_NoiDangKy; // Col 29
+                            worksheet.Cells[row, col++].Value = item.RelationName;
+                            worksheet.Cells[row, col++].Value = item.RelationText ?? item.RelationCode;
+                            worksheet.Cells[row, col++].Value = item.RelationPhone;
+                            worksheet.Cells[row, col++].Value = item.RelationAddress;
 
-                            // HDLD (Contract No, Type, Start, End)
-                            worksheet.Cells[row, col++].Value = item.HD_SoHD; // Col 30
-                            worksheet.Cells[row, col++].Value = item.HD_LoaiHD; // Col 31
-                            worksheet.Cells[row, col++].Value = item.HD_NgayBatDau?.ToString("dd/MM/yyyy"); // Col 32
-                            worksheet.Cells[row, col++].Value = item.HD_NgayKetThuc?.ToString("dd/MM/yyyy"); // Col 33
+                            worksheet.Cells[row, col++].Value = docSet.Contains("CCCD") ? "x" : string.Empty;
+                            worksheet.Cells[row, col++].Value = docSet.Contains("SYLL") ? "x" : string.Empty;
+                            worksheet.Cells[row, col++].Value = docSet.Contains("DonXinViec") ? "x" : string.Empty;
+                            worksheet.Cells[row, col++].Value = hasScan ? "x" : string.Empty;
+
+                            worksheet.Cells[row, col++].Value = item.HD_LoaiHD;
+                            worksheet.Cells[row, col++].Value = item.HD_SoHD;
+                            worksheet.Cells[row, col++].Value = item.HD_NgayBatDau?.ToString("dd/MM/yyyy");
+                            worksheet.Cells[row, col++].Value = item.HD_NgayKetThuc?.ToString("dd/MM/yyyy");
+
+                            worksheet.Cells[row, col++].Value = item.BankAccount;
+                            worksheet.Cells[row, col++].Value = item.BankName;
+
+                            worksheet.Cells[row, col++].Value = item.Tax_MST;
+                            worksheet.Cells[row, col++].Value = item.Tax_NguoiPhuThuoc;
+
+                            worksheet.Cells[row, col++].Value = item.BHXH_SoSo;
+                            worksheet.Cells[row, col++].Value = item.BHXH_ThangBatDau?.ToString("MM/yyyy");
+
+                            worksheet.Cells[row, col++].Value = string.Empty;
 
                             row++;
                         }
