@@ -16,5 +16,7 @@ namespace crmHuman.DisplayModel
                 return string.Empty;
             }
         }
+
+           public string? FingerprintCode { get; set; }
     }
 }
