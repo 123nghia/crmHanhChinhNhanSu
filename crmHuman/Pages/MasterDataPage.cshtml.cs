@@ -47,6 +47,8 @@ namespace crmHuman.Pages
 
                        case 20:
                         return "ton-giao";
+                       case 21:
+                        return "dan-toc";
                     default:
                         return "";
                 }
@@ -181,6 +183,9 @@ namespace crmHuman.Pages
                     break;
                 case "trang-thai-ho-so":
                     inputRequest.Type = 31;
+                    break;
+                case "dan-toc":
+                    inputRequest.Type = 21;
                     break;
                 default:
                     inputRequest.Type = -1;

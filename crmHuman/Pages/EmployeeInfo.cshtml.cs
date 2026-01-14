@@ -300,6 +300,7 @@ namespace crmHuman.Pages
                 Dob = itemInfo.Dob,
                 Email = itemInfo.Email,
                 Onboard = itemInfo.Onboard,
+                ResignationDate = itemInfo.ResignationDate,
                 Deleted = false,
                 CreateAt = itemInfo.CreateAt,
                 UpdateAt = itemInfo.UpdateAt,
@@ -330,10 +331,12 @@ namespace crmHuman.Pages
                 StatusWork = itemInfo.StatusWork,
                 Gender = itemInfo.Gender,
                 PlaceOfBirth = itemInfo.PlaceOfBirth,
+                Ethnicity = itemInfo.Ethnicity,
                 Religion = itemInfo.Religion,
                 PersonalEmail = itemInfo.PersonalEmail,
                 BeneficiaryName = itemInfo.BeneficiaryName,
-                EmergencyContact = itemInfo.EmergencyContact
+                EmergencyContact = itemInfo.EmergencyContact,
+                FingerprintCode = itemInfo.FingerprintCode
 
             };
 
@@ -348,7 +351,8 @@ namespace crmHuman.Pages
             DataFile = await _documentDataBussiness.GetAll(new DocumentDataRquest()
             {
                 DataType = 2,
-                RelId = idInput
+                RelId = idInput,
+                CurrentUserId = UserData.UserId
 
             });
             DataLead = await _empBusiness.GetAllManager();

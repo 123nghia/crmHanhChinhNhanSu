@@ -388,6 +388,85 @@
     };
 
     const Uploader = {
+        getFileInfo(link) {
+            const safeLink = (link || '').toString();
+            const cleanLink = safeLink.split('#')[0].split('?')[0];
+            const fileName = cleanLink.substring(cleanLink.lastIndexOf('/') + 1);
+            const extension = fileName && fileName.includes('.')
+                ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase()
+                : '';
+            return { fileName, extension };
+        },
+
+        isImageExtension(extension) {
+            return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].includes(extension);
+        },
+
+        getIconClass(extension, isImage) {
+            if (isImage) {
+                return 'bi-file-earmark-image';
+            }
+
+            switch (extension) {
+                case '.pdf':
+                    return 'bi-file-earmark-pdf';
+                case '.doc':
+                case '.docx':
+                    return 'bi-file-earmark-word';
+                case '.xls':
+                case '.xlsx':
+                    return 'bi-file-earmark-excel';
+                case '.txt':
+                    return 'bi-file-earmark-text';
+                default:
+                    return 'bi-file-earmark';
+            }
+        },
+
+        buildPreview(link) {
+            const info = Uploader.getFileInfo(link);
+            const isImage = Uploader.isImageExtension(info.extension);
+            const iconClass = Uploader.getIconClass(info.extension, isImage);
+            const extensionLabel = info.extension
+                ? info.extension.substring(1).toUpperCase()
+                : 'FILE';
+            const displayName = info.fileName || 'Open file';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'file-preview';
+
+            const thumbLink = document.createElement('a');
+            thumbLink.href = link;
+            thumbLink.target = '_blank';
+            thumbLink.className = `file-thumb ${isImage ? 'is-image' : 'is-file'}`;
+
+            if (isImage) {
+                const img = document.createElement('img');
+                img.src = link;
+                img.alt = 'file preview';
+                thumbLink.appendChild(img);
+            } else {
+                const icon = document.createElement('i');
+                icon.className = `bi ${iconClass}`;
+                thumbLink.appendChild(icon);
+
+                const ext = document.createElement('span');
+                ext.className = 'file-ext';
+                ext.textContent = extensionLabel;
+                thumbLink.appendChild(ext);
+            }
+
+            const fileLink = document.createElement('a');
+            fileLink.href = link;
+            fileLink.target = '_blank';
+            fileLink.className = 'file-link';
+            fileLink.textContent = displayName;
+
+            wrapper.appendChild(thumbLink);
+            wrapper.appendChild(fileLink);
+            return wrapper;
+        },
+
         async upload(fileInput, type = 'candidate') {
             if (!fileInput?.files?.length) {
                 return;
@@ -423,11 +502,10 @@
             const fileResult = group.querySelector('.fileResult');
             if (fileResult) {
                 fileResult.innerHTML = '';
-                const link = document.createElement('a');
-                link.href = linkResult;
-                link.target = '_blank';
-                link.textContent = 'Thông tin file';
-                fileResult.appendChild(link);
+                const preview = Uploader.buildPreview(linkResult);
+                if (preview) {
+                    fileResult.appendChild(preview);
+                }
             }
 
             const fileValueInput = group.querySelector('.valuefile');

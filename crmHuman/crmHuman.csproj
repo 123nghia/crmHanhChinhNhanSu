@@ -12,6 +12,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Content Remove="wwwroot\export\exportemployee.xlsx" />
+		<Content Remove="wwwroot\export\~$*.*" />
+		<None Include="wwwroot\export\exportemployee.xlsx" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<None Remove="Pages\OrderDetailNew.cshtml~RF5c577b94.TMP" />
 	</ItemGroup>
 

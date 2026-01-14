@@ -295,7 +295,6 @@ namespace crmHuman.Services
             command.Parameters.AddWithValue("@ExecutionTime", executionTime);
             command.Parameters.AddWithValue("@Success", success);
             command.Parameters.AddWithValue("@ErrorMessage", (object?)errorMessage ?? DBNull.Value);
-
             await command.ExecuteNonQueryAsync();
         }
 

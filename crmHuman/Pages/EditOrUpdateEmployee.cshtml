@@ -41,6 +41,8 @@
 
         };
     var religionOptions = ViewData["ReligionOptions"] as List<VS.Human.Rep.Model.MasterData> ?? new List<VS.Human.Rep.Model.MasterData>();
+    var educationOptions = ViewData["EducationOptions"] as List<VS.Human.Rep.Model.MasterData> ?? new List<VS.Human.Rep.Model.MasterData>();
+    var maritalOptions = ViewData["MaritalOptions"] as List<VS.Human.Rep.Model.MasterData> ?? new List<VS.Human.Rep.Model.MasterData>();
     var dateText = "";
     if (@Model.Dob != null)
     {
@@ -401,6 +403,54 @@
                 </div>
 
                 <div class="col-12 form-group">
+                    <label class="form-label">Trình độ học vấn</label>
+                    <select name="EducationLevel" id="cBEducationLevel" class="form-select" aria-label="">
+                        @foreach (var item in educationOptions)
+                        {
+                            if(item.ApplyFor == 0)
+                            {
+                                continue;
+                            }
+
+                            if (item.Code == Model.EducationLevel)
+                            {
+                                <option selected value="@item.Code">@item.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@item.Code">@item.Name</option>
+                            }
+                        }
+                    </select>
+                    <div class="invalid-feedback-cs">
+                    </div>
+                </div>
+
+<div class="col-12 form-group">
+                    <label class="form-label">Tình trạng hôn nhân</label>
+                    <select name="Maritalstatus" id="cBMaritalStatus" class="form-select" aria-label="">
+                        @foreach (var item in maritalOptions)
+                        {
+                            if(item.ApplyFor == 0)
+                            {
+                                continue;
+                            }
+
+                            if (item.Code == Model.Maritalstatus)
+                            {
+                                <option selected value="@item.Code">@item.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@item.Code">@item.Name</option>
+                            }
+                        }
+                    </select>
+                    <div class="invalid-feedback-cs">
+                    </div>
+                </div>
+
+<div class="col-12 form-group">
                     <label class="form-label">Tôn giáo</label>
                     <select name="religion" id="txtReligion" class="form-select" aria-label="">
                         @foreach (var item in religionOptions)

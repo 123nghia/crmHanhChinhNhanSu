@@ -1,11 +1,13 @@
 ﻿using crmHuman.Helpers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using VS.Human.Business;
 using VS.Human.Business.Model;
 using VS.Human.Item;
 using VS.Human.Rep.Model;
 using System;
+using System.IO;
 using System.Linq;
 using crmHuman.Model;
 using OfficeOpenXml;
@@ -18,6 +20,7 @@ namespace crmHuman.Pages
         private readonly ILogger<EmployeeModel> _logger;
         private readonly IEmpBusiness _empBusiness;
         private readonly IEmployeeImportBusiness _employeeImportBusiness;
+        private readonly IWebHostEnvironment _environment;
 
         private readonly ICandidateBusiness _candidateBusiness;
         private readonly ImasterDataBussiness _masterDataBussiness;
@@ -40,6 +43,7 @@ namespace crmHuman.Pages
         public EmployeeModel(ILogger<EmployeeModel> logger,
             IEmpBusiness empBusiness,
             IEmployeeImportBusiness employeeImportBusiness,
+            IWebHostEnvironment environment,
             ICandidateBusiness candidateBusiness,
             ImasterDataBussiness masterDataBussiness
             )
@@ -47,6 +51,7 @@ namespace crmHuman.Pages
             _logger = logger;
             _empBusiness = empBusiness;
             _employeeImportBusiness = employeeImportBusiness;
+            _environment = environment;
             TitlePage = "Danh sách nhân viên";
             KeyPage = "Employee";
 
@@ -236,7 +241,11 @@ namespace crmHuman.Pages
                 resultView = await _empBusiness.GetById(id);
             }
             var religionOptions = await _masterDataBussiness.GetallByTypeData(20);
+            var educationOptions = await _masterDataBussiness.GetallByTypeData(14);
+            var maritalOptions = await _masterDataBussiness.GetallByTypeData(13);
             ViewData["ReligionOptions"] = religionOptions;
+            ViewData["EducationOptions"] = educationOptions;
+            ViewData["MaritalOptions"] = maritalOptions;
             return Partial("editOrUpdateEmployee", resultView);
         }
 
@@ -557,61 +566,37 @@ namespace crmHuman.Pages
                 Console.WriteLine($"[Export Debug] Found {data?.Count ?? 0} records.");
 
                 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-                using (var package = new ExcelPackage())
+                var webRoot = _environment.WebRootPath;
+                if (string.IsNullOrWhiteSpace(webRoot))
                 {
-                    var worksheet = package.Workbook.Worksheets.Add("Employees");
+                    webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
+                }
 
-                    const int headerRow = 3;
-                    int row = headerRow + 1;
-                    int stt = 1;
-                    var headers = new[]
-                    {
-                        "STT",
-                        "MÃ VÂN TAY",
-                        "HỌ VÀ TÊN",
-                        "NGÀY OB",
-                        "CHỨC VỤ",
-                        "QUẢN LÝ TRỰC TIẾP",
-                        "BỘ PHẬN",
-                        "GIỚI TÍNH",
-                        "NGÀY SINH",
-                        "NƠI SINH",
-                        "CCCD",
-                        "NGÀY CẤP",
-                        "ĐỊA CHỈ THƯỜNG TRÚ",
-                        "ĐỊA CHỈ TẠM TRÚ",
-                        "DÂN TỘC",
-                        "TÔN GIÁO",
-                        "TÌNH TRẠNG HÔN NHÂN",
-                        "TRÌNH ĐỘ HỌC VẤN",
-                        "EMAIL NHÂN VIÊN",
-                        "EMAIL CÁ NHÂN",
-                        "SĐT",
-                        "HỌ VÀ TÊN",
-                        "MỐI QUAN HỆ",
-                        "SĐT",
-                        "ĐỊA CHỈ",
-                        "CCCD SAO Y",
-                        "SYLL",
-                        "ĐƠN XIN VIỆC",
-                        "SCAN",
-                        "LOẠI HĐ",
-                        "SỐ HĐ",
-                        "NGÀY BẮT ĐẦU",
-                        "NGÀY KẾT THÚC",
-                        "STK",
-                        "TÊN NGÂN HÀNG",
-                        "MÃ SỐ THUẾ",
-                        "SỐ NGƯỜI PHỤ THUỘC",
-                        "MÃ SỐ BHXH",
-                        "THÁNG BẮT ĐẦU",
-                        "NGÀY NGHỈ VIỆC"
-                    };
+                var templatePath = Path.Combine(webRoot, "export", "exportemployee.xlsx");
+                if (!global::System.IO.File.Exists(templatePath))
+                {
+                    throw new FileNotFoundException($"Template export file not found: {templatePath}", templatePath);
+                }
 
-                    for (var i = 0; i < headers.Length; i++)
+                using (var package = new ExcelPackage(new FileInfo(templatePath)))
+                {
+                    var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+                    if (worksheet == null)
                     {
-                        worksheet.Cells[headerRow, i + 1].Value = headers[i];
+                        throw new InvalidOperationException("Template export file does not contain any worksheet.");
                     }
+
+                    const int dataStartRow = 4;
+                    const int exportColumnCount = 40;
+                    int row = dataStartRow;
+                    int stt = 1;
+
+                    var lastRow = worksheet.Dimension?.End.Row ?? 0;
+                    if (lastRow >= dataStartRow)
+                    {
+                        worksheet.Cells[dataStartRow, 1, lastRow, exportColumnCount].Value = null;
+                    }
+
 
                     static HashSet<string> BuildDocumentSet(string? documentCheck)
                     {
@@ -659,10 +644,13 @@ namespace crmHuman.Pages
                             worksheet.Cells[row, col++].Value = item.NationalDate?.ToString("dd/MM/yyyy");
                             worksheet.Cells[row, col++].Value = item.PermanentAddress;
                             worksheet.Cells[row, col++].Value = item.TemporaryAddress;
-                            worksheet.Cells[row, col++].Value = string.Empty;
-                            worksheet.Cells[row, col++].Value = item.ReligionText;
-                            worksheet.Cells[row, col++].Value = item.MaritalstatusText;
-                            worksheet.Cells[row, col++].Value = item.EducationLevelText;
+                            var ethnicityValue = !string.IsNullOrWhiteSpace(item.EthnicityText)
+                                ? item.EthnicityText
+                                : item.Ethnicity;
+                            worksheet.Cells[row, col++].Value = ethnicityValue;
+                            worksheet.Cells[row, col++].Value = item.ReligionText ?? item.Religion;
+                            worksheet.Cells[row, col++].Value = item.MaritalstatusText ?? item.Maritalstatus;
+                            worksheet.Cells[row, col++].Value = item.EducationLevelText ?? item.EducationLevel;
                             worksheet.Cells[row, col++].Value = item.Email;
                             worksheet.Cells[row, col++].Value = item.PersonalEmail;
                             worksheet.Cells[row, col++].Value = item.Phone;
@@ -691,7 +679,7 @@ namespace crmHuman.Pages
                             worksheet.Cells[row, col++].Value = item.BHXH_SoSo;
                             worksheet.Cells[row, col++].Value = item.BHXH_ThangBatDau?.ToString("MM/yyyy");
 
-                            worksheet.Cells[row, col++].Value = string.Empty;
+                            worksheet.Cells[row, col++].Value = item.ResignationDate?.ToString("dd/MM/yyyy");
 
                             row++;
                         }

@@ -331,9 +331,13 @@ var EditableGrid = (function () {
     function startEditing(cell) {
         if (state.currentEditingCell === cell) return;
 
+        var row = cell.closest('tr');
+        if (row && !row.dataset.originalSnapshot) {
+            cacheOriginalRow(row);
+        }
+
         finishEditing();
 
-        var row = cell.closest('tr');
         var rowId = row.dataset.id;
 
         // Lưu giá trị gốc nếu chưa có
@@ -491,16 +495,52 @@ var EditableGrid = (function () {
         revertRow(row);
     }
 
+    function cacheOriginalRow(row) {
+        var snapshot = {};
+        row.querySelectorAll('.' + config.editableCellClass).forEach(function (cell) {
+            var field = cell.dataset.field;
+            if (!field) return;
+            snapshot[field] = {
+                value: cell.dataset.value || '',
+                html: cell.innerHTML || ''
+            };
+        });
+        row.dataset.originalSnapshot = JSON.stringify(snapshot);
+    }
+
     /**
      * Revert row to original state
      */
     function revertRow(row) {
+        if (state.currentEditingCell && row.contains(state.currentEditingCell)) {
+            state.currentEditingCell.classList.remove(config.editingClass);
+            state.currentEditingCell = null;
+            state.isEditing = false;
+        }
+
+        var snapshot = null;
+        if (row.dataset.originalSnapshot) {
+            try {
+                snapshot = JSON.parse(row.dataset.originalSnapshot);
+            } catch (error) {
+                snapshot = null;
+            }
+        }
+
         // Revert all cells
         row.querySelectorAll('.' + config.editableCellClass).forEach(function (cell) {
+            var field = cell.dataset.field;
+            if (snapshot && snapshot[field]) {
+                cell.dataset.value = snapshot[field].value;
+                cell.dataset.originalValue = snapshot[field].value;
+                cell.innerHTML = snapshot[field].html || '--';
+                return;
+            }
+
             if (cell.dataset.originalValue !== undefined) {
                 cell.dataset.value = cell.dataset.originalValue;
+                cell.dataset.originalValue = cell.dataset.value;
 
-                var field = cell.dataset.field;
                 var fieldType = config.fieldTypes[field];
 
                 if (fieldType === 'dropdown') {
@@ -530,6 +570,9 @@ var EditableGrid = (function () {
         }
 
         row.classList.remove('row-dirty');
+        if (row.dataset.originalSnapshot) {
+            delete row.dataset.originalSnapshot;
+        }
 
         // Nếu là dòng mới thêm (-1) thì xóa luôn
         if (row.dataset.id === '-1') {
@@ -621,6 +664,9 @@ var EditableGrid = (function () {
                 }
 
                 row.classList.remove('row-dirty');
+                if (row.dataset.originalSnapshot) {
+                    delete row.dataset.originalSnapshot;
+                }
 
                 // Update original values
                 row.querySelectorAll('.' + config.editableCellClass).forEach(function (cell) {

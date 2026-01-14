@@ -4,10 +4,81 @@
     <div class="invalid-feedback-cs">
     </div>
     <div class="fileResult">
-        @if( !string.IsNullOrEmpty(Model.ValueControl))
-            {  var linkfiledisplay = Model.ValueControl;
-                <a href="@linkfiledisplay" target="_blank">Thông tin file CV</a>
+        @{
+            var linkfiledisplay = Model.ValueControl as string;
+            var linkWithoutQuery = linkfiledisplay ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(linkWithoutQuery))
+            {
+                var queryIndex = linkWithoutQuery.IndexOf('?');
+                if (queryIndex >= 0)
+                {
+                    linkWithoutQuery = linkWithoutQuery.Substring(0, queryIndex);
+                }
+
+                var hashIndex = linkWithoutQuery.IndexOf('#');
+                if (hashIndex >= 0)
+                {
+                    linkWithoutQuery = linkWithoutQuery.Substring(0, hashIndex);
+                }
             }
+
+            var extension = string.Empty;
+            var fileName = string.Empty;
+            if (!string.IsNullOrWhiteSpace(linkWithoutQuery))
+            {
+                extension = global::System.IO.Path.GetExtension(linkWithoutQuery).ToLowerInvariant();
+                fileName = global::System.IO.Path.GetFileName(linkWithoutQuery);
+            }
+
+            var extensionLabel = string.IsNullOrEmpty(extension) ? "FILE" : extension.TrimStart('.').ToUpperInvariant();
+            var displayName = string.IsNullOrWhiteSpace(fileName) ? "Open file" : fileName;
+            var isImage = extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".gif" || extension == ".webp" || extension == ".bmp";
+            var iconClass = "bi-file-earmark";
+            if (isImage)
+            {
+                iconClass = "bi-file-earmark-image";
+            }
+            else
+            {
+                switch (extension)
+                {
+                    case ".pdf":
+                        iconClass = "bi-file-earmark-pdf";
+                        break;
+                    case ".doc":
+                    case ".docx":
+                        iconClass = "bi-file-earmark-word";
+                        break;
+                    case ".xls":
+                    case ".xlsx":
+                        iconClass = "bi-file-earmark-excel";
+                        break;
+                    case ".txt":
+                        iconClass = "bi-file-earmark-text";
+                        break;
+                    default:
+                        iconClass = "bi-file-earmark";
+                        break;
+                }
+            }
+        }
+        @if (!string.IsNullOrWhiteSpace(linkfiledisplay))
+        {
+            <div class="file-preview">
+                <a href="@linkfiledisplay" target="_blank" class="file-thumb @(isImage ? "is-image" : "is-file")">
+                    @if (isImage)
+                    {
+                        <img src="@linkfiledisplay" alt="file preview" />
+                    }
+                    else
+                    {
+                        <i class="bi @iconClass"></i>
+                        <span class="file-ext">@extensionLabel</span>
+                    }
+                </a>
+                <a href="@linkfiledisplay" target="_blank" class="file-link">@displayName</a>
+            </div>
+        }
     </div>
     <div class="fileValue">
         <input type="hidden" id="@Model.IdControl"  class="valuefile" value="@Model.ValueControl" />

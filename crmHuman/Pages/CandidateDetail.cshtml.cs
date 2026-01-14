@@ -190,7 +190,8 @@ namespace crmHuman.Pages
             DataFile = await _documentDataBussiness.GetAll(new DocumentDataRquest()
             {
                 DataType = 1,
-                RelId = idInput
+                RelId = idInput,
+                CurrentUserId = UserData.UserId
 
             });
             DataLead = await _empBusiness1.GetAllManager();

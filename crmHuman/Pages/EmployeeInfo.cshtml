@@ -350,7 +350,7 @@
                             </div>
  <div class="form-group">
                                 <label class="form-label">Trình độ học vấn</label>
-                                <select name="EducationLevel:" id="cBEducationLevel" class="form-select" aria-label="">
+                                <select name="EducationLevel" id="cBEducationLevel" class="form-select" aria-label="">
                                     @foreach (var item in dataDepartments)
                                     {
                                        
@@ -413,11 +413,41 @@
                                 <div class="invalid-feedback-cs">
                                 </div>
                             </div>
+                            <div class="form-group">
+                                <label class="form-label">Dân tộc</label>
+                                <select name="Ethnicity" id="cbEthnicity" class="form-select" aria-label="">
+                                    @foreach (var item in dataDepartments)
+                                    {
+                                        var itemMasterData = item;
+                                        if(itemMasterData.TypeData != 21)
+                                        {
+                                            continue;
+                                        }
+
+                                        if(itemMasterData.ApplyFor == 0)
+                                        {
+                                            continue;
+                                        }
+
+                                        var departmentCheck = itemResult.Ethnicity;
+                                        if (itemMasterData.Code == departmentCheck)
+                                        {
+                                            <option selected value="@itemMasterData.Code">@itemMasterData.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@itemMasterData.Code">@itemMasterData.Name</option>
+                                        }
+                                    }
+                                </select>
+                                <div class="invalid-feedback-cs">
+                                </div>
+                            </div>
 
 
                              <div class="form-group">
                                 <label class="form-label">Tình trạng hôn nhân</label>
-                                <select name="Maritalstatus:" id="cBMaritalStatus" class="form-select" aria-label="">
+                                <select name="Maritalstatus" id="cBMaritalStatus" class="form-select" aria-label="">
                                     @foreach (var item in dataDepartments)
                                     {
                                        
@@ -461,6 +491,10 @@
                                     "CCCD", "SYLL", "DonXinViec", "BangCap", "CamKetNoiQuy", "CamKetThue"
                                     };
 
+                                    var exitDocuments = new List<string> {
+                                    "DonXinNghiViec", "QuyetDinhThoiViec", "BienBanBanGiao", "ThanhLyHopDong", "XacNhanNghiViec", "ChotSoBHXH"
+                                    };
+
                                       var selectedDocs = itemResult.DataCheckList ?? new List<string>();
                             }
                                 <div class="form-group mt-3">
@@ -485,6 +519,27 @@
                                     }
                             </div>
 
+                                <div class="form-group mt-3" id="exitDocumentsSection" style="display:none;">
+                                    <label class="form-label">Hồ sơ thôi việc</label>
+                                    @foreach (var doc in exitDocuments)
+                                    {
+                                    var label = doc switch
+                                    {
+                                    "DonXinNghiViec" => "Đơn xin nghỉ việc",
+                                    "QuyetDinhThoiViec" => "Quyết định thôi việc",
+                                    "BienBanBanGiao" => "Biên bản bàn giao",
+                                    "ThanhLyHopDong" => "Thanh lý hợp đồng",
+                                    "XacNhanNghiViec" => "Xác nhận nghỉ việc",
+                                    "ChotSoBHXH" => "Chốt sổ BHXH",
+                                    _ => doc
+                                    };
+                                    <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="Documents" value="@doc" id="chkExit@doc"
+                                    @(selectedDocs.Contains(doc) ? "checked" : "") />
+                                    <label class="form-check-label" for="chkExit@doc">@label</label>
+                                    </div>
+                                    }
+                            </div>
 
                                 <div class="form-group">
                                 <label class="form-label">Trạng thái làm việc </label>
@@ -520,6 +575,58 @@
                                     Please choose a username.
                                 </div>
                             </div>
+
+                            <div class="form-group" id="resignationDateSection" style="display:none;">
+                                <label class="form-label">Ngày nghỉ việc</label>
+                                <input type="date" value="@itemResult.ResignationDateDisplay"
+                                 name="ResignationDate" id="txtResignationDate" class="form-control" placeholder="" />
+                                <div class="invalid-feedback-cs"></div>
+                            </div>
+
+                            <script>
+                            (function () {
+                                function normalizeText(value) {
+                                    var text = (value || "").toString().toLowerCase();
+                                    if (text.normalize) {
+                                        text = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                                    }
+                                    return text.replace(/đ/g, "d").trim();
+                                }
+
+                                function toggleExitDocuments() {
+                                    var statusSelect = document.getElementById("cbStatusWork");
+                                    var exitSection = document.getElementById("exitDocumentsSection");
+                                    var dateSection = document.getElementById("resignationDateSection");
+                                    if (!statusSelect || (!exitSection && !dateSection)) {
+                                        return;
+                                    }
+
+                                    var selectedText = "";
+                                    if (statusSelect.selectedIndex >= 0) {
+                                        selectedText = statusSelect.options[statusSelect.selectedIndex].text || "";
+                                    }
+
+                                    var normalized = normalizeText(selectedText);
+                                    var shouldShow = normalized.includes("nghi viec");
+                                    if (exitSection) {
+                                        exitSection.style.display = shouldShow ? "" : "none";
+                                    }
+                                    if (dateSection) {
+                                        dateSection.style.display = shouldShow ? "" : "none";
+                                    }
+                                }
+
+                                document.addEventListener("DOMContentLoaded", function () {
+                                    var statusSelect = document.getElementById("cbStatusWork");
+                                    if (!statusSelect) {
+                                        return;
+                                    }
+
+                                    toggleExitDocuments();
+                                    statusSelect.addEventListener("change", toggleExitDocuments);
+                                });
+                            })();
+                            </script>
 
                              <div class="form-group">
                                 <label class="form-label">Trạng thái chứng từ</label>
@@ -838,6 +945,13 @@
                             <div class="form-group">
                             <label class="form-label"> Đăng ký BHYT</label>
                                 <input type="text" value="@bhxhItem.RegBHYT" name="RegBHYT" id="txtRegBHYT"
+                                 class="form-control" required placeholder="" />
+                                <div class="invalid-feedback-cs"> </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Tháng bắt đầu</label>
+                                <input type="month" value="@(bhxhItem.StartMonth?.ToString("yyyy-MM"))" name="BHXHStartMonth" id="txtBHXHStartMonth"
                                  class="form-control" required placeholder="" />
                                 <div class="invalid-feedback-cs"> </div>
                             </div>

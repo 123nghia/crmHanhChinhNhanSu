@@ -40,6 +40,17 @@ namespace crmHuman.DisplayModel
                 return string.Empty;
             }
         }
+        public string ResignationDateDisplay
+        {
+            get
+            {
+                if (ResignationDate.HasValue)
+                {
+                    return ResignationDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                }
+                return string.Empty;
+            }
+        }
         public string BankName { get; set; } = string.Empty;
         public string BankAccount { get; set; } = string.Empty;
 

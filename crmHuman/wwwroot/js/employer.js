@@ -399,7 +399,11 @@ function SaveEmployee(idEmp) {
     var cbStatusWork = getValueControl("cbStatusWork");
     var cbGenderInput = getValueControl("cbGender");
     var txtPlaceOfBirthInput = getValueControl("txtPlaceOfBirth");
+    var inputcBEducationLevel = getValueControl("cBEducationLevel");
+    var intpucBMaritalStatus = getValueControl("cBMaritalStatus");
     var txtReligionInput = getValueControl("txtReligion");
+    var cbEthnicityInput = getValueControl("cbEthnicity");
+    var txtFingerprintCodeInput = getValueControl("txtFingerprintCode");
     var txtPersonalEmailInput = getValueControl("txtPersonalEmail");
 
     var isActiveCb = 1;
@@ -464,7 +468,11 @@ function SaveEmployee(idEmp) {
             IsActive: isActiveCb,
             Gender: cbGenderInput,
             PlaceOfBirth: txtPlaceOfBirthInput,
+            EducationLevel: inputcBEducationLevel,
+            Maritalstatus: intpucBMaritalStatus,
+            Ethnicity: cbEthnicityInput,
             Religion: txtReligionInput,
+            FingerprintCode: txtFingerprintCodeInput,
             PersonalEmail: txtPersonalEmailInput
         },
         success: function (data) {
@@ -3012,6 +3020,7 @@ function saveEmployeeDetail(idEmp) {
     var txtNationalPlaceInput = getValueControl("txtNationalPlace");
     var dobInput = getValueControl("dob");
     var onboardDateInput = getValueControl("onboardDate");
+    var resignationDateInput = getValueControl("txtResignationDate");
     var txtPhoneInput = getValueControl("txtPhone");
     var cbManagerInput = getValueControl("cbManager");
     var cbDepartmentIdInput = getValueControl("cbDepartmentId");
@@ -3031,6 +3040,8 @@ function saveEmployeeDetail(idEmp) {
     var cbGenderInput = getValueControl("cbGender");
     var txtPlaceOfBirthInput = getValueControl("txtPlaceOfBirth");
     var txtReligionInput = getValueControl("txtReligion");
+    var cbEthnicityInput = getValueControl("cbEthnicity");
+    var txtFingerprintCodeInput = getValueControl("txtFingerprintCode");
     var txtPersonalEmailInput = getValueControl("txtPersonalEmail");
     var txtBeneficiaryNameInput = getValueControl("txtBeneficiaryName");
     var txtEmergencyContactInput = getValueControl("txtEmergencyContact");
@@ -3060,6 +3071,7 @@ function saveEmployeeDetail(idEmp) {
         TemporaryAddress: txtTemporaryAddressInput,
         Dob: dobInput,
         Onboard: onboardDateInput,
+        ResignationDate: resignationDateInput,
         Phone: txtPhoneInput,
         ManagerId: cbManagerInput,
         DepartmentCode: cbDepartmentIdInput,
@@ -3078,7 +3090,9 @@ function saveEmployeeDetail(idEmp) {
         DocumentCheck: valueSelectCheck,
         Gender: cbGenderInput,
         PlaceOfBirth: txtPlaceOfBirthInput,
+        Ethnicity: cbEthnicityInput,
         Religion: txtReligionInput,
+        FingerprintCode: txtFingerprintCodeInput,
         PersonalEmail: txtPersonalEmailInput,
         BeneficiaryName: txtBeneficiaryNameInput,
         EmergencyContact: txtEmergencyContactInput
@@ -3292,6 +3306,7 @@ function UpdateOtherInfoEmployee(employId, typeUpdate) {
     var inputDependent = getValueControl("txtDependentNumber");
     var inputDependentName = getValueControl("txtDependentName");
     var inptutxtRegBHYT = getValueControl("txtRegBHYT");
+    var txtBHXHStartMonthInput = getValueControl("txtBHXHStartMonth");
     var txtPITDateInput = getValueControl("txtPITDate");
     var txtEffectedFromInput = getValueControl("txtEffectedFrom");
     var txtBeneficiaryNameInput = getValueControl("txtBeneficiaryName");
@@ -3308,6 +3323,7 @@ function UpdateOtherInfoEmployee(employId, typeUpdate) {
         BankName: txtBankNameInput,
         Dependent: inputDependent,
         RegBHYT: inptutxtRegBHYT,
+        BHXHStartMonth: txtBHXHStartMonthInput,
         DependentName: inputDependentName,
         PITDate: txtPITDateInput,
         EffectedFrom: txtEffectedFromInput,
