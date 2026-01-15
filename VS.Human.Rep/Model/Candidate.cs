@@ -2,6 +2,8 @@
 {
     public class Candidate : BaseModel
     {
+        public string? UserName { get; set; }
+        public string? Pass { get; set; }
         public string? Code { get; set; }
         public int? Source { get; set; }
         public string? Email { get; set; }
@@ -19,6 +21,8 @@
         public int? DepartmentId { get; set; }
         public string? NationalId { get; set; }
         public string? Address { get; set; }
+        public int? IsEmployee { get; set; }
+        public int? EmployeeId { get; set; }
 
         public string Referrer { get; set; } = string.Empty;
         public Candidate()

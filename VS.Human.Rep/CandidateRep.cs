@@ -37,7 +37,11 @@ namespace VS.Human.Rep
                 item.Referrer,
                 item.Noted,
                 item.NationalId,
-                item.Address
+                item.Address,
+                item.UserName,
+                item.Pass,
+                item.IsEmployee,
+                item.EmployeeId
             };
             return await this.ExecuteSQL("sp_candidate_update", parameter);
         }
@@ -63,7 +67,9 @@ namespace VS.Human.Rep
                 item.CVLink,
                 item.IsActive,
                 item.NationalId,
-                item.Address
+                item.Address,
+                item.UserName,
+                item.Pass
             };
             return await this.ExecuteSQL("sp_candidate_insert", parameter);
         }
@@ -95,6 +101,22 @@ namespace VS.Human.Rep
                     itemUpdate.Referrer = item.Referrer;
                     itemUpdate.NationalId = item.NationalId;
                     itemUpdate.Address = item.Address;
+                    if (!string.IsNullOrWhiteSpace(item.UserName))
+                    {
+                        itemUpdate.UserName = item.UserName;
+                    }
+                    if (!string.IsNullOrWhiteSpace(item.Pass))
+                    {
+                        itemUpdate.Pass = item.Pass;
+                    }
+                    if (item.IsEmployee.HasValue)
+                    {
+                        itemUpdate.IsEmployee = item.IsEmployee;
+                    }
+                    if (item.EmployeeId.HasValue)
+                    {
+                        itemUpdate.EmployeeId = item.EmployeeId;
+                    }
 
                     return await Update(itemUpdate);
                 }
@@ -155,6 +177,44 @@ namespace VS.Human.Rep
             return await this.ExecuteSQL(sqlText, request);
         }
 
+        public async Task<Candidate> Login(string userName, string password)
+        {
+            var modelCheck = new
+            {
+                userName,
+                password
+            };
+            var result = await ExecuteSQL<Candidate>("sp_candidate_login", modelCheck);
+            return result;
+        }
+
+        public async Task<bool> ChangePassword(string password, int id)
+        {
+            var parameter = new
+            {
+                password,
+                id
+            };
+
+            return await this.ExecuteSQL("sp_candidate_changePassword", parameter);
+        }
+
+        public async Task<Candidate> GetByUserName(string userName)
+        {
+            var parameter = new { userName };
+            var sql = "SELECT TOP 1 * FROM Candidate WHERE UserName = @userName AND ISNULL(Deleted,0)=0";
+            return await ExecuteSQL<Candidate>(sql, parameter);
+        }
+
+        public async Task<bool> Delete(int id)
+        {
+            return await this.DeleteBase(id, tableDelete: "", delete: 1);
+        }
+
+        public async Task<bool> Delete(int id, bool reactive)
+        {
+            return await this.DeleteBase(id, tableDelete: "", delete: reactive ? 0 : 1);
+        }
 
     }
 }

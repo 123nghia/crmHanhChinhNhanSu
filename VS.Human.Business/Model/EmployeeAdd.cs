@@ -169,6 +169,18 @@ namespace VS.Human.Business.Model
         }
     }
 
+    public class CandidateProfileUpdate
+    {
+        public int CandidateId { get; set; }
+        public string? Name { get; set; }
+        public DateTime? Dob { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? CVLink { get; set; }
+        public string? NationalId { get; set; }
+        public string? Address { get; set; }
+    }
+
 
 
     public class EmployeeDetailUpdate : Employee

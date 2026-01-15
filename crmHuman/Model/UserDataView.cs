@@ -32,6 +32,10 @@
                 {
                     return "CTV";
                 }
+                else if (RoleCode == "CANDIDATE")
+                {
+                    return "Candidate";
+                }
                 return "Không rõ vai trò";
 
             }

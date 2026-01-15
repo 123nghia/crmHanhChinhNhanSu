@@ -16,6 +16,7 @@ namespace crmHuman.Pages
         private readonly ICandidateBusiness _candidateBusiness;
         private readonly IEmpBusiness _empBusiness;
         private readonly IOnboardMemberBusiness _onboardMemberBusiness;
+        private readonly INotificationBusiness _notificationBusiness;
 
         public BaseList DataAll { get; set; }
         public BaseList CandidateList { get; set; }
@@ -26,12 +27,14 @@ namespace crmHuman.Pages
             IScheduleInterviewBussiness scheduleInterviewBussiness,
             ICandidateBusiness candidateBusiness,
             IEmpBusiness empBusiness,
-            IOnboardMemberBusiness onboardMemberBusiness)
+            IOnboardMemberBusiness onboardMemberBusiness,
+            INotificationBusiness notificationBusiness)
         {
             _scheduleInterviewBussiness = scheduleInterviewBussiness;
             _candidateBusiness = candidateBusiness;
             _empBusiness = empBusiness;
             _onboardMemberBusiness = onboardMemberBusiness;
+            _notificationBusiness = notificationBusiness;
             TitlePage = "Danh sach phong van";
             KeyPage = "ScheduleInterview";
             DataAll = new BaseList();
@@ -68,6 +71,16 @@ namespace crmHuman.Pages
             };
 
             var result = await _scheduleInterviewBussiness.AddOrUpdate(itemInsert);
+            if (result && request.RelId > 0 && request.Id <= 0)
+            {
+                var scheduleText = request.ScheduleDate?.ToString("HH:mm dd/MM/yyyy") ?? "";
+                await _notificationBusiness.CreateNotification(
+                    request.RelId,
+                    $"Bạn có lịch phỏng vấn mới vào {scheduleText}.",
+                    "/Candidate/Dashboard",
+                    "InterviewScheduled"
+                );
+            }
             return ApiResponseHelper.SuccessResponse(new { success = result });
         }
 
@@ -128,6 +141,22 @@ namespace crmHuman.Pages
             };
 
             var result = await _scheduleInterviewBussiness.AddOrUpdate(updateItem);
+            if (result && InterviewResult.HasValue && scheduleItem.RelId > 0)
+            {
+                var resultText = InterviewResult.Value switch
+                {
+                    1 => "Đạt",
+                    2 => "Không đạt",
+                    3 => "Chờ quyết định",
+                    _ => "Đã cập nhật"
+                };
+                await _notificationBusiness.CreateNotification(
+                    scheduleItem.RelId,
+                    $"Kết quả phỏng vấn của bạn: {resultText}.",
+                    "/Candidate/Dashboard",
+                    "InterviewResult"
+                );
+            }
             return ApiResponseHelper.SuccessResponse(new { success = result });
         }
 

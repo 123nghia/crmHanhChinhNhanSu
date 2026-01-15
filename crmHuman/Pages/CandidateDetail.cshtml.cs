@@ -74,6 +74,11 @@ namespace crmHuman.Pages
         public async Task<IActionResult> OnPostAddSchedule(CandidateScheduleAdd request)
         {
             GetInfoUser();
+            if (UserData.RoleCode == "CANDIDATE")
+            {
+                return Redirect("/Candidate/Dashboard");
+            }
+
             var errors = new List<object>();
             
             if (ValidationHelper.HasErrors(errors))
@@ -117,6 +122,32 @@ namespace crmHuman.Pages
             var result = await _empBusiness.Update(request);
             return ApiResponseHelper.SuccessResponse(new { success = result });
         }
+
+        public async Task<IActionResult> OnPostOnboard(int candidateId)
+        {
+            GetInfoUser();
+            if (UserData.RoleCode == "CANDIDATE")
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
+            var errors = new List<object>();
+            ValidationHelper.ValidateId(candidateId, "candidateId", "d?i tu?ng Id", errors);
+
+            if (ValidationHelper.HasErrors(errors))
+            {
+                return ApiResponseHelper.BadRequest(errors);
+            }
+
+            var employee = await _empBusiness.Onboard(candidateId);
+            if (employee == null || employee.Id <= 0)
+            {
+                return ApiResponseHelper.SuccessResponse(new { success = false });
+            }
+
+            return ApiResponseHelper.SuccessResponse(new { success = true, employeeId = employee.Id });
+        }
+
 
 
         public async Task<IActionResult> OnPostAddDocument(DocumentDataAddRequest request)
@@ -224,7 +255,7 @@ namespace crmHuman.Pages
 
         {
             GetInfoUser();
-            var resultView = new Candidate()
+            var resultView = new VS.Human.Rep.Model.Candidate()
             {
                 Id = id,
 

@@ -1,7 +1,12 @@
 @model crmHuman.Pages.BaseModel2
+@{
+    var profileLink = Model?.UserData?.RoleCode == "CANDIDATE" ? "/Candidate/Profile" : "/Infomation";
+}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+    @{
+    }
     @await Html.PartialAsync("_LayoutHeadResources")
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -42,7 +47,7 @@
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <a class="dropdown-item d-flex align-items-center" href="/Infomation">
+                            <a class="dropdown-item d-flex align-items-center" href="@profileLink">
                                 <i class="bi bi-person me-2"></i>
                                 <span>Thông tin cá nhân</span>
                             </a>

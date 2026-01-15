@@ -1,0 +1,175 @@
+@page
+@model crmHuman.Pages.Candidate.DashboardModel
+@{
+    ViewData["Title"] = "Candidate Dashboard";
+    var candidate = Model.Candidate;
+    var scheduleItems = (Model.ScheduleList?.Data ?? new List<object>()).Cast<dynamic>().ToList();
+    dynamic nextSchedule = null;
+    foreach (var item in scheduleItems)
+    {
+        nextSchedule = item;
+        break;
+    }
+}
+
+<div class="pagetitle">
+    <h1>Candidate Dashboard</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item active">Dashboard</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Application Status</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="bi bi-clipboard-check"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6>@(string.IsNullOrEmpty(Model.StatusText) ? candidate.Status?.ToString() : Model.StatusText)</h6>
+                            <span class="text-muted small">
+                                Document: @(string.IsNullOrEmpty(Model.DocumentStatusText) ? "-" : Model.DocumentStatusText)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Next Interview</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="bi bi-calendar-event"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6>@(nextSchedule == null ? "No schedule" : nextSchedule.ScheduleDateDisplay)</h6>
+                            <span class="text-muted small">
+                                @(nextSchedule == null ? "-" : (string.IsNullOrWhiteSpace(nextSchedule.AddressInfo) ? "TBD" : nextSchedule.AddressInfo))
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Profile</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="bi bi-person"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6>@candidate.Name</h6>
+                            <span class="text-muted small">Username: @candidate.UserName</span>
+                        </div>
+                    </div>
+                    <div class="pt-2 small text-muted">
+                        <div>Phone: @candidate.Phone</div>
+                        <div>Email: @candidate.Email</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Interview Schedule</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Location</th>
+                                    <th>Note</th>
+                                    <th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (scheduleItems.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-muted">No interview schedule yet.</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    foreach (var item in scheduleItems)
+                                    {
+                                        var schedule = item as dynamic;
+                                        <tr>
+                                            <td>@schedule.ScheduleDateDisplay</td>
+                                            <td>@schedule.AddressInfo</td>
+                                            <td>@schedule.Noted</td>
+                                            <td>@(schedule.InterviewResult == 1 ? "Pass" : schedule.InterviewResult == 2 ? "Fail" : schedule.InterviewResult == 3 ? "Hold" : "")</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title">Notifications (@Model.UnreadNotificationCount unread)</h5>
+                        @if (Model.UnreadNotificationCount > 0)
+                        {
+                            <form method="post" asp-page-handler="MarkAllRead" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Mark all read</button>
+                            </form>
+                        }
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        @if (Model.Notifications.Count == 0)
+                        {
+                            <li class="list-group-item text-muted">No notifications.</li>
+                        }
+                        else
+                        {
+                            foreach (var notif in Model.Notifications)
+                            {
+                                var isUnread = !notif.IsRead;
+                                <li class="list-group-item @(isUnread ? "fw-bold" : "")">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            @if (!string.IsNullOrWhiteSpace(notif.Link))
+                                            {
+                                                <a href="@notif.Link">@notif.Message</a>
+                                            }
+                                            else
+                                            {
+                                                @notif.Message
+                                            }
+                                        </div>
+                                        <small class="text-muted">@notif.CreateAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </div>
+                                </li>
+                            }
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

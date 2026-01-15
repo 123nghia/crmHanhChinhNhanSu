@@ -1,0 +1,125 @@
+@page
+@model crmHuman.Pages.Candidate.ProfileModel
+@{
+    ViewData["Title"] = "Candidate Profile";
+    var candidate = Model.Candidate;
+}
+
+<div class="pagetitle">
+    <h1>Candidate Profile</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item active">Profile</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Update Profile</h5>
+                    <form id="candidateProfileForm" class="row g-3" novalidate>
+                        <div class="col-12">
+                            <label class="form-label">Username</label>
+                            <input type="text" value="@candidate.UserName" class="form-control" readonly />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Full name</label>
+                            <input type="text" value="@candidate.Name" name="fullName" id="txtFullName" class="form-control" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Date of birth</label>
+                            <input type="date" value="@(candidate.Dob?.ToString("yyyy-MM-dd") ?? string.Empty)" name="dob" id="dob" class="form-control" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Phone</label>
+                            <input type="text" value="@candidate.Phone" name="txtPhone" id="txtPhone" class="form-control" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Email</label>
+                            <input type="text" value="@candidate.Email" name="txtEmail" id="txtEmail" class="form-control" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">National ID</label>
+                            <input type="text" value="@candidate.NationalId" name="NationalId" id="txtNationalId" class="form-control" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Address</label>
+                            <input type="text" value="@candidate.Address" name="Address" id="txtAddress" class="form-control" />
+                        </div>
+                        <div class="col-12">
+                            @{
+                                Html.RenderPartial("ControlForm/FileInputCs", new
+                                {
+                                    ValueControl = candidate.CVLink,
+                                    NameControl = "inputCvlinkName",
+                                    IdControl = "inputCvlink",
+                                    Lable = "CV file"
+                                });
+                            }
+                        </div>
+                        <div class="col-12">
+                            <button type="button" onclick="saveCandidateProfile()" class="btn btn-primary">Save changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        function saveCandidateProfile() {
+            var txtFullName = getValueControl("txtFullName");
+            var dobInput = getValueControl("dob");
+            var phoneNumber = getValueControl("txtPhone");
+            var emailText = getValueControl("txtEmail");
+            var nationalIdInput = getValueControl("txtNationalId");
+            var addressInput = getValueControl("txtAddress");
+            var cvLinkInput = getValueControl("inputCvlink");
+
+            var bodyRequest = {
+                Name: txtFullName,
+                Dob: dobInput,
+                Phone: phoneNumber,
+                Email: emailText,
+                NationalId: nationalIdInput,
+                Address: addressInput,
+                CVLink: cvLinkInput
+            };
+
+            $.ajax({
+                headers: {
+                    "RequestVerificationToken":
+                        $('input[name="__RequestVerificationToken"]').val()
+                },
+                type: "POST",
+                datatype: "JSON",
+                url: '/Candidate/Profile?handler=Update',
+                data: bodyRequest,
+                success: function (data) {
+                    if (data && data.success) {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Saved",
+                            text: "Profile updated."
+                        });
+                        return;
+                    }
+                    Swal.fire({
+                        icon: "error",
+                        title: "Update failed",
+                        text: "Please check your data."
+                    });
+                },
+                error: function (jqXHR, exception) {
+                    showError(jqXHR);
+                }
+            });
+        }
+    </script>
+}

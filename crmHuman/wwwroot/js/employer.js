@@ -2038,6 +2038,8 @@ function saveCanddiateOrder(idEmp) {
     var EmailText = getValueControl("txtEmail");
     var nationalIdInput = getValueControl("txtNationalId");
     var addressInput = getValueControl("txtAddress");
+    var nationalIdInput = getValueControl("txtNationalId");
+    var addressInput = getValueControl("txtAddress");
     var txtShortDes = "";
     var txtNotedCand = getValueControl("txtNotedCand");
     var cvLinkInput = getValueControl("inputCvlink");
@@ -2132,6 +2134,10 @@ function saveCanddiateDetail(idEmp) {
     else {
         removeError("txtPhone");
     }
+
+    var nationalIdInput = getValueControl("txtNationalId");
+    var addressInput = getValueControl("txtAddress");
+
     var bodyRequest = {
         CandidateId: cbcandidateId,
         ShortDes: txtShortDes,
@@ -2153,7 +2159,6 @@ function saveCanddiateDetail(idEmp) {
         Address: addressInput
     };
 
-    debugger;
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -2173,6 +2178,69 @@ function saveCanddiateDetail(idEmp) {
         }
     });
 }
+
+function onboardCandidate(candidateId) {
+    if (!candidateId || candidateId < 1) {
+        Swal.fire({
+            icon: "warning",
+            title: "Onboard",
+            text: "Missing candidate id."
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: "Onboard candidate",
+        text: "Create employee account and deactivate candidate login?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Onboard",
+        cancelButtonText: "Cancel"
+    }).then((result) => {
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        $.ajax({
+            headers: {
+                "RequestVerificationToken":
+                    $('input[name="__RequestVerificationToken"]').val()
+            },
+            type: "POST",
+            datatype: "JSON",
+            url: '/CandidateDetail?handler=Onboard',
+            data: {
+                candidateId: candidateId
+            },
+            success: function (data) {
+                if (data && data.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Onboarded",
+                        text: "Employee account created."
+                    }).then(() => {
+                        if (data.employeeId && data.employeeId > 0) {
+                            window.location.href = '/EmployeeInfo?id=' + data.employeeId;
+                        } else {
+                            window.location.reload();
+                        }
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    icon: "error",
+                    title: "Onboard failed",
+                    text: "Please review candidate status."
+                });
+            },
+            error: function (jqXHR, exception) {
+                showError(jqXHR);
+            }
+        });
+    });
+}
+
 
 function saveImpact(orderCode) {
     var cbPartnerId2Value = getValueControl("cbpartnerId3");

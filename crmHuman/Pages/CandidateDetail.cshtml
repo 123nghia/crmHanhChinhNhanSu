@@ -51,6 +51,12 @@
 
                             </div>
                             <div class="form-group">
+                                <label class="form-label">Username</label>
+                                <input type="text" value="@itemResult.UserName" class="form-control" readonly />
+                                <div class="invalid-feedback-cs">
+                                </div>
+                            </div>
+                            <div class="form-group">
                                 <label class="form-label">Ngày sinh</label>
                                 <input type="date" value="@itemResult.DayOfBirthDisplay" name="dob" id="dob" class="form-control" required placeholder="" />
                                 <div class="invalid-feedback-cs">
@@ -273,8 +279,12 @@
                    
                <br />
                   <br />
-             <button type="button" onclick="saveCanddiateDetail(@itemResult.Id)" class="btn btn-primary">Lưu thông tin </button>
-                 </div>
+             <button type="button" onclick="saveCanddiateDetail(@itemResult.Id)" class="btn btn-primary">Luu th?ng tin </button>
+             @if (itemResult.IsEmployee == null || itemResult.IsEmployee != 1)
+             {
+                 <button type="button" onclick="onboardCandidate(@itemResult.Id)" class="btn btn-success ms-2">Onboard</button>
+             }
+</div>
 
 
                 </div>

@@ -8,6 +8,7 @@ namespace VS.Human.Rep
         Task<Employee> Login(string userName, string password);
         Task<bool> AddOrUpdate(Employee item);
         Task<bool> ChangePassword(string password, int id);
+        Task<bool> UpdateCredentials(int id, string userName, string password);
 
         Task<bool> Delete(int id, bool reactive = false);
         Task<Employee> GetById(int id);

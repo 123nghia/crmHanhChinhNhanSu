@@ -1,7 +1,7 @@
 @model crmHuman.Pages.BaseModel2
 @{
     var roleCode = Model?.UserData?.RoleCode ?? string.Empty;
-    var partialName = "_slidebarAdmin";
+    var partialName = roleCode == "CANDIDATE" ? "_sidebarCandidate" : "_slidebarAdmin";
 }
 
 @await Html.PartialAsync(partialName, Model)

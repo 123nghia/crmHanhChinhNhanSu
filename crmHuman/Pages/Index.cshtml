@@ -12,6 +12,8 @@
     var showActivity = Model.UserData?.RoleCode != "4" && showOrderOverview;
     var showExport = Model.HasViewPermission("Report");
     var showMyLeave = Model.UserData?.RoleCode == "4" && Model.HasViewPermission("LeaveRequest");
+    var showExtendedStats = Model.UserData?.RoleCode != "2";
+    var extendedStats = Model.ExtendedStats;
     var leftColumnClass = showActivity ? "col-lg-8" : "col-12";
 }
 
@@ -237,6 +239,155 @@
                     
                         
 
+
+                        @if (showExtendedStats)
+                        {
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Thống kê nhân sự</h5>
+                                        @if (extendedStats.ContractStats != null && extendedStats.ContractStats.Count > 0)
+                                        {
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>HĐLĐ</th>
+                                                            <th>Số lượng</th>
+                                                            <th>Tỷ lệ</th>
+                                                            <th>Chi tiết</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var group in extendedStats.ContractStats)
+                                                        {
+                                                            <tr>
+                                                                <td>@group.Title</td>
+                                                                <td>@group.Value</td>
+                                                                <td>@($"{group.Percent:0.#}%")</td>
+                                                                <td>
+                                                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                                                            data-bs-toggle="modal" data-bs-target="#@($"modal-{group.Key}")">
+                                                                        Xem
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-muted">Chưa có dữ liệu hợp đồng.</div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xxl-4 col-md-6">
+                                <div class="card info-card sales-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">HĐLĐ sắp đến hạn</h5>
+                                        <div class="d-flex align-items-center">
+                                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-calendar2-week"></i>
+                                            </div>
+                                            <div class="ps-3">
+                                                <h6>@extendedStats.ExpiringContracts.Value</h6>
+                                                <span class="text-muted small pt-1">@($"{extendedStats.ExpiringContracts.Percent:0.#}%") nhân sự</span>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#modal-expiring-contracts">
+                                            Xem chi tiết
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xxl-4 col-md-6">
+                                <div class="card info-card sales-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Ứng viên</h5>
+                                        <div class="d-flex align-items-center">
+                                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-people"></i>
+                                            </div>
+                                            <div class="ps-3">
+                                                <h6>@extendedStats.CandidateTotal.Value</h6>
+                                                <span class="text-muted small pt-1">PV đạt: @extendedStats.CandidatePass.Value (@($"{extendedStats.CandidatePass.Percent:0.#}%"))</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modal-candidate-total">Tất cả</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modal-candidate-pass">PV đạt</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xxl-4 col-md-6">
+                                <div class="card info-card customers-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Ngày phép trong tháng</h5>
+                                        <div class="d-flex align-items-center">
+                                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-calendar-check"></i>
+                                            </div>
+                                            <div class="ps-3">
+                                                <h6>@extendedStats.LeaveMonth.Value @extendedStats.LeaveMonth.Unit</h6>
+                                                <span class="text-muted small pt-1">Duyệt: @($"{extendedStats.LeaveMonth.Percent:0.#}%")</span>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#modal-leave-month">
+                                            Xem chi tiết
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xxl-4 col-md-6">
+                                <div class="card info-card customers-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Tình trạng nhân sự</h5>
+                                        <div class="ps-1 small">
+                                            <div>
+                                                Đang làm việc:
+                                                <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-employee-working">
+                                                    @extendedStats.EmployeeWorking.Value (@($"{extendedStats.EmployeeWorking.Percent:0.#}%"))
+                                                </a>
+                                            </div>
+                                            <div>
+                                                Nghỉ việc:
+                                                <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-employee-resigned">
+                                                    @extendedStats.EmployeeResigned.Value (@($"{extendedStats.EmployeeResigned.Percent:0.#}%"))
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xxl-4 col-md-6">
+                                <div class="card info-card revenue-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Nhân viên chính thức</h5>
+                                        <div class="d-flex align-items-center">
+                                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-person-badge"></i>
+                                            </div>
+                                            <div class="ps-3">
+                                                <h6>@extendedStats.OfficialEmployees.Value</h6>
+                                                <span class="text-muted small pt-1">@($"{extendedStats.OfficialEmployees.Percent:0.#}%") tổng nhân sự</span>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#modal-employee-official">
+                                            Xem chi tiết
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                         @if (showMyLeave)
                         {
                             <!-- Personal Dashboard for Members -->
@@ -337,7 +488,378 @@
     @* </main> *@
  
 
- <script>
+ 
+@if (showExtendedStats)
+{
+    @foreach (var group in extendedStats.ContractStats)
+    {
+        <div class="modal fade" id="@($"modal-{group.Key}")" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chi tiết HĐLĐ - @group.Title</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (group.Details != null && group.Details.Count > 0)
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Nhân viên</th>
+                                            <th>Thông tin</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in group.Details)
+                                        {
+                                            <tr>
+                                                <td>@item.Name</td>
+                                                <td>@(string.IsNullOrWhiteSpace(item.SubText) ? "--" : item.SubText)</td>
+                                                <td>
+                                                    @if (!string.IsNullOrWhiteSpace(item.Url))
+                                                    {
+                                                        <a class="btn btn-sm btn-outline-primary" href="@item.Url">Xem</a>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-muted">Không có dữ liệu.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="modal fade" id="modal-expiring-contracts" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">HĐLĐ sắp đến hạn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (extendedStats.ExpiringContracts.Details != null && extendedStats.ExpiringContracts.Details.Count > 0)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Nhân viên</th>
+                                        <th>Hết hạn</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in extendedStats.ExpiringContracts.Details)
+                                    {
+                                        <tr>
+                                            <td>@item.Name</td>
+                                            <td>@(string.IsNullOrWhiteSpace(item.SubText) ? "--" : item.SubText)</td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(item.Url))
+                                                {
+                                                    <a class="btn btn-sm btn-outline-primary" href="@item.Url">Xem</a>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Không có dữ liệu.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-candidate-total" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tổng số ứng viên</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (extendedStats.CandidateTotal.Details != null && extendedStats.CandidateTotal.Details.Count > 0)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Ứng viên</th>
+                                        <th>Vị trí</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in extendedStats.CandidateTotal.Details)
+                                    {
+                                        <tr>
+                                            <td>@item.Name</td>
+                                            <td>@(string.IsNullOrWhiteSpace(item.SubText) ? "--" : item.SubText)</td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(item.Url))
+                                                {
+                                                    <a class="btn btn-sm btn-outline-primary" href="@item.Url">Xem</a>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Không có dữ liệu.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-candidate-pass" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ứng viên phỏng vấn đạt</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (extendedStats.CandidatePass.Details != null && extendedStats.CandidatePass.Details.Count > 0)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Ứng viên</th>
+                                        <th>Vị trí</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in extendedStats.CandidatePass.Details)
+                                    {
+                                        <tr>
+                                            <td>@item.Name</td>
+                                            <td>@(string.IsNullOrWhiteSpace(item.SubText) ? "--" : item.SubText)</td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(item.Url))
+                                                {
+                                                    <a class="btn btn-sm btn-outline-primary" href="@item.Url">Xem</a>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Không có dữ liệu.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-leave-month" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ngày phép trong tháng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (extendedStats.LeaveMonth.Details != null && extendedStats.LeaveMonth.Details.Count > 0)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Nhân viên</th>
+                                        <th>Thông tin</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in extendedStats.LeaveMonth.Details)
+                                    {
+                                        <tr>
+                                            <td>@item.Name</td>
+                                            <td>@(string.IsNullOrWhiteSpace(item.SubText) ? "--" : item.SubText)</td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(item.Url))
+                                                {
+                                                    <a class="btn btn-sm btn-outline-primary" href="@item.Url">Xem</a>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Không có dữ liệu.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-employee-working" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nhân viên đang làm việc</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (extendedStats.EmployeeWorking.Details != null && extendedStats.EmployeeWorking.Details.Count > 0)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Nhân viên</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in extendedStats.EmployeeWorking.Details)
+                                    {
+                                        <tr>
+                                            <td>@item.Name</td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(item.Url))
+                                                {
+                                                    <a class="btn btn-sm btn-outline-primary" href="@item.Url">Xem</a>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Không có dữ liệu.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-employee-resigned" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nhân viên nghỉ việc</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (extendedStats.EmployeeResigned.Details != null && extendedStats.EmployeeResigned.Details.Count > 0)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Nhân viên</th>
+                                        <th>Nghỉ việc</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in extendedStats.EmployeeResigned.Details)
+                                    {
+                                        <tr>
+                                            <td>@item.Name</td>
+                                            <td>@(string.IsNullOrWhiteSpace(item.SubText) ? "--" : item.SubText)</td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(item.Url))
+                                                {
+                                                    <a class="btn btn-sm btn-outline-primary" href="@item.Url">Xem</a>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Không có dữ liệu.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-employee-official" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nhân viên chính thức</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (extendedStats.OfficialEmployees.Details != null && extendedStats.OfficialEmployees.Details.Count > 0)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Nhân viên</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in extendedStats.OfficialEmployees.Details)
+                                    {
+                                        <tr>
+                                            <td>@item.Name</td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(item.Url))
+                                                {
+                                                    <a class="btn btn-sm btn-outline-primary" href="@item.Url">Xem</a>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Không có dữ liệu.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<script>
    var groupSearch = "@Model.RequestPage.GroupId";
    var memberSearch = "@Model.RequestPage.MemberId";
    

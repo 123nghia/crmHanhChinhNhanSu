@@ -244,7 +244,7 @@ namespace crmHuman.Pages
 
         {
             GetInfoUser();
-            var resultView = new Candidate()
+            var resultView = new VS.Human.Rep.Model.Candidate()
             {
                 Id = id,
                 Name = "",

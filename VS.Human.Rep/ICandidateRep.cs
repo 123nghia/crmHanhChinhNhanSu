@@ -8,6 +8,7 @@ namespace VS.Human.Rep
         Task<bool> AddOrUpdate(Candidate item);
 
         Task<bool> Delete(int id);
+        Task<bool> Delete(int id, bool reactive);
 
         Task<Candidate> GetById(int id);
 
@@ -15,5 +16,8 @@ namespace VS.Human.Rep
 
         Task<bool> AddCandidateWidthOrder(dynamic item);
         public Task<bool> DeleteReal(int id);
+        Task<Candidate> Login(string userName, string password);
+        Task<bool> ChangePassword(string password, int id);
+        Task<Candidate> GetByUserName(string userName);
     }
 }

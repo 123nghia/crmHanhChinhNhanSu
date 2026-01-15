@@ -20,6 +20,7 @@ namespace crmHuman.Pages
         public BaseList DataAll { get; set; }
         public List<DataMasterItem> DataMasterData { get; set; }
         private readonly ImasterDataBussiness _masterDataBussiness;
+        private readonly INotificationBusiness _notificationBusiness;
         public BaseList DataManager { get; set; }
         public int TotalRecord
         {
@@ -33,12 +34,14 @@ namespace crmHuman.Pages
         public CandidateModel(ILogger<CandidateModel> logger,
             ICandidateBusiness empBusiness,
             IEmpBusiness empBusiness1,
-            ImasterDataBussiness imasterDataBussiness
+            ImasterDataBussiness imasterDataBussiness,
+            INotificationBusiness notificationBusiness
             )
         {
             _logger = logger;
             _empBusiness = empBusiness;
             _masterDataBussiness = imasterDataBussiness;
+            _notificationBusiness = notificationBusiness;
             TitlePage = "Danh sách ứng viên";
             KeyPage = "Candidate";
             _iempl = empBusiness1;
@@ -96,6 +99,28 @@ namespace crmHuman.Pages
             {
                 request.Status = 91;
                 result = await _empBusiness.Add(request);
+                if (result)
+                {
+                    // Get the newly created candidate to find their ID
+                    var candidates = await _empBusiness.GetAll(new CandidateRequest { Token = request.Phone, Page = 1, Limit = 1 });
+                    if (candidates?.Data != null)
+                    {
+                        foreach (var c in candidates.Data)
+                        {
+                            var cand = c as dynamic;
+                            if (cand != null && cand.Id > 0)
+                            {
+                                await _notificationBusiness.CreateNotification(
+                                    cand.Id,
+                                    "Chào mừng bạn! Tài khoản ứng viên của bạn đã được tạo thành công.",
+                                    "/Candidate/Dashboard",
+                                    "CandidateWelcome"
+                                );
+                                break;
+                            }
+                        }
+                    }
+                }
 
             }
             else
@@ -121,6 +146,10 @@ namespace crmHuman.Pages
                 return Redirect("/Login");
             }
             GetInfoUser();
+            if (UserData.RoleCode == "CANDIDATE")
+            {
+                return Redirect("/Candidate/Dashboard");
+            }
             if (UserData.RoleCode == "2")
             {
                 return Redirect("/");
@@ -185,7 +214,7 @@ namespace crmHuman.Pages
 
         {
             GetInfoUser();
-            var resultView = new Candidate()
+            var resultView = new VS.Human.Rep.Model.Candidate()
             {
                 Id = id,
 

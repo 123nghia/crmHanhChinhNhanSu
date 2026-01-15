@@ -181,6 +181,17 @@ namespace VS.Human.Rep
 
             return await this.ExecuteSQL("sp_emp_changePassword", parameter);
         }
+
+        public async Task<bool> UpdateCredentials(int id, string userName, string password)
+        {
+            var sql = "UPDATE Employees SET UserName = @userName, Pass = @password, UpdateAt = getdate() WHERE Id = @id";
+            return await ExecuteSQL(sql, new
+            {
+                id,
+                userName,
+                password
+            });
+        }
         public async Task<bool> AddOrUpdate(Employee item)
         {
             if (item.Id > 0)
