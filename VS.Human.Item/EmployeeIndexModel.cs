@@ -324,7 +324,8 @@ namespace VS.Human.Item
         {
             get; set;
         }
-
+        // Thêm property UserName để fix lỗi
+        public string? UserName { get; set; }
     }
 
 
