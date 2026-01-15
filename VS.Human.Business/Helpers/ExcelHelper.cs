@@ -134,7 +134,7 @@ namespace VS.Human.Business.Helpers
                 }
             }
 
-            var formats = new[] { "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "d-M-yyyy", "yyyy-MM-dd", "MM/dd/yyyy" };
+            var formats = new[] { "dd/MM/yyyy", "d/M/yyyy", "MM/yyyy", "M/yyyy", "dd-MM-yyyy", "d-M-yyyy", "yyyy-MM-dd", "MM/dd/yyyy" };
             foreach (var format in formats)
             {
                 if (DateTime.TryParseExact(dateStr, format, null, System.Globalization.DateTimeStyles.None, out date))

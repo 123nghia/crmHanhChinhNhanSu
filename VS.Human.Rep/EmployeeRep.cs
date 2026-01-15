@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Extensions.Configuration;
+using System.Data;
 using VS.Human.Item;
 using VS.Human.Rep.Model;
 
@@ -56,6 +57,7 @@ namespace VS.Human.Rep
                 item.NationalPlace,
                 item.Dob,
                 item.Onboard,
+                item.ResignationDate,
                 item.Phone,
                 item.PositionCode,
                 item.RoleCode,
@@ -80,6 +82,7 @@ namespace VS.Human.Rep
                 item.StatusWork,
                 item.Gender,
                 item.PlaceOfBirth,
+                item.Ethnicity,
                 item.Religion,
                 item.PersonalEmail,
                 item.BeneficiaryName,
@@ -102,6 +105,7 @@ namespace VS.Human.Rep
                 item.NationalPlace,
                 item.Dob,
                 item.Onboard,
+                item.ResignationDate,
                 item.Phone,
                 item.PositionCode,
                 item.RoleCode,
@@ -130,6 +134,7 @@ namespace VS.Human.Rep
                 item.BankName,
                 item.Gender,
                 item.PlaceOfBirth,
+                item.Ethnicity,
                 item.Religion,
                 item.PersonalEmail,
                 item.BeneficiaryName,
@@ -198,6 +203,7 @@ namespace VS.Human.Rep
                     itemUpdate.IsActive = item.IsActive;
                     itemUpdate.Noted = item.Noted;
                     itemUpdate.Onboard = item.Onboard;
+                    itemUpdate.ResignationDate = item.ResignationDate;
                     itemUpdate.PermanentAddress = item.PermanentAddress;
                     itemUpdate.TemporaryAddress = item.TemporaryAddress;
                     itemUpdate.NationalId = item.NationalId;
@@ -216,6 +222,7 @@ namespace VS.Human.Rep
                     itemUpdate.Religion = item.Religion;
                     itemUpdate.Gender = item.Gender;
                     itemUpdate.PlaceOfBirth = item.PlaceOfBirth;
+                    itemUpdate.Ethnicity = item.Ethnicity;
                     itemUpdate.PersonalEmail = item.PersonalEmail;
                     itemUpdate.BeneficiaryName = item.BeneficiaryName;
                     itemUpdate.EmergencyContact = item.EmergencyContact;
@@ -295,9 +302,31 @@ namespace VS.Human.Rep
         dbo.getDisplayMasterData(d.DocumentStatus) AS DocumentStatusText,
         dbo.getDisplayMasterdata(d.DepartmentCode) AS DepartmentText,
         dbo.getDisplayMasterdata(d.PositionCode) AS PositionText,
-        dbo.getDisplayMasterdata(d.EducationLevel) AS EducationLevelText,
-        dbo.getDisplayMasterdata(d.Maritalstatus) AS MaritalstatusText,
-        dbo.getDisplayMasterdata(d.Religion) AS ReligionText,
+        COALESCE(
+            (SELECT TOP 1 Name FROM MasterData md WHERE md.Code = d.EducationLevel AND md.TypeData = 14 AND ISNULL(md.Deleted,0)=0),
+            dbo.getDisplayMasterData(d.EducationLevel),
+            d.EducationLevel
+        ) AS EducationLevelText,
+        COALESCE(
+            (SELECT TOP 1 Name FROM MasterData md WHERE md.Code = d.Maritalstatus AND md.TypeData = 13 AND ISNULL(md.Deleted,0)=0),
+            dbo.getDisplayMasterData(d.Maritalstatus),
+            d.Maritalstatus
+        ) AS MaritalstatusText,
+        COALESCE(
+            (SELECT TOP 1 Name
+             FROM MasterData md
+             WHERE md.TypeData = 21
+               AND ISNULL(md.Deleted,0)=0
+               AND (md.Code = d.Ethnicity OR md.Id = TRY_CONVERT(int, d.Ethnicity))),
+            dbo.getDisplayMasterData(TRY_CONVERT(int, d.Ethnicity)),
+            NULLIF(d.Ethnicity, '')
+        ) AS EthnicityText,
+        COALESCE(
+            (SELECT TOP 1 Name FROM MasterData md WHERE md.Code = d.Religion AND md.TypeData = 20 AND ISNULL(md.Deleted,0)=0),
+            dbo.getDisplayMasterData(d.Religion),
+            d.Religion
+        ) AS ReligionText,
+        dbo.getFullName(d.ManagerId) AS ManagerName,
         
         -- HDLD (Join by Id because UserId in HDLD is 1079, not 001079)
         (SELECT TOP 1 NoAgree FROM hdldItem h WHERE h.UserId = CAST(d.Id AS NVARCHAR(50)) AND ISNULL(h.Deleted,0)=0 ORDER BY h.Start DESC, h.Id DESC) as HD_SoHD,
@@ -313,7 +342,15 @@ namespace VS.Human.Rep
 
         -- BHXH
         (SELECT TOP 1 NumberCode FROM BHXHItem b WHERE b.UserName = d.UserName AND ISNULL(b.Deleted,0)=0 ORDER BY b.Id DESC) as BHXH_SoSo,
-        (SELECT TOP 1 RegBHYT FROM BHXHItem b WHERE b.UserName = d.UserName AND ISNULL(b.Deleted,0)=0 ORDER BY b.Id DESC) as BHXH_NoiDangKy
+        (SELECT TOP 1 RegBHYT FROM BHXHItem b WHERE b.UserName = d.UserName AND ISNULL(b.Deleted,0)=0 ORDER BY b.Id DESC) as BHXH_NoiDangKy,
+        (SELECT TOP 1 StartMonth FROM BHXHItem b WHERE b.UserName = d.UserName AND ISNULL(b.Deleted,0)=0 ORDER BY b.Id DESC) as BHXH_ThangBatDau,
+
+        -- Relation
+        (SELECT TOP 1 Name FROM RelationItem r WHERE r.UserName = d.UserName AND ISNULL(r.Deleted,0)=0 ORDER BY r.Id DESC) as RelationName,
+        (SELECT TOP 1 Relationcode FROM RelationItem r WHERE r.UserName = d.UserName AND ISNULL(r.Deleted,0)=0 ORDER BY r.Id DESC) as RelationCode,
+        (SELECT TOP 1 dbo.getDisplayMasterData(Relationcode) FROM RelationItem r WHERE r.UserName = d.UserName AND ISNULL(r.Deleted,0)=0 ORDER BY r.Id DESC) as RelationText,
+        (SELECT TOP 1 Phone FROM RelationItem r WHERE r.UserName = d.UserName AND ISNULL(r.Deleted,0)=0 ORDER BY r.Id DESC) as RelationPhone,
+        (SELECT TOP 1 AddressInfo FROM RelationItem r WHERE r.UserName = d.UserName AND ISNULL(r.Deleted,0)=0 ORDER BY r.Id DESC) as RelationAddress
 
     FROM Employees d
     WHERE ISNULL(d.Deleted, 0) = 0
@@ -367,6 +404,36 @@ namespace VS.Human.Rep
                 var result = await con.QuerySingleOrDefaultAsync<Account>(sql, new { LineCode = lineCode });
                 return result;
             }
+        }
+
+        public async Task<BaseList> GetLeaveBalances(LeaveBalanceRequest request)
+        {
+            var page = request.Page;
+            var limit = request.Limit;
+            ProcessInputPaging(ref page, ref limit, out var offset);
+
+            request.Page = page;
+            request.Limit = limit;
+
+            var parameters = new
+            {
+                offset,
+                limit,
+                Token = request.Token ?? string.Empty
+            };
+
+            return await GetBaseAll<LeaveBalanceIndexModel>(request, parameters, sqlPro: "sp_Employee_GetLeaveBalances");
+        }
+
+        public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? usedLeaveDays, int userId)
+        {
+            var p = new DynamicParameters();
+            p.Add("@Id", employeeId);
+            p.Add("@AllowedLeaveDays", allowedLeaveDays);
+            p.Add("@UsedLeaveDays", usedLeaveDays);
+            p.Add("@UpdatedBy", userId);
+
+            return await ExecuteSQL("sp_Employee_UpdateLeaveBalance", p, CommandType.StoredProcedure);
         }
 
 

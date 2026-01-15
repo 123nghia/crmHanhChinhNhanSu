@@ -23,6 +23,7 @@ namespace VS.Human.Business.Imp
             var item = new Employee();
             item.FullName = itemAdd.FullName;
             item.Onboard = itemAdd.Onboard;
+            item.ResignationDate = itemAdd.ResignationDate;
             item.LineCode = itemAdd.LineCode;
 
             item.Phone = itemAdd.Phone;
@@ -53,6 +54,7 @@ namespace VS.Human.Business.Imp
             item.DocumentStatus = itemAdd.DocumentStatus;
             item.Gender = itemAdd.Gender;
             item.PlaceOfBirth = itemAdd.PlaceOfBirth;
+            item.Ethnicity = itemAdd.Ethnicity;
             item.Religion = itemAdd.Religion;
             item.PersonalEmail = itemAdd.PersonalEmail;
             item.BeneficiaryName = itemAdd.BeneficiaryName;

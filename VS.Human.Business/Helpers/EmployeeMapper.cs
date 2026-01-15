@@ -23,6 +23,7 @@ namespace VS.Human.Business.Helpers
                 NationalPlace = request.NationalPlace,
                 Dob = request.Dob,
                 Onboard = request.Onboard,
+                ResignationDate = request.ResignationDate,
                 Phone = request.Phone,
                 ManagerId = request.ManagerId,
                 DepartmentCode = request.DepartmentCode,
@@ -43,6 +44,7 @@ namespace VS.Human.Business.Helpers
                 DocumentCheck = request.DocumentCheck,
                 Gender = request.Gender,
                 PlaceOfBirth = request.PlaceOfBirth,
+                Ethnicity = request.Ethnicity,
                 Religion = request.Religion,
                 PersonalEmail = request.PersonalEmail,
                 BeneficiaryName = request.BeneficiaryName,
@@ -63,6 +65,7 @@ namespace VS.Human.Business.Helpers
                 NationalPlace = employee.NationalPlace,
                 Dob = employee.Dob,
                 Onboard = employee.Onboard,
+                ResignationDate = employee.ResignationDate,
                 Phone = employee.Phone,
                 ManagerId = employee.ManagerId,
                 DepartmentCode = employee.DepartmentCode,
@@ -90,6 +93,7 @@ namespace VS.Human.Business.Helpers
                 IsActive = employee.IsActive,
                 Gender = employee.Gender,
                 PlaceOfBirth = employee.PlaceOfBirth,
+                Ethnicity = employee.Ethnicity,
                 Religion = employee.Religion,
                 PersonalEmail = employee.PersonalEmail,
                 BeneficiaryName = employee.BeneficiaryName,
@@ -118,6 +122,7 @@ namespace VS.Human.Business.Helpers
             item.IsActive = itemUpdate.IsActive;
             item.Noted = itemUpdate.Noted;
             item.Onboard = itemUpdate.Onboard;
+            item.ResignationDate = itemUpdate.ResignationDate;
             item.PermanentAddress = itemUpdate.PermanentAddress;
             item.TemporaryAddress = itemUpdate.TemporaryAddress;
             item.NationalId = itemUpdate.NationalId;
@@ -135,6 +140,7 @@ namespace VS.Human.Business.Helpers
             // Các trường mới
             item.Gender = itemUpdate.Gender;
             item.PlaceOfBirth = itemUpdate.PlaceOfBirth;
+            item.Ethnicity = itemUpdate.Ethnicity;
             item.Religion = itemUpdate.Religion;
             item.PersonalEmail = itemUpdate.PersonalEmail;
             item.BeneficiaryName = itemUpdate.BeneficiaryName;

@@ -15,6 +15,7 @@ namespace VS.Human.Item
         public int IsActive { get; set; }
         public string? AvatarFile { get; set; }
         public DateTime? Onboard { get; set; }
+        public DateTime? ResignationDate { get; set; }
 
         public string? GroupName { get; set; }
         public int? GroupId { get; set; }
@@ -24,6 +25,7 @@ namespace VS.Human.Item
         public string TypeAccount { get; set; }
         public string DepartmentCode { get; set; }
         public string DocumentStatus { get; set; }
+        public string? DocumentCheck { get; set; }
         public string? StatusWork { get; set; }
         public string PositionCode { get; set; }
         public string StatusText { get; set; }
@@ -34,6 +36,7 @@ namespace VS.Human.Item
         public string? DocumentStatusText { get; set; }
         public string? StatusWorkText { get; set; }
         public string? ReligionText { get; set; }
+        public string? EthnicityText { get; set; }
         public string? EducationLevelText { get; set; }
         public string? MaritalstatusText { get; set; }
 
@@ -59,6 +62,8 @@ namespace VS.Human.Item
         // Thông tin cá nhân mở rộng
         public string? Gender { get; set; }
         public string? PlaceOfBirth { get; set; }
+        public string? Ethnicity { get; set; }
+        public string? ManagerName { get; set; }
 
         // HDLD Info
         public string? HD_SoHD { get; set; }
@@ -75,10 +80,16 @@ namespace VS.Human.Item
         // BHXH Info
         public string? BHXH_SoSo { get; set; }
         public string? BHXH_NoiDangKy { get; set; }
+        public DateTime? BHXH_ThangBatDau { get; set; }
         public string? Religion { get; set; }
         public string? PersonalEmail { get; set; }
         public string? Email { get; set; }
         public string? EmergencyContact { get; set; }
+        public string? RelationName { get; set; }
+        public string? RelationCode { get; set; }
+        public string? RelationText { get; set; }
+        public string? RelationPhone { get; set; }
+        public string? RelationAddress { get; set; }
 
         // Thông tin CCCD
         public string? NationalId { get; set; }
@@ -232,6 +243,10 @@ namespace VS.Human.Item
         public string? AddressInfo { get; set; }
 
         public string? Noted { get; set; }
+        public int? Status { get; set; }
+        public int? InterviewerId { get; set; }
+        public int? InterviewMode { get; set; }
+        public int? InterviewResult { get; set; }
 
         public string ScheduleDateDisplay
         {
@@ -283,6 +298,8 @@ namespace VS.Human.Item
         public int? StatusHuman { get; set; }
         public int? ManagerId { get; set; }
         public string? ManagerName { get; set; }
+        public string? NationalId { get; set; }
+        public string? Address { get; set; }
 
         public string? SourceName { get; set; }
         public int? Position { get; set; }

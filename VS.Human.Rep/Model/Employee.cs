@@ -8,6 +8,7 @@
         public string? FingerprintCode { get; set; }
         public string? ColorCode { get; set; }
         public DateTime? Onboard { get; set; }
+        public DateTime? ResignationDate { get; set; }
         public string? FullName { get; set; }
         public string? Phone { get; set; }
         public string? Noted { get; set; }
@@ -43,7 +44,8 @@
 
         // Các trường mới bổ sung từ yêu cầu
         public string? Gender { get; set; }              // Giới tính
-        public string? PlaceOfBirth { get; set; }        // Nơi sinh
+        public string? PlaceOfBirth { get; set; }
+        public string? Ethnicity { get; set; }        // Nơi sinh
         public string? Religion { get; set; }           // Tôn giáo
         public string? PersonalEmail { get; set; }      // Email cá nhân
         public string? BeneficiaryName { get; set; }     // Tên chủ tài khoản

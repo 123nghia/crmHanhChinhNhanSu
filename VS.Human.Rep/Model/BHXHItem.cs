@@ -8,6 +8,7 @@ namespace VS.Human.Rep.Model
         public string UserName { get; set; } = string.Empty;
         public DateTime? PITDate { get; set; }
         public DateTime? EffectedFrom { get; set; }
+        public DateTime? StartMonth { get; set; }
 
         public string? RegBHYT {get;set;}
 

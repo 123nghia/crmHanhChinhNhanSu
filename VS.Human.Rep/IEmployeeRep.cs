@@ -19,6 +19,8 @@ namespace VS.Human.Rep
         Task<List<EmployeeExtendedModel>> ExecuteExport(EmployeeRequest request);
         Task<BaseList> GetAllManager(int leadgroup = -1);
         Task<Account> GetByLineCode(string lineCode);
+        Task<BaseList> GetLeaveBalances(LeaveBalanceRequest request);
+        Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? usedLeaveDays, int userId);
 
     }
 }

@@ -36,7 +36,9 @@ namespace VS.Human.Business.Imp
                 Status = itemAdd.Status,
                 Source = itemAdd.Source,
                 IsActive = itemAdd.IsActive,
-                ManagerId = itemAdd.ManagerId
+                ManagerId = itemAdd.ManagerId,
+                NationalId = itemAdd.NationalId,
+                Address = itemAdd.Address
             };
             item.Noted = itemAdd.Noted;
             item.Dob = itemAdd.Dob;
@@ -77,6 +79,8 @@ namespace VS.Human.Business.Imp
             item.Email = itemUpdate.Email;
             item.Noted = itemUpdate.Noted;
             item.UpdatedBy = GetUserId();
+            item.NationalId = itemUpdate.NationalId;
+            item.Address = itemUpdate.Address;
 
             return await _unitOfWork.CandidateRep.AddOrUpdate(item);
         }

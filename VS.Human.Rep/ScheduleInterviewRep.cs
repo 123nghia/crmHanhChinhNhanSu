@@ -19,8 +19,18 @@ namespace VS.Human.Rep
         {
             var parameter = new
             {
-
-
+                item.Id,
+                item.RelId,
+                item.RelCode,
+                item.Type,
+                item.ScheduleDate,
+                item.AddressInfo,
+                item.Noted,
+                item.Status,
+                item.InterviewerId,
+                item.InterviewMode,
+                item.InterviewResult,
+                item.UpdatedBy
             };
             return await this.ExecuteSQL("sp_ScheduleInterview_update", parameter);
         }
@@ -34,6 +44,10 @@ namespace VS.Human.Rep
                 item.ScheduleDate,
                 item.Noted,
                 item.Type,
+                item.Status,
+                item.InterviewerId,
+                item.InterviewMode,
+                item.InterviewResult,
                 item.CreatedBy
             };
             return await this.ExecuteSQL("sp_ScheduleInterview_insert", parameter);
@@ -44,10 +58,10 @@ namespace VS.Human.Rep
             if (item.Id > 0)
             {
                 var itemUpdate = await GetById(item.Id);
-                if (itemUpdate != null)
+                if (itemUpdate != null && itemUpdate.Id > 0)
                 {
 
-                    return await Update(itemUpdate);
+                    return await Update(item);
                 }
             }
             return await Add(item);
@@ -62,6 +76,9 @@ namespace VS.Human.Rep
                 request.From,
                 request.To,
                 request.Type,
+                request.Status,
+                request.InterviewerId,
+                request.InterviewMode,
                 request.RelId,
                 request.RelCode,
                 request.Limit,

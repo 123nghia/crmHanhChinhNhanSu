@@ -35,7 +35,9 @@ namespace VS.Human.Rep
                 item.StatusHuman,
                 item.ManagerId,
                 item.Referrer,
-                item.Noted
+                item.Noted,
+                item.NationalId,
+                item.Address
             };
             return await this.ExecuteSQL("sp_candidate_update", parameter);
         }
@@ -59,7 +61,9 @@ namespace VS.Human.Rep
                 item.Status,
                 item.CreatedBy,
                 item.CVLink,
-                item.IsActive
+                item.IsActive,
+                item.NationalId,
+                item.Address
             };
             return await this.ExecuteSQL("sp_candidate_insert", parameter);
         }
@@ -89,6 +93,8 @@ namespace VS.Human.Rep
                     itemUpdate.Position = item.Position;
                     itemUpdate.UpdatedBy = item.UpdatedBy;
                     itemUpdate.Referrer = item.Referrer;
+                    itemUpdate.NationalId = item.NationalId;
+                    itemUpdate.Address = item.Address;
 
                     return await Update(itemUpdate);
                 }

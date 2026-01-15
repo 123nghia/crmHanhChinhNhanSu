@@ -24,6 +24,7 @@ namespace VS.Human.Rep
                 item.NumberCode,
                 item.PITDate,
                 item.EffectedFrom,
+                item.StartMonth,
                 item.RegBHYT,
                 item.Number,
                 item.RegPageNumber,
@@ -42,6 +43,7 @@ namespace VS.Human.Rep
                 item.Relid,
                 item.PITDate,
                 item.EffectedFrom,
+                item.StartMonth,
                 item.RegBHYT,
                 item.Number,
                 item.RegPageNumber,
@@ -64,6 +66,7 @@ namespace VS.Human.Rep
                     itemUpdate.NumberCode = item.NumberCode;
                     itemUpdate.EffectedFrom = item.EffectedFrom;
                     itemUpdate.PITDate = item.PITDate;
+                    itemUpdate.StartMonth = item.StartMonth;
 
                     return await Update(itemUpdate);
                 }

@@ -35,6 +35,7 @@ namespace VS.Human.Rep
             services.AddSingleton<IBHXHItemRep, BHXHItemRep>();
             services.AddSingleton<IPermissionRep, PermissionRep>();
             services.AddSingleton<ILeaveRep, LeaveRep>();
+            services.AddSingleton<IInternalNewsRep, InternalNewsRep>();
 
         }
     }

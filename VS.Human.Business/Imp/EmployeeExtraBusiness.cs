@@ -127,6 +127,7 @@ namespace VS.Human.Business.Imp
                 bhxhItem.Number = requestAdd.BiaSo;
                 bhxhItem.NumberCode= requestAdd.CodeBHXH;
                 bhxhItem.RegPageNumber = requestAdd.PageTax.ToString();
+                bhxhItem.StartMonth = requestAdd.BHXHStartMonth;
                 
                 return  await _unitOfWork.BHXHItemRep.AddOrUpdate(bhxhItem);
             }

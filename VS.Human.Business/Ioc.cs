@@ -35,6 +35,8 @@ namespace VS.Human.Business
             services.AddSingleton<IEmployeeImportBusiness, EmployeeImportBusiness>();
             services.AddSingleton<IPermissionBusiness, PermissionBusiness>();
             services.AddSingleton<ILeaveBusiness, LeaveBusiness>();
+            services.AddSingleton<ILeaveBalanceBusiness, LeaveBalanceBusiness>();
+            services.AddSingleton<IInternalNewsBusiness, InternalNewsBusiness>();
 
 
         }
