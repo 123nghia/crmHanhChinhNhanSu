@@ -242,7 +242,31 @@ namespace VS.Human.Business.Imp
 
         private async Task<string> BuildCandidateUserName(CandidateAdd itemAdd)
         {
-            var baseUserName = EmployeeMapper.GenerateUserName(itemAdd.Email, itemAdd.Phone, itemAdd.Name);
+            if (string.IsNullOrWhiteSpace(itemAdd.Name))
+            {
+                return itemAdd.Email?.Split('@')[0] ?? itemAdd.Phone ?? $"user{DateTime.Now.Ticks}";
+            }
+
+            // Normlize: Bỏ dấu tiếng Việt, Lowercase
+            string unSignName = VS.Human.Utility.Utils.ConvertToUnSign(itemAdd.Name).ToLower();
+            var parts = unSignName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            
+            string baseUserName = "";
+            if (parts.Length == 0)
+            {
+                baseUserName = itemAdd.Email?.Split('@')[0] ?? $"user{DateTime.Now.Ticks}";
+            }
+            else if (parts.Length == 1)
+            {
+                baseUserName = parts[0];
+            }
+            else
+            {
+                // Quy tắc: Tên + Họ (parts[last] + parts[0])
+                // Ví dụ: Nguyễn Văn Minh -> minhnguyen
+                baseUserName = parts[parts.Length - 1] + parts[0];
+            }
+
             var finalUserName = baseUserName;
             var counter = 1;
 
@@ -258,7 +282,8 @@ namespace VS.Human.Business.Imp
 
                 finalUserName = $"{baseUserName}{counter}";
                 counter++;
-                if (counter > 100) break;
+                // Safety break
+                if (counter > 1000) break;
             }
 
             return finalUserName;

@@ -54,6 +54,10 @@ namespace crmHuman
             {
                 var logger = app.Services.GetRequiredService<ILogger<Program>>();
                 logger.LogError(ex, "Lỗi khi chạy database migration. Ứng dụng vẫn sẽ tiếp tục khởi động.");
+                if (app.Environment.IsDevelopment())
+                {
+                    throw;
+                }
             }
             
             // Configure the HTTP request pipeline.
