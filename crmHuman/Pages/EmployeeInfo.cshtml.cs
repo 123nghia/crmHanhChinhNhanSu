@@ -3,6 +3,7 @@ using crmHuman.Helpers;
 using crmHuman.Model;
 using DocumentFormat.OpenXml.Office2016.Excel;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VS.Human.Business;
 using VS.Human.Business.Helpers;
@@ -41,6 +42,8 @@ namespace crmHuman.Pages
 
 
         public BaseList DataFile { get; set; }
+
+        public bool IsSelfView { get; set; }
 
 
 
@@ -100,6 +103,7 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddSchedule(CandidateScheduleAdd request)
         {
+            GetInfoUser();
             var errors = new List<object>();
             
             if (ValidationHelper.HasErrors(errors))
@@ -107,12 +111,21 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.BadRequest(errors);
             }
 
+            var userId = UserData?.UserId ?? 0;
             var itemInsert = new ScheduleInterviewAdd()
             {
+                Id = request.Id,
                 AddressInfo = request.AddressInfo,
                 ScheduleDate = request.ScheduleDate,
                 Noted = request.Noted,
                 RelId = request.RelId,
+                Type = request.Type,
+                Status = request.Status,
+                InterviewerId = request.InterviewerId,
+                InterviewMode = request.InterviewMode,
+                InterviewResult = request.InterviewResult,
+                CreatedBy = userId,
+                UpdatedBy = userId
             };
 
             var result = await _scheduleInterviewBussiness.AddOrUpdate(itemInsert);
@@ -121,11 +134,23 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddRelationItem(RelationItemAdd request)
         {
+            GetInfoUser();
+            var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             
             if (ValidationHelper.HasErrors(errors))
             {
                 return ApiResponseHelper.BadRequest(errors);
+            }
+
+            if (isSelfView)
+            {
+                if (UserData == null || UserData.UserId < 1)
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                request.UserName = UserData.UserName;
             }
 
             var result = await _employeeExtraBusiness.UpdateRelation(request);
@@ -135,11 +160,23 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddHDLDItem(HDLDItemAdd request)
         {
+            GetInfoUser();
+            var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             
             if (ValidationHelper.HasErrors(errors))
             {
                 return ApiResponseHelper.BadRequest(errors);
+            }
+
+            if (isSelfView)
+            {
+                if (UserData == null || UserData.UserId < 1)
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                request.UserId = UserData.UserId.ToString();
             }
 
             var result = await _employeeExtraBusiness.UpdateHDLDItem(request);
@@ -163,11 +200,28 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddOtherInfomation(EmployeeInfoOther request)
         {
+            GetInfoUser();
+            var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             
             if (ValidationHelper.HasErrors(errors))
             {
                 return ApiResponseHelper.BadRequest(errors);
+            }
+
+            if (isSelfView)
+            {
+                if (UserData == null || UserData.UserId < 1)
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                if (request.EmployeeId != UserData.UserId)
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                request.EmployeeId = UserData.UserId;
             }
 
             await _employeeExtraBusiness.UpdateEmployeeInfother(request);
@@ -177,12 +231,45 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostUpdate(EmployeeDetailUpdate request)
         {
+            GetInfoUser();
+            var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             ValidationHelper.ValidatePhone(request.Phone, errors);
             
             if (ValidationHelper.HasErrors(errors))
             {
                 return ApiResponseHelper.BadRequest(errors);
+            }
+
+            if (isSelfView)
+            {
+                if (UserData == null || UserData.UserId < 1)
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                if (request.Id != UserData.UserId)
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                var existingEmployee = await _empBusiness.GetById(UserData.UserId);
+                if (existingEmployee == null || existingEmployee.Id < 1)
+                {
+                    return ApiResponseHelper.NotFound("Employee not found");
+                }
+
+                request.Id = existingEmployee.Id;
+                request.RoleCode = existingEmployee.RoleCode;
+                request.StatusWork = existingEmployee.StatusWork;
+                request.Status = existingEmployee.Status;
+                request.DocumentStatus = existingEmployee.DocumentStatus;
+                request.FingerprintCode = existingEmployee.FingerprintCode;
+                request.Onboard = existingEmployee.Onboard;
+                request.ResignationDate = existingEmployee.ResignationDate;
+                request.ManagerId = existingEmployee.ManagerId;
+                request.DepartmentCode = existingEmployee.DepartmentCode;
+                request.PositionCode = existingEmployee.PositionCode;
             }
 
             // Log DocumentCheck to help debug
@@ -195,6 +282,8 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostChangePassword(PasswordAdd request)
         {
+            GetInfoUser();
+            var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             ValidationHelper.ValidateRequired(request.NewPassword, "txtrenewPassword", "mật khẩu mới", errors);
             
@@ -217,8 +306,23 @@ namespace crmHuman.Pages
             }
             else
             {
-                GetInfoUser();
                 employeeId = UserData.UserId;
+            }
+
+            if (isSelfView)
+            {
+                if (UserData == null || UserData.UserId < 1)
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                if (request.Id.HasValue && request.Id.Value != UserData.UserId)
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                employeeId = UserData.UserId;
+                request.ResetPass = false;
             }
 
             var result = await _empBusiness.ChangePassword(request.NewPassword, employeeId);
@@ -227,6 +331,8 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddDocument([FromBody] DocumentDataAddRequest request)
         {
+            GetInfoUser();
+            var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             ValidationHelper.ValidateId(request.RelId, "txtFullName", "đối tượng Id", errors);
             
@@ -235,7 +341,21 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.BadRequest(errors);
             }
 
-            GetInfoUser();
+            if (isSelfView)
+            {
+                if (UserData == null || UserData.UserId < 1)
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                if (request.RelId != UserData.UserId)
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                request.RelId = UserData.UserId;
+            }
+
             request.UserId = UserData.UserId;
 
             var result = await _documentDataBussiness.AddOrUpdate(request);
@@ -249,7 +369,17 @@ namespace crmHuman.Pages
                 return Redirect("/Login");
             }
             GetInfoUser();
+            IsSelfView = UserData?.RoleCode == "2";
             var idInput = request.Id ?? -1;
+            if (IsSelfView)
+            {
+                if (UserData == null || UserData.UserId < 1)
+                {
+                    return Redirect("/Login");
+                }
+
+                idInput = UserData.UserId;
+            }
             
             var dataAllMaster = await _masterDataBussiness.GetAll(new CommonRequest());
             DataMasterData = dataAllMaster ?? new BaseList { Data = new List<object>() };
@@ -345,7 +475,9 @@ namespace crmHuman.Pages
             var dataAllHistory = await _scheduleInterviewBussiness.GetAll(new ScheduleInterviewRquest()
             {
                 RelId = idInput,
-                Type = 0
+                Type = -1,
+                From = null,
+                To = null
             });
             DataHistory = dataAllHistory;
             DataFile = await _documentDataBussiness.GetAll(new DocumentDataRquest()

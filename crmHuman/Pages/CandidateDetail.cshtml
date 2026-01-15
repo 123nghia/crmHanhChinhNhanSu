@@ -62,6 +62,21 @@
                                 <div class="invalid-feedback-cs">
                                 </div>
                             </div>
+
+                            <div class="form-group">
+                                <label class="form-label">CCCD</label>
+                                <input type="text" value="@itemResult.NationalId" name="NationalId" id="txtNationalId" class="form-control" placeholder="" />
+                                <div class="invalid-feedback-cs">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Dia chi</label>
+                                <input type="text" value="@itemResult.Address" name="Address" id="txtAddress" class="form-control" placeholder="" />
+                                <div class="invalid-feedback-cs">
+                                </div>
+                            </div>
+
                             
                             <div class="form-group">
                                 <label class="form-label">Người hướng dẫn</label>
@@ -267,28 +282,32 @@
                 <div class="tab-pane fade" id="contact-justified" role="tabpanel" aria-labelledby="contact-tab">
                  
                 
-                            <div class="form-group">
-                                <label class="form-label">Ngày phỏng vấn</label>
-                                <input type="date" value="" name="ScheduleDate" id="dateScheduleDate" class="form-control" required placeholder="" />
-                                <div class="invalid-feedback-cs">
-                                </div>
-                            </div>
-                              <div class="form-group">
-                                <label class="form-label">Địa điểm phỏng vấn </label>
-                                 <input type="text" value="" name="AddressInfo" id="txtAddressInfo" class="form-control" required placeholder="" />
-                                <div class="invalid-feedback-cs">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Ghi chú</label>
-                                <input type="text" value="" name="Noted" id="txtScheduleNoted"
-                                 class="form-control" required placeholder="" />
-                                <div class="invalid-feedback-cs">
-                                </div>
-
-                            </div>
-
-                            <button type="button" onclick="saveSchedule(@itemResult.Id)" class="btn btn-primary">Lên lịch phỏng vấn </button>
+                                                        @{
+                                var candidatePositionText = "";
+                                var positionCode = itemResult.Position.HasValue ? itemResult.Position.Value.ToString() : "-1";
+                                foreach (var item in Model.DataDepartment)
+                                {
+                                    if (item.TypeData != 2)
+                                    {
+                                        continue;
+                                    }
+                                    if (item.Code == positionCode)
+                                    {
+                                        candidatePositionText = item.Name;
+                                        break;
+                                    }
+                                }
+                                Html.RenderPartial("ControlForm/InterviewScheduleForm", new
+                                {
+                                    CandidateId = itemResult.Id,
+                                    CandidateName = itemResult.Name,
+                                    CandidatePositionText = candidatePositionText,
+                                    ShowCandidateSelect = false,
+                                    InterviewerList = Model.DataInterviewer,
+                                    HandlerUrl = "/CandidateDetail?handler=AddSchedule",
+                                    ButtonText = "Len lich phong van"
+                                });
+                            }
                             <div class="form-group">
                                
               <table class="table table-striped">
@@ -298,7 +317,8 @@
                     <th scope="col">Ngày phỏng vấn</th>
                     <th scope="col"> Địa điểm</a></th>
                     <th scope="col">Nội dung</th>
-                    <th scope="col">Tạo ngày</th>
+                                        <th scope="col">Ket qua PV</th>
+<th scope="col">Tạo ngày</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -311,6 +331,7 @@
                             <td>@itemDraw.ScheduleDateDisplay</td>
                             <td>@itemDraw.AddressInfo</td>
                             <td>@itemDraw.Noted</td>
+                            <td>@(itemDraw.InterviewResult == 1 ? "Pass" : itemDraw.InterviewResult == 2 ? "Fail" : itemDraw.InterviewResult == 3 ? "Hold" : "")</td>
                             <td>@itemDraw.CreateAtDisplay</td>
                             </tr>
                             }

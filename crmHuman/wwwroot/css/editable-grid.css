@@ -70,8 +70,8 @@
 }
 
 .editable-grid.edit-mode-active .editable-cell:hover {
-    background-color: #e8f4fd !important;
-    border: 1px dashed #0d6efd;
+    background-color: var(--brand-accent-soft, #e8f4fd) !important;
+    border: 1px dashed var(--brand-accent, #1f4e79);
     /* Visual indicator for editable */
 }
 
@@ -104,7 +104,7 @@
     height: 100%;
     min-height: 36px;
     padding: 6px 10px;
-    border: 2px solid #0d6efd;
+    border: 2px solid var(--brand-accent, #1f4e79);
     border-radius: 4px;
     font-size: 14px;
     outline: none;
@@ -113,13 +113,13 @@
 
 .grid-cell-input:focus,
 .grid-cell-select:focus {
-    border-color: #0a58ca;
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+    border-color: var(--brand-accent-strong, #173b5c);
+    box-shadow: 0 0 0 3px rgba(31, 78, 121, 0.25);
 }
 
 /* Selected row */
 .selected-row {
-    background-color: #cfe2ff !important;
+    background-color: var(--brand-accent-soft, #e8f1ff) !important;
 }
 
 .selected-row td {
@@ -134,7 +134,7 @@
 .editable-grid thead th {
     position: sticky;
     top: 0;
-    background: #8b1a1a;
+    background: var(--brand-accent, #1f4e79);
     color: #fff;
     z-index: 10;
 }

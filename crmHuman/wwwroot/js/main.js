@@ -26,6 +26,98 @@
         address: { text: 'Chọn địa chỉ', value: '-1' }
     };
 
+    const STATUS_BADGE_SELECTOR = '[data-field="StatusWork"], [data-field="Status"]';
+
+    const StatusBadges = {
+        normalize(value) {
+            if (!value) {
+                return '';
+            }
+
+            let normalized = value.toString().toLowerCase();
+            if (typeof normalized.normalize === 'function') {
+                normalized = normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+
+            return normalized.replace(/\s+/g, ' ').trim();
+        },
+
+        getClass(text) {
+            const normalized = StatusBadges.normalize(text);
+            if (!normalized) {
+                return '';
+            }
+
+            if (normalized.includes('nghi viec') || normalized.includes('thoi viec') || normalized.includes('ket thuc')) {
+                return 'status-resigned';
+            }
+            if (normalized.includes('tam dung') || normalized.includes('tam nghi') || normalized.includes('ngung')) {
+                return 'status-paused';
+            }
+            if (normalized.includes('nghi phep') || normalized.includes('nghi')) {
+                return 'status-leave';
+            }
+            if (normalized.includes('dang lam') || normalized.includes('lam viec') || normalized.includes('dang hoat dong')) {
+                return 'status-working';
+            }
+
+            return '';
+        },
+
+        applyToCell(cell) {
+            if (!cell || cell.querySelector('select, input')) {
+                return;
+            }
+
+            const text = (cell.textContent || '').trim();
+            if (!text || text === '--') {
+                cell.textContent = text || '--';
+                return;
+            }
+
+            const statusClass = StatusBadges.getClass(text);
+            if (!statusClass) {
+                const existingBadge = cell.querySelector('.status-badge');
+                if (existingBadge) {
+                    cell.textContent = text;
+                }
+                return;
+            }
+
+            const existingBadge = cell.querySelector('.status-badge');
+            if (existingBadge) {
+                existingBadge.className = `status-badge ${statusClass}`;
+                existingBadge.textContent = text;
+                return;
+            }
+
+            const badge = document.createElement('span');
+            badge.className = `status-badge ${statusClass}`;
+            badge.textContent = text;
+            cell.textContent = '';
+            cell.appendChild(badge);
+        },
+
+        applyAll() {
+            const cells = document.querySelectorAll(STATUS_BADGE_SELECTOR);
+            cells.forEach((cell) => StatusBadges.applyToCell(cell));
+        }
+    };
+
+    global.onEditableGridCellUpdated = (cell) => {
+        StatusBadges.applyToCell(cell);
+    };
+
+    global.onEditableGridRowUpdated = (row) => {
+        if (!row) {
+            return;
+        }
+        const cell = row.querySelector(STATUS_BADGE_SELECTOR);
+        if (cell) {
+            StatusBadges.applyToCell(cell);
+        }
+    };
+
     const safeNumber = (value) => Number(value) || 0;
     const isOrderDetailPage = () => global.location?.pathname?.includes('OrderDetail');
 
@@ -731,6 +823,8 @@
             if (limitSelect) {
                 DomUtils.dispatchChange(limitSelect);
             }
+
+            StatusBadges.applyAll();
         },
 
         isDetailPage() {

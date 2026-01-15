@@ -29,6 +29,7 @@ namespace crmHuman.Pages
 
         public BaseList DataLead { get; set; }
 
+        public BaseList DataInterviewer { get; set; }
 
 
         public BaseList DataHistory { get; set; }
@@ -67,10 +68,12 @@ namespace crmHuman.Pages
             _scheduleInterviewBussiness = scheduleInterviewBussiness;
             _documentDataBussiness = documentDataBussiness;
             _empBusiness1 = empBusiness1;
+            DataInterviewer = new BaseList();
         }
 
         public async Task<IActionResult> OnPostAddSchedule(CandidateScheduleAdd request)
         {
+            GetInfoUser();
             var errors = new List<object>();
             
             if (ValidationHelper.HasErrors(errors))
@@ -78,12 +81,21 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.BadRequest(errors);
             }
 
+            var userId = UserData?.UserId ?? 0;
             var itemInsert = new ScheduleInterviewAdd()
             {
+                Id = request.Id,
                 AddressInfo = request.AddressInfo,
                 ScheduleDate = request.ScheduleDate,
                 Noted = request.Noted,
                 RelId = request.RelId,
+                Type = request.Type,
+                Status = request.Status,
+                InterviewerId = request.InterviewerId,
+                InterviewMode = request.InterviewMode,
+                InterviewResult = request.InterviewResult,
+                CreatedBy = userId,
+                UpdatedBy = userId
             };
 
             var result = await _scheduleInterviewBussiness.AddOrUpdate(itemInsert);
@@ -176,14 +188,18 @@ namespace crmHuman.Pages
                 UpdateAt = candidateInfo.UpdateAt,
                 Referrer = candidateInfo.Referrer,
                 Noted = candidateInfo.Noted,
-                ManagerId = candidateInfo.ManagerId
+                ManagerId = candidateInfo.ManagerId,
+                NationalId = candidateInfo.NationalId,
+                Address = candidateInfo.Address
 
             };
             ResultModel = resultView;
             var dataAllHistory = await _scheduleInterviewBussiness.GetAll(new ScheduleInterviewRquest()
             {
                 RelId = idInput,
-                Type = 0
+                Type = -1,
+                From = null,
+                To = null
             });
             DataHistory = dataAllHistory;
 
@@ -195,6 +211,12 @@ namespace crmHuman.Pages
 
             });
             DataLead = await _empBusiness1.GetAllManager();
+            DataInterviewer = await _empBusiness1.GetAll(new EmployeeRequest()
+            {
+                Page = 1,
+                Limit = 1000,
+                Status = 1
+            });
 
             return Page();
         }

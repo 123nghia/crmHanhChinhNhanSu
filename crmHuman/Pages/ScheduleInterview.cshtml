@@ -1,0 +1,514 @@
+@page
+@model ScheduleInterviewModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+    var request = Model.RequestSearch ?? new VS.Human.Item.ScheduleInterviewRquest();
+    var canEdit = Model.Permision != null && (Model.Permision.Add == true || Model.Permision.Edit == true);
+
+    var roundOptions = new List<crmHuman.Model.SelectDisplay>
+    {
+        new crmHuman.Model.SelectDisplay { Code = "-1", Name = "Tat ca" },
+        new crmHuman.Model.SelectDisplay { Code = "1", Name = "HR" },
+        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Technical" },
+        new crmHuman.Model.SelectDisplay { Code = "3", Name = "Final" },
+        new crmHuman.Model.SelectDisplay { Code = "0", Name = "Khac" }
+    };
+
+    var statusOptions = new List<crmHuman.Model.SelectDisplay>
+    {
+        new crmHuman.Model.SelectDisplay { Code = "-1", Name = "Tat ca" },
+        new crmHuman.Model.SelectDisplay { Code = "0", Name = "Draft" },
+        new crmHuman.Model.SelectDisplay { Code = "1", Name = "Scheduled" },
+        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Done" },
+        new crmHuman.Model.SelectDisplay { Code = "3", Name = "Canceled" },
+        new crmHuman.Model.SelectDisplay { Code = "4", Name = "No-show" }
+    };
+
+    var modeOptions = new List<crmHuman.Model.SelectDisplay>
+    {
+        new crmHuman.Model.SelectDisplay { Code = "-1", Name = "Tat ca" },
+        new crmHuman.Model.SelectDisplay { Code = "1", Name = "Offline" },
+        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Online" }
+    };
+
+    var candidateLookup = new Dictionary<int, dynamic>();
+    if (Model.CandidateList?.Data != null)
+    {
+        foreach (var item in Model.CandidateList.Data)
+        {
+            var info = item as dynamic;
+            if (info != null)
+            {
+                candidateLookup[(int)info.Id] = info;
+            }
+        }
+    }
+
+    var interviewerLookup = new Dictionary<int, dynamic>();
+    if (Model.InterviewerList?.Data != null)
+    {
+        foreach (var item in Model.InterviewerList.Data)
+        {
+            var info = item as dynamic;
+            if (info != null)
+            {
+                interviewerLookup[(int)info.Id] = info;
+            }
+        }
+    }
+
+    Func<int?, string> getCandidateName = id =>
+    {
+        if (!id.HasValue)
+        {
+            return "";
+        }
+        if (candidateLookup.TryGetValue(id.Value, out var info))
+        {
+            return info.Name ?? "";
+        }
+        return "";
+    };
+
+    Func<int?, string> getCandidatePosition = id =>
+    {
+        if (!id.HasValue)
+        {
+            return "";
+        }
+        if (candidateLookup.TryGetValue(id.Value, out var info))
+        {
+            return info.PostionName ?? "";
+        }
+        return "";
+    };
+
+    Func<int?, string> getInterviewerName = id =>
+    {
+        if (!id.HasValue)
+        {
+            return "";
+        }
+        if (interviewerLookup.TryGetValue(id.Value, out var info))
+        {
+            return info.FullName ?? "";
+        }
+        return "";
+    };
+
+    Func<int?, string> getRoundText = value =>
+    {
+        switch (value)
+        {
+            case 1: return "HR";
+            case 2: return "Technical";
+            case 3: return "Final";
+            case 0: return "Khac";
+            default: return "";
+        }
+    };
+
+    Func<int?, string> getStatusText = value =>
+    {
+        switch (value)
+        {
+            case 0: return "Draft";
+            case 1: return "Scheduled";
+            case 2: return "Done";
+            case 3: return "Canceled";
+            case 4: return "No-show";
+            default: return "";
+        }
+    };
+
+    Func<int?, string> getModeText = value =>
+    {
+        switch (value)
+        {
+            case 1: return "Offline";
+            case 2: return "Online";
+            default: return "";
+        }
+    };
+
+    Func<int?, string> getResultText = value =>
+    {
+        switch (value)
+        {
+            case 1: return "Pass";
+            case 2: return "Fail";
+            case 3: return "Hold";
+            default: return "";
+        }
+    };
+}
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="javascript:void(0)">Interview</a></li>
+            <li class="breadcrumb-item active">Danh sach</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    @Html.AntiForgeryToken()
+                    <div class="d-flex justify-content-end mb-2">
+                        <button type="button" class="btn btn-outline-success" onclick="exportInterview()">
+                            <i class="bi bi-file-earmark-excel"></i> Export Excel
+                        </button>
+                    </div>
+                    <form method="get" class="row g-3" id="scheduleInterviewFilter">
+                        <div class="col-md-3">
+                            <label class="form-label">Tu ngay</label>
+                            <input type="date" name="From" value="@request.FromText" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Den ngay</label>
+                            <input type="date" name="To" value="@request.ToText" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Vong phong van</label>
+                            <select name="Type" class="form-select">
+                                @foreach (var item in roundOptions)
+                                {
+                                    var selected = request.Type.HasValue && request.Type.Value.ToString() == item.Code;
+                                    <option value="@item.Code" selected="@(selected ? "selected" : null)">@item.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Trang thai</label>
+                            <select name="Status" class="form-select">
+                                @foreach (var item in statusOptions)
+                                {
+                                    var selected = request.Status.HasValue && request.Status.Value.ToString() == item.Code;
+                                    <option value="@item.Code" selected="@(selected ? "selected" : null)">@item.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Ung vien</label>
+                            <select name="RelId" class="form-select">
+                                <option value="">-- Tat ca --</option>
+                                @if (Model.CandidateList?.Data != null)
+                                {
+                                    foreach (var item in Model.CandidateList.Data)
+                                    {
+                                        var itemInfo = item as dynamic;
+                                        var selected = request.RelId.HasValue && itemInfo != null && request.RelId.Value.ToString() == itemInfo.Id.ToString();
+                                        <option value="@itemInfo.Id" selected="@(selected ? "selected" : null)">@itemInfo.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Nguoi phong van</label>
+                            @if (canEdit)
+                            {
+                                <select name="InterviewerId" class="form-select">
+                                    <option value="">-- Tat ca --</option>
+                                    @if (Model.InterviewerList?.Data != null)
+                                    {
+                                        foreach (var item in Model.InterviewerList.Data)
+                                        {
+                                            var itemInfo = item as dynamic;
+                                            var selected = request.InterviewerId.HasValue && itemInfo != null && request.InterviewerId.Value.ToString() == itemInfo.Id.ToString();
+                                            <option value="@itemInfo.Id" selected="@(selected ? "selected" : null)">@itemInfo.FullName</option>
+                                        }
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <input type="hidden" name="InterviewerId" value="@Model.UserData?.UserId" />
+                                <input type="text" class="form-control" value="@Model.UserData?.FullName" readonly />
+                            }
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Hinh thuc</label>
+                            <select name="InterviewMode" class="form-select">
+                                @foreach (var item in modeOptions)
+                                {
+                                    var selected = request.InterviewMode.HasValue && request.InterviewMode.Value.ToString() == item.Code;
+                                    <option value="@item.Code" selected="@(selected ? "selected" : null)">@item.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">Loc</button>
+                            <a class="btn btn-secondary" href="/ScheduleInterview">Reset</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (canEdit)
+    {
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Tao lich phong van</h5>
+                        @{
+                            Html.RenderPartial("ControlForm/InterviewScheduleForm", new
+                            {
+                                ShowCandidateSelect = true,
+                                CandidateList = Model.CandidateList,
+                                InterviewerList = Model.InterviewerList,
+                                HandlerUrl = "/ScheduleInterview?handler=AddSchedule",
+                                ButtonText = "Tao lich phong van"
+                            });
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Ung vien</th>
+                                <th scope="col">Vi tri</th>
+                                <th scope="col">Vong</th>
+                                <th scope="col">Thoi gian</th>
+                                <th scope="col">Nguoi phong van</th>
+                                <th scope="col">Hinh thuc</th>
+                                <th scope="col">Trang thai</th>
+                                <th scope="col">Ket qua PV</th>
+                                <th scope="col">Thao tac</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                var index = 0;
+                            }
+                            @if (Model.DataAll?.Data != null)
+                            {
+                                foreach (var item in Model.DataAll.Data)
+                                {
+                                    var itemInfo = item as dynamic;
+                                    index++;
+                                    var scheduleDate = "";
+                                    if (itemInfo?.ScheduleDate != null)
+                                    {
+                                        scheduleDate = ((DateTime)itemInfo.ScheduleDate).ToString("dd/MM/yyyy HH:mm");
+                                    }
+                                    <tr>
+                                        <th scope="row">@index</th>
+                                        <td>
+                                            <a href="/CandidateDetail?id=@itemInfo.RelId">@getCandidateName(itemInfo.RelId)</a>
+                                        </td>
+                                        <td>@getCandidatePosition(itemInfo.RelId)</td>
+                                        <td>@getRoundText(itemInfo.Type)</td>
+                                        <td>@scheduleDate</td>
+                                        <td>@getInterviewerName(itemInfo.InterviewerId)</td>
+                                        <td>@getModeText(itemInfo.InterviewMode)</td>
+                                        <td>@getStatusText(itemInfo.Status)</td>
+                                        <td>@getResultText(itemInfo.InterviewResult)</td>
+                                        <td>
+                                            @{
+                                                var allowUpdate = false;
+                                                if (canEdit)
+                                                {
+                                                    allowUpdate = true;
+                                                }
+                                                else if (Model.UserData != null && itemInfo?.InterviewerId != null)
+                                                {
+                                                    allowUpdate = Model.UserData.UserId == (int)itemInfo.InterviewerId;
+                                                }
+                                            }
+                                            @if (allowUpdate)
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-primary"
+                                                        data-result="@itemInfo.InterviewResult"
+                                                        data-status="@itemInfo.Status"
+                                                        onclick="openInterviewResultModal(this, @itemInfo.Id)">
+                                                    Cap nhat
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal fade" id="interviewResultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cap nhat ket qua phong van</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="resultScheduleId" />
+                <div class="mb-3">
+                    <label class="form-label">Ket qua PV</label>
+                    <select class="form-select" id="resultValue">
+                        <option value="">Chua xac dinh</option>
+                        <option value="1">Pass</option>
+                        <option value="2">Fail</option>
+                        <option value="3">Hold</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Trang thai</label>
+                    <select class="form-select" id="resultStatus">
+                        <option value="2">Done</option>
+                        <option value="1">Scheduled</option>
+                        <option value="0">Draft</option>
+                        <option value="3">Canceled</option>
+                        <option value="4">No-show</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
+                <button type="button" class="btn btn-primary" onclick="saveInterviewResult()">Luu ket qua</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function exportInterview() {
+        var searchForm = document.getElementById("scheduleInterviewFilter");
+        var exportForm = document.createElement("form");
+        exportForm.method = "post";
+        exportForm.action = "/ScheduleInterview?handler=Export";
+        exportForm.target = "_blank";
+        exportForm.style.display = "none";
+
+        if (searchForm) {
+            Array.from(searchForm.elements).forEach(function(element) {
+                if (element.name) {
+                    var input = document.createElement("input");
+                    input.type = "hidden";
+                    input.name = element.name;
+                    input.value = element.value;
+                    exportForm.appendChild(input);
+                }
+            });
+        }
+
+        var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (tokenInput) {
+            exportForm.appendChild(tokenInput.cloneNode(true));
+        }
+
+        document.body.appendChild(exportForm);
+        exportForm.submit();
+        setTimeout(function() { document.body.removeChild(exportForm); }, 1000);
+    }
+
+    function openInterviewResultModal(button, id) {
+        var scheduleIdInput = document.getElementById("resultScheduleId");
+        var resultSelect = document.getElementById("resultValue");
+        var statusSelect = document.getElementById("resultStatus");
+        var resultValue = "";
+        var statusValue = "";
+
+        if (button) {
+            resultValue = button.getAttribute("data-result") || "";
+            statusValue = button.getAttribute("data-status") || "";
+        }
+
+        if (scheduleIdInput) {
+            scheduleIdInput.value = id || "";
+        }
+        if (resultSelect) {
+            resultSelect.value = resultValue;
+        }
+        if (statusSelect) {
+            statusSelect.value = statusValue || "2";
+        }
+
+        var modalEl = document.getElementById("interviewResultModal");
+        if (modalEl && window.bootstrap) {
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    }
+
+    function saveInterviewResult() {
+        var scheduleIdInput = document.getElementById("resultScheduleId");
+        var resultSelect = document.getElementById("resultValue");
+        var statusSelect = document.getElementById("resultStatus");
+        var scheduleId = scheduleIdInput ? scheduleIdInput.value : "";
+        var resultValue = resultSelect ? resultSelect.value : "";
+        var statusValue = statusSelect ? statusSelect.value : "";
+
+        if (!scheduleId) {
+            Swal.fire({
+                icon: "error",
+                title: "Loi",
+                text: "Khong tim thay lich phong van"
+            });
+            return;
+        }
+
+        if (resultValue && !statusValue) {
+            statusValue = "2";
+        }
+
+        $.ajax({
+            headers: {
+                "RequestVerificationToken":
+                    $('input[name="__RequestVerificationToken"]').val()
+            },
+            type: "POST",
+            datatype: "JSON",
+            url: "/ScheduleInterview?handler=UpdateResult",
+            data: {
+                Id: scheduleId,
+                InterviewResult: resultValue,
+                Status: statusValue
+            },
+            success: function (data) {
+                if (data && data.success === true) {
+                    location.reload();
+                    return;
+                }
+                Swal.fire({
+                    icon: "error",
+                    title: "Khong thanh cong",
+                    text: "Khong the cap nhat ket qua"
+                });
+            },
+            error: function (jqXHR, exception) {
+                showError(jqXHR);
+                Swal.fire({
+                    icon: "error",
+                    title: "Loi he thong",
+                    text: "Khong the cap nhat ket qua"
+                });
+            }
+        });
+    }
+</script>

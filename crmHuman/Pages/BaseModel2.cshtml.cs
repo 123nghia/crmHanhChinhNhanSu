@@ -175,6 +175,12 @@ namespace crmHuman.Pages
             return UserPermissions.Any(p => p.PageCode == pageCode && p.IsView);
         }
 
+        public bool HasApprovePermission(string pageCode)
+        {
+            if (UserData?.RoleCode == "1") return true;
+            return UserPermissions.Any(p => p.PageCode == pageCode && p.IsApprove);
+        }
+
         private void LoadAllPermissions()
         {
             var identity = HttpContext?.User?.Identity as ClaimsIdentity;

@@ -1,0 +1,146 @@
+@page
+@using global::System.Collections.Generic
+@using VS.Human.Item
+@model crmHuman.Pages.InternalNews.IndexModel
+@{
+    ViewData["Title"] = "Tin nội bộ";
+    var newsItems = new List<InternalNewsIndexModel>();
+    if (Model.NewsList?.Data != null)
+    {
+        foreach (var item in Model.NewsList.Data)
+        {
+            if (item is InternalNewsIndexModel newsItem)
+            {
+                newsItems.Add(newsItem);
+            }
+        }
+    }
+}
+
+<div class="pagetitle">
+    <h1>Tin nội bộ</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Tin nội bộ</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card border-0">
+                <div class="card-body p-0 internal-news-card">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 internal-news-header">
+                        <h5 class="mb-0 internal-news-title">THÔNG BÁO CHUNG</h5>
+                        @if (Model.CanCreate)
+                        {
+                            <a class="btn btn-primary" href="/InternalNews/Create">
+                                <i class="bi bi-plus-lg me-1"></i>Tạo bài đăng
+                            </a>
+                        }
+                    </div>
+
+                    @if (newsItems.Count == 0)
+                    {
+                        <div class="alert alert-info m-3 mb-0">
+                            Chưa có bài đăng nào.
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="internal-news-list">
+                            @foreach (var itemInfo in newsItems)
+                            {
+                                var createdAt = itemInfo.CreateAt != default(DateTime)
+                                    ? itemInfo.CreateAt.ToString("dd/MM/yyyy - HH:mm")
+                                    : "";
+                                <li class="internal-news-item">
+                                    <span class="internal-news-bullet">›</span>
+                                    <a class="internal-news-link" href="/InternalNews/Detail?Id=@itemInfo.Id">
+                                        @itemInfo.Title
+                                    </a>
+                                    <span class="internal-news-meta">- @createdAt</span>
+                                </li>
+                            }
+                        </ul>
+                        <div class="internal-news-footer">
+                            <a href="/InternalNews">Xem thêm »</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Styles {
+    <style>
+        .internal-news-card {
+            border: 1px solid #dfe5ef;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .internal-news-header {
+            border-bottom: 1px solid #e8edf4;
+            padding: 12px 16px;
+        }
+
+        .internal-news-title {
+            font-weight: 700;
+            color: #1b4fb0;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .internal-news-list {
+            list-style: none;
+            margin: 0;
+            padding: 10px 16px 6px;
+        }
+
+        .internal-news-item {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin: 6px 0;
+        }
+
+        .internal-news-bullet {
+            color: #d93025;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .internal-news-link {
+            color: #1b66d1;
+            text-decoration: none;
+        }
+
+        .internal-news-link:hover {
+            text-decoration: underline;
+        }
+
+        .internal-news-meta {
+            color: #2d2d2d;
+            font-size: 0.9rem;
+        }
+
+        .internal-news-footer {
+            text-align: right;
+            padding: 0 16px 12px;
+        }
+
+        .internal-news-footer a {
+            color: #1b66d1;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .internal-news-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+}

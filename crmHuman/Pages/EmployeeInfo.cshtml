@@ -10,6 +10,7 @@
     var hdld = itemResult?.HDLD??new VS.Human.Rep.Model.HDLD();
     var bhxhItem =  itemResult?.BHXHItem ?? new VS.Human.Rep.Model.BHXHItem();
     var taxtItem = itemResult?.TaxItem?? new VS.Human.Rep.Model.TaxItem();
+    var isSelfView = Model.IsSelfView;
 
     var textTiltel  =  "Thông tin nhân viên";
     if(itemResult.Id < 1)
@@ -51,9 +52,12 @@
                   <button class="nav-link w-100" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-justified" type="button" role="tab" aria-controls="contact" aria-selected="false">Thông tin khác</button>
                 </li>
 
+                 @if (!isSelfView)
+                 {
                  <li class="nav-item flex-fill" role="presentation">
                   <button class="nav-link w-100" id="account_tab" data-bs-toggle="tab" data-bs-target="#account_info" type="button" role="tab" aria-controls="account" aria-selected="false">Thông tin tài khoản</button>
                 </li>
+                 }
 
                 
           
@@ -708,6 +712,8 @@
                 </div>
 
 
+                @if (!isSelfView)
+                {
                 <div class="tab-pane fade" id="account_info" role="tabpanel" aria-labelledby="contact-tab">
                  
                 
@@ -751,8 +757,7 @@
                           
 
                 </div>
-
-
+                }
                 <div class="tab-pane fade" id="contact-justified" role="tabpanel" aria-labelledby="contact-tab">
                             
                              <strong> Thông tin Người tham chiếu   </strong>
@@ -1144,5 +1149,28 @@
         </div>
     </div>
 </div><!-- End Large Modal-->
+
+@if (isSelfView)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var readOnlyIds = ["txtFingerprintCode", "txtUserName", "onboardDate", "txtResignationDate"];
+            readOnlyIds.forEach(function (id) {
+                var element = document.getElementById(id);
+                if (element) {
+                    element.readOnly = true;
+                }
+            });
+
+            var disabledIds = ["cbStatusWork", "cbStatusHuman", "cbStatus", "cbRoleCode", "cbManager", "cbDepartmentId", "cbPosition"];
+            disabledIds.forEach(function (id) {
+                var element = document.getElementById(id);
+                if (element) {
+                    element.disabled = true;
+                }
+            });
+        });
+    </script>
+}
 
 

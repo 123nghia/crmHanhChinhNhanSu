@@ -1,0 +1,62 @@
+@page
+@model crmHuman.Pages.InternalNews.CreateModel
+@{
+    ViewData["Title"] = "Tạo tin nội bộ";
+}
+
+<div class="pagetitle">
+    <h1>Tạo tin nội bộ</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="/InternalNews">Tin nội bộ</a></li>
+            <li class="breadcrumb-item active">Tạo mới</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Thông tin bài đăng</h5>
+                    <form method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="News_Title">Tiêu đề</label>
+                            <input class="form-control" asp-for="News.Title" maxlength="200" required />
+                            <span asp-validation-for="News.Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="News_Content">Nội dung</label>
+                            <textarea class="form-control tinymce-editor" asp-for="News.Content"></textarea>
+                            <span asp-validation-for="News.Content" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="AttachmentFiles">File đính kèm</label>
+                            <input class="form-control" type="file" id="AttachmentFiles" name="AttachmentFiles" multiple />
+                            <div class="form-text">Có thể chọn nhiều file.</div>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" asp-for="News.IsSendMail" />
+                            <label class="form-check-label" for="News_IsSendMail">
+                                Gửi mail thông báo (làm sau)
+                            </label>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Lưu bài đăng</button>
+                            <a class="btn btn-outline-secondary" href="/InternalNews">Hủy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

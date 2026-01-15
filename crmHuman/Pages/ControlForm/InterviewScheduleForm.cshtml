@@ -1,0 +1,196 @@
+@model dynamic
+@{
+    var modelType = Model?.GetType();
+    Func<string, object> getValue = name =>
+    {
+        if (modelType == null)
+        {
+            return null;
+        }
+        var prop = modelType.GetProperty(name);
+        return prop != null ? prop.GetValue(Model) : null;
+    };
+
+    var candidateId = -1;
+    var candidateIdObj = getValue("CandidateId");
+    if (candidateIdObj != null && int.TryParse(candidateIdObj.ToString(), out var candidateIdParsed))
+    {
+        candidateId = candidateIdParsed;
+    }
+
+    var candidateName = getValue("CandidateName")?.ToString() ?? "";
+    var candidatePositionText = getValue("CandidatePositionText")?.ToString() ?? "";
+
+    var showCandidateSelect = true;
+    var showCandidateSelectObj = getValue("ShowCandidateSelect");
+    if (showCandidateSelectObj != null && bool.TryParse(showCandidateSelectObj.ToString(), out var showParsed))
+    {
+        showCandidateSelect = showParsed;
+    }
+
+    var candidateList = getValue("CandidateList") as VS.Human.Item.BaseList;
+    var interviewerList = getValue("InterviewerList") as VS.Human.Item.BaseList;
+    var handlerUrl = getValue("HandlerUrl")?.ToString() ?? "/CandidateDetail?handler=AddSchedule";
+    var buttonText = getValue("ButtonText")?.ToString() ?? "Len lich phong van";
+
+    var roundOptions = new List<crmHuman.Model.SelectDisplay>
+    {
+        new crmHuman.Model.SelectDisplay { Code = "1", Name = "HR" },
+        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Technical" },
+        new crmHuman.Model.SelectDisplay { Code = "3", Name = "Final" },
+        new crmHuman.Model.SelectDisplay { Code = "0", Name = "Khac" }
+    };
+
+    var statusOptions = new List<crmHuman.Model.SelectDisplay>
+    {
+        new crmHuman.Model.SelectDisplay { Code = "0", Name = "Draft" },
+        new crmHuman.Model.SelectDisplay { Code = "1", Name = "Scheduled" },
+        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Done" },
+        new crmHuman.Model.SelectDisplay { Code = "3", Name = "Canceled" },
+        new crmHuman.Model.SelectDisplay { Code = "4", Name = "No-show" }
+    };
+
+    var modeOptions = new List<crmHuman.Model.SelectDisplay>
+    {
+        new crmHuman.Model.SelectDisplay { Code = "1", Name = "Offline" },
+        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Online" }
+    };
+
+    var resultOptions = new List<crmHuman.Model.SelectDisplay>
+    {
+        new crmHuman.Model.SelectDisplay { Code = "", Name = "Chua xac dinh" },
+        new crmHuman.Model.SelectDisplay { Code = "1", Name = "Pass" },
+        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Fail" },
+        new crmHuman.Model.SelectDisplay { Code = "3", Name = "Hold" }
+    };
+}
+
+<div class="row g-3 interview-schedule-form">
+    <input type="hidden" id="scheduleHandlerUrl" value="@handlerUrl" />
+    <input type="hidden" id="scheduleId" value="-1" />
+
+    @if (showCandidateSelect)
+    {
+        <div class="col-md-6">
+            <label class="form-label">Ung vien</label>
+            <select class="form-select" id="scheduleCandidateId" onchange="updateScheduleCandidateInfo()">
+                <option value="">-- Chon ung vien --</option>
+                @if (candidateList?.Data != null)
+                {
+                    foreach (var item in candidateList.Data)
+                    {
+                        var itemInfo = item as dynamic;
+                        var positionText = "";
+                        if (itemInfo != null && itemInfo.PostionName != null)
+                        {
+                            positionText = itemInfo.PostionName;
+                        }
+                        <option value="@itemInfo.Id" data-position="@positionText">@itemInfo.Name</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Vi tri</label>
+            <input type="text" id="schedulePositionText" class="form-control" readonly />
+        </div>
+    }
+    else
+    {
+        <input type="hidden" id="scheduleCandidateId" value="@candidateId" />
+        <div class="col-md-6">
+            <label class="form-label">Ung vien</label>
+            <input type="text" class="form-control" value="@candidateName" readonly />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Vi tri</label>
+            <input type="text" id="schedulePositionText" class="form-control" value="@candidatePositionText" readonly />
+        </div>
+    }
+
+    <div class="col-md-3">
+        <label class="form-label">Vong phong van</label>
+        <select class="form-select" id="scheduleRound">
+            @foreach (var item in roundOptions)
+            {
+                <option value="@item.Code">@item.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Trang thai</label>
+        <select class="form-select" id="scheduleStatus">
+            @foreach (var item in statusOptions)
+            {
+                if (item.Code == "1")
+                {
+                    <option value="@item.Code" selected>@item.Name</option>
+                }
+                else
+                {
+                    <option value="@item.Code">@item.Name</option>
+                }
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Hinh thuc</label>
+        <select class="form-select" id="scheduleMode">
+            @foreach (var item in modeOptions)
+            {
+                <option value="@item.Code">@item.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Ket qua PV</label>
+        <select class="form-select" id="scheduleResult">
+            @foreach (var item in resultOptions)
+            {
+                <option value="@item.Code">@item.Name</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Ngay va gio</label>
+        <input type="datetime-local" value="" id="scheduleDateTime" class="form-control" />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Nguoi phong van</label>
+        <select class="form-select" id="scheduleInterviewer">
+            <option value="">-- Chon nguoi phong van --</option>
+            @if (interviewerList?.Data != null)
+            {
+                foreach (var item in interviewerList.Data)
+                {
+                    var itemInfo = item as dynamic;
+                    if (itemInfo != null)
+                    {
+                        <option value="@itemInfo.Id">@itemInfo.FullName</option>
+                    }
+                }
+            }
+        </select>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Dia diem / Link meeting</label>
+        <input type="text" value="" id="scheduleAddressInfo" class="form-control" />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Ghi chu cho interviewer</label>
+        <input type="text" value="" id="scheduleNote" class="form-control" />
+    </div>
+
+    <div class="col-12">
+        @if (candidateId > 0)
+        {
+            <button type="button" onclick="saveSchedule(@candidateId)" class="btn btn-primary">@buttonText</button>
+        }
+        else
+        {
+            <button type="button" onclick="saveSchedule()" class="btn btn-primary">@buttonText</button>
+        }
+    </div>
+</div>

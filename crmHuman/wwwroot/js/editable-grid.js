@@ -454,6 +454,10 @@ var EditableGrid = (function () {
             if (newValue !== oldValue) {
                 markRowAsDirty(cell.closest('tr'));
             }
+
+            if (typeof window.onEditableGridCellUpdated === 'function') {
+                window.onEditableGridCellUpdated(cell);
+            }
         }
 
         cell.classList.remove(config.editingClass);
@@ -572,6 +576,10 @@ var EditableGrid = (function () {
         row.classList.remove('row-dirty');
         if (row.dataset.originalSnapshot) {
             delete row.dataset.originalSnapshot;
+        }
+
+        if (typeof window.onEditableGridRowUpdated === 'function') {
+            window.onEditableGridRowUpdated(row);
         }
 
         // Nếu là dòng mới thêm (-1) thì xóa luôn
@@ -927,6 +935,10 @@ var EditableGrid = (function () {
                 cell.textContent = copiedCells[field].text || '--';
             }
         });
+
+        if (typeof window.onEditableGridRowUpdated === 'function') {
+            window.onEditableGridRowUpdated(newRow);
+        }
 
         showToast('Đã paste dữ liệu. Vui lòng bấm Lưu để xác nhận.', 'info');
     }

@@ -2036,6 +2036,8 @@ function saveCanddiateOrder(idEmp) {
     var txtReferrerInput = getValueControl("txtReferrer");
     var phoneNumber = getValueControl("txtPhone");
     var EmailText = getValueControl("txtEmail");
+    var nationalIdInput = getValueControl("txtNationalId");
+    var addressInput = getValueControl("txtAddress");
     var txtShortDes = "";
     var txtNotedCand = getValueControl("txtNotedCand");
     var cvLinkInput = getValueControl("inputCvlink");
@@ -2146,7 +2148,9 @@ function saveCanddiateDetail(idEmp) {
         ManagerId: cbManagerInput,
         StatusHuman: cbStatusHumanInput,
         Status: txtStatusInput,
-        Referrer: txtReferrerInput
+        Referrer: txtReferrerInput,
+        NationalId: nationalIdInput,
+        Address: addressInput
     };
 
     debugger;
@@ -2600,6 +2604,7 @@ document.addEventListener("DOMContentLoaded", () => {
     //     const ctx = document.getElementById('myChart');
 
     //     new Chart(ctx,config);
+    updateScheduleCandidateInfo();
 });
 
 function OpenPageOrder() {
@@ -2893,11 +2898,48 @@ function importCandidateToEmployee() {
 
 
 
-function saveSchedule(idEmp) {
+function saveSchedule(idEmp, handlerUrl) {
 
-    var dateScheduleDateInput = getValueControl("dateScheduleDate");
-    var txtAddressInfoInput = getValueControl("txtAddressInfo");
-    var txtScheduleNotedInput = getValueControl("txtScheduleNoted");
+    var scheduleId = getValueControl("scheduleId");
+    var candidateId = idEmp;
+    if (candidateId == null || candidateId <= 0) {
+        candidateId = getValueControl("scheduleCandidateId");
+    }
+    var scheduleDateInput = getValueControl("scheduleDateTime");
+    var addressInput = getValueControl("scheduleAddressInfo");
+    var noteInput = getValueControl("scheduleNote");
+    var roundInput = getValueControl("scheduleRound");
+    var statusInput = getValueControl("scheduleStatus");
+    var interviewerInput = getValueControl("scheduleInterviewer");
+    var modeInput = getValueControl("scheduleMode");
+    var resultInput = getValueControl("scheduleResult");
+
+    if (candidateId == null || candidateId == "" || candidateId <= 0) {
+        addError("scheduleCandidateId", "Chon ung vien");
+        Swal.fire({
+            icon: "error",
+            title: "Loi",
+            text: "Vui long chon ung vien"
+        });
+        return;
+    }
+    if (scheduleDateInput == null || scheduleDateInput == "") {
+        addError("scheduleDateTime", "Cung cap ngay phong van");
+        Swal.fire({
+            icon: "error",
+            title: "Loi",
+            text: "Vui long chon ngay va gio phong van"
+        });
+        return;
+    }
+
+    var urlSubmit = handlerUrl;
+    if (urlSubmit == null || urlSubmit == "") {
+        urlSubmit = getValueControl("scheduleHandlerUrl");
+    }
+    if (urlSubmit == null || urlSubmit == "") {
+        urlSubmit = "/CandidateDetail?handler=AddSchedule";
+    }
 
     $.ajax({
         headers: {
@@ -2906,25 +2948,57 @@ function saveSchedule(idEmp) {
         },
         type: "POST",
         datatype: "JSON",
-        url: '/CandidateDetail?handler=AddSchedule',
+        url: urlSubmit,
         data: {
-
-            RelId: idEmp,
-            Noted: txtScheduleNotedInput,
-            ScheduleDate: dateScheduleDateInput,
-            AddressInfo: txtAddressInfoInput
+            Id: scheduleId,
+            RelId: candidateId,
+            Type: roundInput,
+            Status: statusInput,
+            ScheduleDate: scheduleDateInput,
+            AddressInfo: addressInput,
+            Noted: noteInput,
+            InterviewerId: interviewerInput,
+            InterviewMode: modeInput,
+            InterviewResult: resultInput
         },
         success: function (data) {
-
-            successAdd(idEmp);
+            if (data && data.success === true) {
+                successAdd(candidateId);
+                return;
+            }
+            Swal.fire({
+                icon: "error",
+                title: "Khong thanh cong",
+                text: "Khong the tao lich phong van"
+            });
         },
         error: function (jqXHR, exception) {
             showError(jqXHR);
+            Swal.fire({
+                icon: "error",
+                title: "Loi he thong",
+                text: "Khong the tao lich phong van"
+            });
         },
         complete: function () {
 
         }
     });
+}
+
+function updateScheduleCandidateInfo() {
+    var candidateSelect = document.getElementById("scheduleCandidateId");
+    var positionInput = document.getElementById("schedulePositionText");
+    if (!candidateSelect || !positionInput) {
+        return;
+    }
+    var selectedOption = candidateSelect.options[candidateSelect.selectedIndex];
+    if (!selectedOption) {
+        positionInput.value = "";
+        return;
+    }
+    var positionText = selectedOption.getAttribute("data-position") || "";
+    positionInput.value = positionText;
 }
 
 

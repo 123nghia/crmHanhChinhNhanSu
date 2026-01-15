@@ -3,6 +3,16 @@
 @{
     ViewData["Title"] = "Home page";
 
+    var showFilters = Model.HasViewPermission("Candidate") || Model.HasViewPermission("Report");
+    var showLeaveSummary = Model.HasViewPermission("LeaveRequest") || Model.HasViewPermission("LeaveBalance") || Model.HasViewPermission("LeaveApproval");
+    var showLeaveApproval = Model.HasApprovePermission("LeaveApproval");
+    var showLeaveCompany = Model.HasViewPermission("LeaveApproval") || Model.HasViewPermission("LeaveBalance");
+    var showRecruitmentStats = Model.HasViewPermission("Candidate") || Model.HasViewPermission("Job");
+    var showOrderOverview = Model.HasViewPermission("Candidate");
+    var showActivity = Model.UserData?.RoleCode != "4" && showOrderOverview;
+    var showExport = Model.HasViewPermission("Report");
+    var showMyLeave = Model.UserData?.RoleCode == "4" && Model.HasViewPermission("LeaveRequest");
+    var leftColumnClass = showActivity ? "col-lg-8" : "col-12";
 }
 
 
@@ -21,9 +31,12 @@
 <section class="section dashboard">
     
     <div class="row">
-         <div class="card-body">
-
-                <form class="row" method="get" action="/">
+        @if (showFilters)
+        {
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form class="row" method="get" action="/">
 
                 <div class="col-md-2">
                     <label class="form-label">Từ Ngày</label>
@@ -34,51 +47,6 @@
                     <input value="@Model.RequestPage.ToText"  id ="toDate" type="date" name="to" class="form-control">
                 </div>
 
-                <div class="col-md-3">
-                <label class="form-label">Việc làm/dự án</label>
-                <select id ="cbjob" name="job"  class="form-select" aria-label="">
-                  <option value="-1">Tất cả</option>
-                    @foreach (var element  in Model.JobList.Data)
-                    {
-                        var item = element as dynamic;
-                        @if (@Model.RequestPage.Job == item.Id )
-                        {
-                        
-                            <option selected value="@item.Id">@item.Name</option>
-                        }
-                        else
-                        {
-                            <option value="@item.Id">@item.Name</option>
-                        }
-                    }
-
-                </select>
-                
-                </div>
-                <div class="col-md-3">
-                <label class="form-label">Trạng thái</label>
-                <select id ="cbstatus2" name="status"  class="form-select" aria-label="">
-                      <option value="-1">Tất cả</option>
-                        @foreach (var element  in Model.StatusList.Data)
-
-                        {
-                            var item = element as dynamic;
-
-                            @if (@Model.RequestPage.Status == item.Id )
-                            {
-                                
-                                <option selected value="@item.Id">@item.Name</option>
-                            }
-                            else
-                            {
-                                <option value="@item.Id">@item.Name</option>
-                            }
-                        
-                        }
-
-                </select>
-
-                </div>
 
                  @if(Model.Permision.SearchGrop == true)
     {
@@ -117,18 +85,24 @@
 
 
 
-                 <div class="text-end">
-                    <button type="button" onclick="exportFileDashboard()" class="btn btn-primary" >Xuất file</button>
+                <div class="col-12 text-end">
+                    @if (showExport)
+                    {
+                        <button type="button" onclick="exportFileDashboard()" class="btn btn-primary">Xuất file</button>
+                    }
                     <button type="submit" class="btn btn-primary">Tìm kiém</button>
                 </div>
 
 
 
-            </form>
-           </div>
-         
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+        
         <!-- Left side columns -->
-            <div class="col-lg-8">
+            <div class="@leftColumnClass">
                     <div class="row">
 
                         <!-- Sales Card -->
@@ -138,7 +112,9 @@
                         }
                         
                         <!-- Role-based Leave Cards -->
-                        <div class="col-xxl-4 col-md-6">
+                        @if (showLeaveSummary)
+                        {
+                            <div class="col-xxl-4 col-md-6">
                             <div class="card info-card revenue-card">
                                 <div class="card-body">
                                     <h5 class="card-title">Quỹ phép còn lại</h5>
@@ -153,9 +129,10 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                            </div>
+                        }
 
-                        @if (Model.UserData.RoleCode == "1" || Model.UserData.RoleCode == "2" || Model.UserData.RoleCode == "3")
+                        @if (showLeaveApproval)
                         {
                             <div class="col-xxl-4 col-md-6">
                                 <div class="card info-card sales-card">
@@ -173,7 +150,10 @@
                                     </div>
                                 </div>
                             </div>
+                        }
 
+                        @if (showLeaveCompany)
+                        {
                             <div class="col-xxl-4 col-md-6">
                                 <div class="card info-card customers-card">
                                     <div class="card-body">
@@ -192,7 +172,7 @@
                             </div>
                         }
 
-                        @if (Model.UserData.RoleCode == "1" || Model.UserData.RoleCode == "2")
+                        @if (showRecruitmentStats)
                         {
                             <!-- Recruitment Stats for Admin/HCNS -->
                             <div class="col-xxl-4 col-md-6">
@@ -228,8 +208,7 @@
 
                                         </div>
                                     </div>
-                                </div> 
-
+                                </div>
                             </div>
                         </div>
                     
@@ -250,7 +229,6 @@
                                             <h6>@itemdashboard.totalOnboard</h6>
                                         </div>
                                     </div>
-
                                 </div>
                             </div>
 
@@ -259,117 +237,7 @@
                     
                         
 
-                        <!-- Recent Sales -->
-                        <div class="col-12">
-                            <div class="card recent-sales overflow-auto">
-
-                                <div class="card-body">
-                                    <h5 class="card-title">Tổng quan </h5>
-
-                                            <table class="table table-borderless ">
-                                            <thead>
-                                                <tr>
-                                                
-                                                    <th scope="col">Tổng quan </th>
-                                                    <th scope="col">Số lượng</th>
-                                                    <th scope="col">Tỉ lệ đạt</th>
-                                                
-                                                </tr>
-                                            </thead>
-                                        <tbody>
-                                    @{
-                                        var rateCVNew ="0";
-                                        var rateCVProcess ="0";
-                                        var rateCVOnboard ="0";
-
-                                        var rateCVDone ="0";
-
-                                        if(itemdashboard.totalCV > 0)
-                                        {
-                                            rateCVNew = ((itemdashboard.totalCVNew / itemdashboard.totalCV)).ToString("0.00%");
-                                            rateCVProcess = ((itemdashboard.totalCVProcess / itemdashboard.totalCV) ).ToString("0.00%");
-                                            rateCVOnboard = ((itemdashboard.totalOnboard / itemdashboard.totalCV)) .ToString("0.00%");
-                                            rateCVDone = ((itemdashboard.totalDone / itemdashboard.totalCV)) .ToString("0.00%");
-                                        }
-
-                                                
-                                                
-                                            }
-
-                                            <tr>
-                                                <td>CV nguồn</td>
-                                                <td>@itemdashboard.totalCVNew  </td>  
-                                                <td>@rateCVNew</td> 
-                                            </tr>
-
-                                            <tr>
-                                                <td>Ứng viên đang process</td>
-                                                <td>@itemdashboard.totalCVProcess</td>
-                                                 <td>@rateCVProcess</td>
-                                             </tr>
-
-                                            <tr>
-                                                <td>Ứng viên Onboard</td>
-                                                <td>@itemdashboard.totalOnboard</td>
-                                                <td>@rateCVOnboard</td>
-                                             </tr>
-
-                                              <tr>
-                                                <td>Ứng viên Done</td>
-                                                <td>@itemdashboard.totalDone</td>
-                                                <td>@rateCVDone</td>
-                                             </tr>
-                                                </tbody>
-                                            </table>
-
-                                
-                                </div><!-- End Recent Sales -->
-
-                                        <div class="card-body">
-                                    <h5 class="card-title">Đơn hàng gần nhất </h5>
-
-                                    <table class="table table-borderless ">
-                                            <thead>
-                                            <tr>
-                                                <th scope="col">#</th>
-                                                <th scope="col">Tên ứng cử viên </th>
-                                                <th scope="col">Vị trí</th>
-                                                <th scope="col">Trạng thái</th>
-                                                <th scope="col">Cập nhật lần cuối</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                        
-                                                    @foreach (var item in Model.TopOrder.Data)
-                                                    {
-                                                            var itemorder = item as dynamic;
-                                                                <tr>
-                                                                <td scope="row">
-                                                                    <a href="/OrderDetail?OrderId=@itemorder.Id">
-                                                                        #@itemorder.Code</a>
-                                                                </td>
-                                                                <td>@itemorder.CandidateName</td>
-                                                                <td>@itemorder.JobName</td>
-                                                        
-                                                                <td><span class="badge bg-success">@itemorder.StatusText</span></td>
-                                                                <td>@itemorder.CreateAt</td>
-                                                            </tr>
-                                                    }
-                                                
-                                                    
-                                                    
-                                                </tbody>
-                                    </table>
-
-                                        </div>
-
-                                    </div>
-                                </div>
-                            
-                            </div>
-                        }
-                        
-                        @if (Model.UserData.RoleCode == "4")
+                        @if (showMyLeave)
                         {
                             <!-- Personal Dashboard for Members -->
                             <div class="col-12">
@@ -401,9 +269,12 @@
                                 </div>
                             </div>
                         }
-                </div><!-- End Left side columns -->
-                <!-- Right side columns -->
-                <div class="col-lg-4">
+                    </div>
+            </div><!-- End Left side columns -->
+                @if (showActivity)
+                {
+                    <!-- Right side columns -->
+                    <div class="col-lg-4">
 
                     <!-- Recent Activity -->
                     <div class="card">
@@ -424,7 +295,7 @@
                             <h5 class="card-title">Hoạt đông gần đây </h5>
 
                             <div class="activity">
-                        @if (Model.UserData.RoleCode != "4" && Model.TopImpact != null && Model.TopImpact.Data != null)
+                        @if (Model.TopImpact != null && Model.TopImpact.Data != null)
                         {
                             @foreach (var item in Model.TopImpact.Data)
                         {
@@ -444,12 +315,6 @@
 
                             }
                         }
-                        else if (Model.UserData.RoleCode == "4")
-                        {
-                            <div class="text-center py-4">
-                                <p class="text-muted small">Thông báo mới nhất dành cho bạn sẽ hiển thị ở đây.</p>
-                            </div>
-                        }
                         
                                
 
@@ -463,7 +328,8 @@
                   
                     
 
-                </div><!-- End Right side columns -->
+                    </div><!-- End Right side columns -->
+                }
 
             </div>
         </section>
@@ -477,9 +343,10 @@
    
    
    var roleCode = "@Model.UserData.RoleCode";
+   var canLoadMyLeave = @showMyLeave.ToString().ToLowerInvariant();
    var extraSearchRequest  = {groupSearch,memberSearch};
 
-   if (roleCode === "4") {
+   if (canLoadMyLeave) {
        // Fetch personal leave list for member dashboard
        fetch('/Leave/LeaveRequest?handler=LeaveList&limit=5')
            .then(res => res.json())
@@ -498,7 +365,10 @@
                } else {
                    html = '<tr><td colspan="5" class="text-center">Chưa có đơn nghỉ phép nào</td></tr>';
                }
-               document.getElementById('myLeaveList').innerHTML = html;
+               var target = document.getElementById('myLeaveList');
+               if (target) {
+                   target.innerHTML = html;
+               }
            });
    }
 
