@@ -47,7 +47,7 @@ namespace crmHuman.Pages
             _iempl = empBusiness1;
             TableColumnText = new List<string>()
             {
-                "STT","UserName","Họ tên", "Vị trí", "Bộ phận", "Loại tài khoản",
+                "STT","UserName","Họ tên", "Vị trí", "Bộ phận",
                 "Người quản lý",
                 "Trạng thái",
                 "Trạng thái chứng từ"
@@ -56,7 +56,7 @@ namespace crmHuman.Pages
 
             TableColumnTextAdmin = new List<string>()
             {
-                "STT","Họ tên", "Vị trí", "Bộ phận",
+                "STT","UserName","Họ tên", "Vị trí", "Bộ phận",
                  "Người quản lý","Trạng thái", "Trạng thái chứng từ",
                 "Cập nhật gần nhất","Người tạo","Thao tác"
             };
@@ -377,6 +377,29 @@ namespace crmHuman.Pages
         }
 
 
+
+
+        public async Task<IActionResult> OnPostApprovePass(int Id)
+        {
+            if (Id < 0) return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
+            var result = await _empBusiness.ApprovePassInterview(Id);
+            return new JsonResult(new { success = result }) { StatusCode = StatusCodes.Status200OK };
+        }
+
+        public async Task<IActionResult> OnPostApprovePending(int Id)
+        {
+            if (Id < 0) return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
+            var result = await _empBusiness.ApprovePendingEmployee(Id);
+            return new JsonResult(new { success = result }) { StatusCode = StatusCodes.Status200OK };
+        }
+
+        public async Task<IActionResult> OnPostOnboard(int Id)
+        {
+            if (Id < 0) return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
+            var emp = await _empBusiness.Onboard(Id);
+            var result = emp != null;
+            return new JsonResult(new { success = result }) { StatusCode = StatusCodes.Status200OK };
+        }
 
     }
 }

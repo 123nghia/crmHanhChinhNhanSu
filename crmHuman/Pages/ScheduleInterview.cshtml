@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = Model.TitlePage;
     var request = Model.RequestSearch ?? new VS.Human.Item.ScheduleInterviewRquest();
-    var canEdit = Model.Permision != null && (Model.Permision.Add == true || Model.Permision.Edit == true);
+    var canEdit = (Model.Permision != null && (Model.Permision.Add == true || Model.Permision.Edit == true)) || (Model.UserData != null && Model.UserData.RoleCode != "CANDIDATE" && Model.UserData.RoleCode != null);
 
     var roundOptions = new List<crmHuman.Model.SelectDisplay>
     {
@@ -287,15 +287,16 @@
                         <thead>
                             <tr>
                                 <th scope="col">#</th>
-                                <th scope="col">Ung vien</th>
-                                <th scope="col">Vi tri</th>
-                                <th scope="col">Vong</th>
-                                <th scope="col">Thoi gian</th>
-                                <th scope="col">Nguoi phong van</th>
-                                <th scope="col">Hinh thuc</th>
-                                <th scope="col">Trang thai</th>
-                                <th scope="col">Ket qua PV</th>
-                                <th scope="col">Thao tac</th>
+                                <th scope="col">Ứng viên</th>
+                                <th scope="col">Vị trí</th>
+                                <th scope="col">Vòng phỏng vấn</th>
+                                <th scope="col">Thời gian</th>
+                                <th scope="col">Người phỏng vấn</th>
+                                <th scope="col">Hình thức</th>
+                                <th scope="col">Địa điểm</th>
+                                <th scope="col">Trạng thái</th>
+                                <th scope="col">Kết quả PV</th>
+                                <th scope="col">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -323,6 +324,7 @@
                                         <td>@scheduleDate</td>
                                         <td>@getInterviewerName(itemInfo.InterviewerId)</td>
                                         <td>@getModeText(itemInfo.InterviewMode)</td>
+                                        <td>@itemInfo.AddressInfo</td>
                                         <td>@getStatusText(itemInfo.Status)</td>
                                         <td>@getResultText(itemInfo.InterviewResult)</td>
                                         <td>
@@ -339,13 +341,48 @@
                                             }
                                             @if (allowUpdate)
                                             {
-                                                <button type="button"
-                                                        class="btn btn-sm btn-outline-primary"
-                                                        data-result="@itemInfo.InterviewResult"
-                                                        data-status="@itemInfo.Status"
-                                                        onclick="openInterviewResultModal(this, @itemInfo.Id)">
-                                                    Cap nhat
-                                                </button>
+                                                <div class="btn-group">
+                                                    @{
+                                                        var isFuture = itemInfo?.ScheduleDate != null && (DateTime)itemInfo.ScheduleDate > DateTime.Now;
+                                                    }
+                                                    @if (isFuture)
+                                                    {
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-outline-info"
+                                                                data-relid="@itemInfo.RelId"
+                                                                data-type="@itemInfo.Type"
+                                                                data-status="@itemInfo.Status"
+                                                                data-mode="@itemInfo.InterviewMode"
+                                                                data-result="@itemInfo.InterviewResult"
+                                                                data-date="@(((DateTime)itemInfo.ScheduleDate).ToString("yyyy-MM-ddTHH:mm"))"
+                                                                data-interviewer="@itemInfo.InterviewerId"
+                                                                data-address="@itemInfo.AddressInfo"
+                                                                data-note="@itemInfo.Noted"
+                                                                onclick="editInterview(this, @itemInfo.Id)">
+                                                            Sửa
+                                                        </button>
+                                                    }
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-primary"
+                                                            data-relid="@itemInfo.RelId"
+                                                            data-type="@itemInfo.Type"
+                                                            data-status="@itemInfo.Status"
+                                                            data-mode="@itemInfo.InterviewMode"
+                                                            data-result="@itemInfo.InterviewResult"
+                                                            data-date="@(((DateTime?)itemInfo.ScheduleDate)?.ToString("yyyy-MM-ddTHH:mm"))"
+                                                            data-interviewer="@itemInfo.InterviewerId"
+                                                            data-address="@itemInfo.AddressInfo"
+                                                            data-note="@itemInfo.Noted"
+                                                            data-position="@getCandidatePosition(itemInfo.RelId)"
+                                                            onclick="openInterviewResultModal(this, @itemInfo.Id)">
+                                                        Cập nhật
+                                                    </button>
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-danger"
+                                                            onclick="deleteInterview(@itemInfo.Id)">
+                                                        Xóa
+                                                    </button>
+                                                </div>
                                             }
                                         </td>
                                     </tr>
@@ -360,43 +397,130 @@
 </section>
 
 <div class="modal fade" id="interviewResultModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Cap nhat ket qua phong van</h5>
+                <h5 class="modal-title">Cập nhật thông tin và kết quả phỏng vấn</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="resultScheduleId" />
-                <div class="mb-3">
-                    <label class="form-label">Ket qua PV</label>
-                    <select class="form-select" id="resultValue">
-                        <option value="">Chua xac dinh</option>
-                        <option value="1">Pass</option>
-                        <option value="2">Fail</option>
-                        <option value="3">Hold</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Trang thai</label>
-                    <select class="form-select" id="resultStatus">
-                        <option value="2">Done</option>
-                        <option value="1">Scheduled</option>
-                        <option value="0">Draft</option>
-                        <option value="3">Canceled</option>
-                        <option value="4">No-show</option>
-                    </select>
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label">Vị trí ứng tuyển</label>
+                        <input type="text" class="form-control" id="resultPosition" readonly />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Vòng phỏng vấn</label>
+                        <select class="form-select" id="resultType">
+                            @foreach (var item in roundOptions.Where(o => o.Code != "-1"))
+                            {
+                                <option value="@item.Code">@item.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Chuyên viên phỏng vấn</label>
+                        <select class="form-select" id="resultInterviewer">
+                            <option value="">-- Chọn chuyên viên --</option>
+                            @if (Model.InterviewerList?.Data != null)
+                            {
+                                foreach (var item in Model.InterviewerList.Data)
+                                {
+                                    var itemInfo = item as dynamic;
+                                    <option value="@itemInfo.Id">@itemInfo.FullName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Thời gian</label>
+                        <input type="datetime-local" class="form-control" id="resultDate" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Hình thức</label>
+                        <select class="form-select" id="resultMode">
+                            @foreach (var item in modeOptions.Where(o => o.Code != "-1"))
+                            {
+                                <option value="@item.Code">@item.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Kết quả PV</label>
+                        <select class="form-select" id="resultValue">
+                            <option value="">Chưa xác định</option>
+                            <option value="1">Pass</option>
+                            <option value="2">Fail</option>
+                            <option value="3">Hold</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Trạng thái</label>
+                        <select class="form-select" id="resultStatus">
+                            <option value="2">Done</option>
+                            <option value="1">Scheduled</option>
+                            <option value="0">Draft</option>
+                            <option value="3">Canceled</option>
+                            <option value="4">No-show</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Địa điểm / Link meeting</label>
+                        <input type="text" class="form-control" id="resultAddress" />
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Ghi chú cho interviewer</label>
+                        <textarea class="form-control" id="resultNote" rows="2"></textarea>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
-                <button type="button" class="btn btn-primary" onclick="saveInterviewResult()">Luu ket qua</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="saveInterviewResult()">Lưu cập nhật</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+    function editInterview(button, id) {
+        if (!button || !id) return;
+        
+        // Populate the form
+        document.getElementById("scheduleId").value = id;
+        document.getElementById("scheduleCandidateId").value = button.getAttribute("data-relid") || "";
+        document.getElementById("scheduleRound").value = button.getAttribute("data-type") || "1";
+        document.getElementById("scheduleStatus").value = button.getAttribute("data-status") || "1";
+        document.getElementById("scheduleMode").value = button.getAttribute("data-mode") || "1";
+        document.getElementById("scheduleResult").value = button.getAttribute("data-result") || "";
+        document.getElementById("scheduleDateTime").value = button.getAttribute("data-date") || "";
+        document.getElementById("scheduleInterviewer").value = button.getAttribute("data-interviewer") || "";
+        document.getElementById("scheduleAddressInfo").value = button.getAttribute("data-address") || "";
+        document.getElementById("scheduleNote").value = button.getAttribute("data-note") || "";
+        
+        // Trigger position info update
+        if (typeof updateScheduleCandidateInfo === "function") {
+            updateScheduleCandidateInfo();
+        }
+        
+        // Scroll to form
+        const formElement = document.querySelector(".interview-schedule-form");
+        if (formElement) {
+            formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Highlight the form briefly
+            formElement.style.border = "2px solid #0dcaf0";
+            formElement.style.padding = "10px";
+            formElement.style.borderRadius = "8px";
+            setTimeout(() => {
+                formElement.style.border = "";
+                formElement.style.padding = "";
+                formElement.style.borderRadius = "";
+            }, 2000);
+        }
+    }
+
     function exportInterview() {
         var searchForm = document.getElementById("scheduleInterviewFilter");
         var exportForm = document.createElement("form");
@@ -428,85 +552,108 @@
     }
 
     function openInterviewResultModal(button, id) {
-        var scheduleIdInput = document.getElementById("resultScheduleId");
-        var resultSelect = document.getElementById("resultValue");
-        var statusSelect = document.getElementById("resultStatus");
-        var resultValue = "";
-        var statusValue = "";
+        if (!button || !id) return;
+        
+        const scheduleIdInput = document.getElementById("resultScheduleId");
+        if (scheduleIdInput) scheduleIdInput.value = id;
 
-        if (button) {
-            resultValue = button.getAttribute("data-result") || "";
-            statusValue = button.getAttribute("data-status") || "";
-        }
+        // Populate fields from data attributes
+        document.getElementById("resultPosition").value = button.getAttribute("data-position") || "";
+        document.getElementById("resultType").value = button.getAttribute("data-type") || "1";
+        document.getElementById("resultInterviewer").value = button.getAttribute("data-interviewer") || "";
+        document.getElementById("resultDate").value = button.getAttribute("data-date") || "";
+        document.getElementById("resultMode").value = button.getAttribute("data-mode") || "1";
+        document.getElementById("resultValue").value = button.getAttribute("data-result") || "";
+        document.getElementById("resultStatus").value = button.getAttribute("data-status") || "2";
+        document.getElementById("resultAddress").value = button.getAttribute("data-address") || "";
+        document.getElementById("resultNote").value = button.getAttribute("data-note") || "";
 
-        if (scheduleIdInput) {
-            scheduleIdInput.value = id || "";
-        }
-        if (resultSelect) {
-            resultSelect.value = resultValue;
-        }
-        if (statusSelect) {
-            statusSelect.value = statusValue || "2";
-        }
-
-        var modalEl = document.getElementById("interviewResultModal");
+        const modalEl = document.getElementById("interviewResultModal");
         if (modalEl && window.bootstrap) {
-            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
         }
     }
 
     function saveInterviewResult() {
-        var scheduleIdInput = document.getElementById("resultScheduleId");
-        var resultSelect = document.getElementById("resultValue");
-        var statusSelect = document.getElementById("resultStatus");
-        var scheduleId = scheduleIdInput ? scheduleIdInput.value : "";
-        var resultValue = resultSelect ? resultSelect.value : "";
-        var statusValue = statusSelect ? statusSelect.value : "";
+        const scheduleId = document.getElementById("resultScheduleId").value;
+        const type = document.getElementById("resultType").value;
+        const interviewerId = document.getElementById("resultInterviewer").value;
+        const scheduleDate = document.getElementById("resultDate").value;
+        const mode = document.getElementById("resultMode").value;
+        const resultValue = document.getElementById("resultValue").value;
+        const statusValue = document.getElementById("resultStatus").value;
+        const address = document.getElementById("resultAddress").value;
+        const note = document.getElementById("resultNote").value;
 
         if (!scheduleId) {
-            Swal.fire({
-                icon: "error",
-                title: "Loi",
-                text: "Khong tim thay lich phong van"
-            });
+            Swal.fire({ icon: "error", title: "Lỗi", text: "Không tìm thấy lịch" });
             return;
-        }
-
-        if (resultValue && !statusValue) {
-            statusValue = "2";
         }
 
         $.ajax({
             headers: {
-                "RequestVerificationToken":
-                    $('input[name="__RequestVerificationToken"]').val()
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
             },
             type: "POST",
-            datatype: "JSON",
             url: "/ScheduleInterview?handler=UpdateResult",
             data: {
                 Id: scheduleId,
+                Type: type,
+                InterviewerId: interviewerId,
+                ScheduleDate: scheduleDate,
+                InterviewMode: mode,
                 InterviewResult: resultValue,
-                Status: statusValue
+                Status: statusValue,
+                AddressInfo: address,
+                Noted: note
             },
             success: function (data) {
                 if (data && data.success === true) {
                     location.reload();
                     return;
                 }
-                Swal.fire({
-                    icon: "error",
-                    title: "Khong thanh cong",
-                    text: "Khong the cap nhat ket qua"
-                });
+                Swal.fire({ icon: "error", title: "Thất bại", text: "Không thể cập nhật" });
             },
-            error: function (jqXHR, exception) {
+            error: function (jqXHR) {
                 showError(jqXHR);
-                Swal.fire({
-                    icon: "error",
-                    title: "Loi he thong",
-                    text: "Khong the cap nhat ket qua"
+                Swal.fire({ icon: "error", title: "Lỗi hệ thống", text: "Kết nối thất bại" });
+            }
+        });
+    }
+
+    function deleteInterview(id) {
+        if (!id) return;
+        Swal.fire({
+            title: 'Xác nhận xóa?',
+            text: "Bạn không thể hoàn tác thao tác này!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    type: "POST",
+                    url: "/ScheduleInterview?handler=DeleteSchedule",
+                    data: { Id: id },
+                    success: function (data) {
+                        if (data && data.success === true) {
+                            Swal.fire('Đã xóa!', 'Lịch phỏng vấn đã được xóa.', 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Lỗi!', 'Không thể xóa lịch phỏng vấn.', 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi!', 'Có lỗi xảy ra khi kết nối máy chủ.', 'error');
+                    }
                 });
             }
         });

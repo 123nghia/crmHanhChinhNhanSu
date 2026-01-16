@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Linq;
+using Microsoft.AspNetCore.Http;
 using VS.Human.Business.Helpers;
 using VS.Human.Business.Model;
 using VS.Human.Item;
@@ -52,7 +53,8 @@ namespace VS.Human.Business.Imp
                 Address = itemAdd.Address,
                 UserName = userName,
                 Pass = passwordHash,
-                IsEmployee = 0
+                IsEmployee = 0,
+                ExpectedOnboardDate = itemAdd.ExpectedOnboardDate
             };
             item.Noted = itemAdd.Noted;
             item.Dob = itemAdd.Dob;
@@ -63,12 +65,6 @@ namespace VS.Human.Business.Imp
         }
 
 
-        public async Task<bool> ChangePassword(string password, int id)
-        {
-            var passwordNew = getMD5(password);
-
-            return await _unitOfWork.CandidateRep.ChangePassword(passwordNew, id);
-        }
 
         public async Task<bool> Update(CandidateDetailUpdate itemUpdate)
         {
@@ -95,8 +91,41 @@ namespace VS.Human.Business.Imp
             item.UpdatedBy = GetUserId();
             item.NationalId = itemUpdate.NationalId;
             item.Address = itemUpdate.Address;
+            item.ExpectedOnboardDate = itemUpdate.ExpectedOnboardDate;
 
-            return await _unitOfWork.CandidateRep.AddOrUpdate(item);
+            var result = await _unitOfWork.CandidateRep.AddOrUpdate(item);
+
+            // Auto-update interview result if candidate status is Pass/Pending
+            if (result && (itemUpdate.Status == 92 || itemUpdate.Status == 93))
+            {
+                var schedules = await _unitOfWork.ScheduleInterviewRep.GetAll(new ScheduleInterviewRquest 
+                { 
+                    RelId = itemUpdate.Id, 
+                    Type = -1,
+                    Limit = 20,
+                    Page = 1
+                });
+                
+                if (schedules?.Data != null && schedules.Data.Cast<object>().Any())
+                {
+                    var latest = schedules.Data.Cast<ScheduleInterviewIndexModel>()
+                        .OrderByDescending(s => s.ScheduleDate ?? s.CreateAt)
+                        .FirstOrDefault();
+
+                    if (latest != null && (latest.InterviewResult == null || latest.InterviewResult == 0))
+                    {
+                        var scheduleEntity = await _unitOfWork.ScheduleInterviewRep.GetById(latest.Id);
+                        if (scheduleEntity != null)
+                        {
+                            scheduleEntity.InterviewResult = 1; // Pass
+                            scheduleEntity.UpdatedBy = GetUserId();
+                            await _unitOfWork.ScheduleInterviewRep.AddOrUpdate(scheduleEntity);
+                        }
+                    }
+                }
+            }
+
+            return result;
         }
 
         public async Task<bool> UpdateProfile(CandidateProfileUpdate itemUpdate)
@@ -157,10 +186,40 @@ namespace VS.Human.Business.Imp
 
         }
 
+        public async Task<bool> ChangePassword(string password, int id)
+        {
+            var existing = await _unitOfWork.CandidateRep.GetById(id);
+            if (existing == null || existing.Id <= 0) return false;
+
+            existing.Pass = getMD5(password);
+            existing.UpdatedBy = GetUserId();
+            return await _unitOfWork.CandidateRep.AddOrUpdate(existing);
+        }
+
         public async Task<Candidate> GetById(int id)
         {
             return await _unitOfWork.CandidateRep.GetById(id);
 
+        }
+
+        public async Task<bool> ApprovePassInterview(int candidateId)
+        {
+            var candidate = await _unitOfWork.CandidateRep.GetById(candidateId);
+            if (candidate == null || candidate.Id <= 0) return false;
+
+            candidate.Status = 92; // Đậu phỏng vấn
+            candidate.UpdatedBy = GetUserId();
+            return await _unitOfWork.CandidateRep.AddOrUpdate(candidate);
+        }
+
+        public async Task<bool> ApprovePendingEmployee(int candidateId)
+        {
+            var candidate = await _unitOfWork.CandidateRep.GetById(candidateId);
+            if (candidate == null || candidate.Id <= 0) return false;
+
+            candidate.Status = 93; // Nhân viên chờ
+            candidate.UpdatedBy = GetUserId();
+            return await _unitOfWork.CandidateRep.AddOrUpdate(candidate);
         }
 
         public async Task<Employee?> Onboard(int candidateId)
@@ -230,11 +289,8 @@ namespace VS.Human.Business.Imp
             candidate.IsActive = 0;
             candidate.UpdatedBy = GetUserId();
 
-            var onboardStatus = await _unitOfWork.MasterDataRep.GetByName("Onboarded", 9);
-            if (onboardStatus != null && int.TryParse(onboardStatus.Code, out var statusCode))
-            {
-                candidate.Status = statusCode;
-            }
+            // Update status to 94 (Official Employee)
+            candidate.Status = 94;
 
             await _unitOfWork.CandidateRep.AddOrUpdate(candidate);
             return newEmployee;

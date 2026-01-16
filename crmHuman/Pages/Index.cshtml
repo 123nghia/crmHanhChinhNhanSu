@@ -1,5 +1,6 @@
 ﻿@page
 @model IndexModel
+@using global::System.Linq
 @{
     ViewData["Title"] = "Home page";
 
@@ -15,6 +16,44 @@
     var showExtendedStats = Model.UserData?.RoleCode != "2";
     var extendedStats = Model.ExtendedStats;
     var leftColumnClass = showActivity ? "col-lg-8" : "col-12";
+
+    var upcomingInterviews = Model.UpcomingInterviews?.Data;
+    var showUpcomingInterviews = (Model.UserData?.RoleCode != "CANDIDATE" && Model.UpcomingInterviews?.Total > 0);
+
+    Func<int?, string> getRoundText = value =>
+    {
+        switch (value)
+        {
+            case 1: return "HR";
+            case 2: return "Technical";
+            case 3: return "Final";
+            case 0: return "Khác";
+            default: return "";
+        }
+    };
+
+    Func<int?, string> getStatusText = value =>
+    {
+        switch (value)
+        {
+            case 0: return "Draft";
+            case 1: return "Scheduled";
+            case 2: return "Done";
+            case 3: return "Canceled";
+            case 4: return "No-show";
+            default: return "";
+        }
+    };
+
+    Func<int?, string> getModeText = value =>
+    {
+        switch (value)
+        {
+            case 1: return "Offline";
+            case 2: return "Online";
+            default: return "";
+        }
+    };
 }
 
 
@@ -415,6 +454,51 @@
                                         </div>
                                         <div class="text-center mt-3">
                                             <a href="/Leave/LeaveRequest" class="btn btn-sm btn-outline-primary">Quản lý phép cá nhân</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (showUpcomingInterviews)
+                        {
+                            <div class="col-12">
+                                <div class="card recent-sales overflow-auto">
+                                    <div class="card-body">
+                                        <h5 class="card-title">@((Model.UserData?.RoleCode == "1") ? "Tất cả lịch phỏng vấn sắp tới" : "Lịch phỏng vấn của tôi")</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-borderless">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Ứng viên</th>
+                                                        <th>Vị trí</th>
+                                                        <th>Vòng</th>
+                                                        <th>Thời gian</th>
+                                                        <th>Hình thức</th>
+                                                        <th>Trạng thái</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var item in upcomingInterviews)
+                                                    {
+                                                        var itemInfo = item as dynamic;
+                                                        var scheduleDate = itemInfo?.ScheduleDate != null ? ((DateTime)itemInfo.ScheduleDate).ToString("dd/MM/yyyy HH:mm") : "--";
+                                                        <tr>
+                                                            <td>
+                                                                <a href="/CandidateDetail?id=@itemInfo.RelId" class="text-primary fw-bold">@itemInfo.CandidateFullName</a>
+                                                            </td>
+                                                            <td>@itemInfo.PositionText</td>
+                                                            <td>@getRoundText(itemInfo.Type)</td>
+                                                            <td>@scheduleDate</td>
+                                                            <td><span class="badge @(itemInfo.InterviewMode == 2 ? "bg-info" : "bg-secondary")">@getModeText(itemInfo.InterviewMode)</span></td>
+                                                            <td><span class="badge bg-success">@getStatusText(itemInfo.Status)</span></td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="text-center mt-3">
+                                            <a href="/ScheduleInterview" class="btn btn-sm btn-outline-primary">Xem tất cả lịch phỏng vấn</a>
                                         </div>
                                     </div>
                                 </div>
@@ -822,7 +906,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    @if (extendedStats.OfficialEmployees.Details != null && extendedStats.OfficialEmployees.Details.Count > 0)
+                    @if (extendedStats.OfficialEmployees != null && extendedStats.OfficialEmployees.Details != null && extendedStats.OfficialEmployees.Details.Count > 0)
                     {
                         <div class="table-responsive">
                             <table class="table table-sm">

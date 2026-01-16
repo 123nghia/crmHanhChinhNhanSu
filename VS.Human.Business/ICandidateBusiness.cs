@@ -13,6 +13,8 @@ namespace VS.Human.Business
         Task<bool> UpdateProfile(CandidateProfileUpdate item);
         Task<bool> ChangePassword(string password, int id);
         Task<Candidate> Login(string userName, string password);
+        Task<bool> ApprovePassInterview(int candidateId);
+        Task<bool> ApprovePendingEmployee(int candidateId);
         Task<Employee?> Onboard(int candidateId);
         Task<bool> Delete(int id, bool reactive = false);
         Task<BaseList> GetAll(CandidateRequest request);

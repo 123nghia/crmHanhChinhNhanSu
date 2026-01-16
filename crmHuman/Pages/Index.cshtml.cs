@@ -26,6 +26,7 @@ namespace crmHuman.Pages
         private readonly IJobItemBusiness _jobItemBusiness;
         private readonly IEmpBusiness _empBusiness;
         private readonly ILeaveBusiness _leaveBusiness;
+        private readonly IScheduleInterviewBussiness _scheduleInterviewBussiness;
 
         public BaseList TopOrder;
         public BaseList TopImpact;
@@ -44,10 +45,13 @@ namespace crmHuman.Pages
 
         public BaseList StatusList { get; set; }
         public dynamic LeaveSummary { get; set; }
+        public BaseList UpcomingInterviews { get; set; } = new BaseList();
+        public List<CommonIndexModel> InterviewRoundOptions { get; set; } = new List<CommonIndexModel>();
+        public List<CommonIndexModel> InterviewModeOptions { get; set; } = new List<CommonIndexModel>();
         public DashboardExtendedStats ExtendedStats { get; set; } = new DashboardExtendedStats();
 
         public IndexModel(ILogger<IndexModel> logger, IDashboardBusinness dashboardBusinness, ImasterDataBussiness imasterDataBussiness,
-        IJobItemBusiness jobItemBusiness, IEmpBusiness empBusiness, ILeaveBusiness leaveBusiness)
+        IJobItemBusiness jobItemBusiness, IEmpBusiness empBusiness, ILeaveBusiness leaveBusiness, IScheduleInterviewBussiness scheduleInterviewBussiness)
         {
             _logger = logger;
             this.dashboardBusinness = dashboardBusinness;
@@ -59,6 +63,7 @@ namespace crmHuman.Pages
             _jobItemBusiness = jobItemBusiness;
             _empBusiness = empBusiness;
             _leaveBusiness = leaveBusiness;
+            _scheduleInterviewBussiness = scheduleInterviewBussiness;
             RecordSource = 10;
         }
 
@@ -223,6 +228,23 @@ namespace crmHuman.Pages
             {
                 ExtendedStats = await BuildExtendedStats(orderRequest, allOrder);
             }
+
+            var interviewRequest = new ScheduleInterviewRquest
+            {
+                Status = -1,
+                Limit = 10
+            };
+            var isAdmin = UserData?.RoleCode == "1";
+            if (!isAdmin)
+            {
+                interviewRequest.InterviewerId = UserData.UserId;
+            }
+            UpcomingInterviews = await _scheduleInterviewBussiness.GetAll(interviewRequest);
+            var rounds = await _masterDataBusinness.GetAll(new CommonRequest { Type = 5 });
+            InterviewRoundOptions = rounds?.Data?.Cast<CommonIndexModel>().ToList() ?? new List<CommonIndexModel>();
+            var modes = await _masterDataBusinness.GetAll(new CommonRequest { Type = 6 });
+            InterviewModeOptions = modes?.Data?.Cast<CommonIndexModel>().ToList() ?? new List<CommonIndexModel>();
+
             return Page();
         }
 
@@ -547,3 +569,4 @@ namespace crmHuman.Pages
 
     }
 }
+

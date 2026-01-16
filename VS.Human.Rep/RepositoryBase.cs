@@ -414,7 +414,7 @@ namespace VS.Human.Rep
             {
                 Id = id,
                 del = delete
-            });
+            }, CommandType.Text);
         }
         public async Task<bool> DeleteBase(int id, int delete = 1, string tableDelete = "")
         {
@@ -424,7 +424,7 @@ namespace VS.Human.Rep
             {
                 Id = id,
                 del = delete
-            });
+            }, CommandType.Text);
         }
 
         public async Task<bool> DeleteReal(int id, int delete = 1, string tableDelete = "")
@@ -434,7 +434,7 @@ namespace VS.Human.Rep
             return await ExecuteSQL(sql, new
             {
                 Id = id
-            });
+            }, CommandType.Text);
         }
 
 

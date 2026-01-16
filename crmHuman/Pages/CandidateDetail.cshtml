@@ -52,7 +52,7 @@
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Username</label>
-                                <input type="text" value="@itemResult.UserName" class="form-control" readonly />
+                                <input type="text" value="@itemResult.UserName" name="userName" id="txtUserName" class="form-control" readonly />
                                 <div class="invalid-feedback-cs">
                                 </div>
                             </div>
@@ -275,7 +275,13 @@
                                 <div class="invalid-feedback-cs">
                                     Please choose a username.
                                 </div>
-                            </div
+                            </div>
+                            <div class="form-group" id="divExpectedOnboardDate" style="@(itemResult.Status == 92 || itemResult.Status == 93 ? "" : "display:none")">
+                                <label class="form-label text-primary fw-bold">Ngày dự kiến onboard</label>
+                                <input type="date" value="@itemResult.ExpectedOnboardDateDisplay" name="ExpectedOnboardDate" id="txtExpectedOnboardDate" class="form-control border-primary" />
+                                <div class="invalid-feedback-cs">
+                                </div>
+                            </div>
                    
                <br />
                   <br />
@@ -319,31 +325,41 @@
                                 });
                             }
                             <div class="form-group">
-                               
+               
               <table class="table table-striped">
                 <thead>
                   <tr>
                     <th scope="col">#</th>
                     <th scope="col">Ngày phỏng vấn</th>
-                    <th scope="col"> Địa điểm</a></th>
+                    <th scope="col">Địa điểm</th>
                     <th scope="col">Nội dung</th>
-                                        <th scope="col">Ket qua PV</th>
-<th scope="col">Tạo ngày</th>
+                    <th scope="col">Kết quả PV</th>
+                    <th scope="col">Tạo ngày</th>
+                    <th scope="col">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
-
+                    @{ var rowIndex = 1; }
                      @foreach (var item in dataSchedulelist.Data)
                             {
                             var itemDraw = item as dynamic;
-                            <tr>
-                            <th scope="row">1</th>
+                            <tr id="schedule-row-@itemDraw.Id">
+                            <th scope="row">@rowIndex</th>
                             <td>@itemDraw.ScheduleDateDisplay</td>
                             <td>@itemDraw.AddressInfo</td>
                             <td>@itemDraw.Noted</td>
                             <td>@(itemDraw.InterviewResult == 1 ? "Pass" : itemDraw.InterviewResult == 2 ? "Fail" : itemDraw.InterviewResult == 3 ? "Hold" : "")</td>
                             <td>@itemDraw.CreateAtDisplay</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-warning" onclick="editSchedule(@itemDraw.Id)" title="Sửa">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="deleteSchedule(@itemDraw.Id)" title="Xóa">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
                             </tr>
+                            rowIndex++;
                             }
 
                   
@@ -480,6 +496,144 @@
         </div>
     </div>
 </section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cbStatus = document.getElementById('cbStatus');
+        const divExpected = document.getElementById('divExpectedOnboardDate');
+        
+        if (cbStatus && divExpected) {
+            cbStatus.addEventListener('change', function() {
+                const status = this.value;
+                if (status == '92' || status == '93') {
+                    divExpected.style.display = '';
+                } else {
+                    divExpected.style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
+
+<script>
+    // Edit schedule - load data into form
+    async function editSchedule(scheduleId) {
+        try {
+            const response = await fetch(`/CandidateDetail?handler=ScheduleById&scheduleId=${scheduleId}`);
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                const data = result.data;
+                
+                // Populate the form fields
+                document.querySelector('[name="Id"]') && (document.querySelector('[name="Id"]').value = data.id);
+                
+                // Set form to edit mode by storing the schedule ID
+                const form = document.getElementById('formScheduleInterview');
+                if (form) {
+                    form.dataset.editId = data.id;
+                }
+                
+                // Set form values
+                if (document.getElementById('cbVongPhongVan')) {
+                    document.getElementById('cbVongPhongVan').value = data.type || '';
+                }
+                if (document.getElementById('cbTrangThai')) {
+                    document.getElementById('cbTrangThai').value = data.status || '';
+                }
+                if (document.getElementById('cbHinhThuc')) {
+                    document.getElementById('cbHinhThuc').value = data.interviewMode || '';
+                }
+                if (document.getElementById('cbKetQuaPV')) {
+                    document.getElementById('cbKetQuaPV').value = data.interviewResult || '';
+                }
+                if (document.getElementById('txtNgayGio')) {
+                    // Format date for datetime-local input
+                    if (data.scheduleDate) {
+                        const d = new Date(data.scheduleDate);
+                        const formatted = d.toISOString().slice(0, 16);
+                        document.getElementById('txtNgayGio').value = formatted;
+                    }
+                }
+                if (document.getElementById('cbNguoiPhongVan')) {
+                    document.getElementById('cbNguoiPhongVan').value = data.interviewerId || '';
+                }
+                if (document.getElementById('txtDiaDiem')) {
+                    document.getElementById('txtDiaDiem').value = data.addressInfo || '';
+                }
+                if (document.getElementById('txtGhiChu')) {
+                    document.getElementById('txtGhiChu').value = data.noted || '';
+                }
+                
+                // Change button text to indicate edit mode
+                const submitBtn = document.querySelector('#formScheduleInterview button[type="button"]');
+                if (submitBtn) {
+                    submitBtn.innerHTML = 'Cập nhật lịch phỏng vấn';
+                }
+                
+                // Scroll to form
+                document.getElementById('contact-tab')?.click();
+                
+                showToast('Đã tải thông tin lịch phỏng vấn', 'info');
+            } else {
+                showToast('Không thể tải thông tin lịch phỏng vấn', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading schedule:', error);
+            showToast('Lỗi khi tải thông tin', 'error');
+        }
+    }
+    
+    // Delete schedule with confirmation
+    async function deleteSchedule(scheduleId) {
+        if (!confirm('Bạn có chắc chắn muốn xóa lịch phỏng vấn này?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/CandidateDetail?handler=DeleteSchedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify({ scheduleId: scheduleId })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Remove the row from table
+                const row = document.getElementById(`schedule-row-${scheduleId}`);
+                if (row) {
+                    row.remove();
+                }
+                showToast('Đã xóa lịch phỏng vấn thành công', 'success');
+            } else {
+                showToast(result.message || 'Không thể xóa lịch phỏng vấn', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting schedule:', error);
+            showToast('Lỗi khi xóa lịch phỏng vấn', 'error');
+        }
+    }
+    
+    // Helper function to show toast notifications
+    function showToast(message, type = 'info') {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type,
+                title: message,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        } else {
+            alert(message);
+        }
+    }
+</script>
 
 <div class="modal fade" id="formModal" tabindex="-1" >
     <div class="modal-dialog  modal-dialog-centered modal-lg" >

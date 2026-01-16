@@ -56,7 +56,14 @@ namespace crmHuman.Pages.Candidate
             }
 
             var statusList = await _masterDataBusiness.GetallByTypeData(9);
-            StatusText = statusList.FirstOrDefault(item => item.Code == Candidate.Status?.ToString())?.Name ?? string.Empty;
+            var statusItem = statusList.FirstOrDefault(item => item.Code == Candidate.Status?.ToString());
+            StatusText = statusItem?.Name ?? string.Empty;
+            
+            // Override label for candidate role if status is "Nhân viên chờ" (93)
+            if (Candidate.Status == 93)
+            {
+                StatusText = "Đang chờ nhận việc";
+            }
 
             var documentStatusList = await _masterDataBusiness.GetallByTypeData(8);
             DocumentStatusText = documentStatusList.FirstOrDefault(item => item.Code == Candidate.StatusHuman?.ToString())?.Name ?? string.Empty;

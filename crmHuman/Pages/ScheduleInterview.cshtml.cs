@@ -52,6 +52,12 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.BadRequest(errors);
             }
 
+            var canEdit = (Permision != null && (Permision.Add == true || Permision.Edit == true)) || (UserData?.RoleCode != "CANDIDATE" && UserData?.RoleCode != null);
+            if (!canEdit)
+            {
+                return ApiResponseHelper.Error("Không có quyền thực hiện thao tác này", StatusCodes.Status403Forbidden);
+            }
+
             var userId = UserData?.UserId ?? 0;
             var itemInsert = new ScheduleInterviewAdd()
             {
@@ -71,20 +77,50 @@ namespace crmHuman.Pages
             };
 
             var result = await _scheduleInterviewBussiness.AddOrUpdate(itemInsert);
-            if (result && request.RelId > 0 && request.Id <= 0)
+            if (result && request.RelId > 0)
             {
                 var scheduleText = request.ScheduleDate?.ToString("HH:mm dd/MM/yyyy") ?? "";
-                await _notificationBusiness.CreateNotification(
-                    request.RelId,
-                    $"Bạn có lịch phỏng vấn mới vào {scheduleText}.",
-                    "/Candidate/Dashboard",
-                    "InterviewScheduled"
-                );
+                if (request.Id <= 0)
+                {
+                    await _notificationBusiness.CreateNotification(
+                        request.RelId,
+                        $"Bạn có lịch phỏng vấn mới vào {scheduleText}.",
+                        "/Candidate/Dashboard",
+                        "InterviewScheduled"
+                    );
+                }
+                else
+                {
+                    await _notificationBusiness.CreateNotification(
+                        request.RelId,
+                        $"Lịch phỏng vấn của bạn vào {scheduleText} đã được cập nhật.",
+                        "/Candidate/Dashboard",
+                        "InterviewUpdated"
+                    );
+                }
             }
             return ApiResponseHelper.SuccessResponse(new { success = result });
         }
 
-        public async Task<IActionResult> OnPostUpdateResult(int Id, int? InterviewResult, int? Status)
+        public async Task<IActionResult> OnPostDeleteSchedule(int Id)
+        {
+            GetInfoUser();
+            if (Id <= 0)
+            {
+                return ApiResponseHelper.Error("Thiếu thông tin lịch phỏng vấn");
+            }
+
+            var isAdmin = UserData?.RoleCode == "1";
+            if (!isAdmin)
+            {
+                return ApiResponseHelper.Error("Không có quyền xóa lịch phỏng vấn", StatusCodes.Status403Forbidden);
+            }
+
+            var result = await _scheduleInterviewBussiness.Delete(Id);
+            return ApiResponseHelper.SuccessResponse(new { success = result });
+        }
+
+        public async Task<IActionResult> OnPostUpdateResult(int Id, int? Type, int? InterviewerId, DateTime? ScheduleDate, int? InterviewMode, int? InterviewResult, int? Status, string AddressInfo, string Noted)
         {
             GetInfoUser();
             var errors = new List<object>();
@@ -103,24 +139,11 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.Error("Không tìm thấy lịch phỏng vấn");
             }
 
-            var canEdit = Permision != null && (Permision.Add == true || Permision.Edit == true);
-            if (!canEdit && (UserData == null || UserData.UserId != scheduleItem.InterviewerId))
+            var isAdmin = UserData?.RoleCode == "1";
+            var isInterviewer = UserData != null && UserData.UserId == scheduleItem.InterviewerId;
+            if (!isAdmin && !isInterviewer)
             {
                 return ApiResponseHelper.Error("Không có quyền cập nhật kết quả", StatusCodes.Status403Forbidden);
-            }
-
-            if (InterviewResult.HasValue)
-            {
-                scheduleItem.InterviewResult = InterviewResult;
-                if (!Status.HasValue)
-                {
-                    Status = 2;
-                }
-            }
-
-            if (Status.HasValue)
-            {
-                scheduleItem.Status = Status;
             }
 
             var userId = UserData?.UserId ?? 0;
@@ -129,14 +152,14 @@ namespace crmHuman.Pages
                 Id = scheduleItem.Id,
                 RelId = scheduleItem.RelId,
                 RelCode = scheduleItem.RelCode,
-                Type = scheduleItem.Type,
-                ScheduleDate = scheduleItem.ScheduleDate,
-                AddressInfo = scheduleItem.AddressInfo,
-                Noted = scheduleItem.Noted,
-                Status = scheduleItem.Status,
-                InterviewerId = scheduleItem.InterviewerId,
-                InterviewMode = scheduleItem.InterviewMode,
-                InterviewResult = scheduleItem.InterviewResult,
+                Type = Type ?? scheduleItem.Type,
+                ScheduleDate = ScheduleDate ?? scheduleItem.ScheduleDate,
+                AddressInfo = AddressInfo ?? scheduleItem.AddressInfo,
+                Noted = Noted ?? scheduleItem.Noted,
+                Status = Status ?? scheduleItem.Status,
+                InterviewerId = InterviewerId ?? scheduleItem.InterviewerId,
+                InterviewMode = InterviewMode ?? scheduleItem.InterviewMode,
+                InterviewResult = InterviewResult ?? scheduleItem.InterviewResult,
                 UpdatedBy = userId
             };
 
@@ -200,8 +223,7 @@ namespace crmHuman.Pages
                     RequestSearch.To = null;
                 }
 
-                var canEdit = Permision != null && (Permision.Add == true || Permision.Edit == true);
-                if (UserData?.RoleCode != "1" && !canEdit)
+                if (UserData?.RoleCode != "1")
                 {
                     RequestSearch.InterviewerId = UserData.UserId;
                 }
@@ -315,7 +337,11 @@ namespace crmHuman.Pages
                             };
 
                             string onboardText = string.Empty;
-                            if (scheduleItem.RelId.HasValue && onboardLookup.TryGetValue(scheduleItem.RelId.Value, out var onboardDate) && onboardDate.HasValue)
+                            if (candidateInfo?.ExpectedOnboardDate != null)
+                            {
+                                onboardText = candidateInfo.ExpectedOnboardDate.Value.ToString("dd/MM/yyyy");
+                            }
+                            else if (scheduleItem.RelId.HasValue && onboardLookup.TryGetValue(scheduleItem.RelId.Value, out var onboardDate) && onboardDate.HasValue)
                             {
                                 onboardText = onboardDate.Value.ToString("dd/MM/yyyy");
                             }
@@ -390,8 +416,7 @@ namespace crmHuman.Pages
                 RequestSearch.To = null;
             }
 
-            var canEdit = Permision != null && (Permision.Add == true || Permision.Edit == true);
-            if (UserData?.RoleCode != "1" && !canEdit)
+            if (UserData?.RoleCode != "1")
             {
                 RequestSearch.InterviewerId = UserData.UserId;
             }

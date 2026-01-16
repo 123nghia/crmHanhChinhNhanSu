@@ -107,6 +107,57 @@ namespace crmHuman.Pages
             return ApiResponseHelper.SuccessResponse(new { success = result });
         }
 
+        public async Task<IActionResult> OnPostDeleteSchedule(int scheduleId)
+        {
+            GetInfoUser();
+            if (UserData.RoleCode == "CANDIDATE")
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
+            var errors = new List<object>();
+            ValidationHelper.ValidateId(scheduleId, "scheduleId", "lịch phỏng vấn", errors);
+
+            if (ValidationHelper.HasErrors(errors))
+            {
+                return ApiResponseHelper.BadRequest(errors);
+            }
+
+            var result = await _scheduleInterviewBussiness.Delete(scheduleId);
+            return ApiResponseHelper.SuccessResponse(new { success = result });
+        }
+
+        public async Task<IActionResult> OnGetScheduleById(int scheduleId)
+        {
+            GetInfoUser();
+            if (UserData.RoleCode == "CANDIDATE")
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
+            var schedule = await _scheduleInterviewBussiness.GetById(scheduleId);
+            if (schedule == null || schedule.Id <= 0)
+            {
+                return ApiResponseHelper.Error("Không tìm thấy lịch phỏng vấn", StatusCodes.Status404NotFound);
+            }
+
+            return ApiResponseHelper.SuccessResponse(new { 
+                success = true, 
+                data = new {
+                    schedule.Id,
+                    schedule.RelId,
+                    schedule.Type,
+                    schedule.ScheduleDate,
+                    schedule.AddressInfo,
+                    schedule.Noted,
+                    schedule.Status,
+                    schedule.InterviewerId,
+                    schedule.InterviewMode,
+                    schedule.InterviewResult
+                }
+            });
+        }
+
         public async Task<IActionResult> OnPostUpdate(CandidateDetailUpdate request)
         {
             var errors = new List<object>();
@@ -221,7 +272,9 @@ namespace crmHuman.Pages
                 Noted = candidateInfo.Noted,
                 ManagerId = candidateInfo.ManagerId,
                 NationalId = candidateInfo.NationalId,
-                Address = candidateInfo.Address
+                Address = candidateInfo.Address,
+                UserName = candidateInfo.UserName,
+                ExpectedOnboardDate = candidateInfo.ExpectedOnboardDate
 
             };
             ResultModel = resultView;

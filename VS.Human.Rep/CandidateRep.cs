@@ -41,7 +41,8 @@ namespace VS.Human.Rep
                 item.UserName,
                 item.Pass,
                 item.IsEmployee,
-                item.EmployeeId
+                item.EmployeeId,
+                item.ExpectedOnboardDate
             };
             return await this.ExecuteSQL("sp_candidate_update", parameter);
         }
@@ -69,7 +70,8 @@ namespace VS.Human.Rep
                 item.NationalId,
                 item.Address,
                 item.UserName,
-                item.Pass
+                item.Pass,
+                item.ExpectedOnboardDate
             };
             return await this.ExecuteSQL("sp_candidate_insert", parameter);
         }
@@ -117,6 +119,7 @@ namespace VS.Human.Rep
                     {
                         itemUpdate.EmployeeId = item.EmployeeId;
                     }
+                    itemUpdate.ExpectedOnboardDate = item.ExpectedOnboardDate;
 
                     return await Update(itemUpdate);
                 }

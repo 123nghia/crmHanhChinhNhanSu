@@ -90,8 +90,8 @@
 
             <form id="mainForm" class="needs-validation" novalidate>
                 <div class="col-12 form-group">
-                    <label class="form-label">Tên đăng nhập</label>
-                    <input type="text" value="@Model.FullName" name="fullName" id="txtUserName" class="form-control" required placeholder="" />
+                    <label class="form-label">Tên đăng nhập (UserName)</label>
+                    <input type="text" value="@Model.UserName" name="userName" id="txtDisplayUserName" class="form-control" placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
 
@@ -158,13 +158,31 @@
 
         </div>
 
-        <div class="col-12 form-group">
-            <label class="form-label">Bộ phận </label>
-            <input type="text" value="@Model.FullName" name="fullName" id="txtDepartment" class="form-control" required placeholder="" />
-            <div class="invalid-feedback-cs">
-            </div>
 
-        </div>
+                <div class="col-12 form-group">
+                    <label class="form-label">Bộ phận </label>
+                    <input type="text" value="@Model.FullName" name="fullName" id="txtDepartment" class="form-control" required placeholder="" />
+                    <div class="invalid-feedback-cs"></div>
+                </div>
+
+                <div class="col-12 form-group">
+                    <label class="form-label">Nhóm</label>
+                    <select name="GroupId" id="cbGroupId" class="form-select" aria-label="">
+                        <option value="">-- Chọn nhóm --</option>
+                        @foreach (var group in Model.GroupList ?? new List<Model.SelectDisplay>())
+                        {
+                            if (Model.GroupId == group.Code)
+                            {
+                                <option value="@group.Code" selected>@group.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@group.Code">@group.Name</option>
+                            }
+                        }
+                    </select>
+                    <div class="invalid-feedback-cs"></div>
+                </div>
 
         <div class="col-12 form-group">
             <label class="form-label">Số điện thoại </label>

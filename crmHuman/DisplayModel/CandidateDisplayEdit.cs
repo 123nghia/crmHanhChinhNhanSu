@@ -17,6 +17,17 @@ namespace crmHuman.DisplayModel
             }
         }
 
-           public string? FingerprintCode { get; set; }
+           public string ExpectedOnboardDateDisplay
+        {
+            get
+            {
+                if (ExpectedOnboardDate.HasValue)
+                {
+                    return ExpectedOnboardDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                }
+                return string.Empty;
+            }
+        }
+        public string? FingerprintCode { get; set; }
     }
 }

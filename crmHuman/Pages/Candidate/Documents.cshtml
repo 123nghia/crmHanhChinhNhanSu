@@ -1,0 +1,225 @@
+@page
+@model crmHuman.Pages.Candidate.DocumentsModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+}
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/Candidate/Dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item active">Hồ sơ</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title">Danh sách hồ sơ chứng từ</h5>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDocModal">
+                            <i class="bi bi-plus-circle me-1"></i> Thêm loại hồ sơ
+                        </button>
+                    </div>
+
+                    <div id="documentListContainer">
+                        @if (Model.DocumentList.Data == null || !Model.DocumentList.Data.Cast<object>().Any())
+                        {
+                            <div class="alert alert-info py-2">Bạn chưa bổ sung hồ sơ nào. Vui lòng thêm các loại hồ sơ cần thiết (CMND/CCCD, Bằng cấp...).</div>
+                        }
+                        
+                        @foreach (var item in Model.DocumentList.Data)
+                        {
+                            var doc = item as dynamic;
+                            Html.RenderPartial("ControlForm/FileInputDocument", new
+                            {
+                                ValueControl = doc.ValueFile,
+                                NameControl = doc.Code,
+                                IdControl = doc.Code,
+                                Lable = doc.DisplayText,
+                                ValueId = doc.Id
+                            });
+                        }
+                    </div>
+
+                    <div class="mt-4 text-end">
+                        <button type="button" onclick="updateCandidateDocuments()" class="btn btn-success btn-lg px-5">
+                            <i class="bi bi-save me-1"></i> Cập nhật hồ sơ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal for adding new document type -->
+<div class="modal fade" id="addDocModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chọn loại hồ sơ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Loại hồ sơ</label>
+                    <select id="cbDocumentType" class="form-select">
+                        <option value="">-- Chọn loại --</option>
+                        @foreach (var type in Model.DocumentTypes)
+                        {
+                            <option value="@type.Code">@type.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="addNewDocRow()">Thêm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function addNewDocRow() {
+            var selectedCode = $('#cbDocumentType').val();
+            var selectedText = $('#cbDocumentType option:selected').text();
+            
+            if (!selectedCode) {
+                alert('Vui lòng chọn loại hồ sơ');
+                return;
+            }
+
+            if ($('#' + selectedCode).length > 0) {
+                alert('Loại hồ sơ này đã có trong danh sách');
+                return;
+            }
+
+            var newRowHtml = `
+                <div class="col-12 form-group mb-3 border-bottom pb-3">
+                    <label class="form-label fw-bold">${selectedText}</label>
+                    <input type="file" onchange="UploadImage(this)" class="form-control mb-2">
+                    <div class="fileResult"></div>
+                    <div class="fileValue">
+                        <input type="hidden" id="${selectedCode}" class="valuefile" value="">
+                    </div>
+                    <div class="small text-muted mt-1">Mã: ${selectedCode}</div>
+                </div>
+            `;
+            
+            $('#documentListContainer .alert-info').remove();
+            $('#documentListContainer').append(newRowHtml);
+            $('#addDocModal').modal('hide');
+        }
+
+        // We use UploadImage(this) from main.js as it's already robust
+        // but we'll keep uploadFileDoc as a fallback or for specific needs if UploadImage fails
+        function UploadImage(element) {
+            var fileInput = element;
+            if (!fileInput?.files?.length) return;
+
+            var formData = new FormData();
+            formData.append('FileRequest', fileInput.files[0]);
+            formData.append('Type', 'candidate_doc');
+
+            $.ajax({
+                type: "POST",
+                url: "/File?handler=Upload",
+                contentType: false,
+                processData: false,
+                data: formData,
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    if (res && res.success) {
+                        var group = $(fileInput).closest('.form-group');
+                        group.find('.valuefile').val(res.linkResult);
+                        
+                        // Build a simple preview
+                        var previewHtml = `<div class="file-preview mt-2">
+                            <a href="${res.linkResult}" target="_blank" class="file-link">
+                                <i class="bi bi-file-earmark-check me-1"></i> File đã tải lên
+                            </a>
+                        </div>`;
+                        group.find('.fileResult').html(previewHtml);
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Tải lên thành công',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000
+                        });
+                    } else {
+                        Swal.fire('Lỗi', 'Không thể tải lên file', 'error');
+                    }
+                },
+                error: function () {
+                    Swal.fire('Lỗi', 'Gặp lỗi khi kết nối máy chủ', 'error');
+                }
+            });
+        }
+
+        function updateCandidateDocuments() {
+            var docsList = [];
+            $('#documentListContainer .valuefile').each(function() {
+                var code = $(this).attr('id');
+                var val = $(this).val();
+                if (code && val) {
+                    var idVal = $(this).closest('.form-group').find('.ValueId').val() || 0;
+                    docsList.push({
+                        Id: parseInt(idVal),
+                        Code: code,
+                        DisplayText: $(this).closest('.form-group').find('label').first().text(),
+                        ValueFile: val
+                    });
+                }
+            });
+
+            if (docsList.length === 0) {
+                Swal.fire('Thông báo', 'Không có thông tin hồ sơ mới để cập nhật', 'info');
+                return;
+            }
+
+            var request = {
+                Data: docsList
+            };
+
+            $.ajax({
+                type: "POST",
+                url: "/Candidate/Documents?handler=UpdateDocuments",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data: JSON.stringify(request),
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    if (res.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Thành công',
+                            text: 'Hồ sơ của bạn đã được cập nhật.'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Lỗi', 'Có lỗi xảy ra khi lưu dữ liệu', 'error');
+                    }
+                },
+                error: function () {
+                    Swal.fire('Lỗi', 'Lỗi kết nối máy chủ', 'error');
+                }
+            });
+        }
+    </script>
+}

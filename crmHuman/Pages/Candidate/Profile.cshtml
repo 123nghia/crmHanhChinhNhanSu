@@ -6,11 +6,12 @@
 }
 
 <div class="pagetitle">
-    <h1>Candidate Profile</h1>
+    <h1>Thông tin cá nhân</h1>
     <nav>
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/">Home</a></li>
-            <li class="breadcrumb-item active">Profile</li>
+            <li class="breadcrumb-item"><a href="/Candidate/Dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item active">Thông tin cá nhân</li>
         </ol>
     </nav>
 </div>
@@ -20,22 +21,22 @@
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Update Profile</h5>
+                    <h5 class="card-title">Cập nhật thông tin</h5>
                     <form id="candidateProfileForm" class="row g-3" novalidate>
                         <div class="col-12">
-                            <label class="form-label">Username</label>
-                            <input type="text" value="@candidate.UserName" class="form-control" readonly />
+                            <label class="form-label text-muted">Tên đăng nhập (Không thể thay đổi)</label>
+                            <input type="text" value="@candidate.UserName" class="form-control bg-light" readonly />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Full name</label>
+                            <label class="form-label">Họ và tên</label>
                             <input type="text" value="@candidate.Name" name="fullName" id="txtFullName" class="form-control" required />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">Date of birth</label>
+                            <label class="form-label">Ngày sinh</label>
                             <input type="date" value="@(candidate.Dob?.ToString("yyyy-MM-dd") ?? string.Empty)" name="dob" id="dob" class="form-control" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">Phone</label>
+                            <label class="form-label">Số điện thoại</label>
                             <input type="text" value="@candidate.Phone" name="txtPhone" id="txtPhone" class="form-control" required />
                         </div>
                         <div class="col-6">
@@ -43,11 +44,11 @@
                             <input type="text" value="@candidate.Email" name="txtEmail" id="txtEmail" class="form-control" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">National ID</label>
+                            <label class="form-label">Số CCCD</label>
                             <input type="text" value="@candidate.NationalId" name="NationalId" id="txtNationalId" class="form-control" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Address</label>
+                            <label class="form-label">Địa chỉ</label>
                             <input type="text" value="@candidate.Address" name="Address" id="txtAddress" class="form-control" />
                         </div>
                         <div class="col-12">
@@ -62,7 +63,26 @@
                             }
                         </div>
                         <div class="col-12">
-                            <button type="button" onclick="saveCandidateProfile()" class="btn btn-primary">Save changes</button>
+                            <button type="button" onclick="saveCandidateProfile()" class="btn btn-primary px-4">Lưu thay đổi</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title text-danger"><i class="bi bi-shield-lock me-2"></i>Đổi mật khẩu</h5>
+                    <form id="changePasswordForm" class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Mật khẩu mới</label>
+                            <input type="password" id="txtNewPassword" class="form-control" placeholder="Nhập mật khẩu mới" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Xác nhận mật khẩu</label>
+                            <input type="password" id="txtConfirmPassword" class="form-control" placeholder="Xác nhận lại mật khẩu mới" />
+                        </div>
+                        <div class="col-12">
+                            <button type="button" onclick="changeCandidatePassword()" class="btn btn-outline-danger">Cập nhật mật khẩu</button>
                         </div>
                     </form>
                 </div>
@@ -117,6 +137,41 @@
                     });
                 },
                 error: function (jqXHR, exception) {
+                    showError(jqXHR);
+                }
+            });
+        }
+        function changeCandidatePassword() {
+            var newPass = $("#txtNewPassword").val();
+            var confirmPass = $("#txtConfirmPassword").val();
+
+            if (!newPass) {
+                Swal.fire("Lỗi", "Vui lòng nhập mật khẩu mới", "error");
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                Swal.fire("Lỗi", "Mật khẩu xác nhận không khớp", "error");
+                return;
+            }
+
+            $.ajax({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                type: "POST",
+                url: '/Candidate/Profile?handler=ChangePassword',
+                data: { password: newPass },
+                success: function (data) {
+                    if (data && data.success) {
+                        Swal.fire("Thành công", "Mật khẩu đã được thay đổi.", "success");
+                        $("#txtNewPassword").val("");
+                        $("#txtConfirmPassword").val("");
+                        return;
+                    }
+                    Swal.fire("Lỗi", "Không thể đổi mật khẩu. Vui lòng thử lại.", "error");
+                },
+                error: function (jqXHR) {
                     showError(jqXHR);
                 }
             });

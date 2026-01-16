@@ -247,6 +247,8 @@ namespace VS.Human.Item
         public int? InterviewerId { get; set; }
         public int? InterviewMode { get; set; }
         public int? InterviewResult { get; set; }
+        public string? CandidateFullName { get; set; }
+        public string? PositionText { get; set; }
 
         public string ScheduleDateDisplay
         {
@@ -256,7 +258,7 @@ namespace VS.Human.Item
                 {
                     return string.Empty;
                 }
-                return ScheduleDate.Value.ToString("dd/MM/yyyy");
+                return ScheduleDate.Value.ToString("dd/MM/yyyy HH:mm");
             }
         }
 
@@ -326,6 +328,18 @@ namespace VS.Human.Item
         }
         // Thêm property UserName để fix lỗi
         public string? UserName { get; set; }
+        public DateTime? ExpectedOnboardDate { get; set; }
+        public string ExpectedOnboardDateDisplay
+        {
+            get
+            {
+                if (ExpectedOnboardDate == null)
+                {
+                    return string.Empty;
+                }
+                return ExpectedOnboardDate.Value.ToString("dd/MM/yyyy");
+            }
+        }
     }
 
 

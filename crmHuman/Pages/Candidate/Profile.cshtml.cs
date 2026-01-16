@@ -69,5 +69,22 @@ namespace crmHuman.Pages.Candidate
             var result = await _candidateBusiness.UpdateProfile(request);
             return ApiResponseHelper.SuccessResponse(new { success = result });
         }
+
+        public async Task<IActionResult> OnPostChangePassword(string password)
+        {
+            GetInfoUser();
+            if (UserData.RoleCode != "CANDIDATE")
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                return ApiResponseHelper.Error("Password cannot be empty");
+            }
+
+            var result = await _candidateBusiness.ChangePassword(password, UserData.UserId);
+            return ApiResponseHelper.SuccessResponse(new { success = result });
+        }
     }
 }

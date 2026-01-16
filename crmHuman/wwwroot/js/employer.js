@@ -2120,6 +2120,7 @@ function saveCanddiateDetail(idEmp) {
     var cbStatusHumanInput = getValueControl("cbStatusHuman");
     var txtStatusInput = getValueControl("cbStatus");
     var txtReferrerInput = getValueControl("txtReferrer");
+    var expectedOnboardDateInput = getValueControl("txtExpectedOnboardDate");
     if (txtFullName == "") {
         addError("txtFullName", "yêu cầu nhập họ và tên");
         return;
@@ -2156,7 +2157,8 @@ function saveCanddiateDetail(idEmp) {
         Status: txtStatusInput,
         Referrer: txtReferrerInput,
         NationalId: nationalIdInput,
-        Address: addressInput
+        Address: addressInput,
+        ExpectedOnboardDate: expectedOnboardDateInput
     };
 
     $.ajax({

@@ -77,14 +77,14 @@
                                     <td>
                                         @if(@itemInfo.Deleted == true)
                                         {
-                                            <a href="javascript:void(0)" onclick="reActive(@itemInfo.Id)">
+                                            <a href="javascript:void(0)" onclick="reActive(@itemInfo.Id, 'Candidate')">
                                                                                     <i class="bi bi-recycle"></i>
 
                                            </a>
                                         }
                                         else  
                                         {
-                                        <a href="javascript:void(0)" onclick="confirmDelete(@itemInfo.Id)">
+                                        <a href="javascript:void(0)" onclick="confirmDelete(@itemInfo.Id, 'Candidate')">
                                                                                     <i class="bi bi-trash-fill">
 
                                                                             </i>
@@ -95,6 +95,25 @@
 
                                             </i>
                                         </a>
+
+                                         @if (itemInfo.Status == 91 || itemInfo.Status == 1)
+                                        {
+                                            <a href="javascript:void(0)" onclick="approvePass(@itemInfo.Id)" title="Đậu phỏng vấn" class="text-success ms-2">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </a>
+                                        }
+                                        @if (itemInfo.Status == 92)
+                                        {
+                                            <a href="javascript:void(0)" onclick="approvePending(@itemInfo.Id)" title="Chuyển sang NV chờ" class="text-warning ms-2">
+                                                <i class="bi bi-hourglass-split"></i>
+                                            </a>
+                                        }
+                                        @if (itemInfo.Status == 93)
+                                        {
+                                            <a href="javascript:void(0)" onclick="onboard(@itemInfo.Id)" title="Nhân viên chính thức" class="text-primary ms-2">
+                                                <i class="bi bi-person-badge-fill"></i>
+                                            </a>
+                                        }
                                        
                                 </td>
                                 </tr>
@@ -124,3 +143,28 @@
 </div><!-- End Large Modal-->
 
 
+
+@section Scripts {
+    <script>
+        function approvePass(id) {
+            if (!confirm('Xác nhận ứng viên đậu phỏng vấn?')) return;
+            $.post('/Candidate?handler=ApprovePass', { Id: id, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val() }, function (res) {
+                if (res.success) location.reload(); else alert('Có lỗi xảy ra');
+            }).fail(function() { alert('Lỗi kết nối'); });
+        }
+
+        function approvePending(id) {
+            if (!confirm('Xác nhận chuyển sang nhân viên chờ?')) return;
+            $.post('/Candidate?handler=ApprovePending', { Id: id, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val() }, function (res) {
+                if (res.success) location.reload(); else alert('Có lỗi xảy ra');
+            }).fail(function() { alert('Lỗi kết nối'); });
+        }
+
+        function onboard(id) {
+            if (!confirm('Xác nhận nhận việc chính thức (Onboard)?')) return;
+            $.post('/Candidate?handler=Onboard', { Id: id, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val() }, function (res) {
+                if (res.success) location.reload(); else alert('Có lỗi xảy ra. Kiểm tra xem ứng viên đã có Username/Pass chưa hoặc đã là NV chưa.');
+            }).fail(function() { alert('Lỗi kết nối'); });
+        }
+    </script>
+}

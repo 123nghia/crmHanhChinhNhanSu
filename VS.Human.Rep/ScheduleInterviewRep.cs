@@ -88,9 +88,15 @@ namespace VS.Human.Rep
             return result;
         }
 
-        //public async Task<bool> Delete(int id)
-        //{
-        //    return await DeleteBase(id, tableDelete: "Partner");
-        //}
+        public async Task<bool> Delete(int id)
+        {
+            return await DeleteBase(id, tableDelete: "ScheduleInterview");
+        }
+
+        public async Task<ScheduleInterview> GetById(int id)
+        {
+            var parameter = new { id };
+            return await ExecuteSQL2<ScheduleInterview>("sp_ScheduleInterview_GetById", parameter);
+        }
     }
 }

@@ -25,6 +25,8 @@
         public int? EmployeeId { get; set; }
 
         public string Referrer { get; set; } = string.Empty;
+        public DateTime? ExpectedOnboardDate { get; set; }
+
         public Candidate()
         {
             Source = 0;
