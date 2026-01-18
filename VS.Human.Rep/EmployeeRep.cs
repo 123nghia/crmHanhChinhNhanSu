@@ -171,6 +171,13 @@ namespace VS.Human.Rep
                         ORDER BY Id DESC";
             return await ExecuteSQL<Employee>(sql, parameter);
         }
+
+        public async Task<List<Employee>> GetDuplicateSeeds()
+        {
+            var sql = "SELECT Id, Email, Phone, NationalId FROM Employees WHERE ISNULL(Deleted,0)=0";
+            var result = await GetDataList<Employee>(sql);
+            return result ?? new List<Employee>();
+        }
         public async Task<bool> ChangePassword(string password, int id)
         {
             var parameter = new
@@ -278,33 +285,18 @@ namespace VS.Human.Rep
         /// </summary>
         public async Task<List<EmployeeExtendedModel>> ExecuteExport(EmployeeRequest request)
         {
-            // var dbParams = new
-            // {
-            //     Token = request.Token,
-            //     OrderBy = request.OrderBy,
-            //     // UserId = request.UserId,
-            //     UserId = -1,
-            //     GroupId = request.GroupId,
-            //     Status = request.Status ?? -1,
-            //     StatusWork = request.StatusWork,
-            //     DocumentStatus = request.DocumentStatus,
-            //     // fromDate = request.From,
-            //     // toDate = request.To,
-            //     IsDeleted = false
-            // };
+            var dbParams = new
+            {
+                Token = (request.Token ?? string.Empty).Trim(),
+                UserId = request.UserId ?? -1,
+                GroupId = request.GroupId ?? -1,
+                Status = request.Status ?? -1,
+                StatusWork = request.StatusWork,
+                DocumentStatus = request.DocumentStatus,
+                fromDate = request.From,
+                toDate = request.To
+            };
 
-            // return await ExecuteSQL<EmployeeExtendedModel>("sp_Employee_Export", dbParams, System.Data.CommandType.StoredProcedure);
-            
-            // DEBUG HARDCODE
-            // var sql = "EXEC sp_Employee_Export @UserId = -1, @Status = -1, @StatusWork = '-1', @DocumentStatus = '-1', @IsDeleted = 0";
-            
-            // SUPER DEBUG: Select directly
-            // var sql = "SELECT * FROM Employees WHERE Isnull(Deleted,0)=0";
-            
-            // Revert to SP with explicit NULLs to ensure no filtering
-            // var sql = "EXEC sp_Employee_Export @Token='', @OrderBy='', @UserId=-1, @MemberId=NULL, @GroupId=-1, @Status=-1, @StatusWork=NULL, @DocumentStatus=NULL, @fromDate=NULL, @toDate=NULL, @IsDeleted=0";
-            
-            // MANUAL SQL QUERY TO BYPASS STORED PROCEDURE ISSUES
             var sql = @"
     SELECT 
         d.*, 
@@ -338,6 +330,8 @@ namespace VS.Human.Rep
             d.Religion
         ) AS ReligionText,
         dbo.getFullName(d.ManagerId) AS ManagerName,
+        gm.GroupId,
+        g.Name AS GroupName,
         
         -- HDLD (Join by Id because UserId in HDLD is 1079, not 001079)
         (SELECT TOP 1 NoAgree FROM hdldItem h WHERE h.UserId = CAST(d.Id AS NVARCHAR(50)) AND ISNULL(h.Deleted,0)=0 ORDER BY h.Start DESC, h.Id DESC) as HD_SoHD,
@@ -364,11 +358,22 @@ namespace VS.Human.Rep
         (SELECT TOP 1 AddressInfo FROM RelationItem r WHERE r.UserName = d.UserName AND ISNULL(r.Deleted,0)=0 ORDER BY r.Id DESC) as RelationAddress
 
     FROM Employees d
+    LEFT JOIN GroupMember gm ON d.Id = gm.MemberId AND ISNULL(gm.Deleted, 0) = 0
+    LEFT JOIN [Group] g ON gm.GroupId = g.Id AND ISNULL(g.Deleted, 0) = 0
     WHERE ISNULL(d.Deleted, 0) = 0
-    ORDER BY d.Id DESC
+      AND (@Token = '' OR d.UserName LIKE N'%' + @Token + '%' OR d.FullName LIKE N'%' + @Token + '%' OR d.Phone LIKE N'%' + @Token + '%')
+      AND (@GroupId <= 0 OR gm.GroupId = @GroupId)
+      AND (@Status < 0 OR d.IsActive = @Status)
+      AND (@StatusWork IS NULL OR @StatusWork = '' OR @StatusWork = '-1' OR d.StatusWork = @StatusWork)
+      AND (@DocumentStatus IS NULL OR @DocumentStatus = '' OR @DocumentStatus = '-1' OR d.DocumentStatus = @DocumentStatus)
+      AND (@fromDate IS NULL OR d.CreateAt >= @fromDate)
+      AND (@toDate IS NULL OR d.CreateAt <= @toDate)
+      AND (@UserId <= 0 OR d.Id IN (SELECT Id FROM getAllUserByUserId(@UserId)))
+      AND (@UserId <= 0 OR d.Id <> @UserId)
+    ORDER BY d.UpdateAt DESC
             ";
             
-            return await ExecuteSQL<EmployeeExtendedModel>(sql, null, System.Data.CommandType.Text);
+            return await ExecuteSQL<EmployeeExtendedModel>(sql, dbParams, System.Data.CommandType.Text);
         }
 
         public async Task<BaseList> GetAllExtended(EmployeeRequest request)

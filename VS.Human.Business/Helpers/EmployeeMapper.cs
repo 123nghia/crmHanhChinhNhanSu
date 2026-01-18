@@ -172,54 +172,52 @@ namespace VS.Human.Business.Helpers
         }
 
         /// <summary>
-        /// Generates username from email, phone, or full name
+        /// Generates username from full name (family.given), fallback to email/phone.
         /// </summary>
         public static string GenerateUserName(string? email, string? phone, string? fullName)
         {
+            if (!string.IsNullOrWhiteSpace(fullName))
+            {
+                var fromName = GetShortUserName(fullName);
+                if (!string.IsNullOrWhiteSpace(fromName))
+                {
+                    return fromName;
+                }
+            }
+
             if (!string.IsNullOrWhiteSpace(email))
             {
                 return email.Split('@')[0];
             }
-            else if (!string.IsNullOrWhiteSpace(phone))
+
+            if (!string.IsNullOrWhiteSpace(phone))
             {
                 return phone;
             }
-            else if (!string.IsNullOrWhiteSpace(fullName))
-            {
-                // Format: [Tên][Viết tắt Họ Đệm]
-                // Ví dụ: Nguyễn Văn Nghĩa -> nghianv
-                return GetShortUserName(fullName);
-            }
-            else
-            {
-                return "user" + DateTime.Now.Ticks;
-            }
+
+            return "user" + DateTime.Now.Ticks;
         }
 
         private static string GetShortUserName(string fullName)
         {
             if (string.IsNullOrWhiteSpace(fullName)) return "";
 
-            // Bỏ dấu và lowercase
-            string unSignName = VS.Human.Utility.Utils.ConvertToUnSign(fullName).ToLower();
-            
-            var parts = unSignName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var unSignName = VS.Human.Utility.Utils.ConvertToUnSign(fullName).ToLowerInvariant();
+            var normalizedChars = new char[unSignName.Length];
+
+            for (int i = 0; i < unSignName.Length; i++)
+            {
+                var ch = unSignName[i];
+                normalizedChars[i] = char.IsLetterOrDigit(ch) ? ch : ' ';
+            }
+
+            var parts = new string(normalizedChars).Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 0) return "";
             if (parts.Length == 1) return parts[0];
 
-            var firstName = parts[parts.Length - 1]; // Tên
-            var lastNameInitials = "";
-
-            // Lấy chữ cái đầu của họ và đệm
-            for (int i = 0; i < parts.Length - 1; i++)
-            {
-                if (parts[i].Length > 0)
-                {
-                    lastNameInitials += parts[i][0];
-                }
-            }
-
-            return firstName + lastNameInitials;
+            var familyName = parts[0];
+            var givenName = parts[parts.Length - 1];
+            return $"{familyName}.{givenName}";
         }
     }
 }

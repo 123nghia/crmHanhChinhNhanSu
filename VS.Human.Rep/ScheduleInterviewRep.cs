@@ -83,7 +83,8 @@ namespace VS.Human.Rep
                 request.RelCode,
                 request.Limit,
                 request.Page,
-                request.OrderBy
+                request.OrderBy,
+                request.UserId
             });
             return result;
         }

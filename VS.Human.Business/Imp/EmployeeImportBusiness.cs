@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Transactions;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
@@ -66,10 +67,17 @@ namespace VS.Human.Business.Imp
                 if (dataStartIndex >= rows.Count)
                     return ErrorResult(result, "File Excel khong co du lieu sau dong tieu de.");
 
+                var precheckTotal = await PrecheckDuplicates(rows, dataStartIndex, workbookPart, headerMap, result);
+                if (result.TotalError > 0)
+                {
+                    result.Total = precheckTotal;
+                    result.TotalSuccess = 0;
+                    return result;
+                }
+
                 for (int i = dataStartIndex; i < rows.Count; i++)
                 {
-                   
-                    await ProcessRow(rows[i], i , workbookPart, userId, result, headerMap);
+                    await ProcessRow(rows[i], i, workbookPart, userId, result, headerMap);
                 }
             }
             catch (Exception ex)
@@ -98,11 +106,12 @@ namespace VS.Human.Business.Imp
             return result;
         }
 
-        private async Task ProcessRow(Row row, int rowIndex, WorkbookPart workbookPart, int userId, EmployeeImportResult result, System.Collections.Generic.Dictionary<string, int> headerMap)
+        private async Task ProcessRow(Row row, int rowIndex, WorkbookPart workbookPart, int userId, EmployeeImportResult result, Dictionary<string, int> headerMap)
         {
             try
             {
                 var values = ExcelHelper.GetRowValues(row, workbookPart).ToList();
+                var rowNumber = GetRowNumber(row, rowIndex);
 
                 var fullName = GetValue(headerMap, values, "FullName");
                 if (string.IsNullOrWhiteSpace(fullName))
@@ -142,14 +151,15 @@ namespace VS.Human.Business.Imp
                 var validationError = EmployeeImportValidator.ValidateRow(EmployeeMapper.MapToEmployeeInfoAdd(employee));
                 if (validationError != null)
                 {
-                    AddError(result, rowIndex, validationError);
+                    AddError(result, rowNumber, validationError);
                     return;
                 }
-                await SaveEmployee(employee, contractData, insuranceData, userId, rowIndex, result);
+                await SaveEmployee(employee, contractData, insuranceData, userId, rowNumber, result);
             }
             catch (Exception ex)
             {
-                AddError(result, rowIndex, $"Loi xu ly: {ex.Message}");
+                var rowNumber = GetRowNumber(row, rowIndex);
+                AddError(result, rowNumber, $"Loi xu ly: {ex.Message}");
             }
         }
 
@@ -170,7 +180,7 @@ namespace VS.Human.Business.Imp
             employee.UserName = string.IsNullOrEmpty(employee.UserName)
                 ? EmployeeMapper.GenerateUserName(employee.Email, employee.Phone, employee.FullName)
                 : employee.UserName;
-            employee.Pass = string.IsNullOrEmpty(employee.Pass) ? "Vietstar@2024" : employee.Pass;
+            employee.Pass = string.IsNullOrEmpty(employee.Pass) ? "Vietstar@2026" : employee.Pass;
             
             // Set default status if not provided by import
             if (employee.Status == 0)
@@ -197,6 +207,134 @@ namespace VS.Human.Business.Imp
             {
                 AddError(result, rowIndex, "Khong them nhan vien vao database");
             }
+        }
+
+        private async Task<int> PrecheckDuplicates(List<Row> rows, int dataStartIndex, WorkbookPart workbookPart, Dictionary<string, int> headerMap, EmployeeImportResult result)
+        {
+            var existing = await _unitOfWork.EmployeeRep.GetDuplicateSeeds();
+            var existingEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var existingPhones = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var existingNationalIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var item in existing)
+            {
+                var email = NormalizeEmail(item.Email);
+                var phone = NormalizePhone(item.Phone);
+                var nationalId = NormalizeNationalId(item.NationalId);
+
+                if (!string.IsNullOrWhiteSpace(email)) existingEmails.Add(email);
+                if (!string.IsNullOrWhiteSpace(phone)) existingPhones.Add(phone);
+                if (!string.IsNullOrWhiteSpace(nationalId)) existingNationalIds.Add(nationalId);
+            }
+
+            var fileEmails = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var filePhones = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var fileNationalIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            var total = 0;
+
+            for (int i = dataStartIndex; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                var values = ExcelHelper.GetRowValues(row, workbookPart).ToList();
+
+                if (values.All(string.IsNullOrWhiteSpace))
+                {
+                    continue;
+                }
+
+                var fullName = GetValue(headerMap, values, "FullName");
+                if (string.IsNullOrWhiteSpace(fullName))
+                {
+                    continue;
+                }
+
+                total++;
+
+                var rowNumber = GetRowNumber(row, i);
+                var email = NormalizeEmail(GetValue(headerMap, values, "Email"));
+                var phone = NormalizePhone(GetValue(headerMap, values, "Phone"));
+                var nationalId = NormalizeNationalId(GetValue(headerMap, values, "NationalId"));
+
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    if (fileEmails.TryGetValue(email, out var firstRow))
+                    {
+                        AddError(result, rowNumber, $"Trung Email voi dong {firstRow}");
+                    }
+                    else
+                    {
+                        fileEmails[email] = rowNumber;
+                    }
+
+                    if (existingEmails.Contains(email))
+                    {
+                        AddError(result, rowNumber, "Trung Email voi du lieu hien co");
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(phone))
+                {
+                    if (filePhones.TryGetValue(phone, out var firstRow))
+                    {
+                        AddError(result, rowNumber, $"Trung so dien thoai voi dong {firstRow}");
+                    }
+                    else
+                    {
+                        filePhones[phone] = rowNumber;
+                    }
+
+                    if (existingPhones.Contains(phone))
+                    {
+                        AddError(result, rowNumber, "Trung so dien thoai voi du lieu hien co");
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(nationalId))
+                {
+                    if (fileNationalIds.TryGetValue(nationalId, out var firstRow))
+                    {
+                        AddError(result, rowNumber, $"Trung CCCD voi dong {firstRow}");
+                    }
+                    else
+                    {
+                        fileNationalIds[nationalId] = rowNumber;
+                    }
+
+                    if (existingNationalIds.Contains(nationalId))
+                    {
+                        AddError(result, rowNumber, "Trung CCCD voi du lieu hien co");
+                    }
+                }
+            }
+
+            return total;
+        }
+
+        private static int GetRowNumber(Row row, int rowIndex)
+        {
+            if (row.RowIndex != null)
+            {
+                return (int)row.RowIndex.Value;
+            }
+            return rowIndex + 1;
+        }
+
+        private static string NormalizeEmail(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim().ToLowerInvariant();
+        }
+
+        private static string NormalizePhone(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+            return new string(value.Where(char.IsDigit).ToArray());
+        }
+
+        private static string NormalizeNationalId(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+            return new string(value.Where(char.IsDigit).ToArray());
         }
 
         private ContractRowData CreateContractData(System.Collections.Generic.List<string> values, Dictionary<string, int> headerMap)

@@ -1,71 +1,60 @@
-<form class="row g-3" method="get" action="/Employee">
+<form class="row g-2 align-items-end" method="get" action="/Employee">
+    <input type="hidden" name="limit" value="@Model.RequestSearch.Limit">
 
-    <div class="col-md-6">
+    <div class="col-12 col-md-6 col-lg-3">
         <label class="form-label">Từ ngày</label>
         <input value="@Model.RequestSearch.FromText" type="date" name="from" class="form-control">
     </div>
-    <div class="col-md-6">
+    <div class="col-12 col-md-6 col-lg-3">
         <label class="form-label">Đến ngày</label>
         <input value="@Model.RequestSearch.ToText" type="date" name="to" class="form-control">
     </div>
 
-    <div class="col-md-6">
-        <label class="form-label">Từ khoá</label>
+    <div class="col-12 col-md-6 col-lg-3">
+        <label class="form-label">Từ khóa</label>
         <input type="text" value="@Model.RequestSearch.Token" name="token" class="form-control">
     </div>
 
-
-    <div class="col-md-6" style="display:none">
-        <label class="form-label">Limit</label>
-        <input type="text" name="limit" value="@Model.RequestSearch.Limit" class="form-control">
-    </div>
     @if (Model.UserData.RoleCode == "1")
     {
-    <div class="col-md-6">
-        <label class="form-label">Trạng thái</label>
-        <select id="cbstatus" name="documentStatus" data-master-type="8" data-value-key="code" data-selected-value="@Model.RequestSearch.DocumentStatus" class="form-select" aria-label="">
-            <option value="-1">Tất cả</option>
+        <div class="col-12 col-md-6 col-lg-3">
+            <label class="form-label">Trạng thái</label>
+            <select id="cbstatus" name="documentStatus" data-master-type="8" data-value-key="code" data-selected-value="@Model.RequestSearch.DocumentStatus" class="form-select" aria-label="">
+                <option value="-1">Tất cả</option>
+            </select>
+        </div>
 
-        </select>
-    </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <label class="form-label">Trạng thái làm việc</label>
+            <select id="cbStatusWorkSearch" name="statusWork" data-master-type="11" data-value-key="code" data-selected-value="@Model.RequestSearch.StatusWork" class="form-select" aria-label="">
+                <option value="-1">Tất cả</option>
+            </select>
+        </div>
 
-    <div class="col-md-6">
-        <label class="form-label">Trạng thái làm việc</label>
-        <select id="cbStatusWorkSearch" name="statusWork" data-master-type="11" data-value-key="code" data-selected-value="@Model.RequestSearch.StatusWork" class="form-select" aria-label="">
-            <option value="-1">Tất cả</option>
-
-        </select>
-    </div>
-
-  
-        <div class="col-md-6">
+        <div class="col-12 col-md-6 col-lg-3">
             <label class="form-label">Nhóm</label>
             <select name="groupId" id="cbgroup" class="form-select" aria-label="">
                 <option value="-1" selected>Tất cả</option>
-
-
             </select>
         </div>
 
-        <div class="col-md-6">
+        <div class="col-12 col-md-6 col-lg-3">
             <label class="form-label">Thành viên</label>
             <select name="memberId" id="cbmember" class="form-select" aria-label="">
                 <option value="-1" selected>Tất cả</option>
-
-
             </select>
         </div>
     }
-    
-    <div class="text-end">
-        <button type="submit" class="btn btn-primary">Tìm kiếm</button>
 
-        @if (Model.Permision.Add == true)
-        {
-            <button type="button" class="btn btn-primary" onclick="OpenFormImportCandidate()">Import</button>
-            <button type="button" class="btn btn-primary" onclick="OpenCreateNew(-1, '@Model.KeyPage')">Thêm mới</button>
-        }
+    <div class="col-12 col-md-6 col-lg-3">
+        <div class="d-flex justify-content-end gap-2 flex-wrap">
+            <button type="submit" class="btn btn-primary">Tìm kiếm</button>
 
-
+            @if (Model.Permision.Add == true)
+            {
+                <button type="button" class="btn btn-primary" onclick="OpenFormImportCandidate()">Import</button>
+                <button type="button" class="btn btn-primary" onclick="OpenCreateNew(-1, '@Model.KeyPage')">Thêm mới</button>
+            }
+        </div>
     </div>
 </form>

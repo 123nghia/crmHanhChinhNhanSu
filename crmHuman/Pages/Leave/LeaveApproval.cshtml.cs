@@ -39,7 +39,7 @@ namespace crmHuman.Pages.Leave
                     else filterStatus = 2; // Others see pending BGD (assuming)
                 }
 
-                LeaveList = await _leaveBusiness.GetLeaveList(null, filterStatus, null, null, page, limit);
+                LeaveList = await _leaveBusiness.GetLeaveList(null, filterStatus, null, null, page, limit, UserData.UserId);
             }
         }
 

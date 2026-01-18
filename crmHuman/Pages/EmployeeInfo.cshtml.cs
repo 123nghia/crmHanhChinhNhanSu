@@ -9,6 +9,7 @@ using VS.Human.Business;
 using VS.Human.Business.Helpers;
 using VS.Human.Business.Model;
 using VS.Human.Item;
+using VS.Human.Rep.Model;
 
 namespace crmHuman.Pages
 {
@@ -234,12 +235,7 @@ namespace crmHuman.Pages
             GetInfoUser();
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
-            ValidationHelper.ValidatePhone(request.Phone, errors);
-            
-            if (ValidationHelper.HasErrors(errors))
-            {
-                return ApiResponseHelper.BadRequest(errors);
-            }
+            Employee? existingEmployee = null;
 
             if (isSelfView)
             {
@@ -253,7 +249,7 @@ namespace crmHuman.Pages
                     return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
                 }
 
-                var existingEmployee = await _empBusiness.GetById(UserData.UserId);
+                existingEmployee = await _empBusiness.GetById(UserData.UserId);
                 if (existingEmployee == null || existingEmployee.Id < 1)
                 {
                     return ApiResponseHelper.NotFound("Employee not found");
@@ -270,6 +266,29 @@ namespace crmHuman.Pages
                 request.ManagerId = existingEmployee.ManagerId;
                 request.DepartmentCode = existingEmployee.DepartmentCode;
                 request.PositionCode = existingEmployee.PositionCode;
+            }
+            else if (request.Id > 0)
+            {
+                existingEmployee = await _empBusiness.GetById(request.Id);
+                if (existingEmployee == null || existingEmployee.Id < 1)
+                {
+                    return ApiResponseHelper.NotFound("Employee not found");
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Phone) && !string.IsNullOrWhiteSpace(existingEmployee?.Phone))
+            {
+                request.Phone = existingEmployee.Phone;
+            }
+
+            if (request.Id < 1)
+            {
+                ValidationHelper.ValidatePhone(request.Phone, errors);
+            }
+            
+            if (ValidationHelper.HasErrors(errors))
+            {
+                return ApiResponseHelper.BadRequest(errors);
             }
 
             // Log DocumentCheck to help debug
@@ -295,7 +314,7 @@ namespace crmHuman.Pages
             // Reset password if requested
             if (request.ResetPass == true)
             {
-                request.NewPassword = "Vietstar@2024";
+                request.NewPassword = "Vietstar@2026";
             }
 
             // Determine employee ID

@@ -10,7 +10,7 @@ namespace VS.Human.Business.Imp
 {
     public class CandidateBusiness : BaseBusiness, ICandidateBusiness
     {
-        private const string DefaultCandidatePassword = "Vietstar@2024";
+        private const string DefaultCandidatePassword = "Vietstar@2026";
 
 
 

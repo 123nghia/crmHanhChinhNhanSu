@@ -8,7 +8,7 @@ namespace VS.Human.Rep
 {
     public interface ILeaveRep
     {
-        Task<BaseList> GetAll(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit);
+        Task<BaseList> GetAll(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit, int? userId = null);
         Task<LeaveIndexModel> GetById(int id);
         Task<int> Save(LeaveAddUpdate model, int userId);
         Task<bool> Approve(int id, int status, int approverId, string comment);

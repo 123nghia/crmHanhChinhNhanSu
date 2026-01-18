@@ -14,9 +14,9 @@ namespace VS.Human.Business
         {
         }
 
-        public async Task<BaseList> GetLeaveList(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit)
+        public async Task<BaseList> GetLeaveList(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit, int? userId = null)
         {
-            return await _unitOfWork.LeaveRep.GetAll(employeeId, status, fromDate, toDate, page, limit);
+            return await _unitOfWork.LeaveRep.GetAll(employeeId, status, fromDate, toDate, page, limit, userId);
         }
 
         public async Task<LeaveIndexModel> GetLeaveById(int id)

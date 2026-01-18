@@ -7,7 +7,7 @@ namespace VS.Human.Business
 {
     public interface ILeaveBusiness
     {
-        Task<BaseList> GetLeaveList(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit);
+        Task<BaseList> GetLeaveList(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit, int? userId = null);
         Task<LeaveIndexModel> GetLeaveById(int id);
         Task<int> CreateOrUpdateLeave(LeaveAddUpdate model, int userId);
         Task<bool> ApproveLeave(int id, int status, int approverId, string comment);

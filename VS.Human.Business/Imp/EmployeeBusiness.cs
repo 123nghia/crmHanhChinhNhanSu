@@ -20,6 +20,7 @@ namespace VS.Human.Business.Imp
 
         public async Task<Employee?> Add(EmployeeInfoAdd itemAdd)
         {
+            itemAdd.UserName = await BuildUniqueUserName(itemAdd.UserName, itemAdd.Email, itemAdd.Phone, itemAdd.FullName);
             var item = new Employee();
             item.FullName = itemAdd.FullName;
             item.Onboard = itemAdd.Onboard;
@@ -100,39 +101,12 @@ namespace VS.Human.Business.Imp
             // Handle new employee (Id < 0)
             if (itemUpdate.Id < 0)
             {
-                // Generate UserName if not provided
-                if (string.IsNullOrEmpty(itemUpdate.UserName))
-                {
-                    string baseUserName = EmployeeMapper.GenerateUserName(itemUpdate.Email, itemUpdate.Phone, itemUpdate.FullName);
-                    string finalUserName = baseUserName;
-                    int counter = 1;
-
-                    // Check duplicate username
-                    while (true)
-                    {
-                        var existUser = await _unitOfWork.EmployeeRep.GetByUserName(finalUserName);
-                        // RepositoryBase returns Id = -1 on error, or Id = 0/null/default on not found
-                        // We should treat both <= 0 as "not found" or "safe to use" to prevent infinite loop on db error
-                        if (existUser == null || existUser.Id <= 0)
-                        {
-                            break; // Username is unique
-                        }
-                        
-                        // If exists (Id > 0), append counter and try again
-                        finalUserName = $"{baseUserName}{counter}";
-                        counter++;
-                        
-                        // Prevent infinite loop if something is really wrong
-                        if (counter > 100) break;
-                    }
-
-                    itemUpdate.UserName = finalUserName;
-                }
+                itemUpdate.UserName = await BuildUniqueUserName(itemUpdate.UserName, itemUpdate.Email, itemUpdate.Phone, itemUpdate.FullName);
 
                 // Set default password if not provided
                 if (string.IsNullOrEmpty(itemUpdate.Pass))
                 {
-                    itemUpdate.Pass = "Vietstar@2024"; // Default password (will be hashed later)
+                    itemUpdate.Pass = "Vietstar@2026"; // Default password (will be hashed later)
                 }
 
                 itemUpdate.CreatedBy = GetUserId();
@@ -150,6 +124,37 @@ namespace VS.Human.Business.Imp
             }
 
             return await _unitOfWork.EmployeeRep.AddOrUpdate(item);
+        }
+
+        private async Task<string> BuildUniqueUserName(string? userName, string? email, string? phone, string? fullName)
+        {
+            var baseUserName = string.IsNullOrWhiteSpace(userName)
+                ? EmployeeMapper.GenerateUserName(email, phone, fullName)
+                : userName.Trim();
+
+            if (string.IsNullOrWhiteSpace(baseUserName))
+            {
+                baseUserName = "user" + DateTime.Now.Ticks;
+            }
+
+            var finalUserName = baseUserName;
+            var counter = 2;
+
+            while (true)
+            {
+                var existUser = await _unitOfWork.EmployeeRep.GetByUserName(finalUserName);
+                if (existUser == null || existUser.Id <= 0)
+                {
+                    break;
+                }
+
+                finalUserName = $"{baseUserName}{counter}";
+                counter++;
+
+                if (counter > 100) break;
+            }
+
+            return finalUserName;
         }
         public Task<bool> Delete(int id, bool reactive = false)
         {

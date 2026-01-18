@@ -38,14 +38,7 @@ namespace crmHuman.Pages.Leave
             }
             else
             {
-                // For regular employees, only show their own requests
-                int? filterEmployeeId = null;
-                if (UserData.RoleCode != "1") // Not Admin
-                {
-                    filterEmployeeId = UserData.UserId;
-                }
-
-                LeaveList = await _leaveBusiness.GetLeaveList(filterEmployeeId, null, null, null, page, limit);
+                LeaveList = await _leaveBusiness.GetLeaveList(null, null, null, null, page, limit, UserData.UserId);
             }
 
             LeaveTypes = await _masterDataBusiness.GetallByTypeData(30);
@@ -56,12 +49,7 @@ namespace crmHuman.Pages.Leave
         public async Task<IActionResult> OnGetLeaveListAsync(int page = 1, int limit = 20)
         {
             GetInfoUser();
-            int? filterEmployeeId = null;
-            if (UserData.RoleCode != "1")
-            {
-                filterEmployeeId = UserData.UserId;
-            }
-            var result = await _leaveBusiness.GetLeaveList(filterEmployeeId, null, null, null, page, limit);
+            var result = await _leaveBusiness.GetLeaveList(null, null, null, null, page, limit, UserData.UserId);
             return new JsonResult(result);
         }
 

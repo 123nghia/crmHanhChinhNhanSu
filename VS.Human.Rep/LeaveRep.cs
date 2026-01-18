@@ -16,7 +16,7 @@ namespace VS.Human.Rep
         {
         }
 
-        public async Task<BaseList> GetAll(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit)
+        public async Task<BaseList> GetAll(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit, int? userId = null)
         {
             var p = new DynamicParameters();
             p.Add("@EmployeeId", employeeId);
@@ -25,6 +25,7 @@ namespace VS.Human.Rep
             p.Add("@ToDate", toDate);
             p.Add("@Page", page);
             p.Add("@Limit", limit);
+            p.Add("@UserId", userId);
 
             return await GetBaseAll<LeaveIndexModel>(new BaseRequest { Page = page, Limit = limit }, p, "sp_Leave_GetAll");
         }

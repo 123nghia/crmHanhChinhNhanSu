@@ -342,7 +342,7 @@ function changePassword2(reloadPage = false, idEmp, reset = false) {
         }
     }
     else {
-        newPassword = "Vietstar@2021";
+        newPassword = "Vietstar@2026";
     }
 
 

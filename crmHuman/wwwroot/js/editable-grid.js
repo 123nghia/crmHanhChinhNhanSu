@@ -411,7 +411,15 @@ var EditableGrid = (function () {
 
         select.innerHTML = '<option value="">-- Chọn --</option>';
         options.forEach(function (opt) {
-            var value = opt.Code || opt.Id || opt.code || opt.id;
+            var value;
+            if (field === 'GroupId') {
+                value = opt.Id || opt.id;
+                if (value === undefined || value === null || value === '') {
+                    value = opt.Code || opt.code;
+                }
+            } else {
+                value = opt.Code || opt.Id || opt.code || opt.id;
+            }
             var name = opt.Name || opt.FullName || opt.name || opt.fullName;
             var selected = (value == currentValue) ? 'selected' : '';
             select.innerHTML += '<option value="' + value + '" ' + selected + '>' + name + '</option>';

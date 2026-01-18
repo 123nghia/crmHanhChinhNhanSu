@@ -223,10 +223,7 @@ namespace crmHuman.Pages
                     RequestSearch.To = null;
                 }
 
-                if (UserData?.RoleCode != "1")
-                {
-                    RequestSearch.InterviewerId = UserData.UserId;
-                }
+                ApplyInterviewScope(RequestSearch);
 
                 RequestSearch.Page = 1;
                 RequestSearch.Limit = 1000;
@@ -416,10 +413,7 @@ namespace crmHuman.Pages
                 RequestSearch.To = null;
             }
 
-            if (UserData?.RoleCode != "1")
-            {
-                RequestSearch.InterviewerId = UserData.UserId;
-            }
+            ApplyInterviewScope(RequestSearch);
 
             DataAll = await _scheduleInterviewBussiness.GetAll(RequestSearch);
 
@@ -437,6 +431,25 @@ namespace crmHuman.Pages
             });
 
             return Page();
+        }
+
+        private void ApplyInterviewScope(ScheduleInterviewRquest request)
+        {
+            var roleCode = UserData?.RoleCode ?? string.Empty;
+            var userId = UserData?.UserId ?? 0;
+
+            if (userId > 0)
+            {
+                request.UserId = userId;
+            }
+
+            var hasFullScope = roleCode == "1" || roleCode == "2" || roleCode == "4" || roleCode == "8";
+            var hasGroupScope = roleCode == "3" || roleCode == "6";
+
+            if (!hasFullScope && !hasGroupScope && userId > 0)
+            {
+                request.InterviewerId = userId;
+            }
         }
     }
 }

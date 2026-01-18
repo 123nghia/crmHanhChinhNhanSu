@@ -7,8 +7,10 @@ using VS.Human.Business.Model;
 using VS.Human.Item;
 using VS.Human.Rep.Model;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using crmHuman.Model;
 using OfficeOpenXml;
 
@@ -85,7 +87,7 @@ namespace crmHuman.Pages
             // Reset password if requested
             if (request.ResetPass == true)
             {
-                request.NewPassword = "Vietstar@2024";
+                request.NewPassword = "Vietstar@2026";
             }
 
             // Determine employee ID
@@ -203,6 +205,8 @@ namespace crmHuman.Pages
                 request2.IsDeleted = false;
             }
 
+            await ApplyDefaultStatusWork(request2);
+
             // Sử dụng GetAllExtended để lấy đầy đủ dữ liệu cho chế độ chỉnh sửa mở rộng
             DataAll = await _empBusiness.GetAllExtended(request2);
 
@@ -219,6 +223,63 @@ namespace crmHuman.Pages
                     };
             }
             return Page();
+        }
+
+        private async Task ApplyDefaultStatusWork(EmployeeRequest request)
+        {
+            if (!string.IsNullOrWhiteSpace(request.StatusWork))
+            {
+                return;
+            }
+
+            var statusOptions = await _masterDataBussiness.GetallByTypeData(11);
+            if (statusOptions == null || statusOptions.Count == 0)
+            {
+                return;
+            }
+
+            var defaultStatus = statusOptions.FirstOrDefault(option =>
+                NormalizeText(option.Name).Contains("dang lam viec"));
+
+            if (defaultStatus == null)
+            {
+                defaultStatus = statusOptions.FirstOrDefault(option =>
+                    NormalizeText(option.Name).Contains("dang lam"));
+            }
+
+            if (defaultStatus == null)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(defaultStatus.Code))
+            {
+                request.StatusWork = defaultStatus.Code;
+                return;
+            }
+
+            request.StatusWork = defaultStatus.Id > 0 ? defaultStatus.Id.ToString() : request.StatusWork;
+        }
+
+        private static string NormalizeText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var normalized = value.Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder(normalized.Length);
+
+            foreach (var ch in normalized)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark)
+                {
+                    builder.Append(ch);
+                }
+            }
+
+            return builder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
         }
 
         public virtual async Task<PartialViewResult> OnGetFormEdit(int id)
@@ -388,7 +449,7 @@ namespace crmHuman.Pages
                     
                     // Liên hệ
                     Phone = !string.IsNullOrEmpty(request.Phone) ? request.Phone : employee.Phone,
-                    FingerprintCode = !string.IsNullOrEmpty(request.FingerprintCode) ? request.FingerprintCode : employee.FingerprintCode,
+                    FingerprintCode = employee.FingerprintCode,
                     EmergencyContact = !string.IsNullOrEmpty(request.EmergencyContact) ? request.EmergencyContact : employee.EmergencyContact,
                     Email = !string.IsNullOrEmpty(request.Email) ? request.Email : employee.Email,
                     PersonalEmail = !string.IsNullOrEmpty(request.PersonalEmail) ? request.PersonalEmail : employee.PersonalEmail,
@@ -463,7 +524,7 @@ namespace crmHuman.Pages
                     DocumentStatus = request.DocumentStatus ?? "1",
                     Onboard = request.Onboard ?? DateTime.Now,
                     IsActive = 1,
-                    Pass = "Vietstar@2024",
+                    Pass = "Vietstar@2026",
                     CreatedBy = UserData.UserId,
                     CreateAt = DateTime.Now
                 };
@@ -518,7 +579,7 @@ namespace crmHuman.Pages
                     Onboard = sourceEmployee.Onboard,
                     Phone = "",
                     Email = "",
-                    Pass = "Vietstar@2024",
+                    Pass = "Vietstar@2026",
                     IsActive = 1,
                     CreatedBy = UserData.UserId,
                     CreateAt = DateTime.Now,
@@ -553,6 +614,7 @@ namespace crmHuman.Pages
             {
                 GetInfoUser();
                 RequestSearch.UserId = UserData.UserId;
+                await ApplyDefaultStatusWork(RequestSearch);
                 
                 // Debug Log
                 Console.WriteLine($"[Export Debug] UserId: {RequestSearch.UserId}");

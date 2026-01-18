@@ -189,9 +189,9 @@
                                         <td class="editable-cell" data-field="DocumentStatus" data-value="@itemInfo.DocumentStatus">
                                             @itemInfo.DocumentStatusText
                                         </td>
-                                           <td class="editable-cell" data-field="FingerprintCode" data-value="@itemInfo.FingerprintCode">
-                                               @(itemInfo.FingerprintCode ?? "--")
-                                           </td>
+                                        <td data-field="FingerprintCode" data-value="@itemInfo.FingerprintCode">
+                                            @(itemInfo.FingerprintCode ?? "--")
+                                        </td>
                                         
                                         <!-- Cột mở rộng - Thông tin cá nhân -->
                                         <td class="editable-cell extended-col" data-field="Dob" data-value="@dobDate">
