@@ -108,6 +108,45 @@ namespace VS.Human.Rep
             }
         }
 
+        public async Task<LeaveBalanceIndexModel> GetEmployeeLeaveBalance(int employeeId)
+        {
+            using (var con = GetConnection())
+            {
+                var sql = @"
+                    SELECT TOP 1
+                        e.Id,
+                        e.UserName,
+                        e.FullName,
+                        e.AllowedLeaveDays,
+                        e.UsedLeaveDays,
+                        ISNULL(e.AllowedLeaveDays, 0) - ISNULL(e.UsedLeaveDays, 0) AS RemainingLeaveDays,
+                        ISNULL(la.UsedAnnualLeaveDays, 0) AS UsedAnnualLeaveDays,
+                        ISNULL(la.UsedSickLeaveDays, 0) AS UsedSickLeaveDays,
+                        ISNULL(la.UsedPersonalLeaveDays, 0) AS UsedPersonalLeaveDays,
+                        ISNULL(la.UsedMaternityLeaveDays, 0) AS UsedMaternityLeaveDays,
+                        ISNULL(la.UsedUnpaidLeaveDays, 0) AS UsedUnpaidLeaveDays,
+                        ISNULL(la.TotalApprovedLeaveDays, 0) AS TotalApprovedLeaveDays
+                    FROM Employees e
+                    LEFT JOIN (
+                        SELECT
+                            l.EmployeeId,
+                            SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NP' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedAnnualLeaveDays,
+                            SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NB' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedSickLeaveDays,
+                            SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NVR' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedPersonalLeaveDays,
+                            SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NTS' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedMaternityLeaveDays,
+                            SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NKL' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedUnpaidLeaveDays,
+                            SUM(CASE WHEN l.Status IN (3,4) THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS TotalApprovedLeaveDays
+                        FROM LeaveRequests l
+                        WHERE l.Deleted = 0 AND l.EmployeeId = @EmployeeId
+                        GROUP BY l.EmployeeId
+                    ) la ON e.Id = la.EmployeeId
+                    WHERE e.Id = @EmployeeId AND ISNULL(e.Deleted, 0) = 0;
+                ";
+
+                return await con.QueryFirstOrDefaultAsync<LeaveBalanceIndexModel>(sql, new { EmployeeId = employeeId });
+            }
+        }
+
         public new async Task<bool> Delete(int id, int userId)
         {
             var p = new DynamicParameters();

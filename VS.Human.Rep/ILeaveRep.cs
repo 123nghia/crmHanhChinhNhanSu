@@ -15,6 +15,7 @@ namespace VS.Human.Rep
         Task<bool> ApproveWorkflow(int id, string action, int approverId, string roleCode, string comment);
         Task<List<LeaveHistory>> GetHistory(int leaveId);
         Task<dynamic> GetLeaveSummary(int? employeeId, string roleCode);
+        Task<LeaveBalanceIndexModel> GetEmployeeLeaveBalance(int employeeId);
         Task<bool> Delete(int id, int userId);
     }
 }

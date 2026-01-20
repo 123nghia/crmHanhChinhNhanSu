@@ -27,6 +27,7 @@ namespace crmHuman.Pages.Leave
         public BaseList LeaveList { get; set; }
         public List<VS.Human.Rep.Model.MasterData> LeaveTypes { get; set; }
         public List<ManagerLeadIndex> EmployeeList { get; set; }
+        public LeaveBalanceIndexModel LeaveBalance { get; set; }
 
         public async Task OnGetAsync(int page = 1, int limit = 20)
         {
@@ -41,7 +42,15 @@ namespace crmHuman.Pages.Leave
                 LeaveList = await _leaveBusiness.GetLeaveList(null, null, null, null, page, limit, UserData.UserId);
             }
 
-            LeaveTypes = await _masterDataBusiness.GetallByTypeData(30);
+            if (UserData.UserId > 0)
+            {
+                LeaveBalance = await _leaveBusiness.GetEmployeeLeaveBalance(UserData.UserId);
+            }
+
+            LeaveTypes = (await _masterDataBusiness.GetallByTypeData(30))
+                ?.Where(t => t.Code == "NP" || t.Code == "NKL")
+                .ToList()
+                ?? new List<VS.Human.Rep.Model.MasterData>();
             var managers = await _employeeBusiness.GetAllManager();
             EmployeeList = managers.Data?.Cast<ManagerLeadIndex>().ToList() ?? new List<ManagerLeadIndex>();
         }

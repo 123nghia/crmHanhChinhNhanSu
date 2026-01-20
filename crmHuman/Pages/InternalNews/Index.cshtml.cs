@@ -16,6 +16,8 @@ namespace crmHuman.Pages.InternalNews
         public int TotalRecord => NewsList?.Total ?? 0;
 
         public bool CanCreate => (Permision.Add ?? false) || UserData.RoleCode == "1";
+        public bool CanEdit => (Permision.Edit ?? false) || UserData.RoleCode == "1";
+        public bool CanDelete => (Permision.Delete ?? false) || UserData.RoleCode == "1";
 
         public IndexModel(IInternalNewsBusiness newsBusiness)
         {
@@ -45,6 +47,27 @@ namespace crmHuman.Pages.InternalNews
 
             NewsList = await _newsBusiness.GetAll(request);
             return Page();
+        }
+
+        public async Task<IActionResult> OnPostDeleteAsync(int id)
+        {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Redirect("/Login");
+            }
+
+            GetInfoUser();
+            if (!CanDelete)
+            {
+                return Redirect("/InternalNews");
+            }
+
+            if (id > 0)
+            {
+                await _newsBusiness.Delete(id);
+            }
+
+            return Redirect("/InternalNews");
         }
     }
 }

@@ -186,6 +186,11 @@
 
   const useDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const isSmallScreen = window.matchMedia('(max-width: 1023.5px)').matches;
+  const imageUploadUrl = '/InternalNews/UploadImage';
+  const getAntiForgeryToken = () => {
+    const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+    return tokenInput ? tokenInput.value : '';
+  };
 
   tinymce.init({
     selector: 'textarea.tinymce-editor',
@@ -198,6 +203,55 @@
     autosave_prefix: '{path}{query}-{id}-',
     autosave_restore_when_empty: false,
     autosave_retention: '2m',
+    automatic_uploads: true,
+    images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', imageUploadUrl);
+
+      const token = getAntiForgeryToken();
+      if (token) {
+        xhr.setRequestHeader('RequestVerificationToken', token);
+      }
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          progress((e.loaded / e.total) * 100);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status < 200 || xhr.status >= 300) {
+          reject(`HTTP Error: ${xhr.status}`);
+          return;
+        }
+
+        let json;
+        try {
+          json = JSON.parse(xhr.responseText);
+        } catch (error) {
+          reject('Invalid JSON response');
+          return;
+        }
+
+        if (!json || typeof json.location !== 'string') {
+          reject('Invalid response');
+          return;
+        }
+
+        resolve(json.location);
+      };
+
+      xhr.onerror = () => {
+        reject('Image upload failed');
+      };
+
+      const formData = new FormData();
+      formData.append('file', blobInfo.blob(), blobInfo.filename());
+      if (token) {
+        formData.append('__RequestVerificationToken', token);
+      }
+      xhr.send(formData);
+    }),
     image_advtab: true,
     link_list: [{
         title: 'My page 1',
@@ -227,29 +281,6 @@
       }
     ],
     importcss_append: true,
-    file_picker_callback: (callback, value, meta) => {
-      /* Provide file and text for the link dialog */
-      if (meta.filetype === 'file') {
-        callback('https://www.google.com/logos/google.jpg', {
-          text: 'My text'
-        });
-      }
-
-      /* Provide image and alt text for the image dialog */
-      if (meta.filetype === 'image') {
-        callback('https://www.google.com/logos/google.jpg', {
-          alt: 'My alt text'
-        });
-      }
-
-      /* Provide alternative source and posted for the media dialog */
-      if (meta.filetype === 'media') {
-        callback('movie.mp4', {
-          source2: 'alt.ogg',
-          poster: 'https://www.google.com/logos/google.jpg'
-        });
-      }
-    },
     height: 600,
     image_caption: true,
     quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote quickimage quicktable',

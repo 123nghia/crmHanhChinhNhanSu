@@ -1,0 +1,79 @@
+@page
+@model crmHuman.Pages.InternalNews.EditModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+}
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
+            <li class="breadcrumb-item"><a href="/InternalNews">Tin noi bo</a></li>
+            <li class="breadcrumb-item active">Chinh sua</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Thong tin bai viet</h5>
+                    <form method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="News.Id" />
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="News_Title">Tieu de</label>
+                            <input class="form-control" asp-for="News.Title" maxlength="200" required />
+                            <span asp-validation-for="News.Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="News_Content">Noi dung</label>
+                            <textarea class="form-control tinymce-editor" asp-for="News.Content"></textarea>
+                            <span asp-validation-for="News.Content" class="text-danger"></span>
+                        </div>
+
+                        @if (Model.News.Attachments?.Count > 0)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">File dinh kem hien tai</label>
+                                <ul class="list-unstyled mb-0">
+                                    @foreach (var attachment in Model.News.Attachments)
+                                    {
+                                        <li>
+                                            <i class="bi bi-paperclip me-1"></i>
+                                            <a href="@attachment.FilePath" target="_blank">@attachment.FileName</a>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label class="form-label" for="AttachmentFiles">Them file dinh kem</label>
+                            <input class="form-control" type="file" id="AttachmentFiles" name="AttachmentFiles" multiple />
+                            <div class="form-text">Co the chon nhieu file.</div>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" asp-for="News.IsSendMail" />
+                            <label class="form-check-label" for="News_IsSendMail">
+                                Gui mail thong bao (lam sau)
+                            </label>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Luu bai viet</button>
+                            <a class="btn btn-outline-secondary" href="/InternalNews/Detail?Id=@Model.News.Id">Huy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

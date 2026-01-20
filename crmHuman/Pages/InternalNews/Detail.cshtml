@@ -67,8 +67,18 @@
                         }
                     </article>
 
-                    <div class="mt-3">
-                        <a class="btn btn-outline-secondary btn-sm" href="/InternalNews">Quay lại</a>
+                    <div class="mt-3 d-flex gap-2 flex-wrap">
+                        @if (Model.CanEdit)
+                        {
+                            <a class="btn btn-primary btn-sm" href="/InternalNews/Edit?Id=@Model.NewsItem?.Id">Chinh sua</a>
+                        }
+                        @if (Model.CanDelete)
+                        {
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@Model.NewsItem?.Id" class="d-inline" onsubmit="return confirm('Xoa thong bao?');">
+                                <button type="submit" class="btn btn-danger btn-sm">Xoa</button>
+                            </form>
+                        }
+                        <a class="btn btn-outline-secondary btn-sm" href="/InternalNews">Quay lai</a>
                     </div>
                 </div>
             </div>
@@ -137,3 +147,4 @@
         }
     </style>
 }
+

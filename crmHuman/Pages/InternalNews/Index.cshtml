@@ -62,6 +62,25 @@
                                         @itemInfo.Title
                                     </a>
                                     <span class="internal-news-meta">- @createdAt</span>
+                                    @if (Model.CanEdit || Model.CanDelete)
+                                    {
+                                        <span class="internal-news-actions">
+                                            @if (Model.CanEdit)
+                                            {
+                                                <a class="internal-news-action" href="/InternalNews/Edit?Id=@itemInfo.Id" title="Chinh sua">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </a>
+                                            }
+                                            @if (Model.CanDelete)
+                                            {
+                                                <form method="post" asp-page-handler="Delete" asp-route-id="@itemInfo.Id" class="d-inline" onsubmit="return confirm('Xoa thong bao?');">
+                                                    <button type="submit" class="internal-news-action-button" title="Xoa">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </span>
+                                    }
                                 </li>
                             }
                         </ul>
@@ -126,6 +145,33 @@
         .internal-news-meta {
             color: #2d2d2d;
             font-size: 0.9rem;
+        }
+
+        .internal-news-actions {
+            margin-left: auto;
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .internal-news-action {
+            color: #1b66d1;
+            text-decoration: none;
+        }
+
+        .internal-news-action:hover {
+            color: #0b4aa2;
+        }
+
+        .internal-news-action-button {
+            border: none;
+            background: transparent;
+            color: #dc3545;
+            padding: 0;
+        }
+
+        .internal-news-action-button:hover {
+            color: #b02a37;
         }
 
         .internal-news-footer {

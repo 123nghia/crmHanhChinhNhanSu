@@ -60,6 +60,11 @@ namespace VS.Human.Business
             return await _unitOfWork.LeaveRep.GetHistory(leaveId);
         }
 
+        public async Task<LeaveBalanceIndexModel> GetEmployeeLeaveBalance(int employeeId)
+        {
+            return await _unitOfWork.LeaveRep.GetEmployeeLeaveBalance(employeeId);
+        }
+
         public async Task<bool> DeleteLeave(int id, int userId)
         {
             return await _unitOfWork.LeaveRep.Delete(id, userId);

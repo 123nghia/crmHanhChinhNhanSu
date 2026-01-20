@@ -1,0 +1,123 @@
+-- -- Migration: V051__Fix_sp_emp_insert_UserName
+-- -- Author: Assistant
+-- -- Date: 2026-01-17
+-- -- Description: Fix sp_emp_insert to respect provided UserName and expand UserName column.
+
+-- -- 1. Expand UserName column in Employees table
+-- IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Employees]') AND name = 'UserName')
+-- BEGIN
+--     ALTER TABLE [dbo].[Employees] ALTER COLUMN [UserName] VARCHAR(50) NULL;
+-- END
+-- GO
+
+-- -- 2. Update sp_emp_insert
+-- IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_emp_insert]') AND type IN (N'P', N'PC'))
+--     DROP PROCEDURE [dbo].[sp_emp_insert];
+-- GO
+
+-- CREATE PROCEDURE [dbo].[sp_emp_insert]
+-- (
+--     @EducationLevel VARCHAR(8) = NULL,
+--     @UserName VARCHAR(50) = NULL, -- Expanded from 8
+--     @NationalDate DATETIME2 = NULL,
+--     @NationalPlace NVARCHAR(500) = '',
+--     @PermanentAddress NVARCHAR(500) = '',
+--     @TemporaryAddress NVARCHAR(500) = '',
+--     @Dob DATETIME2 = NULL,
+--     @Onboard DATETIME2 = NULL,
+--     @ResignationDate DATETIME2 = NULL,
+--     @Phone VARCHAR(10) = NULL,
+--     @PositionCode VARCHAR(4) = '',
+--     @RoleCode VARCHAR(4) = '1',
+--     @ManagerId INT = -1,
+--     @DepartmentCode VARCHAR(4) = '',
+--     @NationalId VARCHAR(11) = '',
+--     @Pass VARCHAR(100) = NULL,
+--     @FullName NVARCHAR(255) = NULL,
+--     @Email VARCHAR(30) = NULL,
+--     @CVLink VARCHAR(500) = '',
+--     @Noted NVARCHAR(500) = '',
+--     @DocumentStatus VARCHAR(6) = '',
+--     @status INT = -1,
+--     @CreatedBy VARCHAR(5) = NULL,
+--     @UpdatedBy VARCHAR(5) = NULL,
+--     @CreateAt DATETIME2 = NULL,
+--     @UpdateAt DATETIME2 = NULL,
+--     @IsActive BIT = 1,
+--     @DocumentCheck VARCHAR(200) = '',
+--     @Gender NVARCHAR(50) = NULL,
+--     @PlaceOfBirth NVARCHAR(255) = NULL,
+--     @Ethnicity VARCHAR(8) = NULL,
+--     @Religion NVARCHAR(100) = NULL,
+--     @PersonalEmail NVARCHAR(255) = NULL,
+--     @BeneficiaryName NVARCHAR(255) = NULL,
+--     @Maritalstatus VARCHAR(4) = NULL,
+--     @StatusWork INT = -1,
+--     @BankAccount VARCHAR(30) = NULL,
+--     @BankName NVARCHAR(100) = NULL,
+--     @EmergencyContact NVARCHAR(255) = NULL,
+--     @FingerprintCode VARCHAR(50) = NULL,
+--     @GroupId INT = -1
+-- )
+-- AS
+-- BEGIN
+--     SET NOCOUNT ON;
+--     BEGIN TRY
+--         BEGIN TRANSACTION;
+--         DECLARE @Now DATETIME = GETDATE();
+
+--         INSERT INTO [dbo].[Employees]
+--         (
+--             UserName, FullName, Phone, Noted, RoleCode, Deleted, IsActive,
+--             CreatedBy, UpdatedBy, CreateAt, UpdateAt, Pass, dob, LineCode,
+--             Onboard, ResignationDate, ColorCode, TypeAccount, DepartmentCode, DocumentStatus,
+--             PositionCode, RelationCode, NationalId, NationalDate, NationalPlace,
+--             PermanentAddress, TemporaryAddress, ManagerId, Email, CVLink, status,
+--             EducationLevel, DocumentCheck, Gender, PlaceOfBirth, Ethnicity, Religion,
+--             PersonalEmail, BeneficiaryName, Maritalstatus, StatusWork,
+--             BankAccount, BankName, EmergencyContact, FingerprintCode
+--         )
+--         VALUES
+--         (
+--             @UserName, -- Use the provided UserName (or NULL if not provided)
+--             @FullName, @Phone, @Noted, @RoleCode, 0, @IsActive,
+--             @CreatedBy, @CreatedBy, @Now, @Now, @Pass, @Dob, '',
+--             @Onboard, @ResignationDate, '', '1', @DepartmentCode, @DocumentStatus,
+--             @PositionCode, '', @NationalId, @NationalDate, @NationalPlace,
+--             @PermanentAddress, @TemporaryAddress, @ManagerId, @Email, @CVLink,
+--             @status, @EducationLevel, @DocumentCheck, @Gender, @PlaceOfBirth, @Ethnicity,
+--             @Religion, @PersonalEmail, @BeneficiaryName, @Maritalstatus,
+--             @StatusWork, @BankAccount, @BankName, @EmergencyContact, @FingerprintCode
+--         );
+
+--         DECLARE @newId INT = SCOPE_IDENTITY();
+        
+--         -- Fallback: If UserName was NOT provided, generate VSxxxx
+--         IF (@UserName IS NULL OR @UserName = '')
+--         BEGIN
+--             DECLARE @tempUser VARCHAR(10);
+--             SET @tempUser = CONCAT('VS', RIGHT('000' + CAST(@newId AS VARCHAR(4)), 4));
+--             UPDATE Employees SET UserName = @tempUser WHERE Id = @newId;
+--         END
+
+--         DECLARE @targetGroupId INT = @GroupId;
+--         IF (@targetGroupId <= 0)
+--         BEGIN
+--             SELECT TOP 1 @targetGroupId = Id FROM [Group] WHERE ManagerId = @CreatedBy AND ISNULL(Deleted,0) = 0;
+--         END
+
+--         IF @targetGroupId > 0
+--         BEGIN
+--             INSERT INTO GroupMember(GroupId, MemberId, Deleted, CreatedBy, UpdatedBy, CreateAt, UpdateAt)
+--             VALUES (@targetGroupId, @newId, 0, @CreatedBy, @CreatedBy, @Now, @Now);
+--         END
+
+--         COMMIT TRANSACTION;
+--         SELECT @newId;
+--     END TRY
+--     BEGIN CATCH
+--         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+--         THROW;
+--     END CATCH
+-- END
+-- GO

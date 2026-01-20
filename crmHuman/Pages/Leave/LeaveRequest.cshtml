@@ -15,6 +15,35 @@
 </div>
 
 <section class="section">
+    @if (Model.UserData?.RoleCode == "4" && Model.LeaveBalance != null)
+    {
+        var allowedLeave = Model.LeaveBalance.AllowedLeaveDays ?? 0m;
+        var usedLeave = Model.LeaveBalance.UsedLeaveDays ?? 0m;
+        var remainingLeave = Model.LeaveBalance.RemainingLeaveDays ?? (allowedLeave - usedLeave);
+        <div class="row mb-3">
+            <div class="col-lg-12">
+                <div class="card leave-balance-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Thong tin phep cua ban</h5>
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <div class="leave-balance-label">So ngay phep</div>
+                                <div class="leave-balance-value">@($"{allowedLeave:0.#}")</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="leave-balance-label">Da su dung</div>
+                                <div class="leave-balance-value">@($"{usedLeave:0.#}")</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="leave-balance-label">Con lai</div>
+                                <div class="leave-balance-value">@($"{remainingLeave:0.#}")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
     <div class="row">
         <div class="col-lg-12">
             <div class="card">
@@ -202,5 +231,24 @@
         </div>
     </div>
 </div>
+
+@section Styles {
+    <style>
+        .leave-balance-card {
+            border: 1px solid #e5e7eb;
+        }
+
+        .leave-balance-label {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+
+        .leave-balance-value {
+            color: #1b4fb0;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+    </style>
+}
 
 <script src="/js/pages/leave-request.js?v=@DateTime.Now.Ticks"></script>
