@@ -36,6 +36,17 @@ async function saveLeave() {
         alert('Vui lòng điền đầy đủ thông tin hợp lệ');
         return;
     }
+    if (data.LeaveTypeCode === 'NP' && data.FromDate) {
+        const startDate = new Date(`${data.FromDate}T00:00:00`);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const minDate = new Date(today);
+        minDate.setDate(minDate.getDate() + 1);
+        if (startDate < minDate) {
+            alert('Nghi phep nam phai dang ky truoc it nhat 1 ngay.');
+            return;
+        }
+    }
 
     try {
         const response = await fetch('?handler=Save', {
@@ -133,3 +144,4 @@ function getActionBadge(action) {
         default: return 'bg-light text-dark';
     }
 }
+

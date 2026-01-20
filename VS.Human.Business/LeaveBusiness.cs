@@ -32,6 +32,15 @@ namespace VS.Human.Business
                 return -1; // Or throw custom exception
             }
 
+            if (string.Equals(model.LeaveTypeCode, "NP", StringComparison.OrdinalIgnoreCase))
+            {
+                var today = DateTime.Today;
+                if (model.FromDate.Date <= today)
+                {
+                    return -2;
+                }
+            }
+
             // Calculate NumDays if not provided or to ensure correctness
             // Basic logic: count days inclusive
             if (model.NumDays <= 0)

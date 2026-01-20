@@ -86,7 +86,22 @@ namespace crmHuman.Pages.Leave
             }
 
             var result = await _leaveBusiness.CreateOrUpdateLeave(model, UserData.UserId);
-            return new JsonResult(new { success = result > 0, id = result });
+            if (result > 0)
+            {
+                return new JsonResult(new { success = true, id = result });
+            }
+
+            var message = "Co loi xay ra";
+            if (result == -1)
+            {
+                message = "Ngay bat dau khong duoc lon hon ngay ket thuc.";
+            }
+            else if (result == -2)
+            {
+                message = "Nghi phep nam phai dang ky truoc it nhat 1 ngay.";
+            }
+
+            return new JsonResult(new { success = false, message });
         }
 
         public async Task<IActionResult> OnPostDeleteAsync(int id)
