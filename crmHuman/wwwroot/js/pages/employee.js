@@ -1,4 +1,4 @@
-function openImportEmployee() {
+﻿function openImportEmployee() {
     $("#contentModal").html("");
     $("#formModal").modal("show");
     $.get("/Employee?handler=FormImportEmployee", function (rs) {
@@ -143,3 +143,240 @@ function submitImportEmployee() {
         }
     });
 }
+
+var employeeFilterTimer = null;
+
+function normalizeFilterValue(value) {
+    return String(value || "").toLowerCase().trim();
+}
+
+function getCellFilterValue(cell) {
+    if (!cell) {
+        return "";
+    }
+
+    var text = (cell.textContent || "").replace(/\s+/g, " ").trim();
+    if (text) {
+        return text;
+    }
+
+    if (cell.dataset && cell.dataset.value !== undefined && cell.dataset.value !== null) {
+        return String(cell.dataset.value);
+    }
+
+    return "";
+}
+
+function getEmployeeFilterControls() {
+    var table = document.getElementById("employeeGrid");
+    if (!table) {
+        return [];
+    }
+
+    return table.querySelectorAll("thead .table-filter-input, thead .table-filter-select");
+}
+
+function populateEmployeeFilterDropdowns() {
+    var table = document.getElementById("employeeGrid");
+    if (!table) {
+        return;
+    }
+
+    var selects = table.querySelectorAll("thead .table-filter-select[data-col-index]");
+    if (!selects.length) {
+        return;
+    }
+
+    var rows = table.querySelectorAll("tbody tr");
+
+    selects.forEach(function (select) {
+        var index = parseInt(select.dataset.colIndex, 10);
+        if (isNaN(index)) {
+            return;
+        }
+
+        var selectedValue = select.dataset.selectedValue || select.value || "";
+
+        var options = {};
+
+        rows.forEach(function (row) {
+            var cell = row.children[index];
+            if (!cell) {
+                return;
+            }
+
+            var label = getCellFilterValue(cell);
+            if (!label || label === "--") {
+                return;
+            }
+
+            var value = "";
+            if (cell.dataset && cell.dataset.value !== undefined && cell.dataset.value !== null && cell.dataset.value !== "") {
+                value = String(cell.dataset.value).trim();
+            } else {
+                value = label.trim();
+            }
+
+            var key = normalizeFilterValue(value);
+            if (!key) {
+                return;
+            }
+
+            if (!options[key]) {
+                options[key] = { value: value, label: label.trim() };
+            }
+        });
+
+        var items = Object.keys(options).map(function (key) {
+            return options[key];
+        });
+
+        items.sort(function (a, b) {
+            return a.label.localeCompare(b.label);
+        });
+
+        var optionsHtml = '<option value="-1">Tat ca</option>';
+        items.forEach(function (item) {
+            var safeValue = escapeHtml(item.value);
+            var safeLabel = escapeHtml(item.label);
+            optionsHtml += '<option value="' + safeValue + '">' + safeLabel + '</option>';
+        });
+
+        select.innerHTML = optionsHtml;
+
+        if (selectedValue) {
+            var normalizedSelected = normalizeFilterValue(selectedValue);
+            var matchingOption = Array.from(select.options).find(function (option) {
+                return normalizeFilterValue(option.value) === normalizedSelected;
+            });
+            if (matchingOption) {
+                select.value = matchingOption.value;
+            }
+        }
+    });
+}
+
+function applyEmployeeHeaderFilters() {
+    var url = new URL(window.location.href);
+    var form = document.querySelector('form[action="/Employee"]');
+    if (form) {
+        var formData = new FormData(form);
+        formData.forEach(function (value, key) {
+            var trimmed = String(value || "").trim();
+            if (!trimmed || trimmed === "-1") {
+                url.searchParams.delete(key);
+            } else {
+                url.searchParams.set(key, trimmed);
+            }
+        });
+    }
+
+    var controls = getEmployeeFilterControls();
+    controls.forEach(function (control) {
+        var key = control.dataset.filterKey;
+        if (!key) {
+            return;
+        }
+
+        var value = String(control.value || "").trim();
+        if (control.tagName === "SELECT") {
+            if (!value) {
+                url.searchParams.delete(key);
+            } else {
+                url.searchParams.set(key, value);
+            }
+            return;
+        }
+
+        if (!value) {
+            url.searchParams.delete(key);
+        } else {
+            url.searchParams.set(key, value);
+        }
+    });
+
+    url.searchParams.set("page", "1");
+    window.location.href = url.toString();
+}
+
+function scheduleEmployeeHeaderFilters() {
+    if (employeeFilterTimer) {
+        clearTimeout(employeeFilterTimer);
+    }
+    employeeFilterTimer = setTimeout(applyEmployeeHeaderFilters, 400);
+}
+
+function clearEmployeeHeaderFilters() {
+    var controls = getEmployeeFilterControls();
+
+    controls.forEach(function (control) {
+        control.value = control.tagName === "SELECT" ? "-1" : "";
+    });
+
+    applyEmployeeHeaderFilters();
+}
+
+function bindEmployeeFilterRefreshHooks() {
+    if (window.employeeFilterHooksBound) {
+        return;
+    }
+    window.employeeFilterHooksBound = true;
+
+    var previousCellUpdated = window.onEditableGridCellUpdated;
+    var previousRowUpdated = window.onEditableGridRowUpdated;
+
+    window.onEditableGridCellUpdated = function (cell) {
+        if (typeof previousCellUpdated === "function") {
+            previousCellUpdated(cell);
+        }
+        if (cell && cell.closest && cell.closest("#employeeGrid")) {
+            populateEmployeeFilterDropdowns();
+        }
+    };
+
+    window.onEditableGridRowUpdated = function (row) {
+        if (typeof previousRowUpdated === "function") {
+            previousRowUpdated(row);
+        }
+        if (row && row.closest && row.closest("#employeeGrid")) {
+            populateEmployeeFilterDropdowns();
+        }
+    };
+}
+
+function bindEmployeeHeaderFilters() {
+    var controls = getEmployeeFilterControls();
+    if (!controls.length) {
+        return;
+    }
+
+    controls.forEach(function (control) {
+        if (control.tagName === "SELECT") {
+            control.addEventListener("change", applyEmployeeHeaderFilters);
+            return;
+        }
+
+        control.addEventListener("input", scheduleEmployeeHeaderFilters);
+        control.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                applyEmployeeHeaderFilters();
+            }
+        });
+    });
+
+    var clearButton = document.querySelector("#employeeGrid .js-clear-header-filters");
+    if (clearButton) {
+        clearButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            clearEmployeeHeaderFilters();
+        });
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    populateEmployeeFilterDropdowns();
+    bindEmployeeHeaderFilters();
+    bindEmployeeFilterRefreshHooks();
+});
+

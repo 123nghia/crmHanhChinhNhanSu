@@ -102,9 +102,24 @@ namespace crmHuman.Pages
 
         }
 
-        public async Task<IActionResult> OnPostAddSchedule(CandidateScheduleAdd request)
+        private IActionResult? RejectIfTcRole()
         {
             GetInfoUser();
+            if (UserData?.RoleCode == "2")
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
+            return null;
+        }
+
+        public async Task<IActionResult> OnPostAddSchedule(CandidateScheduleAdd request)
+        {
+            var reject = RejectIfTcRole();
+            if (reject != null)
+            {
+                return reject;
+            }
             var errors = new List<object>();
             
             if (ValidationHelper.HasErrors(errors))
@@ -135,7 +150,11 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddRelationItem(RelationItemAdd request)
         {
-            GetInfoUser();
+            var reject = RejectIfTcRole();
+            if (reject != null)
+            {
+                return reject;
+            }
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             
@@ -161,7 +180,11 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddHDLDItem(HDLDItemAdd request)
         {
-            GetInfoUser();
+            var reject = RejectIfTcRole();
+            if (reject != null)
+            {
+                return reject;
+            }
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             
@@ -187,6 +210,11 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddEmployee(EmployeeInfoAdd request)
         {
+            var reject = RejectIfTcRole();
+            if (reject != null)
+            {
+                return reject;
+            }
             var errors = new List<object>();
             ValidationHelper.ValidatePhone(request.Phone, errors);
             
@@ -201,7 +229,11 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddOtherInfomation(EmployeeInfoOther request)
         {
-            GetInfoUser();
+            var reject = RejectIfTcRole();
+            if (reject != null)
+            {
+                return reject;
+            }
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             
@@ -217,12 +249,15 @@ namespace crmHuman.Pages
                     return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
                 }
 
+                if (request.EmployeeId < 1)
+                {
+                    request.EmployeeId = UserData.UserId;
+                }
+
                 if (request.EmployeeId != UserData.UserId)
                 {
                     return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
                 }
-
-                request.EmployeeId = UserData.UserId;
             }
 
             await _employeeExtraBusiness.UpdateEmployeeInfother(request);
@@ -232,10 +267,15 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostUpdate(EmployeeDetailUpdate request)
         {
-            GetInfoUser();
+            var reject = RejectIfTcRole();
+            if (reject != null)
+            {
+                return reject;
+            }
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             Employee? existingEmployee = null;
+            var requestId = request.Id;
 
             if (isSelfView)
             {
@@ -244,11 +284,17 @@ namespace crmHuman.Pages
                     return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
                 }
 
-                if (request.Id != UserData.UserId)
+                if (requestId < 1)
+                {
+                    requestId = UserData.UserId;
+                }
+
+                if (requestId != UserData.UserId)
                 {
                     return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
                 }
 
+                request.Id = UserData.UserId;
                 existingEmployee = await _empBusiness.GetById(UserData.UserId);
                 if (existingEmployee == null || existingEmployee.Id < 1)
                 {
@@ -267,9 +313,9 @@ namespace crmHuman.Pages
                 request.DepartmentCode = existingEmployee.DepartmentCode;
                 request.PositionCode = existingEmployee.PositionCode;
             }
-            else if (request.Id > 0)
+            else if (requestId > 0)
             {
-                existingEmployee = await _empBusiness.GetById(request.Id);
+                existingEmployee = await _empBusiness.GetById(requestId);
                 if (existingEmployee == null || existingEmployee.Id < 1)
                 {
                     return ApiResponseHelper.NotFound("Employee not found");
@@ -301,7 +347,11 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostChangePassword(PasswordAdd request)
         {
-            GetInfoUser();
+            var reject = RejectIfTcRole();
+            if (reject != null)
+            {
+                return reject;
+            }
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             ValidationHelper.ValidateRequired(request.NewPassword, "txtrenewPassword", "mật khẩu mới", errors);
@@ -350,7 +400,11 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddDocument([FromBody] DocumentDataAddRequest request)
         {
-            GetInfoUser();
+            var reject = RejectIfTcRole();
+            if (reject != null)
+            {
+                return reject;
+            }
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
             ValidationHelper.ValidateId(request.RelId, "txtFullName", "đối tượng Id", errors);
@@ -367,12 +421,15 @@ namespace crmHuman.Pages
                     return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
                 }
 
+                if (request.RelId < 1)
+                {
+                    request.RelId = UserData.UserId;
+                }
+
                 if (request.RelId != UserData.UserId)
                 {
                     return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
                 }
-
-                request.RelId = UserData.UserId;
             }
 
             request.UserId = UserData.UserId;
@@ -525,6 +582,11 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostDelete(int Id = -1)
         {
+            var reject = RejectIfTcRole();
+            if (reject != null)
+            {
+                return reject;
+            }
             var errors = new List<object>();
             ValidationHelper.ValidateIdForDelete(Id, errors);
             
@@ -540,6 +602,11 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostReactive(int Id = -1)
         {
+            var reject = RejectIfTcRole();
+            if (reject != null)
+            {
+                return reject;
+            }
             var errors = new List<object>();
             ValidationHelper.ValidateIdForDelete(Id, errors);
             

@@ -435,17 +435,19 @@ namespace VS.Human.Rep
             {
                 offset,
                 limit,
-                Token = request.Token ?? string.Empty
+                Token = request.Token ?? string.Empty,
+                StatusWork = request.StatusWork
             };
 
             return await GetBaseAll<LeaveBalanceIndexModel>(request, parameters, sqlPro: "sp_Employee_GetLeaveBalances");
         }
 
-        public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? usedLeaveDays, int userId)
+        public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? usedLeaveDays, int userId)
         {
             var p = new DynamicParameters();
             p.Add("@Id", employeeId);
             p.Add("@AllowedLeaveDays", allowedLeaveDays);
+            p.Add("@CarryOverLeaveDays", carryOverLeaveDays);
             p.Add("@UsedLeaveDays", usedLeaveDays);
             p.Add("@UpdatedBy", userId);
 

@@ -3,6 +3,8 @@
 @using global::System.Globalization
 @{
     ViewData["Title"] = Model.TitlePage;
+    var isTcRole = Model.UserData?.RoleCode == "2";
+    var myBalance = Model.MyBalance;
 }
 
 <div class="pagetitle">
@@ -22,34 +24,78 @@
                 <div class="card-body">
                     @Html.AntiForgeryToken()
 
-                    <form class="row g-3 mb-3" method="get" action="/Leave/LeaveBalance">
-                        <div class="col-md-8">
-                            <label class="form-label">Tu khoa</label>
-                            <input type="text" value="@Model.RequestSearch.Token" name="token" class="form-control" placeholder="Ten, ma, SDT">
+                    @if (isTcRole)
+                    {
+                        var allowedValue = myBalance?.AllowedLeaveDays ?? 0m;
+                        var carryOverValue = myBalance?.CarryOverLeaveDays ?? 0m;
+                        var usedValue = myBalance?.UsedLeaveDays ?? 0m;
+                        var remainingValue = myBalance?.RemainingLeaveDays ?? (allowedValue - usedValue);
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 h-100 bg-light">
+                                    <div class="text-muted small">Duoc huong</div>
+                                    <div class="fs-5 fw-semibold">@allowedValue.ToString("0.##", CultureInfo.InvariantCulture)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 h-100 bg-light">
+                                    <div class="text-muted small">Phép tồn năm cũ</div>
+                                    <div class="fs-5 fw-semibold">@carryOverValue.ToString("0.##", CultureInfo.InvariantCulture)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 h-100 bg-light">
+                                    <div class="text-muted small">Da dung</div>
+                                    <div class="fs-5 fw-semibold">@usedValue.ToString("0.##", CultureInfo.InvariantCulture)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 h-100 bg-light">
+                                    <div class="text-muted small">Con lai</div>
+                                    <div class="fs-5 fw-semibold">@remainingValue.ToString("0.##", CultureInfo.InvariantCulture)</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Hien thi</label>
-                            <select name="limit" class="form-select">
-                                <option value="10" selected="@(Model.RequestSearch.Limit == 10)">10</option>
-                                <option value="20" selected="@(Model.RequestSearch.Limit == 20)">20</option>
-                                <option value="50" selected="@(Model.RequestSearch.Limit == 50)">50</option>
-                            </select>
+                        <div class="text-muted small mb-3">
+                            Phép tồn năm cũ được sử dụng đến hết 31/03, sau đó sẽ chuyển thành phép quá hạn.
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">Tim kiem</button>
-                        </div>
-                    </form>
+                    }
+                    else
+                    {
+                        <form class="row g-3 mb-3" method="get" action="/Leave/LeaveBalance">
+                            <div class="col-md-8">
+                                <label class="form-label">Tu khoa</label>
+                                <input type="text" value="@Model.RequestSearch.Token" name="token" class="form-control" placeholder="Ten, ma, SDT">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Hien thi</label>
+                                <select name="limit" class="form-select">
+                                    <option value="10" selected="@(Model.RequestSearch.Limit == 10)">10</option>
+                                    <option value="20" selected="@(Model.RequestSearch.Limit == 20)">20</option>
+                                    <option value="50" selected="@(Model.RequestSearch.Limit == 50)">50</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">Tim kiem</button>
+                            </div>
+                        </form>
+                    }
 
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>Ma NV</th>
-                                    <th>Ho ten</th>
-                                    <th>Bo phan</th>
-                                    <th>Vi tri</th>
+                                    @if (!isTcRole)
+                                    {
+                                        <th>Ma NV</th>
+                                        <th>Ho ten</th>
+                                        <th>Bo phan</th>
+                                        <th>Vi tri</th>
+                                    }
                                     <th class="text-end">Duoc huong</th>
+                                    <th class="text-end">Phép tồn năm cũ</th>
                                     <th class="text-end">Da dung</th>
                                     <th class="text-end">Con lai</th>
                                     <th class="text-end">Nghi benh</th>
@@ -63,12 +109,14 @@
                             <tbody>
                                 @{
                                     var index = 0;
+                                    var columnCount = isTcRole ? 11 : 15;
                                 }
                                 @foreach (var item in Model.LeaveBalanceList.Data)
                                 {
                                     index++;
                                     var info = item as dynamic;
                                     var allowedValue = (decimal?)info?.AllowedLeaveDays ?? 0m;
+                                    var carryOverValue = (decimal?)info?.CarryOverLeaveDays ?? 0m;
                                     var usedValue = (decimal?)info?.UsedLeaveDays ?? 0m;
                                     var remainingValue = (decimal?)info?.RemainingLeaveDays ?? (allowedValue - usedValue);
                                     var sickValue = (decimal?)info?.UsedSickLeaveDays ?? 0m;
@@ -77,6 +125,7 @@
                                     var unpaidValue = (decimal?)info?.UsedUnpaidLeaveDays ?? 0m;
                                     var totalApprovedValue = (decimal?)info?.TotalApprovedLeaveDays ?? 0m;
                                     var allowedText = allowedValue.ToString("0.##", CultureInfo.InvariantCulture);
+                                    var carryOverText = carryOverValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var usedText = usedValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var remainingText = remainingValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var sickText = sickValue.ToString("0.##", CultureInfo.InvariantCulture);
@@ -85,13 +134,17 @@
                                     var unpaidText = unpaidValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var totalApprovedText = totalApprovedValue.ToString("0.##", CultureInfo.InvariantCulture);
 
-                                    <tr data-id="@info.Id" data-name="@info.FullName" data-allowed="@allowedText" data-used="@usedText">
+                                    <tr data-id="@info.Id" data-name="@info.FullName" data-allowed="@allowedText" data-carryover="@carryOverText" data-used="@usedText">
                                         <td>@index</td>
-                                        <td>@info.UserName</td>
-                                        <td>@info.FullName</td>
-                                        <td>@info.DepartmentText</td>
-                                        <td>@info.PositionText</td>
+                                        @if (!isTcRole)
+                                        {
+                                            <td>@info.UserName</td>
+                                            <td>@info.FullName</td>
+                                            <td>@info.DepartmentText</td>
+                                            <td>@info.PositionText</td>
+                                        }
                                         <td class="text-end">@allowedText</td>
+                                        <td class="text-end">@carryOverText</td>
                                         <td class="text-end">@usedText</td>
                                         <td class="text-end">@remainingText</td>
                                         <td class="text-end">@sickText</td>
@@ -119,14 +172,15 @@
                                 @if (index == 0)
                                 {
                                     <tr>
-                                        <td colspan="14" class="text-center">Khong co du lieu</td>
+                                        <td colspan="@columnCount" class="text-center">Khong co du lieu</td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
                     </div>
 
-                    @{
+                    @if (!isTcRole)
+                    {
                         Html.RenderPartial("formSearch/pagination", Model);
                     }
                 </div>
@@ -149,11 +203,15 @@
                     <input type="text" class="form-control" id="leaveBalanceEmployeeName" readonly disabled />
                 </div>
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label class="form-label">So ngay duoc huong</label>
                         <input type="number" step="0.5" min="0" class="form-control" id="allowedLeaveDays" />
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Phép tồn năm cũ</label>
+                        <input type="number" step="0.5" min="0" class="form-control" id="carryOverLeaveDays" />
+                    </div>
+                    <div class="col-md-4 mb-3">
                         <label class="form-label">So ngay da dung</label>
                         <input type="number" step="0.5" min="0" class="form-control" id="usedLeaveDays" />
                     </div>

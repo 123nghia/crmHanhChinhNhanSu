@@ -28,6 +28,7 @@ namespace crmHuman.Pages.Leave
 
         public BaseList LeaveBalanceList { get; set; } = new BaseList();
         public LeaveBalanceRequest RequestSearch { get; set; } = new LeaveBalanceRequest();
+        public LeaveBalanceIndexModel? MyBalance { get; set; }
 
         public int TotalRecord => LeaveBalanceList.Total;
 
@@ -48,6 +49,27 @@ namespace crmHuman.Pages.Leave
                 return Page();
             }
 
+            if (UserData?.RoleCode == "2")
+            {
+                RequestSearch.Page = 1;
+                RequestSearch.Limit = 1;
+                RequestSearch.Token = string.Empty;
+
+                MyBalance = await _leaveBusiness.GetEmployeeLeaveBalance(UserData.UserId);
+                if (MyBalance == null || MyBalance.Id <= 0)
+                {
+                    LeaveBalanceList = new BaseList { Data = new List<object>(), Total = 0 };
+                    return Page();
+                }
+
+                LeaveBalanceList = new BaseList
+                {
+                    Data = new List<LeaveBalanceIndexModel> { MyBalance },
+                    Total = 1
+                };
+                return Page();
+            }
+
             LeaveBalanceList = await _leaveBalanceBusiness.GetLeaveBalances(RequestSearch);
             return Page();
         }
@@ -56,6 +78,11 @@ namespace crmHuman.Pages.Leave
         {
             GetInfoUser();
             if (!(Permision.View ?? false))
+            {
+                return new JsonResult(new List<object>());
+            }
+
+            if (UserData?.RoleCode == "2" && employeeId != UserData.UserId)
             {
                 return new JsonResult(new List<object>());
             }
@@ -106,6 +133,11 @@ namespace crmHuman.Pages.Leave
                 errors.Add(new { name = "allowedLeaveDays", Content = "So ngay phep khong duoc nho hon 0" });
             }
 
+            if (request.CarryOverLeaveDays.HasValue && request.CarryOverLeaveDays.Value < 0)
+            {
+                errors.Add(new { name = "carryOverLeaveDays", Content = "So ngay phep ton nam cu khong duoc nho hon 0" });
+            }
+
             if (request.UsedLeaveDays.HasValue && request.UsedLeaveDays.Value < 0)
             {
                 errors.Add(new { name = "usedLeaveDays", Content = "So ngay phep da dung khong duoc nho hon 0" });
@@ -119,6 +151,7 @@ namespace crmHuman.Pages.Leave
             var result = await _leaveBalanceBusiness.UpdateLeaveBalance(
                 request.EmployeeId,
                 request.AllowedLeaveDays,
+                request.CarryOverLeaveDays,
                 request.UsedLeaveDays,
                 UserData.UserId);
 
@@ -162,5 +195,6 @@ namespace crmHuman.Pages.Leave
 
             return string.Empty;
         }
+
     }
 }

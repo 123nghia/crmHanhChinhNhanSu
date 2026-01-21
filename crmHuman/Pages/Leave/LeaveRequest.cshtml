@@ -60,6 +60,8 @@
                         <thead>
                             <tr>
                                 <th>#</th>
+                                <th>Người tạo</th>
+                                <th>Ngày tạo</th>
                                 <th>Loại nghỉ</th>
                                 <th>Từ ngày</th>
                                 <th>Đến ngày</th>
@@ -81,6 +83,8 @@
                                 var info = item as dynamic;
                                 <tr>
                                     <td>@i</td>
+                                    <td>@info.EmployeeName</td>
+                                    <td>@info.CreateAt.ToString("dd/MM/yyyy")</td>
                                     <td>@info.LeaveTypeName</td>
                                     <td>@info.FromDate.ToString("dd/MM/yyyy")</td>
                                     <td>@info.ToDate.ToString("dd/MM/yyyy")</td>
@@ -134,7 +138,7 @@
                             @if (i == 0)
                             {
                                 <tr>
-                                    <td colspan="9" class="text-center">Không có dữ liệu</td>
+                                    <td colspan="12" class="text-center">Không có dữ liệu</td>
                                 </tr>
                             }
                         </tbody>

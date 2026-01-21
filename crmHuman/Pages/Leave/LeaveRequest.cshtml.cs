@@ -29,6 +29,29 @@ namespace crmHuman.Pages.Leave
         public List<ManagerLeadIndex> EmployeeList { get; set; }
         public LeaveBalanceIndexModel LeaveBalance { get; set; }
 
+        private static bool IsManagerRole(string? roleCode)
+        {
+            return roleCode == "3";
+        }
+
+        private static bool IsAdminRole(string? roleCode)
+        {
+            return roleCode == "1" || roleCode == "8";
+        }
+
+        private (int? employeeId, int? userId) ResolveLeaveScope()
+        {
+            var userId = UserData?.UserId > 0 ? UserData.UserId : (int?)null;
+            var roleCode = UserData?.RoleCode;
+
+            if (!IsManagerRole(roleCode) && !IsAdminRole(roleCode))
+            {
+                return (userId, userId);
+            }
+
+            return (null, userId);
+        }
+
         public async Task OnGetAsync(int page = 1, int limit = 20)
         {
             GetInfoUser();
@@ -39,7 +62,8 @@ namespace crmHuman.Pages.Leave
             }
             else
             {
-                LeaveList = await _leaveBusiness.GetLeaveList(null, null, null, null, page, limit, UserData.UserId);
+                var scope = ResolveLeaveScope();
+                LeaveList = await _leaveBusiness.GetLeaveList(scope.employeeId, null, null, null, page, limit, scope.userId);
             }
 
             if (UserData.UserId > 0)
@@ -58,7 +82,8 @@ namespace crmHuman.Pages.Leave
         public async Task<IActionResult> OnGetLeaveListAsync(int page = 1, int limit = 20)
         {
             GetInfoUser();
-            var result = await _leaveBusiness.GetLeaveList(null, null, null, null, page, limit, UserData.UserId);
+            var scope = ResolveLeaveScope();
+            var result = await _leaveBusiness.GetLeaveList(scope.employeeId, null, null, null, page, limit, scope.userId);
             return new JsonResult(result);
         }
 

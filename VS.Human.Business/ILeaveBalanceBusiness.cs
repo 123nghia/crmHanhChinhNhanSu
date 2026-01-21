@@ -5,6 +5,6 @@ namespace VS.Human.Business
     public interface ILeaveBalanceBusiness
     {
         Task<BaseList> GetLeaveBalances(LeaveBalanceRequest request);
-        Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? usedLeaveDays, int userId);
+        Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? usedLeaveDays, int userId);
     }
 }

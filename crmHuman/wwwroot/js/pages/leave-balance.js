@@ -5,11 +5,13 @@ function openLeaveBalanceModal(button) {
     var employeeId = row.getAttribute('data-id');
     var name = row.getAttribute('data-name') || '';
     var allowed = row.getAttribute('data-allowed') || '0';
+    var carryOver = row.getAttribute('data-carryover') || '0';
     var used = row.getAttribute('data-used') || '0';
 
     $('#leaveBalanceEmployeeId').val(employeeId);
     $('#leaveBalanceEmployeeName').val(name);
     $('#allowedLeaveDays').val(allowed);
+    $('#carryOverLeaveDays').val(carryOver);
     $('#usedLeaveDays').val(used);
     $('#leaveBalanceModal').modal('show');
 }
@@ -122,9 +124,11 @@ function escapeHtml(value) {
 async function saveLeaveBalance() {
     var employeeId = parseInt($('#leaveBalanceEmployeeId').val(), 10);
     var allowedRaw = $('#allowedLeaveDays').val();
+    var carryOverRaw = $('#carryOverLeaveDays').val();
     var usedRaw = $('#usedLeaveDays').val();
 
     var allowedLeaveDays = allowedRaw === '' ? null : parseFloat(allowedRaw);
+    var carryOverLeaveDays = carryOverRaw === '' ? null : parseFloat(carryOverRaw);
     var usedLeaveDays = usedRaw === '' ? null : parseFloat(usedRaw);
 
     if (!employeeId || employeeId <= 0) {
@@ -137,6 +141,11 @@ async function saveLeaveBalance() {
         return;
     }
 
+    if (carryOverLeaveDays !== null && Number.isNaN(carryOverLeaveDays)) {
+        alert('So ngay phep ton nam cu khong hop le');
+        return;
+    }
+
     if (usedLeaveDays !== null && Number.isNaN(usedLeaveDays)) {
         alert('So ngay da dung khong hop le');
         return;
@@ -145,6 +154,7 @@ async function saveLeaveBalance() {
     var payload = {
         EmployeeId: employeeId,
         AllowedLeaveDays: allowedLeaveDays,
+        CarryOverLeaveDays: carryOverLeaveDays,
         UsedLeaveDays: usedLeaveDays
     };
 

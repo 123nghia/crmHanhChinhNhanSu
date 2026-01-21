@@ -17,9 +17,9 @@ namespace VS.Human.Business
             return await _unitOfWork.EmployeeRep.GetLeaveBalances(request);
         }
 
-        public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? usedLeaveDays, int userId)
+        public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? usedLeaveDays, int userId)
         {
-            return await _unitOfWork.EmployeeRep.UpdateLeaveBalance(employeeId, allowedLeaveDays, usedLeaveDays, userId);
+            return await _unitOfWork.EmployeeRep.UpdateLeaveBalance(employeeId, allowedLeaveDays, carryOverLeaveDays, usedLeaveDays, userId);
         }
     }
 }

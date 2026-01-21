@@ -118,6 +118,7 @@ namespace VS.Human.Rep
                         e.UserName,
                         e.FullName,
                         e.AllowedLeaveDays,
+                        e.CarryOverLeaveDays,
                         e.UsedLeaveDays,
                         ISNULL(e.AllowedLeaveDays, 0) - ISNULL(e.UsedLeaveDays, 0) AS RemainingLeaveDays,
                         ISNULL(la.UsedAnnualLeaveDays, 0) AS UsedAnnualLeaveDays,

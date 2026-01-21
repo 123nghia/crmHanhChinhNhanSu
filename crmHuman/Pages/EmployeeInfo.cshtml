@@ -12,6 +12,7 @@
     var taxtItem = itemResult?.TaxItem?? new VS.Human.Rep.Model.TaxItem();
     var isSelfView = Model.IsSelfView;
     var isTcRole = Model.UserData?.RoleCode == "2";
+    var canEdit = !isTcRole;
     var showAccountTab = !isSelfView && !isTcRole;
 
     var textTiltel  =  "Thông tin nhân viên";
@@ -703,7 +704,10 @@
                    
                <br />
                   <br />
+             @if (canEdit)
+             {
              <button type="button" onclick="saveEmployeeDetail(@itemResult.Id)" class="btn btn-primary">Lưu thông tin </button>
+             }
 
               
 
@@ -822,7 +826,10 @@
                             </div>
                             </div>
 
-                              <button type="button" onclick="saveRelaionItem(@itemResult.Id)" class="btn btn-primary">Cập nhật</button> </br>
+                              @if (canEdit)
+                              {
+                              <button type="button" onclick="saveRelaionItem(@itemResult.Id)" class="btn btn-primary">Cập nhật</button> <br />
+                              }
                                <strong> Thông tin thanh toán  </strong>
                               <div class="form-group">
                                 <label class="form-label">Số tài khoản</label>
@@ -850,7 +857,10 @@
                                 </div>
 
                             </div>
-                            <button type="button" onclick="UpdateOtherInfoEmployee(@itemResult.Id,3)" class="btn btn-primary">Cập nhật</button> </br>
+                            @if (canEdit)
+                            {
+                            <button type="button" onclick="UpdateOtherInfoEmployee(@itemResult.Id,3)" class="btn btn-primary">Cập nhật</button> <br />
+                            }
                             <strong> Thông tin HĐLĐ </strong>
 
                               <div class="form-group">
@@ -924,7 +934,10 @@
                                  class="form-control" required placeholder="" />
                                 <div class="invalid-feedback-cs"> </div>
                             </div>
-                              <button type="button" onclick="SaveHDLD(@itemResult.Id)" class="btn btn-primary">Cập nhật</button> </br>
+                              @if (canEdit)
+                              {
+                              <button type="button" onclick="SaveHDLD(@itemResult.Id)" class="btn btn-primary">Cập nhật</button> <br />
+                              }
                             <form id ="formInputOther">
                               <strong> Thông tin BHXH </strong>
                               <div class="form-group">
@@ -963,7 +976,10 @@
                                 <div class="invalid-feedback-cs"> </div>
                             </div>
 
-                             <button type="button" onclick="UpdateOtherInfoEmployee(@itemResult.Id , 1)" class="btn btn-primary">Cập nhật</button> </br>
+                             @if (canEdit)
+                             {
+                             <button type="button" onclick="UpdateOtherInfoEmployee(@itemResult.Id , 1)" class="btn btn-primary">Cập nhật</button> <br />
+                             }
                              <strong> Thông tin thuế </strong>
 
 
@@ -1028,7 +1044,10 @@
                                  class="form-control" required placeholder="" />
                                    <div class="invalid-feedback-cs"> </div>
                             </div>
-                         <button type="button" onclick="UpdateOtherInfoEmployee(@itemResult.Id ,2 )" class="btn btn-primary">Cập nhật</button> </br>
+                         @if (canEdit)
+                         {
+                         <button type="button" onclick="UpdateOtherInfoEmployee(@itemResult.Id ,2 )" class="btn btn-primary">Cập nhật</button> <br />
+                         }
                          </form>
 
                 </div>
@@ -1038,6 +1057,8 @@
 
                 <div class="tab-pane fade" id="infomationDocument" role="tabpanel" aria-labelledby="infomationDocument-tab">
 
+                         @if (canEdit)
+                         {
                          <div class="floatRight">
                         <button type="button" class=" btn btn-primary" 
                         data-bs-toggle="modal" 
@@ -1047,6 +1068,9 @@
 
                         </button>
                     </div>
+                         
+                         
+                         }
             
                     <div id ="documnetList">
 
@@ -1068,7 +1092,10 @@
 
                     <div class="divblock">
 
+                        @if (canEdit)
+                        {
                         <button type="button" onclick = "AddDocument(@itemResult.Id,2)"  class="btn btn-primary"> Câp nhật chứng từ</button>     
+                        }
                     </div>
 
                                       
@@ -1117,7 +1144,10 @@
                                 </div>
                                 <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                @if (canEdit)
+                                {
                                 <button type="button" class="btn btn-primary" onclick="addDocumentSelect()">Thêm</button>
+                                }
                                 </div>
                             </div>
                             </div>
@@ -1171,6 +1201,22 @@
                     element.disabled = true;
                 }
             });
+        });
+    </script>
+}
+
+@if (!canEdit)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var container = document.querySelector(".tab-content");
+            if (!container) {
+                return;
+            }
+            var fields = container.querySelectorAll("input, select, textarea");
+            for (var i = 0; i < fields.length; i++) {
+                fields[i].disabled = true;
+            }
         });
     </script>
 }

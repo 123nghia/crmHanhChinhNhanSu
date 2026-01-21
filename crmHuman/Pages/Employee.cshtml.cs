@@ -207,8 +207,32 @@ namespace crmHuman.Pages
 
             await ApplyDefaultStatusWork(request2);
 
-            // Sử dụng GetAllExtended để lấy đầy đủ dữ liệu cho chế độ chỉnh sửa mở rộng
+            var pageIndex = request2.Page > 0 ? request2.Page : 1;
+            var pageSize = request2.Limit > 0 ? request2.Limit : 10;
+            var hasHeaderFilters = HasHeaderFilters(request2);
+
+            if (hasHeaderFilters)
+            {
+                request2.Page = 1;
+                request2.Limit = 100000;
+            }
+
             DataAll = await _empBusiness.GetAllExtended(request2);
+
+            if (hasHeaderFilters)
+            {
+                var dataList = DataAll.Data?.Cast<EmployeeExtendedModel>().ToList() ?? new List<EmployeeExtendedModel>();
+                var filtered = ApplyHeaderFilters(dataList, request2);
+
+                DataAll.Total = filtered.Count;
+                DataAll.Data = filtered
+                    .Skip((pageIndex - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
+                request2.Page = pageIndex;
+                request2.Limit = pageSize;
+            }
 
             if (UserData.RoleCode == "6")
             {
@@ -225,6 +249,68 @@ namespace crmHuman.Pages
             return Page();
         }
 
+        private static bool HasFilterValue(string? value)
+        {
+            return !string.IsNullOrWhiteSpace(value) && value != "-1";
+        }
+
+        private static bool HasHeaderFilters(EmployeeRequest request)
+        {
+            return HasFilterValue(request.FilterUserName)
+                || HasFilterValue(request.FilterFullName)
+                || HasFilterValue(request.FilterRoleCode)
+                || HasFilterValue(request.FilterPositionCode)
+                || HasFilterValue(request.FilterDepartmentCode)
+                || HasFilterValue(request.FilterStatus)
+                || HasFilterValue(request.FilterFingerprintCode);
+        }
+
+        private static bool MatchesText(string? source, string? filter)
+        {
+            if (!HasFilterValue(filter))
+            {
+                return true;
+            }
+
+            return NormalizeText(source).Contains(NormalizeText(filter));
+        }
+
+        private static bool MatchesValue(string? source, string? filter)
+        {
+            if (!HasFilterValue(filter))
+            {
+                return true;
+            }
+
+            return string.Equals(source?.Trim(), filter?.Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool MatchesInt(int value, string? filter)
+        {
+            if (!HasFilterValue(filter))
+            {
+                return true;
+            }
+
+            return int.TryParse(filter, out var parsed) && value == parsed;
+        }
+
+        private static List<EmployeeExtendedModel> ApplyHeaderFilters(List<EmployeeExtendedModel> data, EmployeeRequest request)
+        {
+            return data.Where(item =>
+                    MatchesText(item.UserName, request.FilterUserName)
+                    && MatchesText(item.FullName, request.FilterFullName)
+                    && MatchesValue(item.RoleCode, request.FilterRoleCode)
+                    && MatchesValue(item.PositionCode, request.FilterPositionCode)
+                    && MatchesValue(item.DepartmentCode, request.FilterDepartmentCode)
+                    && MatchesInt(item.Status, request.FilterStatus)
+                    && MatchesText(item.FingerprintCode, request.FilterFingerprintCode)
+                    && (!request.GroupId.HasValue || request.GroupId <= 0 || item.GroupId == request.GroupId)
+                    && (!HasFilterValue(request.StatusWork) || string.Equals(item.StatusWork, request.StatusWork, StringComparison.OrdinalIgnoreCase))
+                    && (!HasFilterValue(request.DocumentStatus) || string.Equals(item.DocumentStatus, request.DocumentStatus, StringComparison.OrdinalIgnoreCase))
+                )
+                .ToList();
+        }
         private async Task ApplyDefaultStatusWork(EmployeeRequest request)
         {
             if (!string.IsNullOrWhiteSpace(request.StatusWork))
@@ -763,3 +849,6 @@ namespace crmHuman.Pages
         }
     }
 }
+
+
+

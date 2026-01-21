@@ -32,6 +32,97 @@
         .extended-scroll-container .table td.col-wide {
             min-width: 180px;
         }
+        /* Excel-like header + filter styling */
+        #employeeGrid {
+            --employee-header-bg: #e9edf4;
+            --employee-header-bg-2: #dee6f1;
+            --employee-header-border: #cfd7e3;
+            --employee-filter-bg: #f5f7fb;
+            --employee-grid-border: #e1e7f0;
+            --employee-filter-icon: #7d879a;
+        }
+        #employeeGrid thead tr:first-child th {
+            position: sticky;
+            top: 0;
+            z-index: 15;
+            background: linear-gradient(180deg, var(--employee-header-bg) 0%, var(--employee-header-bg-2) 100%);
+            color: #1f2a44;
+            border-bottom: 1px solid var(--employee-header-border);
+            line-height: 1.2;
+            padding: 6px 6px 8px;
+            vertical-align: bottom;
+        }
+        #employeeGrid thead tr:first-child th.filterable {
+            padding-right: 22px;
+            position: relative;
+        }
+        #employeeGrid thead tr:first-child th.filterable::after {
+            content: "\f3e1";
+            font-family: "bootstrap-icons";
+            font-size: 12px;
+            color: var(--employee-filter-icon);
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.9;
+        }
+        #employeeGrid thead th .header-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-height: 44px;
+        }
+        #employeeGrid thead th.no-filter .header-cell {
+            min-height: auto;
+        }
+        #employeeGrid thead th .header-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1f2a44;
+        }
+        #employeeGrid thead th .header-filter {
+            display: block;
+        }
+        #employeeGrid thead .table-filter-input,
+        #employeeGrid thead .table-filter-select {
+            width: 100%;
+            min-width: 80px;
+            height: 24px;
+            padding: 1px 6px;
+            font-size: 11px;
+            color: #1f2a44;
+            background-color: #fff;
+            border: 1px solid #cfd7e3;
+            border-radius: 6px;
+            box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
+        }
+        #employeeGrid thead .table-filter-input:focus,
+        #employeeGrid thead .table-filter-select:focus {
+            border-color: #6aa9ff;
+            box-shadow: 0 0 0 2px rgba(106, 169, 255, 0.2);
+        }
+        #employeeGrid thead .table-filter-input::placeholder {
+            color: #98a2b3;
+        }
+        #employeeGrid thead .col-narrow .table-filter-input,
+        #employeeGrid thead .col-narrow .table-filter-select {
+            min-width: 50px;
+        }
+        #employeeGrid thead .header-cell .btn {
+            width: 100%;
+            padding: 4px 8px;
+            font-size: 12px;
+            line-height: 1.2;
+            border-radius: 6px;
+            background-color: #f3f5f9;
+            border-color: #cfd7e3;
+            color: #48556a;
+        }
+        #employeeGrid thead th,
+        #employeeGrid tbody td {
+            border-color: var(--employee-grid-border);
+        }
         /* Cột mở rộng - ẩn mặc định, hiển thị khi edit mode */
         .extended-col {
             display: none;
@@ -77,52 +168,235 @@
                     
                     <div class="extended-scroll-container" id="gridContainer">
                         <table class="table table-striped editable-grid" id="employeeGrid">
-                            <thead>
+                                                        <thead>
                                 <tr>
                                     <!-- Cột cố định - luôn hiển thị -->
-                                    <th class="col-narrow">STT</th>
-                                    <th>UserName</th>
-                                    <th class="col-wide">Họ tên</th>
+                                    <th class="col-narrow no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">STT</span>
+                                        </div>
+                                    </th>
+                                    <th class="filterable">
+                                        <div class="header-cell">
+                                            <span class="header-label">UserName</span>
+                                            <div class="header-filter">
+                                                <input type="text" class="form-control table-filter-input" data-filter-key="filterUserName" value="@Model.RequestSearch.FilterUserName" placeholder="Lọc" />
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="col-wide filterable">
+                                        <div class="header-cell">
+                                            <span class="header-label">Họ tên</span>
+                                            <div class="header-filter">
+                                                <input type="text" class="form-control table-filter-input" data-filter-key="filterFullName" value="@Model.RequestSearch.FilterFullName" placeholder="Lọc" />
+                                            </div>
+                                        </div>
+                                    </th>
                                     
                                     <!-- Cột cơ bản - luôn hiển thị -->
-                                    <th>Vai trò</th>
-                                    <th>Vị trí</th>
-                                    <th>Bộ phận</th>
-                                    <th>Nhóm</th>
-                                    <th>Trạng thái</th>
-                                    <th>TT làm việc</th>
-                                    <th>TT chứng từ</th>
+                                    <th class="filterable">
+                                        <div class="header-cell">
+                                            <span class="header-label">Vai trò</span>
+                                            <div class="header-filter">
+                                                <select class="form-select table-filter-select" data-filter-key="filterRoleCode" data-col-index="3" data-selected-value="@Model.RequestSearch.FilterRoleCode">
+                                                    <option value="-1">Tất cả</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="filterable">
+                                        <div class="header-cell">
+                                            <span class="header-label">Vị trí</span>
+                                            <div class="header-filter">
+                                                <select class="form-select table-filter-select" data-filter-key="filterPositionCode" data-col-index="4" data-selected-value="@Model.RequestSearch.FilterPositionCode">
+                                                    <option value="-1">Tất cả</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="filterable">
+                                        <div class="header-cell">
+                                            <span class="header-label">Bộ phận</span>
+                                            <div class="header-filter">
+                                                <select class="form-select table-filter-select" data-filter-key="filterDepartmentCode" data-col-index="5" data-selected-value="@Model.RequestSearch.FilterDepartmentCode">
+                                                    <option value="-1">Tất cả</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="filterable">
+                                        <div class="header-cell">
+                                            <span class="header-label">Nhóm</span>
+                                            <div class="header-filter">
+                                                <select class="form-select table-filter-select" data-filter-key="groupId" data-col-index="6" data-selected-value="@Model.RequestSearch.GroupId">
+                                                    <option value="-1">Tất cả</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="filterable">
+                                        <div class="header-cell">
+                                            <span class="header-label">Trạng thái</span>
+                                            <div class="header-filter">
+                                                <select class="form-select table-filter-select" data-filter-key="filterStatus" data-col-index="7" data-selected-value="@Model.RequestSearch.FilterStatus">
+                                                    <option value="-1">Tất cả</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="filterable">
+                                        <div class="header-cell">
+                                            <span class="header-label">TT làm việc</span>
+                                            <div class="header-filter">
+                                                <select class="form-select table-filter-select" data-filter-key="statusWork" data-col-index="8" data-selected-value="@Model.RequestSearch.StatusWork">
+                                                    <option value="-1">Tất cả</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="filterable">
+                                        <div class="header-cell">
+                                            <span class="header-label">TT chứng từ</span>
+                                            <div class="header-filter">
+                                                <select class="form-select table-filter-select" data-filter-key="documentStatus" data-col-index="9" data-selected-value="@Model.RequestSearch.DocumentStatus">
+                                                    <option value="-1">Tất cả</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </th>
                                     
-                                       <th>Mã vân tay</th>
+                                    <th class="filterable">
+                                        <div class="header-cell">
+                                            <span class="header-label">Mã vân tay</span>
+                                            <div class="header-filter">
+                                                <input type="text" class="form-control table-filter-input" data-filter-key="filterFingerprintCode" value="@Model.RequestSearch.FilterFingerprintCode" placeholder="Lọc" />
+                                            </div>
+                                        </div>
+                                    </th>
                                     <!-- Cột mở rộng - chỉ hiển thị khi edit mode -->
-                                    <th class="extended-col">Ngày sinh</th>
-                                    <th class="extended-col">Giới tính</th>
-                                    <th class="extended-col col-wide">Nơi sinh</th>
-                                    <th class="extended-col">CCCD</th>
-                                    <th class="extended-col">Ngày cấp</th>
-                                    <th class="extended-col col-wide">Nơi cấp</th>
-                                    <th class="extended-col">SĐT</th>
-                                    <th class="extended-col col-wide">LH khẩn cấp</th>
-                                    <th class="extended-col">Ngày Onboard</th>
-                                    <th class="extended-col">Email (Cty)</th>
-                                    <th class="extended-col">Email cá nhân</th>
-                                    <th class="extended-col col-wide">Địa chỉ thường trú</th>
-                                    <th class="extended-col col-wide">Địa chỉ hiện tại</th>
-                                    <th class="extended-col">Trình độ</th>
-                                    <th class="extended-col">Tôn giáo</th>
-                                    <th class="extended-col">Hôn nhân</th>
-                                    <th class="extended-col">Số TK</th>
-                                    <th class="extended-col">Ngân hàng</th>
-                                    <th class="extended-col col-wide">Chủ TK</th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Ngày sinh</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Giới tính</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col col-wide no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Nơi sinh</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">CCCD</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Ngày cấp</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col col-wide no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Nơi cấp</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">SĐT</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col col-wide no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">LH khẩn cấp</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Ngày Onboard</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Email (Cty)</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Email cá nhân</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col col-wide no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Địa chỉ thường trú</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col col-wide no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Địa chỉ hiện tại</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Trình độ</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Tôn giáo</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Hôn nhân</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Số TK</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Ngân hàng</span>
+                                        </div>
+                                    </th>
+                                    <th class="extended-col col-wide no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Chủ TK</span>
+                                        </div>
+                                    </th>
                                     
                                     <!-- Cột cuối - luôn hiển thị -->
-                                    <th>Cập nhật</th>
-                                    <th>Thao tác</th>
+                                    <th class="no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Cập nhật</span>
+                                        </div>
+                                    </th>
+                                    <th class="no-filter">
+                                        <div class="header-cell">
+                                            <span class="header-label">Thao tác</span>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm js-clear-header-filters">Xóa lọc</button>
+                                        </div>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @{
-                                    int i = 0;
+                                    var pageIndex = Model.RequestSearch?.Page ?? 1;
+                                    var pageSize = Model.RequestSearch?.Limit ?? 10;
+                                    if (pageIndex < 1)
+                                    {
+                                        pageIndex = 1;
+                                    }
+                                    if (pageSize < 1)
+                                    {
+                                        pageSize = 10;
+                                    }
+                                    int i = (pageIndex - 1) * pageSize;
                                 }
                                 @foreach (var itemData in Model.DataAll.Data)
                                 {
@@ -356,3 +630,8 @@
 
 <script src="/js/editable-grid.js?v=@DateTime.Now.Ticks"></script>
 <script src="/js/pages/employee.js?v=@DateTime.Now.Ticks"></script>
+
+
+
+
+

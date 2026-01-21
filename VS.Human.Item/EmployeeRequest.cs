@@ -10,6 +10,14 @@
         public string? DocumentStatus { get; set; }
         public string? StatusWork { get; set; }
 
+        public string? FilterUserName { get; set; }
+        public string? FilterFullName { get; set; }
+        public string? FilterRoleCode { get; set; }
+        public string? FilterPositionCode { get; set; }
+        public string? FilterDepartmentCode { get; set; }
+        public string? FilterStatus { get; set; }
+        public string? FilterFingerprintCode { get; set; }
+
 
 
 
