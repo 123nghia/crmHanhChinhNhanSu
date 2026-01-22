@@ -12,6 +12,8 @@ namespace VS.Human.Item
         }
 
         public string? StatusWork { get; set; }
+        public string? DepartmentCode { get; set; }
+        public string? PositionCode { get; set; }
     }
 
     public class LeaveBalanceIndexModel : BaseIndexModel
@@ -22,8 +24,11 @@ namespace VS.Human.Item
         public string? DepartmentText { get; set; }
         public string? PositionCode { get; set; }
         public string? PositionText { get; set; }
+        public string? StatusWork { get; set; }
+        public string? StatusWorkText { get; set; }
         public decimal? AllowedLeaveDays { get; set; }
         public decimal? CarryOverLeaveDays { get; set; }
+        public decimal? ExpiredLeaveDays { get; set; }
         public decimal? UsedLeaveDays { get; set; }
         public decimal? RemainingLeaveDays { get; set; }
         public decimal? UsedAnnualLeaveDays { get; set; }

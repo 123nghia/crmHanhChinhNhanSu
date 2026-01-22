@@ -3379,28 +3379,23 @@ function SaveHDLD(idEmp) {
     var htdldBegin = getValueControl("dtpHDLDBeginDate");
     var hdldEdndInput = getValueControl("dtpHDLDEndDate");
     var hdldLoaiHDInput = getValueControl("cbLoaiHopDong");
-    if (txtNumberHDLD == "") {
-        addError("txtSoHDLD", "yêu cầu nhập số hợp đồng");
+    
+    // Chỉ yêu cầu Loại HĐ bắt buộc
+    if (hdldLoaiHDInput == "" || hdldLoaiHDInput == "-1") {
+        addError("cbLoaiHopDong", "Yêu cầu chọn loại hợp đồng");
         return;
     }
     else {
+        removeError("cbLoaiHopDong");
+    }
+    
+    // Số HĐ không bắt buộc nhưng nếu có thì validate
+    if (txtNumberHDLD != "") {
         removeError("txtSoHDLD");
     }
-    if (htdldBegin == "") {
-        addError("dtpHDLDBeginDate", "Yều cầu nhập  ngày hợp đồng");
-        return;
-    }
-    else {
-        removeError("dtpHDLDBeginDate");
-    }
-
-    if (hdldEdndInput == "") {
-        addError("dtpHDLDEndDate", "Yêu cầu nhập hạn ngày hợp đồng");
-        return;
-    }
-    else {
-        removeError("dtpHDLDEndDate");
-    }
+    
+    // Ngày bắt đầu và Ngày kết thúc không còn bắt buộc
+    
     var bodyRequest = {
         UserId: cbcandidateId,
         NoAgree: txtNumberHDLD,

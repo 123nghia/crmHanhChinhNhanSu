@@ -34,7 +34,7 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-3">
                                 <div class="border rounded p-3 h-100 bg-light">
-                                    <div class="text-muted small">Duoc huong</div>
+                                    <div class="text-muted small">Phép năm 2026</div>
                                     <div class="fs-5 fw-semibold">@allowedValue.ToString("0.##", CultureInfo.InvariantCulture)</div>
                                 </div>
                             </div>
@@ -64,12 +64,63 @@
                     else
                     {
                         <form class="row g-3 mb-3" method="get" action="/Leave/LeaveBalance">
-                            <div class="col-md-8">
-                                <label class="form-label">Tu khoa</label>
-                                <input type="text" value="@Model.RequestSearch.Token" name="token" class="form-control" placeholder="Ten, ma, SDT">
+                            <div class="col-md-3">
+                                <label class="form-label">Từ khóa</label>
+                                <input type="text" value="@Model.RequestSearch.Token" name="token" class="form-control" placeholder="Tên, mã, SĐT">
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Hien thi</label>
+                                <label class="form-label">Bộ phận</label>
+                                <select name="departmentCode" class="form-select">
+                                    <option value="-1">-- Tất cả --</option>
+                                    @foreach (var dept in Model.MasterDataList.Where(x => x.TypeData == 5).OrderBy(x => x.Name))
+                                    {
+                                        if (Model.RequestSearch.DepartmentCode == dept.Code)
+                                        {
+                                            <option value="@dept.Code" selected>@dept.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@dept.Code">@dept.Name</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Vị trí</label>
+                                <select name="positionCode" class="form-select">
+                                    <option value="-1">-- Tất cả --</option>
+                                    @foreach (var pos in Model.MasterDataList.Where(x => x.TypeData == 2).OrderBy(x => x.Name))
+                                    {
+                                        if (Model.RequestSearch.PositionCode == pos.Code)
+                                        {
+                                            <option value="@pos.Code" selected>@pos.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@pos.Code">@pos.Name</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Trạng thái NV</label>
+                                <select name="statusWork" class="form-select">
+                                    <option value="-1">-- Tất cả --</option>
+                                    @foreach (var status in Model.MasterDataList.Where(x => x.TypeData == 11).OrderBy(x => x.Name))
+                                    {
+                                        if (Model.RequestSearch.StatusWork == status.Code)
+                                        {
+                                            <option value="@status.Code" selected>@status.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@status.Code">@status.Name</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">Hiển thị</label>
                                 <select name="limit" class="form-select">
                                     <option value="10" selected="@(Model.RequestSearch.Limit == 10)">10</option>
                                     <option value="20" selected="@(Model.RequestSearch.Limit == 20)">20</option>
@@ -77,7 +128,7 @@
                                 </select>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary w-100">Tim kiem</button>
+                                <button type="submit" class="btn btn-primary w-100">Tìm kiếm</button>
                             </div>
                         </form>
                     }
@@ -94,10 +145,11 @@
                                         <th>Bo phan</th>
                                         <th>Vi tri</th>
                                     }
-                                    <th class="text-end">Duoc huong</th>
+                                    <th class="text-end">Phép năm 2026</th>
                                     <th class="text-end">Phép tồn năm cũ</th>
-                                    <th class="text-end">Da dung</th>
-                                    <th class="text-end">Con lai</th>
+                                    <th class="text-end">Phép hết hạn</th>
+                                    <th class="text-end">Đã dùng</th>
+                                    <th class="text-end">Còn lại</th>
                                     <th class="text-end">Nghi benh</th>
                                     <th class="text-end">Nghi rieng</th>
                                     <th class="text-end">Nghi thai san</th>
@@ -109,7 +161,7 @@
                             <tbody>
                                 @{
                                     var index = 0;
-                                    var columnCount = isTcRole ? 11 : 15;
+                                    var columnCount = isTcRole ? 12 : 16;
                                 }
                                 @foreach (var item in Model.LeaveBalanceList.Data)
                                 {
@@ -117,8 +169,9 @@
                                     var info = item as dynamic;
                                     var allowedValue = (decimal?)info?.AllowedLeaveDays ?? 0m;
                                     var carryOverValue = (decimal?)info?.CarryOverLeaveDays ?? 0m;
+                                    var expiredValue = (decimal?)info?.ExpiredLeaveDays ?? 0m;
                                     var usedValue = (decimal?)info?.UsedLeaveDays ?? 0m;
-                                    var remainingValue = (decimal?)info?.RemainingLeaveDays ?? (allowedValue - usedValue);
+                                    var remainingValue = (decimal?)info?.RemainingLeaveDays ?? (allowedValue + carryOverValue - expiredValue - usedValue);
                                     var sickValue = (decimal?)info?.UsedSickLeaveDays ?? 0m;
                                     var personalValue = (decimal?)info?.UsedPersonalLeaveDays ?? 0m;
                                     var maternityValue = (decimal?)info?.UsedMaternityLeaveDays ?? 0m;
@@ -126,6 +179,7 @@
                                     var totalApprovedValue = (decimal?)info?.TotalApprovedLeaveDays ?? 0m;
                                     var allowedText = allowedValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var carryOverText = carryOverValue.ToString("0.##", CultureInfo.InvariantCulture);
+                                    var expiredText = expiredValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var usedText = usedValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var remainingText = remainingValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var sickText = sickValue.ToString("0.##", CultureInfo.InvariantCulture);
@@ -134,7 +188,7 @@
                                     var unpaidText = unpaidValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var totalApprovedText = totalApprovedValue.ToString("0.##", CultureInfo.InvariantCulture);
 
-                                    <tr data-id="@info.Id" data-name="@info.FullName" data-allowed="@allowedText" data-carryover="@carryOverText" data-used="@usedText">
+                                    <tr data-id="@info.Id" data-name="@info.FullName" data-allowed="@allowedText" data-carryover="@carryOverText" data-expired="@expiredText" data-used="@usedText">
                                         <td>@index</td>
                                         @if (!isTcRole)
                                         {
@@ -145,6 +199,7 @@
                                         }
                                         <td class="text-end">@allowedText</td>
                                         <td class="text-end">@carryOverText</td>
+                                        <td class="text-end">@expiredText</td>
                                         <td class="text-end">@usedText</td>
                                         <td class="text-end">@remainingText</td>
                                         <td class="text-end">@sickText</td>

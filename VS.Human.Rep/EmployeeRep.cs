@@ -436,7 +436,9 @@ namespace VS.Human.Rep
                 offset,
                 limit,
                 Token = request.Token ?? string.Empty,
-                StatusWork = request.StatusWork
+                StatusWork = request.StatusWork,
+                DepartmentCode = request.DepartmentCode,
+                PositionCode = request.PositionCode
             };
 
             return await GetBaseAll<LeaveBalanceIndexModel>(request, parameters, sqlPro: "sp_Employee_GetLeaveBalances");

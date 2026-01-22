@@ -1,5 +1,6 @@
 using crmHuman.Helpers;
 using crmHuman.Model;
+using crmHuman.DisplayModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
@@ -16,19 +17,22 @@ namespace crmHuman.Pages.Leave
         private readonly ILeaveBalanceBusiness _leaveBalanceBusiness;
         private readonly ILeaveBusiness _leaveBusiness;
         private readonly IEmpBusiness _employeeBusiness;
+        private readonly ImasterDataBussiness _masterDataBusiness;
 
-        public LeaveBalanceModel(ILeaveBalanceBusiness leaveBalanceBusiness, ILeaveBusiness leaveBusiness, IEmpBusiness employeeBusiness)
+        public LeaveBalanceModel(ILeaveBalanceBusiness leaveBalanceBusiness, ILeaveBusiness leaveBusiness, IEmpBusiness employeeBusiness, ImasterDataBussiness masterDataBusiness)
         {
             _leaveBalanceBusiness = leaveBalanceBusiness;
             _leaveBusiness = leaveBusiness;
             _employeeBusiness = employeeBusiness;
+            _masterDataBusiness = masterDataBusiness;
             KeyPage = "LeaveBalance";
-            TitlePage = "Quan ly so ngay nghi phep";
+            TitlePage = "Quản lý số ngày nghỉ phép";
         }
 
         public BaseList LeaveBalanceList { get; set; } = new BaseList();
         public LeaveBalanceRequest RequestSearch { get; set; } = new LeaveBalanceRequest();
         public LeaveBalanceIndexModel? MyBalance { get; set; }
+        public List<DataMasterItem> MasterDataList { get; set; } = new List<DataMasterItem>();
 
         public int TotalRecord => LeaveBalanceList.Total;
 
@@ -68,6 +72,26 @@ namespace crmHuman.Pages.Leave
                     Total = 1
                 };
                 return Page();
+            }
+
+            // Load master data for filters
+            var masterDataResult = await _masterDataBusiness.GetAll(new CommonRequest());
+            if (masterDataResult?.Data != null)
+            {
+                foreach (var item in masterDataResult.Data)
+                {
+                    var tempItem = item as dynamic;
+                    if (tempItem != null)
+                    {
+                        MasterDataList.Add(new DataMasterItem
+                        {
+                            Name = tempItem.Name ?? string.Empty,
+                            TypeData = tempItem.TypeData ?? 0,
+                            Code = tempItem.Code ?? string.Empty,
+                            ApplyFor = tempItem.ApplyFor ?? 0
+                        });
+                    }
+                }
             }
 
             LeaveBalanceList = await _leaveBalanceBusiness.GetLeaveBalances(RequestSearch);
