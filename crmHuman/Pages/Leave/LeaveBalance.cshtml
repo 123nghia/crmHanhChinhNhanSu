@@ -29,7 +29,8 @@
                         var allowedValue = myBalance?.AllowedLeaveDays ?? 0m;
                         var carryOverValue = myBalance?.CarryOverLeaveDays ?? 0m;
                         var usedValue = myBalance?.UsedLeaveDays ?? 0m;
-                        var remainingValue = myBalance?.RemainingLeaveDays ?? (allowedValue - usedValue);
+                        var expiredValue = myBalance?.ExpiredLeaveDays ?? 0m;
+                        var remainingValue = myBalance?.RemainingLeaveDays ?? (allowedValue + carryOverValue - expiredValue - usedValue);
 
                         <div class="row g-3 mb-3">
                             <div class="col-md-3">

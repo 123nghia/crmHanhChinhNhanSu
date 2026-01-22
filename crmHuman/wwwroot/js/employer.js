@@ -3379,6 +3379,11 @@ function SaveHDLD(idEmp) {
     var htdldBegin = getValueControl("dtpHDLDBeginDate");
     var hdldEdndInput = getValueControl("dtpHDLDEndDate");
     var hdldLoaiHDInput = getValueControl("cbLoaiHopDong");
+    var hdldLoaiHDSelect = document.getElementById("cbLoaiHopDong");
+    var hdldLoaiHDText = "";
+    if (hdldLoaiHDSelect && hdldLoaiHDSelect.selectedIndex >= 0) {
+        hdldLoaiHDText = hdldLoaiHDSelect.options[hdldLoaiHDSelect.selectedIndex].text || "";
+    }
     
     // Chỉ yêu cầu Loại HĐ bắt buộc
     if (hdldLoaiHDInput == "" || hdldLoaiHDInput == "-1") {
@@ -3395,6 +3400,17 @@ function SaveHDLD(idEmp) {
     }
     
     // Ngày bắt đầu và Ngày kết thúc không còn bắt buộc
+    removeError("dtpHDLDBeginDate");
+    removeError("dtpHDLDEndDate");
+
+    var hdldTextLower = (hdldLoaiHDText || "").toLowerCase();
+    if (hdldTextLower.includes("không xác định") || hdldTextLower.includes("khong xac dinh")) {
+        hdldEdndInput = "";
+        var endInput = document.getElementById("dtpHDLDEndDate");
+        if (endInput) {
+            endInput.value = "";
+        }
+    }
     
     var bodyRequest = {
         UserId: cbcandidateId,
