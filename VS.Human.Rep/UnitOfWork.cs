@@ -34,6 +34,7 @@
         public ILeaveRep LeaveRep { get; set; }
         public IInternalNewsRep InternalNewsRep { get; set; }
         public INotificationRep NotificationRep { get; set; }
+        public IAttendanceRep AttendanceRep { get; set; }
         public UnitOfWork(
             IHDLDItemRep hDLDItemRep,
             IRelationItemRep relationItemRep,
@@ -59,7 +60,8 @@
             IPermissionRep permissionRep,
             ILeaveRep leaveRep,
             IInternalNewsRep internalNewsRep,
-            INotificationRep notificationRep
+            INotificationRep notificationRep,
+            IAttendanceRep attendanceRep
             )
         {
             this.BHXHItemRep = bHXHItemRep;
@@ -88,6 +90,7 @@
             LeaveRep = leaveRep;
             InternalNewsRep = internalNewsRep;
             NotificationRep = notificationRep;
+            AttendanceRep = attendanceRep;
         }
     }
 }

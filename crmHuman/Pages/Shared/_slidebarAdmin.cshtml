@@ -68,6 +68,15 @@
             </li>
         }
 
+        @if (Model.HasViewPermission("Attendance"))
+        {
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="/Attendance">
+                    <i class="bi bi-clock-history"></i><span>Chấm công</span>
+                </a>
+            </li>
+        }
+
         @if (Model.HasViewPermission("LeaveRequest") || Model.HasViewPermission("LeaveApproval") || Model.HasViewPermission("LeaveBalance"))
         {
             <li class="nav-item">

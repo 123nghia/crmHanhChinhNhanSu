@@ -1,0 +1,313 @@
+@page
+@model crmHuman.Pages.Attendance.IndexModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+    var canImport = Model.Permision?.Add ?? false;
+    var summary = Model.SelectedSummary;
+    var monthValue = Model.SelectedMonth;
+    var isTcRole = Model.IsTcRole;
+}
+
+@section Styles
+{
+    <style>
+        .attendance-summary-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px 14px;
+            background: #f8f9fa;
+            height: 100%;
+        }
+
+        .attendance-summary-card .label {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+
+        .attendance-summary-card .value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .attendance-summary-row.active {
+            background-color: #eef2ff;
+        }
+
+        .attendance-calendar {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .attendance-day-cell {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 8px;
+            min-height: 90px;
+            background: #fff;
+        }
+
+        .attendance-day-number {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .attendance-day-meta {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
+        .attendance-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+    </style>
+}
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
+            <li class="breadcrumb-item active">Cham cong</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="card">
+        <div class="card-body">
+            @Html.AntiForgeryToken()
+
+            <form class="row g-3 align-items-end" method="get">
+                <div class="col-md-3">
+                    <label class="form-label">Thang</label>
+                    <input type="month" class="form-control" name="month" value="@monthValue" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Nhan vien</label>
+                    @if (isTcRole)
+                    {
+                        <input type="hidden" name="employeeId" value="@Model.SelectedEmployeeId" />
+                        <input type="text" class="form-control" value="@(summary?.FullName ?? Model.UserData?.FullName)" disabled />
+                    }
+                    else
+                    {
+                        <select class="form-select" name="employeeId" id="attendanceEmployeeSelect">
+                            <option value="">-- Tat ca --</option>
+                            @foreach (var item in Model.SummaryItems)
+                            {
+                                if (item.EmployeeId == Model.SelectedEmployeeId)
+                                {
+                                    <option value="@item.EmployeeId" selected>@item.FullName (@item.FingerprintCode)</option>
+                                }
+                                else
+                                {
+                                    <option value="@item.EmployeeId">@item.FullName (@item.FingerprintCode)</option>
+                                }
+                            }
+                        </select>
+                    }
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tu khoa</label>
+                    <input type="text" class="form-control" name="token" value="@Model.RequestSearch.Token" placeholder="Ten, ma van tay" />
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">Xem</button>
+                    @if (canImport)
+                    {
+                        <button type="button" class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#attendanceImportModal">Import</button>
+                    }
+                </div>
+            </form>
+
+            <div class="row g-3 mt-3" id="attendanceSummaryCards">
+                <div class="col-md-3">
+                    <div class="attendance-summary-card">
+                        <div class="label">Tong cong</div>
+                        <div class="value" id="summaryWorkDays">@((summary?.TotalWorkDays ?? 0).ToString("0.##"))</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="attendance-summary-card">
+                        <div class="label">Ngay nghi</div>
+                        <div class="value" id="summaryOffCount">@((summary?.OffCount ?? 0).ToString())</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="attendance-summary-card">
+                        <div class="label">Di tre (lan)</div>
+                        <div class="value" id="summaryLateCount">@((summary?.LateCount ?? 0).ToString())</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="attendance-summary-card">
+                        <div class="label">Ra som (lan)</div>
+                        <div class="value" id="summaryEarlyCount">@((summary?.EarlyCount ?? 0).ToString())</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="attendance-summary-card">
+                        <div class="label">Tre (phut)</div>
+                        <div class="value" id="summaryLateMinutes">@((summary?.LateMinutes ?? 0).ToString())</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="attendance-summary-card">
+                        <div class="label">Som (phut)</div>
+                        <div class="value" id="summaryEarlyMinutes">@((summary?.EarlyMinutes ?? 0).ToString())</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="attendance-summary-card">
+                        <div class="label">Tong gio</div>
+                        <div class="value" id="summaryTotalHours">@((summary?.TotalHours ?? 0).ToString("0.##"))</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="attendance-summary-card">
+                        <div class="label">Gio cong</div>
+                        <div class="value" id="summaryWorkHours">@((summary?.TotalWorkHours ?? 0).ToString("0.##"))</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive mt-4">
+                <table class="table table-striped" id="attendanceSummaryTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Ma van tay</th>
+                            <th>Ho ten</th>
+                            <th>Bo phan</th>
+                            <th>Vi tri</th>
+                            <th class="text-end">Cong</th>
+                            <th class="text-end">Nghi</th>
+                            <th class="text-end">Tre</th>
+                            <th class="text-end">Som</th>
+                            <th class="text-end">Tong gio</th>
+                            <th class="text-center">Chi tiet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var index = 0;
+                        }
+                        @foreach (var item in Model.SummaryItems)
+                        {
+                            index++;
+                            var isActive = item.EmployeeId == Model.SelectedEmployeeId ? "active" : string.Empty;
+                            <tr class="attendance-summary-row @isActive"
+                                data-employee-id="@item.EmployeeId"
+                                data-fingerprint="@item.FingerprintCode"
+                                data-full-name="@item.FullName"
+                                data-work-days="@item.TotalWorkDays"
+                                data-off-count="@item.OffCount"
+                                data-late-count="@item.LateCount"
+                                data-early-count="@item.EarlyCount"
+                                data-late-minutes="@item.LateMinutes"
+                                data-early-minutes="@item.EarlyMinutes"
+                                data-total-hours="@item.TotalHours"
+                                data-work-hours="@item.TotalWorkHours">
+                                <td>@index</td>
+                                <td>@item.FingerprintCode</td>
+                                <td>@item.FullName</td>
+                                <td>@item.DepartmentText</td>
+                                <td>@item.PositionText</td>
+                                <td class="text-end">@((item.TotalWorkDays ?? 0).ToString("0.##"))</td>
+                                <td class="text-end">@((item.OffCount ?? 0).ToString())</td>
+                                <td class="text-end">@((item.LateCount ?? 0).ToString())</td>
+                                <td class="text-end">@((item.EarlyCount ?? 0).ToString())</td>
+                                <td class="text-end">@((item.TotalHours ?? 0).ToString("0.##"))</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAttendanceEmployee(this)">Xem</button>
+                                </td>
+                            </tr>
+                        }
+                        @if (index == 0)
+                        {
+                            <tr>
+                                <td colspan="11" class="text-center">Khong co du lieu</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
+                <h5 class="card-title mb-0">Chi tiet cham cong</h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary active" id="attendanceTableViewBtn" onclick="toggleAttendanceView('table')">Bang</button>
+                    <button type="button" class="btn btn-outline-secondary" id="attendanceCalendarViewBtn" onclick="toggleAttendanceView('calendar')">Calendar</button>
+                </div>
+            </div>
+
+            <div id="attendanceDetailHint" class="text-muted mb-2">Chon nhan vien de xem chi tiet.</div>
+
+            <div class="table-responsive d-none" id="attendanceDetailTableWrapper">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Ngay</th>
+                            <th>Thu</th>
+                            <th>Vao</th>
+                            <th>Ra</th>
+                            <th class="text-end">Cong</th>
+                            <th class="text-end">Gio</th>
+                            <th class="text-end">Tre (p)</th>
+                            <th class="text-end">Som (p)</th>
+                            <th>Ca</th>
+                            <th>Ky hieu</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceDetailBody"></tbody>
+                </table>
+            </div>
+
+            <div id="attendanceCalendarWrapper" class="d-none">
+                <div class="attendance-calendar" id="attendanceCalendar"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal fade" id="attendanceImportModal" tabindex="-1" aria-labelledby="attendanceImportLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attendanceImportLabel">Import cham cong</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="attendanceImportForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Chon file Excel (.xlsx)</label>
+                        <input type="file" name="FileRequest" class="form-control" accept=".xlsx" required />
+                    </div>
+                </form>
+                <div class="text-muted small">
+                    Ma nhan vien trong file se duoc map theo ma van tay.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
+                <button type="button" class="btn btn-primary" onclick="submitAttendanceImport()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="attendanceMeta"
+     data-selected-id="@Model.SelectedEmployeeId"
+     data-selected-fingerprint="@Model.SelectedFingerprintCode"
+     data-month="@Model.SelectedMonth"></div>
+
+<script src="/js/pages/attendance.js?v=@DateTime.Now.Ticks"></script>

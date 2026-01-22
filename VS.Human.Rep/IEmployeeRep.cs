@@ -14,6 +14,7 @@ namespace VS.Human.Rep
         Task<Employee> GetById(int id);
         Task<Employee> CheckDuplicate(string email, string phone);
         Task<Employee> GetByUserName(string userName);
+        Task<Employee?> GetByFingerprintCode(string fingerprintCode);
         Task<Employee> GetLastByEmailOrPhone(string email, string phone);
         Task<List<Employee>> GetDuplicateSeeds();
         Task<BaseList> GetAll(EmployeeRequest id);

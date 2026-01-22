@@ -163,6 +163,18 @@ namespace VS.Human.Rep
             return await ExecuteSQL<Employee>(sql, parameter);
         }
 
+        public async Task<Employee?> GetByFingerprintCode(string fingerprintCode)
+        {
+            if (string.IsNullOrWhiteSpace(fingerprintCode))
+            {
+                return null;
+            }
+
+            var parameter = new { fingerprintCode };
+            var sql = "SELECT TOP 1 * FROM Employees WHERE FingerprintCode = @fingerprintCode AND ISNULL(Deleted,0)=0";
+            return await ExecuteSQL<Employee>(sql, parameter);
+        }
+
         public async Task<Employee> GetLastByEmailOrPhone(string email, string phone)
         {
             var parameter = new { email, phone };
@@ -447,7 +459,7 @@ namespace VS.Human.Rep
         public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? usedLeaveDays, int userId)
         {
             var p = new DynamicParameters();
-            p.Add("@Id", employeeId);
+            p.Add("@EmployeeId", employeeId);
             p.Add("@AllowedLeaveDays", allowedLeaveDays);
             p.Add("@CarryOverLeaveDays", carryOverLeaveDays);
             p.Add("@UsedLeaveDays", usedLeaveDays);

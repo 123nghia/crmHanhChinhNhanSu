@@ -37,6 +37,7 @@ namespace VS.Human.Rep
             services.AddSingleton<ILeaveRep, LeaveRep>();
             services.AddSingleton<IInternalNewsRep, InternalNewsRep>();
             services.AddSingleton<INotificationRep, NotificationRep>();
+            services.AddSingleton<IAttendanceRep, AttendanceRep>();
 
         }
     }
