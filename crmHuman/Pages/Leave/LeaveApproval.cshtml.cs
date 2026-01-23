@@ -35,7 +35,7 @@ namespace crmHuman.Pages.Leave
                 if (filterStatus == null && UserData.RoleCode != "1")
                 {
                     if (UserData.RoleCode == "3") filterStatus = 0; // TL (Lead) sees requests pending Lead
-                    else if (UserData.RoleCode == "2") filterStatus = 1; // TC (HCNS) sees requests pending HCNS
+                    else if (UserData.RoleCode == "2" || UserData.RoleCode == "9") filterStatus = 1; // HCNS sees requests pending HCNS
                     else filterStatus = 2; // Others see pending BGD (assuming)
                 }
 

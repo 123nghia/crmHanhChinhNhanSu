@@ -151,9 +151,6 @@
                                     <th class="text-end">Phép hết hạn</th>
                                     <th class="text-end">Đã dùng</th>
                                     <th class="text-end">Còn lại</th>
-                                    <th class="text-end">Nghi benh</th>
-                                    <th class="text-end">Nghi rieng</th>
-                                    <th class="text-end">Nghi thai san</th>
                                     <th class="text-end">Nghi khong luong</th>
                                     <th class="text-end">Tong nghi</th>
                                     <th class="text-center">Thao tac</th>
@@ -162,7 +159,7 @@
                             <tbody>
                                 @{
                                     var index = 0;
-                                    var columnCount = isTcRole ? 12 : 16;
+                                    var columnCount = isTcRole ? 9 : 13;
                                 }
                                 @foreach (var item in Model.LeaveBalanceList.Data)
                                 {
@@ -173,9 +170,6 @@
                                     var expiredValue = (decimal?)info?.ExpiredLeaveDays ?? 0m;
                                     var usedValue = (decimal?)info?.UsedLeaveDays ?? 0m;
                                     var remainingValue = (decimal?)info?.RemainingLeaveDays ?? (allowedValue + carryOverValue - expiredValue - usedValue);
-                                    var sickValue = (decimal?)info?.UsedSickLeaveDays ?? 0m;
-                                    var personalValue = (decimal?)info?.UsedPersonalLeaveDays ?? 0m;
-                                    var maternityValue = (decimal?)info?.UsedMaternityLeaveDays ?? 0m;
                                     var unpaidValue = (decimal?)info?.UsedUnpaidLeaveDays ?? 0m;
                                     var totalApprovedValue = (decimal?)info?.TotalApprovedLeaveDays ?? 0m;
                                     var allowedText = allowedValue.ToString("0.##", CultureInfo.InvariantCulture);
@@ -183,9 +177,6 @@
                                     var expiredText = expiredValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var usedText = usedValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var remainingText = remainingValue.ToString("0.##", CultureInfo.InvariantCulture);
-                                    var sickText = sickValue.ToString("0.##", CultureInfo.InvariantCulture);
-                                    var personalText = personalValue.ToString("0.##", CultureInfo.InvariantCulture);
-                                    var maternityText = maternityValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var unpaidText = unpaidValue.ToString("0.##", CultureInfo.InvariantCulture);
                                     var totalApprovedText = totalApprovedValue.ToString("0.##", CultureInfo.InvariantCulture);
 
@@ -203,9 +194,6 @@
                                         <td class="text-end">@expiredText</td>
                                         <td class="text-end">@usedText</td>
                                         <td class="text-end">@remainingText</td>
-                                        <td class="text-end">@sickText</td>
-                                        <td class="text-end">@personalText</td>
-                                        <td class="text-end">@maternityText</td>
                                         <td class="text-end">@unpaidText</td>
                                         <td class="text-end">@totalApprovedText</td>
                                         <td class="text-center">
@@ -259,17 +247,21 @@
                     <input type="text" class="form-control" id="leaveBalanceEmployeeName" readonly disabled />
                 </div>
                 <div class="row">
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label class="form-label">So ngay duoc huong</label>
                         <input type="number" step="0.5" min="0" class="form-control" id="allowedLeaveDays" />
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label class="form-label">Phép tồn năm cũ</label>
                         <input type="number" step="0.5" min="0" class="form-control" id="carryOverLeaveDays" />
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label class="form-label">So ngay da dung</label>
                         <input type="number" step="0.5" min="0" class="form-control" id="usedLeaveDays" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Phep het han</label>
+                        <input type="number" step="0.5" min="0" class="form-control" id="expiredLeaveDays" />
                     </div>
                 </div>
             </div>

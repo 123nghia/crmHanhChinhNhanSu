@@ -1,4 +1,4 @@
-﻿@{
+@{
 
     var tiemObject = Model.resultView;
     var arrayRol = new List<crmHuman.Model.SelectDisplay>()
@@ -11,6 +11,10 @@
         {
         Code ="2", Name ="TC"
         },
+            new Model.SelectDisplay()
+            {
+            Code ="9", Name ="HCNS"
+            },
         new  Model.SelectDisplay()
         {
         Code ="3", Name ="TL"
@@ -21,7 +25,7 @@
         },
         new Model.SelectDisplay()
         {
-        Code ="6", Name ="Trưởng CTV"
+        Code ="6", Name ="Tru?ng CTV"
         }
     };
 
@@ -29,17 +33,17 @@
         {
             new  Model.SelectDisplay()
             {
-            Code ="0", Name ="Không hoạt động"
+            Code ="0", Name ="Kh�ng ho?t d?ng"
             },
             new  Model.SelectDisplay()
             {
-            Code ="1", Name ="Hoạt động"
+            Code ="1", Name ="Ho?t d?ng"
             }
           
         };
 }
   <div class="modal-header">
-    <h5 class="modal-title">Phân case cho thông tin </h5>
+    <h5 class="modal-title">Ph�n case cho th�ng tin </h5>
     <button type="button" class="btn-close"
                     data-bs-dismiss="modal"
                     aria-label="Close"></button>
@@ -50,7 +54,7 @@
                 @if(@tiemObject.Id > 0)
                 {
                     <div class="col-12 form-group">
-                        <label class="form-label">Mã đơn hàng</label>
+                        <label class="form-label">M� don h�ng</label>
                         <input type="text" readonly value="@tiemObject.Code" name="fullName" id="txtCode" class="form-control" required placeholder="" />
                         <div class="invalid-feedback-cs">
                         </div>
@@ -59,9 +63,9 @@
                 }
 
                 <div class="col-12 form-group">
-                    <label class="form-label">Phân cho TC</label>
+                    <label class="form-label">Ph�n cho TC</label>
                     <select name="candidateId" id="cbAssingeeId" class="form-select" aria-label="">
-                        <option value="-1">Chọn ứng cử viên</option>
+                        <option value="-1">Ch?n ?ng c? vi�n</option>
                         @foreach (var item in Model.allEmployers.Data)
                         {
                             <option value="@item.Id">@item.FullName</option>
@@ -77,8 +81,9 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
                     data-bs-dismiss="modal">
-                Đóng
+                ��ng
             </button>
-    <button type="button" onclick="assingeeOrder(@tiemObject.Id)" class="btn btn-primary">Lưu</button>
+    <button type="button" onclick="assingeeOrder(@tiemObject.Id)" class="btn btn-primary">Luu</button>
         </div>
+
 

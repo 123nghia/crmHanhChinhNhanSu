@@ -38,6 +38,9 @@ namespace VS.Human.Rep
             services.AddSingleton<IInternalNewsRep, InternalNewsRep>();
             services.AddSingleton<INotificationRep, NotificationRep>();
             services.AddSingleton<IAttendanceRep, AttendanceRep>();
+            services.AddSingleton<IEmailConfigRep, EmailConfigRep>();
+            services.AddSingleton<IMeetingRoomRep, MeetingRoomRep>();
+            services.AddSingleton<ILateEarlyRep, LateEarlyRep>();
 
         }
     }

@@ -1,4 +1,4 @@
-﻿using crmHuman.Model;
+using crmHuman.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
@@ -44,11 +44,15 @@ namespace crmHuman.Pages
             },
             new Model.SelectDisplay()
             {
+            Code ="9", Name ="HCNS"
+            },
+            new Model.SelectDisplay()
+            {
             Code ="3", Name ="TL"
             },
              new Model.SelectDisplay()
             {
-            Code ="8", Name ="BGĐ"
+            Code ="8", Name ="BG�"
             }
         };
 
@@ -72,11 +76,11 @@ namespace crmHuman.Pages
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không hoạt động"
+                Code ="0", Name ="Kh�ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
-            Code ="1", Name ="Hoạt động"
+            Code ="1", Name ="Ho?t d?ng"
             }
 
         };
@@ -120,9 +124,9 @@ namespace crmHuman.Pages
         {
             if (code < 1)
             {
-                return "Không hoạt động";
+                return "Kh�ng ho?t d?ng";
             }
-            return "Hoạt động";
+            return "Ho?t d?ng";
 
 
         }
@@ -259,3 +263,4 @@ namespace crmHuman.Pages
 
     }
 }
+

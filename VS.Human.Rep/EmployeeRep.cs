@@ -21,9 +21,14 @@ namespace VS.Human.Rep
             using (var con = GetConnection())
             {
                 var sql = @"
-                    SELECT d.*, gm.GroupId
+                    SELECT TOP 1 d.*, gm.GroupId
                     FROM Employees d
-                    LEFT JOIN GroupMember gm ON d.Id = gm.MemberId AND ISNULL(gm.Deleted, 0) = 0
+                    OUTER APPLY (
+                        SELECT TOP 1 GroupId
+                        FROM GroupMember
+                        WHERE MemberId = d.Id AND ISNULL(Deleted, 0) = 0
+                        ORDER BY Id DESC
+                    ) gm
                     WHERE d.Id = @id";
                 
                 var result = await con.QuerySingleOrDefaultAsync<Employee>(sql, new { id });
@@ -456,13 +461,14 @@ namespace VS.Human.Rep
             return await GetBaseAll<LeaveBalanceIndexModel>(request, parameters, sqlPro: "sp_Employee_GetLeaveBalances");
         }
 
-        public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? usedLeaveDays, int userId)
+        public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? usedLeaveDays, decimal? expiredLeaveDays, int userId)
         {
             var p = new DynamicParameters();
             p.Add("@EmployeeId", employeeId);
             p.Add("@AllowedLeaveDays", allowedLeaveDays);
             p.Add("@CarryOverLeaveDays", carryOverLeaveDays);
             p.Add("@UsedLeaveDays", usedLeaveDays);
+            p.Add("@ExpiredLeaveDays", expiredLeaveDays);
             p.Add("@UpdatedBy", userId);
 
             return await ExecuteSQL("sp_Employee_UpdateLeaveBalance", p, CommandType.StoredProcedure);

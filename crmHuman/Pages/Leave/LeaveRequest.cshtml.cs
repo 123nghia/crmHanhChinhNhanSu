@@ -36,7 +36,7 @@ namespace crmHuman.Pages.Leave
 
         private static bool IsAdminRole(string? roleCode)
         {
-            return roleCode == "1" || roleCode == "8";
+            return roleCode == "1" || roleCode == "8" || roleCode == "9";
         }
 
         private (int? employeeId, int? userId) ResolveLeaveScope()

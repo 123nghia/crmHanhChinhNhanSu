@@ -94,17 +94,30 @@ namespace VS.Human.Rep
                 // BGĐ (1): Sees status 2
                 int levelStatus = -1;
                 if (roleCode == "3") levelStatus = 0;
-                else if (roleCode == "2") levelStatus = 1;
+                else if (roleCode == "2" || roleCode == "9") levelStatus = 1;
                 else if (roleCode == "1") levelStatus = 2;
+
+                int? approvedEmployeeId = null;
+                // For regular employees (TC), show their own approved leave this month
+                if (roleCode == "2")
+                {
+                    approvedEmployeeId = employeeId;
+                }
 
                 var sql = @"
                     SELECT 
                         (SELECT COUNT(*) FROM LeaveRequests WHERE Deleted = 0 AND Status = @levelStatus) as PendingApproval,
-                        (SELECT COUNT(*) FROM LeaveRequests WHERE Deleted = 0 AND Status IN (3,4) AND MONTH(CreateAt) = MONTH(GETDATE())) as ApprovedMonth,
+                        (SELECT COUNT(*) FROM LeaveRequests 
+                            WHERE Deleted = 0 
+                              AND Status IN (3,4) 
+                              AND MONTH(CreateAt) = MONTH(GETDATE())
+                              AND YEAR(CreateAt) = YEAR(GETDATE())
+                              AND (@ApprovedEmployeeId IS NULL OR EmployeeId = @ApprovedEmployeeId)
+                        ) as ApprovedMonth,
                         (SELECT AllowedLeaveDays - ISNULL(UsedLeaveDays, 0) FROM Employees WHERE Id = @empId) as RemainingLeave
                 ";
 
-                return await con.QueryFirstOrDefaultAsync<dynamic>(sql, new { levelStatus, empId = employeeId });
+                return await con.QueryFirstOrDefaultAsync<dynamic>(sql, new { levelStatus, empId = employeeId, ApprovedEmployeeId = approvedEmployeeId });
             }
         }
 

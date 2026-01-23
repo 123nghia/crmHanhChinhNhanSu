@@ -1,4 +1,4 @@
-﻿@{
+@{
     
     var arrayRol = new List<crmHuman.Model.SelectDisplay>()
         {
@@ -12,6 +12,10 @@
             },
             new Model.SelectDisplay()
             {
+            Code ="9", Name ="HCNS"
+            },
+            new Model.SelectDisplay()
+            {
             Code ="3", Name ="TL"
             },
             new Model.SelectDisplay()
@@ -21,7 +25,7 @@
             ,
             new Model.SelectDisplay()
             {
-            Code ="6", Name ="Trưởng CTV"
+            Code ="6", Name ="Tru?ng CTV"
             }
         };
 
@@ -29,11 +33,11 @@
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không hoạt động"
+                Code ="0", Name ="Kh�ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
-            Code ="1", Name ="Hoạt động"
+            Code ="1", Name ="Ho?t d?ng"
             }
           
         };
@@ -52,9 +56,9 @@
         <div class="modal-body">
             <form id="mainFormMember" class="needs-validation" novalidate>
                 <div class="col-12 form-group">
-                    <label class="form-label">Chọn thành viên</label>
+                    <label class="form-label">Ch?n th�nh vi�n</label>
                      <select name="memberId" id="cbmemberId" class="form-select" aria-label="">
-                <option value="-1">Chọn thành viên</option>
+                <option value="-1">Ch?n th�nh vi�n</option>
                 @foreach (var item in Model.ListMeberNotGroup)
                 {
                     <option value="@item.Id">@item.UserName _  @item.FullName</option>
@@ -67,7 +71,7 @@
                         Please choose a username.
                     </div>
                 </div>
-                <button type="button" onclick="SaveMember(@Model.Id)" class="btn btn-primary buttonRight">Lưu</button>
+                <button type="button" onclick="SaveMember(@Model.Id)" class="btn btn-primary buttonRight">Luu</button>
              
             </form>
 
@@ -89,8 +93,9 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
                     data-bs-dismiss="modal">
-                Đóng
+                ��ng
             </button>
 
         </div>
+
 

@@ -1,4 +1,4 @@
-﻿using crmHuman.DisplayModel;
+using crmHuman.DisplayModel;
 using crmHuman.Helpers;
 using crmHuman.Model;
 using DocumentFormat.OpenXml.Office2016.Excel;
@@ -68,7 +68,7 @@ namespace crmHuman.Pages
         {
             _logger = logger;
             _empBusiness = empBusiness;
-            TitlePage = "Thông tin nhân viên";
+            TitlePage = "Th�ng tin nh�n vi�n";
             KeyPage = "CandidateDetail";
             _masterDataBussiness = masterDataBussiness;
             DataPostion = new BaseList();
@@ -91,11 +91,15 @@ namespace crmHuman.Pages
             },
             new Model.SelectDisplay()
             {
+            Code ="9", Name ="HCNS"
+            },
+            new Model.SelectDisplay()
+            {
             Code ="3", Name ="TL"
             },
              new Model.SelectDisplay()
             {
-            Code ="8", Name ="BGĐ"
+            Code ="8", Name ="BG�"
             }
         };
 
@@ -354,7 +358,7 @@ namespace crmHuman.Pages
             }
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
-            ValidationHelper.ValidateRequired(request.NewPassword, "txtrenewPassword", "mật khẩu mới", errors);
+            ValidationHelper.ValidateRequired(request.NewPassword, "txtrenewPassword", "m?t kh?u m?i", errors);
             
             if (ValidationHelper.HasErrors(errors))
             {
@@ -407,7 +411,7 @@ namespace crmHuman.Pages
             }
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
-            ValidationHelper.ValidateId(request.RelId, "txtFullName", "đối tượng Id", errors);
+            ValidationHelper.ValidateId(request.RelId, "txtFullName", "d?i tu?ng Id", errors);
             
             if (ValidationHelper.HasErrors(errors))
             {
@@ -484,7 +488,7 @@ namespace crmHuman.Pages
             DataPostion = dataAllMaster;
             if (idInput < 1)
             {
-                TitlePage = "Thêm mới nhân viên";
+                TitlePage = "Th�m m?i nh�n vi�n";
             }
 
             var itemInfo = await _empBusiness.GetById(idInput);
@@ -623,3 +627,4 @@ namespace crmHuman.Pages
 
     }
 }
+

@@ -20,6 +20,10 @@
                 {
                     return "TC";
                 }
+                else if (RoleCode == "9")
+                {
+                    return "HCNS";
+                }
                 else if (RoleCode == "3")
                 {
                     return "Team lead";

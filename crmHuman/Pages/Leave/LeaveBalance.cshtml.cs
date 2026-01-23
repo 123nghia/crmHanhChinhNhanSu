@@ -167,6 +167,11 @@ namespace crmHuman.Pages.Leave
                 errors.Add(new { name = "usedLeaveDays", Content = "So ngay phep da dung khong duoc nho hon 0" });
             }
 
+            if (request.ExpiredLeaveDays.HasValue && request.ExpiredLeaveDays.Value < 0)
+            {
+                errors.Add(new { name = "expiredLeaveDays", Content = "So ngay phep het han khong duoc nho hon 0" });
+            }
+
             if (ValidationHelper.HasErrors(errors))
             {
                 return ApiResponseHelper.BadRequest(errors);
@@ -177,6 +182,7 @@ namespace crmHuman.Pages.Leave
                 request.AllowedLeaveDays,
                 request.CarryOverLeaveDays,
                 request.UsedLeaveDays,
+                request.ExpiredLeaveDays,
                 UserData.UserId);
 
             return ApiResponseHelper.SuccessResponse(new { success = result });

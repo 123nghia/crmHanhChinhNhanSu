@@ -8,6 +8,9 @@
     var showLeaveSummary = Model.HasViewPermission("LeaveRequest") || Model.HasViewPermission("LeaveBalance") || Model.HasViewPermission("LeaveApproval");
     var showLeaveApproval = Model.HasApprovePermission("LeaveApproval");
     var showLeaveCompany = Model.HasViewPermission("LeaveApproval") || Model.HasViewPermission("LeaveBalance");
+    var isEmployeeLeaveView = Model.UserData?.RoleCode == "2";
+    var leaveMonthTitle = isEmployeeLeaveView ? "Nghỉ phép tháng này của bạn" : "Nghỉ phép tháng này";
+    var leaveMonthSub = isEmployeeLeaveView ? "bản thân" : "toàn công ty";
     var showRecruitmentStats = Model.HasViewPermission("Candidate") || Model.HasViewPermission("Job");
     var showOrderOverview = Model.HasViewPermission("Candidate");
     var showActivity = Model.UserData?.RoleCode != "4" && showOrderOverview;
@@ -198,14 +201,14 @@
                             <div class="col-xxl-4 col-md-6">
                                 <div class="card info-card customers-card">
                                     <div class="card-body">
-                                        <h5 class="card-title">Nghỉ phép tháng này</h5>
+                                        <h5 class="card-title">@leaveMonthTitle</h5>
                                         <div class="d-flex align-items-center">
                                             <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
                                                 <i class="bi bi-people"></i>
                                             </div>
                                             <div class="ps-3">
                                                 <h6>@(leaveStats?.ApprovedMonth ?? 0) lượt</h6>
-                                                <span class="text-muted small pt-2 ps-1">toàn công ty</span>
+                                                <span class="text-muted small pt-2 ps-1">@leaveMonthSub</span>
                                             </div>
                                         </div>
                                     </div>

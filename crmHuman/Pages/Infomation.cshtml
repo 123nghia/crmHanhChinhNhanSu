@@ -27,6 +27,10 @@
             },
             new Model.SelectDisplay()
             {
+            Code ="9", Name ="HCNS"
+            },
+            new Model.SelectDisplay()
+            {
             Code ="3", Name ="TL"
             }
             , new Model.SelectDisplay()
@@ -49,6 +53,10 @@
         if (roleCode == "2")
         {
             return "TC";
+        }
+        if (roleCode == "9")
+        {
+            return "HCNS";
         }
         if (roleCode == "3")
         {
@@ -161,3 +169,4 @@
       
     </div>
 </section>
+

@@ -169,6 +169,7 @@ var EditableGrid = (function () {
             config.masterData['role'] = [
                 { Code: '1', Name: 'Admin' },
                 { Code: '2', Name: 'TC' },
+                { Code: '9', Name: 'HCNS' },
                 { Code: '3', Name: 'TL' },
                 { Code: '4', Name: 'Marketting' },
                 { Code: '6', Name: 'Trưởng CTV' },

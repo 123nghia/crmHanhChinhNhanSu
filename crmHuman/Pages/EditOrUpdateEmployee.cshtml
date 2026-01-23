@@ -1,4 +1,4 @@
-﻿@{
+@{
 
     var arrayRol = new List<crmHuman.Model.SelectDisplay>()
         {
@@ -12,6 +12,10 @@
             },
             new Model.SelectDisplay()
             {
+            Code ="9", Name ="HCNS"
+            },
+            new Model.SelectDisplay()
+            {
               Code ="3", Name ="TL"
             }, new Model.SelectDisplay()
             {
@@ -19,7 +23,7 @@
             },
             new Model.SelectDisplay()
             {
-              Code ="6", Name ="Trưởng CTV"
+              Code ="6", Name ="Tru?ng CTV"
             },
                new Model.SelectDisplay()
             {
@@ -75,11 +79,11 @@
    
     @if (Model.Id < 1)
     {
-        <h5 class="modal-title">Thêm mới nhân viên</h5>
+        <h5 class="modal-title">Th�m m?i nh�n vi�n</h5>
     }
     else
     {
-        <h5 class="modal-title">Cập nhật thông tin</h5>
+        <h5 class="modal-title">C?p nh?t th�ng tin</h5>
     }
     <button type="button" class="btn-close"
                     data-bs-dismiss="modal"
@@ -90,30 +94,30 @@
 
             <form id="mainForm" class="needs-validation" novalidate>
                 <div class="col-12 form-group">
-                    <label class="form-label">Tên đăng nhập (UserName)</label>
+                    <label class="form-label">T�n dang nh?p (UserName)</label>
                     <input type="text" value="@Model.UserName" name="userName" id="txtDisplayUserName" class="form-control" placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
 
                 </div>
                 <div class="col-12 form-group">
-                    <label class="form-label">Họ và tên</label>
+                    <label class="form-label">H? v� t�n</label>
             <input type="text" value="@Model.FullName" name="fullName" id="txtFullName" class="form-control" required placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
 
                 </div>
                 <div class="col-12 form-group">
-                    <label class="form-label">Ngày sinh</label>
+                    <label class="form-label">Ng�y sinh</label>
                     <input type="date" id="dob"
                    value="@dateText"
                         name="dob" class="form-control">
                 </div>
                 
                 <div class="col-12 form-group">
-                    <label class="form-label">Giới tính</label>
+                    <label class="form-label">Gi?i t�nh</label>
                     <select name="gender" id="cbGender" class="form-select" aria-label="">
-                        <option value="">-- Chọn giới tính --</option>
+                        <option value="">-- Ch?n gi?i t�nh --</option>
                         @if (Model.Gender == "Nam")
                         {
                             <option value="Nam" selected>Nam</option>
@@ -122,21 +126,21 @@
                         {
                             <option value="Nam">Nam</option>
                         }
-                        @if (Model.Gender == "Nữ")
+                        @if (Model.Gender == "N?")
                         {
-                            <option value="Nữ" selected>Nữ</option>
+                            <option value="N?" selected>N?</option>
                         }
                         else
                         {
-                            <option value="Nữ">Nữ</option>
+                            <option value="N?">N?</option>
                         }
-                        @if (Model.Gender == "Khác")
+                        @if (Model.Gender == "Kh�c")
                         {
-                            <option value="Khác" selected>Khác</option>
+                            <option value="Kh�c" selected>Kh�c</option>
                         }
                         else
                         {
-                            <option value="Khác">Khác</option>
+                            <option value="Kh�c">Kh�c</option>
                         }
                     </select>
                     <div class="invalid-feedback-cs">
@@ -144,14 +148,14 @@
                 </div>
                 
                 <div class="col-12 form-group">
-                    <label class="form-label">Nơi sinh</label>
+                    <label class="form-label">Noi sinh</label>
                     <input type="text" value="@Model.PlaceOfBirth" name="placeOfBirth" id="txtPlaceOfBirth" class="form-control" placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
                 </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Chức vụ</label>
+            <label class="form-label">Ch?c v?</label>
             <input type="text" value="@Model.FullName" name="fullName" id="txtPostion" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -160,15 +164,15 @@
 
 
                 <div class="col-12 form-group">
-                    <label class="form-label">Bộ phận </label>
+                    <label class="form-label">B? ph?n </label>
                     <input type="text" value="@Model.FullName" name="fullName" id="txtDepartment" class="form-control" required placeholder="" />
                     <div class="invalid-feedback-cs"></div>
                 </div>
 
                 <div class="col-12 form-group">
-                    <label class="form-label">Nhóm</label>
+                    <label class="form-label">Nh�m</label>
                     <select name="GroupId" id="cbGroupId" class="form-select" aria-label="">
-                        <option value="">-- Chọn nhóm --</option>
+                        <option value="">-- Ch?n nh�m --</option>
                         @foreach (var group in Model.GroupList ?? new List<Model.SelectDisplay>())
                         {
                             if (Model.GroupId == group.Code)
@@ -185,7 +189,7 @@
                 </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Số điện thoại </label>
+            <label class="form-label">S? di?n tho?i </label>
             <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -194,7 +198,7 @@
 
 
         <div class="col-12 form-group">
-            <label class="form-label">Email cá nhân </label>
+            <label class="form-label">Email c� nh�n </label>
             <input type="text" value="@Model.PersonalEmail" name="personalEmail" id="txtPersonalEmail" class="form-control" placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -203,21 +207,21 @@
 
 
         <div class="col-12 form-group">
-            <label class="form-label">Căn cước công dân </label>
+            <label class="form-label">Can cu?c c�ng d�n </label>
             <input type="text" value="@Model.FullName" name="fullName" id="txtNationNalId" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
 
         </div>
         <div class="col-12 form-group">
-            <label class="form-label">Ngày cấp cccd </label>
+            <label class="form-label">Ng�y c?p cccd </label>
             <input type="date"
                    value="@dateOnboard"
                    name="dob" class="form-control">
         </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Địa chỉ tạm trú </label>
+            <label class="form-label">�?a ch? t?m tr� </label>
             <input type="text" value="@Model.FullName" name="fullName" id="txtDepartment" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -225,7 +229,7 @@
         </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Địa chỉ thường trú </label>
+            <label class="form-label">�?a ch? thu?ng tr� </label>
             <input type="text" value="@Model.FullName" name="fullName" id="txtDepartment" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -234,7 +238,7 @@
 
 
         <div class="col-12 form-group">
-            <label class="form-label">Họ và tên (tham chiếu) </label>
+            <label class="form-label">H? v� t�n (tham chi?u) </label>
             <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -242,7 +246,7 @@
         </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Mối quan hệ (tham chiếu) </label>
+            <label class="form-label">M?i quan h? (tham chi?u) </label>
             <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -250,7 +254,7 @@
         </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Số điện thoại(tham chiếu) </label>
+            <label class="form-label">S? di?n tho?i(tham chi?u) </label>
             <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -258,7 +262,7 @@
         </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Địa chỉ(tham chiếu) </label>
+            <label class="form-label">�?a ch?(tham chi?u) </label>
             <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -268,7 +272,7 @@
 
 
         <div class="col-12 form-group">
-            <label class="form-label">số HĐLĐ </label>
+            <label class="form-label">s? H�L� </label>
             <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -276,7 +280,7 @@
         </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Loại hợp đồng</label>
+            <label class="form-label">Lo?i h?p d?ng</label>
             <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -284,39 +288,14 @@
         </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Ngày bắt đầu</label>
+            <label class="form-label">Ng�y b?t d?u</label>
             <input type="date" id="dateOnboard"
                    value="@dateOnboard"
                    name="dob" class="form-control">
         </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Ngày kết thúc</label>
-            <input type="date" id="dateOnboard"
-                   value="@dateOnboard"
-                   name="dob" class="form-control">
-        </div>
-
-
-
-        <div class="col-12 form-group">
-            <label class="form-label">MÃ SỐ BHXH </label>
-            <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
-            <div class="invalid-feedback-cs">
-            </div>
-
-        </div>
-
-        <div class="col-12 form-group">
-            <label class="form-label">Tờ rơi</label>
-            <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
-            <div class="invalid-feedback-cs">
-            </div>
-
-        </div>
-
-        <div class="col-12 form-group">
-            <label class="form-label">Bìa sổ</label>
+            <label class="form-label">Ng�y k?t th�c</label>
             <input type="date" id="dateOnboard"
                    value="@dateOnboard"
                    name="dob" class="form-control">
@@ -324,9 +303,8 @@
 
 
 
-
         <div class="col-12 form-group">
-            <label class="form-label">Mã số thuế </label>
+            <label class="form-label">M� S? BHXH </label>
             <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -334,7 +312,33 @@
         </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Thư xác nhận thu nhập </label>
+            <label class="form-label">T? roi</label>
+            <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
+            <div class="invalid-feedback-cs">
+            </div>
+
+        </div>
+
+        <div class="col-12 form-group">
+            <label class="form-label">B�a s?</label>
+            <input type="date" id="dateOnboard"
+                   value="@dateOnboard"
+                   name="dob" class="form-control">
+        </div>
+
+
+
+
+        <div class="col-12 form-group">
+            <label class="form-label">M� s? thu? </label>
+            <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
+            <div class="invalid-feedback-cs">
+            </div>
+
+        </div>
+
+        <div class="col-12 form-group">
+            <label class="form-label">Thu x�c nh?n thu nh?p </label>
             <input type="text" value="@Model.FullName" name="fullName" class="form-control" required placeholder="" />
             <div class="invalid-feedback-cs">
             </div>
@@ -343,7 +347,7 @@
 
 
         <div class="col-12 form-group">
-            <label class="form-label">Chứng từ thuế</label>
+            <label class="form-label">Ch?ng t? thu?</label>
             <input type="date" id="dateOnboard"
                    value="@dateOnboard"
                    name="dob" class="form-control">
@@ -351,20 +355,20 @@
         
 
                 <div class="col-12 form-group">
-                    <label for="inputAddress2" class="form-label">Số điện thoại</label>
+                    <label for="inputAddress2" class="form-label">S? di?n tho?i</label>
             <input type="text" name="phone" id="txtPhone" value="@Model.Phone" class="form-control" placeholder="">
                 </div>
 
         @if(roleCodeUser != "6")
     {
         <div class="col-12 form-group">
-            <label for="txtLineCode" class="form-label">Line gọi</label>
+            <label for="txtLineCode" class="form-label">Line g?i</label>
             <input type="text" name="lineCode" id="txtLineCode" value="@Model.LineCode" class="form-control" placeholder="">
         </div>
 
 
          <div class="col-12 form-group">
-                    <label class="form-label">Màu sắc đại diện</label>
+                    <label class="form-label">M�u s?c d?i di?n</label>
                          <input type="color" value="@Model.ColorCode" name="Color" id="txtColor" class="form-control" placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
@@ -375,7 +379,7 @@
                 @if (Model.Id > 0)
                 {
                         <div class="col-12 form-group ">
-                        <label class="form-label">Mã nhân viên</label>
+                        <label class="form-label">M� nh�n vi�n</label>
                         <input name="userName" readonly id="txtUserName" value="@Model.UserName" type="text" class="form-control" placeholder="">
                         <div class="invalid-feedback-cs">
                         Please choose a username.
@@ -386,14 +390,14 @@
         @if (Model.Id < 1)
         {
             <div class="col-12 form-group ">
-                <label class="form-label">Mật khẩu</label>
+                <label class="form-label">M?t kh?u</label>
                 <input name="pass" id="txtPass" type="password" class="form-control" placeholder="">
                 <div class="invalid-feedback-cs">
                 </div>
             </div>
         }
         <div class="col-12 form-group">
-                    <label class="form-label">Vai trò</label>
+                    <label class="form-label">Vai tr�</label>
             <select  name="roleCode" id="txtRoleCode" class="form-select" aria-label="">
                 @foreach (var item in arrayRol)
                 {
@@ -416,12 +420,12 @@
                 
 
                 <div class="col-12">
-                    <label class="form-label">Hình ảnh đại diện</label>
+                    <label class="form-label">H�nh ?nh d?i di?n</label>
                     <input class="form-control" type="file" id="formFile">
                 </div>
 
                 <div class="col-12 form-group">
-                    <label class="form-label">Trình độ học vấn</label>
+                    <label class="form-label">Tr�nh d? h?c v?n</label>
                     <select name="EducationLevel" id="cBEducationLevel" class="form-select" aria-label="">
                         @foreach (var item in educationOptions)
                         {
@@ -445,7 +449,7 @@
                 </div>
 
 <div class="col-12 form-group">
-                    <label class="form-label">Tình trạng hôn nhân</label>
+                    <label class="form-label">T�nh tr?ng h�n nh�n</label>
                     <select name="Maritalstatus" id="cBMaritalStatus" class="form-select" aria-label="">
                         @foreach (var item in maritalOptions)
                         {
@@ -469,7 +473,7 @@
                 </div>
 
 <div class="col-12 form-group">
-                    <label class="form-label">Tôn giáo</label>
+                    <label class="form-label">T�n gi�o</label>
                     <select name="religion" id="txtReligion" class="form-select" aria-label="">
                         @foreach (var item in religionOptions)
                         {
@@ -493,7 +497,7 @@
                 </div>
 
                 <div class="col-12">
-            <label for="inputAddress2"  class="form-label">Ghi chú</label>
+            <label for="inputAddress2"  class="form-label">Ghi ch�</label>
             <textarea name="noted"  id="txtNoted" class="form-control" style="height: 100px">@Model.Noted</textarea>
                 </div>
 
@@ -503,8 +507,9 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
                     data-bs-dismiss="modal">
-                Đóng
+                ��ng
             </button>
-    <button type="button" onclick="SaveEmployee(@Model.Id)" class="btn btn-primary">Lưu</button>
+    <button type="button" onclick="SaveEmployee(@Model.Id)" class="btn btn-primary">Luu</button>
         </div>
+
 

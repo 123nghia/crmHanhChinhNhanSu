@@ -1,4 +1,4 @@
-﻿@{
+@{
     
     var arrayRol = new List<crmHuman.Model.SelectDisplay>()
         {
@@ -12,6 +12,10 @@
             },
             new Model.SelectDisplay()
             {
+            Code ="9", Name ="HCNS"
+            },
+            new Model.SelectDisplay()
+            {
             Code ="3", Name ="TL"
             }
             , new Model.SelectDisplay()
@@ -20,7 +24,7 @@
             },
             new Model.SelectDisplay()
             {
-            Code ="6", Name ="Trưởng CTV"
+            Code ="6", Name ="Tru?ng CTV"
             }
         };
 
@@ -28,11 +32,11 @@
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không hoạt động"
+                Code ="0", Name ="Kh�ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
-            Code ="1", Name ="Hoạt động"
+            Code ="1", Name ="Ho?t d?ng"
             }
           
         };
@@ -41,15 +45,15 @@
         {
              new Model.SelectDisplay()
             {
-              Code ="2", Name ="Tất cả"
+              Code ="2", Name ="T?t c?"
             },
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Ứng viên"
+                Code ="0", Name ="?ng vi�n"
             },
             new Model.SelectDisplay()
             {
-              Code ="1", Name ="Nhân viên"
+              Code ="1", Name ="Nh�n vi�n"
             }
            
           
@@ -63,11 +67,11 @@
    
     @if (Model.Id < 1)
     {
-        <h5 class="modal-title">Thêm mới</h5>
+        <h5 class="modal-title">Th�m m?i</h5>
     }
     else
     {
-        <h5 class="modal-title">Cập nhật thông tin</h5>
+        <h5 class="modal-title">C?p nh?t th�ng tin</h5>
     }
     <button type="button" class="btn-close"
                     data-bs-dismiss="modal"
@@ -79,7 +83,7 @@
             <form id="mainForm" class="needs-validation" novalidate>
 
                 <div class="col-12 form-group">
-                    <label class="form-label">Tên</label>
+                    <label class="form-label">T�n</label>
                          <input type="text" value="@Model.Name" name="fullName" id="txtFullName" class="form-control" required placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
@@ -90,7 +94,7 @@
                 @if (Model.Id > 0)
                 {
                         <div class="col-12 form-group" style="display:none" >
-                        <label class="form-label">Mã đối tác</label>
+                        <label class="form-label">M� d?i t�c</label>
                         <input name="code" readonly id="txtCode" value="@Model.Code" type="text" class="form-control" placeholder="">
                         <div class="invalid-feedback-cs">
                               Please choose a username.
@@ -98,7 +102,7 @@
                         </div>
                  }
                  <div class="col-12 form-group">
-                    <label class="form-label">Trạng thái</label>
+                    <label class="form-label">Tr?ng th�i</label>
                     <select name="isActive" id="isActive" class="form-select" aria-label="">
                         
                     @foreach (var item in arrayStatus)
@@ -119,7 +123,7 @@
                 </div>
 
                        <div class="col-12 form-group">
-                    <label class="form-label">Ứng dụng cho </label>
+                    <label class="form-label">?ng d?ng cho </label>
                     <select name="applyFor" id="applyFor" class="form-select" aria-label="">
                         
                     @foreach (var item in arrayApplyFor)
@@ -142,7 +146,7 @@
                
 
                 <div class="col-12">
-            <label for="inputAddress2"  class="form-label">Ghi chú</label>
+            <label for="inputAddress2"  class="form-label">Ghi ch�</label>
             <textarea name="noted"  id="txtNoted" class="form-control" style="height: 100px">@Model.Noted</textarea>
                 </div>
 
@@ -151,11 +155,12 @@
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
-                    data-bs-dismiss="modal">Đóng
+                    data-bs-dismiss="modal">��ng
               </button>
     <button type="button" onclick="saveMasterTypeData(@Model.Id,'linhvuc')" class="btn btn-primary">
-        Lưu
+        Luu
 
              </button>
         </div>
+
 

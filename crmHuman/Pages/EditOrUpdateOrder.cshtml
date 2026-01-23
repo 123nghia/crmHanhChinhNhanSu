@@ -1,4 +1,4 @@
-﻿@{
+@{
 
     var tiemObject = Model.resultView;
 
@@ -12,6 +12,10 @@
             {
             Code ="2", Name ="TC"
             },
+            new Model.SelectDisplay()
+            {
+            Code ="9", Name ="HCNS"
+            },
             new  Model.SelectDisplay()
             {
             Code ="3", Name ="TL"
@@ -22,7 +26,7 @@
             },
             new Model.SelectDisplay()
             {
-            Code ="6", Name ="Trưởng CTV"
+            Code ="6", Name ="Tru?ng CTV"
             }
         };
 
@@ -30,11 +34,11 @@
         {
             new  Model.SelectDisplay()
             {
-                Code ="0", Name ="Không hoạt động"
+                Code ="0", Name ="Kh�ng ho?t d?ng"
             },
             new  Model.SelectDisplay()
             {
-            Code ="1", Name ="Hoạt động"
+            Code ="1", Name ="Ho?t d?ng"
             }
           
         };
@@ -56,11 +60,11 @@
    
     @if (tiemObject.Id < 1)
     {
-        <h5 class="modal-title">Thêm mới đơn</h5>
+        <h5 class="modal-title">Th�m m?i don</h5>
     }
     else
     {
-        <h5 class="modal-title">Cập nhật thông tin</h5>
+        <h5 class="modal-title">C?p nh?t th�ng tin</h5>
     }
     <button type="button" class="btn-close"
                     data-bs-dismiss="modal"
@@ -81,7 +85,7 @@
                 @if(@tiemObject.Id > 0)
                 {
                  <div class="col-12 form-group">
-                    <label class="form-label">Mã đơn hàng</label>
+                    <label class="form-label">M� don h�ng</label>
                       <input type="text" readonly value="@tiemObject.Code" name="fullName" id="txtCode" class="form-control" required placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
@@ -89,10 +93,10 @@
                 </div>
                 }
                     <div class="col-12 form-group">
-                    <label class="form-label"> Vị trí Việc làm </label>
+                    <label class="form-label"> V? tr� Vi?c l�m </label>
                     <select name="cbJobId" id="cbJobId1" onchange="getFullPathJob(this)" class="form-select"
                     aria-label=""> 
-                    <option value="-1">Chọn việc làm</option>
+                    <option value="-1">Ch?n vi?c l�m</option>
                             
                     @foreach (var item in Model.allJob.Data)
                     {
@@ -128,9 +132,9 @@
 
      <div class="col-12 form-group">
     <input type="hidden" id ="cbcandidateId" value="@tiemObject.CandidateId" >
-    <label>Ứng cử viên</label>
+    <label>?ng c? vi�n</label>
     <input  autocomplete="off" role="combobox" list=""
-    id="input" name="browsers" placeholder="Chọn ứng cử viên">
+    id="input" name="browsers" placeholder="Ch?n ?ng c? vi�n">
 
     <datalist id="browsers" role="listbox">
 
@@ -175,9 +179,9 @@
 
 
                    <div class="col-12 form-group">
-                    <label class="form-label">Sử dụng CV </label>
+                    <label class="form-label">S? d?ng CV </label>
             <select name="cbSelectCV" id="cbSelectCV" class="form-select" aria-label="">
-                     <option value="0">Có sẵn</option>
+                     <option value="0">C� s?n</option>
                      <option value="1">Upload CV</option>
             </select>
 
@@ -194,19 +198,19 @@
                                         ValueControl = tiemObject.CVLink,
                 NameControl = "inputCvlinkName",
                IdControl ="inputCvlink",
-               Lable = "File CV ( ưu tiên file pdf, file hình)"
+               Lable = "File CV ( uu ti�n file pdf, file h�nh)"
 
             });
         }
 
 
               <div class="col-12">
-            <label for="inputAddress2"  class="form-label">Link tài liệu liên quan</label>
+            <label for="inputAddress2"  class="form-label">Link t�i li?u li�n quan</label>
             <textarea name="shortDes"  id="txtShortDes" class="form-control" style="height: 100px">@tiemObject.Noted</textarea>
                 </div>
 
                 <div class="col-12">
-            <label for="inputAddress2"  class="form-label">Ghi chú</label>
+            <label for="inputAddress2"  class="form-label">Ghi ch�</label>
             <textarea name="noted"  id="txtNoted" class="form-control" style="height: 100px">@tiemObject.Noted</textarea>
                 </div>
 
@@ -216,8 +220,9 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
                     data-bs-dismiss="modal">
-                Đóng
+                ��ng
             </button>
-    <button type="button" onclick="saveOrder2(@tiemObject.Id)" class="btn btn-primary">Lưu</button>
+    <button type="button" onclick="saveOrder2(@tiemObject.Id)" class="btn btn-primary">Luu</button>
         </div>
+
 

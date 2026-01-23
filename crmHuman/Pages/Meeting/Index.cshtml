@@ -1,0 +1,426 @@
+﻿@page
+@model crmHuman.Pages.Meeting.IndexModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+    var roomsJson = global::System.Text.Json.JsonSerializer.Serialize(Model.Rooms ?? new List<VS.Human.Rep.Model.MeetingRoomItem>());
+    var bookingsJson = global::System.Text.Json.JsonSerializer.Serialize(Model.Bookings ?? new List<VS.Human.Rep.Model.MeetingBookingView>());
+    var weekStart = Model.WeekStart.ToString("yyyy-MM-dd");
+    var weekEnd = Model.WeekEnd.ToString("yyyy-MM-dd");
+}
+
+@Html.AntiForgeryToken()
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+    .meeting-page {
+        font-family: "Space Grotesk", "Manrope", sans-serif;
+        color: #0f172a;
+        background: radial-gradient(1200px 600px at 10% -10%, #ffe3d2 0%, transparent 60%),
+                    radial-gradient(1000px 520px at 95% -20%, #dff4ff 0%, transparent 55%),
+                    #f4f7fb;
+        padding: 24px 24px 48px;
+        border-radius: 24px;
+    }
+
+    .meeting-hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 24px;
+        padding: 24px 28px;
+        border-radius: 20px;
+        background: linear-gradient(120deg, #0f172a 0%, #1e293b 45%, #1d4ed8 100%);
+        color: #f8fafc;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+        margin-bottom: 24px;
+    }
+
+    .meeting-hero h1 {
+        font-size: 28px;
+        margin: 0 0 8px;
+        letter-spacing: 0.4px;
+    }
+
+    .meeting-hero p {
+        margin: 0;
+        font-size: 14px;
+        opacity: 0.8;
+    }
+
+    .hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(248, 250, 252, 0.12);
+        border: 1px solid rgba(248, 250, 252, 0.2);
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+    }
+
+    .meeting-layout {
+        display: grid;
+        grid-template-columns: minmax(280px, 360px) 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    .panel-card {
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 20px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        backdrop-filter: blur(12px);
+    }
+
+    .booking-panel {
+        padding: 20px;
+    }
+
+    .booking-panel h5 {
+        font-size: 16px;
+        margin: 0 0 16px;
+    }
+
+    .booking-form label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 6px;
+    }
+
+    .booking-form .form-control,
+    .booking-form .form-select {
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+
+    .booking-form .form-control:focus,
+    .booking-form .form-select:focus {
+        border-color: #1d4ed8;
+        box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
+    }
+
+    .booking-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .booking-actions .btn {
+        border-radius: 12px;
+        font-weight: 600;
+    }
+
+    .switch-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #f1f5f9;
+        font-size: 13px;
+    }
+
+    .switch-row input {
+        width: 18px;
+        height: 18px;
+    }
+
+    .schedule-panel {
+        padding: 20px;
+    }
+
+    .schedule-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .schedule-toolbar .range {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .toolbar-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .week-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(140px, 1fr));
+        gap: 12px;
+    }
+
+    @@keyframes floatIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .day-column {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        min-height: 220px;
+        display: flex;
+        flex-direction: column;
+        animation: floatIn 0.4s ease both;
+        animation-delay: calc(var(--index) * 0.05s);
+    }
+
+    .day-header {
+        padding: 12px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .day-header .day-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: #0f172a;
+    }
+
+    .day-header .day-date {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .day-body {
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .booking-card {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        display: grid;
+        gap: 6px;
+        position: relative;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .booking-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .booking-time {
+        font-size: 12px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .booking-title {
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .booking-meta {
+        font-size: 11px;
+        color: #64748b;
+    }
+
+    .booking-meta.outside-label {
+        color: #b91c1c;
+        font-weight: 600;
+    }
+
+    .booking-room {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.12);
+        color: #1d4ed8;
+        font-weight: 600;
+        width: fit-content;
+    }
+
+    .booking-card.outside {
+        border-color: rgba(239, 68, 68, 0.3);
+        background: rgba(254, 226, 226, 0.4);
+    }
+
+    .booking-card.outside .booking-room {
+        background: rgba(239, 68, 68, 0.15);
+        color: #b91c1c;
+    }
+
+    .booking-actions-inline {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        display: flex;
+        gap: 4px;
+    }
+
+    .booking-actions-inline button {
+        border: none;
+        background: rgba(15, 23, 42, 0.08);
+        color: #0f172a;
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        font-size: 12px;
+    }
+
+    .booking-actions-inline button.delete {
+        background: rgba(239, 68, 68, 0.15);
+        color: #b91c1c;
+    }
+
+    .meeting-toast {
+        margin-top: 12px;
+        font-size: 13px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        display: none;
+    }
+
+    .meeting-toast.success {
+        background: #dcfce7;
+        color: #166534;
+        display: block;
+    }
+
+    .meeting-toast.error {
+        background: #fee2e2;
+        color: #b91c1c;
+        display: block;
+    }
+
+    @@media (max-width: 1200px) {
+        .meeting-layout {
+            grid-template-columns: 1fr;
+        }
+        .week-grid {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .meeting-hero {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .meeting-page {
+            padding: 16px;
+        }
+        .week-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="meeting-page">
+    <header class="meeting-hero">
+        <div>
+            <h1>@Model.TitlePage</h1>
+            <p>Đặt phòng họp theo tuần, hỗ trợ giờ hành chính (08:00 - 18:00) hoặc ngoài giờ.</p>
+        </div>
+        <div class="hero-actions">
+            <div class="hero-badge">
+                <i class="bi bi-door-open"></i>
+                <span>Lịch phòng họp luôn mở cho mọi người</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="meeting-layout">
+        <section class="panel-card booking-panel">
+            <h5>Tạo / chỉnh sửa lịch họp</h5>
+            <form class="booking-form" id="meetingBookingForm">
+                <input type="hidden" id="bookingId" value="0" />
+                <div class="mb-3">
+                    <label>Tiêu đề cuộc họp</label>
+                    <input type="text" id="bookingTitle" class="form-control" placeholder="VD: Review tuần, Planning..." />
+                </div>
+                <div class="mb-3">
+                    <label>Phòng họp</label>
+                    <select id="bookingRoom" class="form-select"></select>
+                </div>
+                <div class="mb-3">
+                    <label>Ngày họp</label>
+                    <input type="date" id="bookingDate" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label>Giờ bắt đầu</label>
+                    <input type="time" id="bookingStart" class="form-control" min="08:00" max="18:00" />
+                </div>
+                <div class="mb-3">
+                    <label>Giờ kết thúc</label>
+                    <input type="time" id="bookingEnd" class="form-control" min="08:00" max="18:00" />
+                </div>
+                <div class="mb-3">
+                    <label>Ghi chú</label>
+                    <textarea id="bookingNote" class="form-control" rows="3" placeholder="Ghi chú thêm nếu cần"></textarea>
+                </div>
+                <div class="mb-3 switch-row">
+                    <input type="checkbox" id="outsideHoursToggle" />
+                    <span>Ngoài giờ hành chính (cho phép  trước 08:00 hoặc sau 18:00)</span>
+                </div>
+                <div class="booking-actions">
+                    <button type="button" class="btn btn-primary" onclick="saveMeetingBooking()">Lưu lịch</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetMeetingForm()">Làm mới</button>
+                </div>
+                <div id="meetingToast" class="meeting-toast"></div>
+            </form>
+        </section>
+
+        <section class="panel-card schedule-panel">
+            <div class="schedule-toolbar">
+                <div>
+                    <div class="range" id="meetingRangeText"></div>
+                    <div class="small text-muted">08:00 - 18:00 hiển thị theo tuần, lịch ngoài giờ được đánh dấu đỏ.</div>
+                </div>
+                <div class="toolbar-actions">
+                    <button class="btn btn-outline-secondary" type="button" onclick="changeWeek(-1)">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" onclick="goToToday()">Hôm nay</button>
+                    <button class="btn btn-outline-secondary" type="button" onclick="changeWeek(1)">
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                    <select class="form-select" id="roomFilter" style="min-width: 180px;"></select>
+                </div>
+            </div>
+            <div class="week-grid" id="meetingWeekGrid"></div>
+        </section>
+    </div>
+</div>
+
+<script>
+    window.meetingRoomData = {
+        rooms: @Html.Raw(roomsJson),
+        bookings: @Html.Raw(bookingsJson),
+        weekStart: "@weekStart",
+        weekEnd: "@weekEnd",
+        currentUserId: @Model.UserData.UserId,
+        canManage: @Model.CanManage.ToString().ToLower()
+    };
+</script>
+<script src="/js/pages/meeting-room.js?v=@DateTime.Now.Ticks"></script>

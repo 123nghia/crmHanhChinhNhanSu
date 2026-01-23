@@ -68,12 +68,38 @@
             </li>
         }
 
-        @if (Model.HasViewPermission("Attendance"))
+        @if (Model.HasViewPermission("Attendance") || Model.HasViewPermission("LateEarlyRequest") || Model.HasApprovePermission("LateEarlyApproval"))
         {
             <li class="nav-item">
-                <a class="nav-link collapsed" href="/Attendance">
-                    <i class="bi bi-clock-history"></i><span>Chấm công</span>
+                <a class="nav-link collapsed" data-bs-target="#attendance-nav" data-bs-toggle="collapse" href="#">
+                    <i class="bi bi-clock-history"></i><span>Chấm công</span><i class="bi bi-chevron-down ms-auto"></i>
                 </a>
+                <ul id="attendance-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+                    @if (Model.HasViewPermission("Attendance"))
+                    {
+                        <li>
+                            <a href="/Attendance">
+                                <i class="bi bi-circle"></i><span>Tổng hợp chấm công</span>
+                            </a>
+                        </li>
+                    }
+                    @if (Model.HasViewPermission("LateEarlyRequest"))
+                    {
+                        <li>
+                            <a href="/LateEarly/Request">
+                                <i class="bi bi-circle"></i><span>Xin phép đi trễ/về sớm</span>
+                            </a>
+                        </li>
+                    }
+                    @if (Model.HasApprovePermission("LateEarlyApproval"))
+                    {
+                        <li>
+                            <a href="/LateEarly/Approval">
+                                <i class="bi bi-circle"></i><span>Duyệt đi trễ/về sớm</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
             </li>
         }
 
@@ -112,6 +138,7 @@
             </li>
         }
 
+
         <li class="nav-heading">Thông tin chung</li>
 
         <!-- <li class="nav-item">
@@ -126,6 +153,16 @@
                 <a class="nav-link collapsed" href="/InternalNews">
                     <i class="bi bi-megaphone"></i>
                     <span>Tin nội bộ</span>
+                </a>
+            </li>
+        }
+
+        @if (Model.HasViewPermission("MeetingRoom"))
+        {
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="/Meeting">
+                    <i class="bi bi-door-open"></i>
+                    <span>Đặt phòng họp</span>
                 </a>
             </li>
         }
@@ -179,6 +216,14 @@
                     <i class="bi bi-gear"></i><span>Cài đặt</span>
                 </a>
             </li>
+            @if (Model.HasViewPermission("MailSetting"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="/System/MailSetting">
+                        <i class="bi bi-envelope"></i><span>Cau hinh mail</span>
+                    </a>
+                </li>
+            }
         }
 
         @if (Model.HasViewPermission("Permission"))

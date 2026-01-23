@@ -1,4 +1,4 @@
-﻿@{
+@{
     
     var itemCanInfo= Model.resultView;
 
@@ -14,6 +14,10 @@
             },
             new Model.SelectDisplay()
             {
+            Code ="9", Name ="HCNS"
+            },
+            new Model.SelectDisplay()
+            {
             Code ="3", Name ="TL"
             },
             new Model.SelectDisplay()
@@ -23,7 +27,7 @@
             ,
             new Model.SelectDisplay()
             {
-            Code ="6", Name ="Trưởng CTV"
+            Code ="6", Name ="Tru?ng CTV"
             }
         };
 
@@ -44,7 +48,7 @@
             },
             new Model.SelectDisplay()
             {
-              Code ="5", Name ="khác"
+              Code ="5", Name ="kh�c"
             }
             ,
             new Model.SelectDisplay()
@@ -66,11 +70,11 @@
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không hoạt động"
+                Code ="0", Name ="Kh�ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
-            Code ="1", Name ="Hoạt động"
+            Code ="1", Name ="Ho?t d?ng"
             }
           
         };
@@ -125,11 +129,11 @@
     
     @if (itemCanInfo.Id < 1)
     {
-        <h5 class="modal-title">Thêm mới ứng cử viên</h5>
+        <h5 class="modal-title">Th�m m?i ?ng c? vi�n</h5>
     }
     else
     {
-        <h5 class="modal-title">Cập nhật hồ sơ</h5>
+        <h5 class="modal-title">C?p nh?t h? so</h5>
     }
     <button type="button" class="btn-close"
                     data-bs-dismiss="modal"
@@ -144,13 +148,13 @@
                  <div class="row">
                
                         <div class="col-6  ">
-                              <h6 class="colorApply">Thông tin ứng viên</h6>
+                              <h6 class="colorApply">Th�ng tin ?ng vi�n</h6>
                            <div class="row">
 
                                  <div class="col-6  ">
                                  
                                             <div class="form-group">
-                                                        <label class="form-label">Tên ứng cử viên</label>
+                                                        <label class="form-label">T�n ?ng c? vi�n</label>
                                                         <input type="text" value="@itemCanInfo.Name" name="fullName" id="txtFullName" class="form-control" required placeholder="" />
                                                         <div class="invalid-feedback-cs">
                                                         </div>
@@ -161,7 +165,7 @@
 
                                         <div class="form-group">
 
-                                            <label class="form-label">Ngày sinh</label>
+                                            <label class="form-label">Ng�y sinh</label>
                                             <input type="date" value="@dateText" name="dob" id="dob" class="form-control" required placeholder="" />
                                             <div class="invalid-feedback-cs">
                                             </div>
@@ -183,7 +187,7 @@
 
                                  <div class="col-6  ">
                                 <div class="form-group">
-                                        <label class="form-label">Số điện thoại</label>
+                                        <label class="form-label">S? di?n tho?i</label>
                                         <input type="text" value="@itemCanInfo.Phone" id="txtPhone" class="form-control" required placeholder="" />
                                         <div class="invalid-feedback-cs">
                                         </div>
@@ -201,7 +205,7 @@
                             
 
                             <div class="form-group">
-                                        <label class="form-label">Nguồn</label>
+                                        <label class="form-label">Ngu?n</label>
                                         <select name="source" id="cbSource" class="form-select" aria-label="">
 
 
@@ -229,14 +233,14 @@
                             ValueControl = Model.CVLink,
                             NameControl = "inputCvlinkName",
                             IdControl ="inputCvlink",
-                            Lable = "File CV ( ưu tiên file pdf, file hình)"
+                            Lable = "File CV ( uu ti�n file pdf, file h�nh)"
 
                         });
                     }
 
 
                                     <div class="form-group">
-                                    <label for="inputAddress2" class="form-label">Ghi chú ứng cử viên</label>
+                                    <label for="inputAddress2" class="form-label">Ghi ch� ?ng c? vi�n</label>
                                     <textarea name="noted" id="txtNoted" class="form-control" style="height: 50px">@itemCanInfo.Noted</textarea>
                                     </div>
 
@@ -248,10 +252,10 @@
                               <input id ="cbcandidateId"  type="hidden" value ="@itemCanInfo.Id" >  
 
               
-                    <h6 class="colorApply">Tạo mớI ứng tuyển</h6>
+                    <h6 class="colorApply">T?o m?I ?ng tuy?n</h6>
 
                     <div class="form-group">
-                    <label class="form-label"> Vị trí Việc làm </label>
+                    <label class="form-label"> V? tr� Vi?c l�m </label>
                     <select name="cbJobId" id="cbJobId" class="form-select"
                     aria-label="">
 
@@ -271,7 +275,7 @@
            
 
                            <div class="form-group">
-                                        <label class="form-label">Link tài liệu </label>
+                                        <label class="form-label">Link t�i li?u </label>
                                         <input type="text" value="" name="ShortDes" id="txtShortDes" class="form-control" required placeholder="" />
                                         <div class="invalid-feedback-cs">
                                         </div>
@@ -279,7 +283,7 @@
                                 </div>
 
                <div class="form-group">
-            <label for="inputAddress2"  class="form-label">Ghi chú ứng tuyển</label>
+            <label for="inputAddress2"  class="form-label">Ghi ch� ?ng tuy?n</label>
             <textarea name="noted"  id="txtNotedOrder" class="form-control" style="height: 50px"></textarea>
                 </div>
 
@@ -313,17 +317,17 @@
        <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
                     data-bs-dismiss="modal">
-                Đóng
+                ��ng
             </button>
-            @* <button type="button" onclick="saveOrderCandidateMarketting(@itemCanInfo.Id,false)" class="btn btn-primary">Lưu thông tin ứng viên</button> *@
-            <button type="button" onclick="saveOrderCandidateMarketting(@itemCanInfo.Id,true)" class="btn btn-primary">Lưu và tạo ứng tuyển</button>
+            @* <button type="button" onclick="saveOrderCandidateMarketting(@itemCanInfo.Id,false)" class="btn btn-primary">Luu th�ng tin ?ng vi�n</button> *@
+            <button type="button" onclick="saveOrderCandidateMarketting(@itemCanInfo.Id,true)" class="btn btn-primary">Luu v� t?o ?ng tuy?n</button>
         </div>
 
 
  @if( itemCanInfo.Id > 0 )
                         {
 
-             <h5 class="modal-title">Thông tin lịch sử đơn hàng</h5>
+             <h5 class="modal-title">Th�ng tin l?ch s? don h�ng</h5>
              <table class="table  table-striped">
                         <thead>
                             <tr>
@@ -331,32 +335,32 @@
                                             STT
                                 </th>  
                                     <th>
-                                        Mã đơn hàng
+                                        M� don h�ng
                                 </th>
                                 <th>
-                                        Ứng cử viên
+                                        ?ng c? vi�n
                                 </th>
                                 <th>
-                                        Vị trí
+                                        V? tr�
                                 </th>  
                                 <th>
-                                        Đối tác/dự án
+                                        �?i t�c/d? �n
                                 </th>  
                                 <th>
-                                        Trạng thái
+                                        Tr?ng th�i
                                 </th>
                                 
                                 <th>
-                                        Xử lý bởi
+                                        X? l� b?i
                                 </th>
                                 <th>
-                                        Ngày nhận
+                                        Ng�y nh?n
                                 </th>
                                 <th>
-                                        Cập nhật gần nhất
+                                        C?p nh?t g?n nh?t
                                 </th>
                                 <th>
-                                        Kết quả tuyển dụng
+                                        K?t qu? tuy?n d?ng
                                 </th>
                                 
                             </tr>  

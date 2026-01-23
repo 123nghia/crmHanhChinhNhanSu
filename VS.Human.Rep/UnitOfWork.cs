@@ -35,6 +35,9 @@
         public IInternalNewsRep InternalNewsRep { get; set; }
         public INotificationRep NotificationRep { get; set; }
         public IAttendanceRep AttendanceRep { get; set; }
+        public IEmailConfigRep EmailConfigRep { get; set; }
+        public IMeetingRoomRep MeetingRoomRep { get; set; }
+        public ILateEarlyRep LateEarlyRep { get; set; }
         public UnitOfWork(
             IHDLDItemRep hDLDItemRep,
             IRelationItemRep relationItemRep,
@@ -61,7 +64,10 @@
             ILeaveRep leaveRep,
             IInternalNewsRep internalNewsRep,
             INotificationRep notificationRep,
-            IAttendanceRep attendanceRep
+            IAttendanceRep attendanceRep,
+            IEmailConfigRep emailConfigRep,
+            IMeetingRoomRep meetingRoomRep,
+            ILateEarlyRep lateEarlyRep
             )
         {
             this.BHXHItemRep = bHXHItemRep;
@@ -91,6 +97,9 @@
             InternalNewsRep = internalNewsRep;
             NotificationRep = notificationRep;
             AttendanceRep = attendanceRep;
+            EmailConfigRep = emailConfigRep;
+            MeetingRoomRep = meetingRoomRep;
+            LateEarlyRep = lateEarlyRep;
         }
     }
 }

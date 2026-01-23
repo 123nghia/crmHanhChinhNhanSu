@@ -1,4 +1,4 @@
-﻿@{
+@{
     
     var arrayRol = new List<crmHuman.Model.SelectDisplay>()
         {
@@ -12,6 +12,10 @@
             },
             new Model.SelectDisplay()
             {
+            Code ="9", Name ="HCNS"
+            },
+            new Model.SelectDisplay()
+            {
             Code ="3", Name ="TL"
             }
             , new Model.SelectDisplay()
@@ -21,7 +25,7 @@
             ,
             new Model.SelectDisplay()
             {
-            Code ="6", Name ="Trưởng CTV"
+            Code ="6", Name ="Tru?ng CTV"
             }
         };
 
@@ -29,11 +33,11 @@
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không hoạt động"
+                Code ="0", Name ="Kh�ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
-            Code ="1", Name ="Hoạt động"
+            Code ="1", Name ="Ho?t d?ng"
             }
           
         };
@@ -45,11 +49,11 @@
    
     @if (Model.Id < 1)
     {
-        <h5 class="modal-title">Thêm mới nhóm @Model.Id</h5>
+        <h5 class="modal-title">Th�m m?i nh�m @Model.Id</h5>
     }
     else
     {
-        <h5 class="modal-title">Cập nhật thông tin</h5>
+        <h5 class="modal-title">C?p nh?t th�ng tin</h5>
     }
     <button type="button" class="btn-close"
                     data-bs-dismiss="modal"
@@ -61,7 +65,7 @@
             <form id="mainForm" class="needs-validation" novalidate>
 
                 <div class="col-12 form-group">
-                    <label class="form-label">Tên nhóm</label>
+                    <label class="form-label">T�n nh�m</label>
                     <input type="text" value="@Model.Name" name="fullName" id="txtName" class="form-control" required placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
@@ -71,7 +75,7 @@
                 @if (Model.Id > 0)
                 {
                         <div class="col-12 form-group ">
-                        <label class="form-label">Mã  nhóm</label>
+                        <label class="form-label">M�  nh�m</label>
                 <input name="userName" readonly id="txtCode" value="@Model.Code" type="text" class="form-control" placeholder="">
                         <div class="invalid-feedback-cs">
                         Please choose a username.
@@ -81,7 +85,7 @@
 
       
              <div class="col-12 form-group">
-             <label class="form-label">Chọn trưởng nhóm</label>
+             <label class="form-label">Ch?n tru?ng nh�m</label>
             <select  id="cbManagerid" class="form-select" aria-label="">
                 @{
                     int currentSelect = -1;
@@ -91,7 +95,7 @@
                     }
                 }
 
-                <option  value="-1">Chọn từ danh sách</option>
+                <option  value="-1">Ch?n t? danh s�ch</option>
                 @foreach (var item in Model.ManagerList)
                 {
                     @if (currentSelect == item.Id)
@@ -111,7 +115,7 @@
                 </div>
 
                 <div class="col-12 form-group">
-                    <label class="form-label">Trạng thái</label>
+                    <label class="form-label">Tr?ng th�i</label>
             <select name="isActive" id="isActive" class="form-select" aria-label="">
                         
                 @foreach (var item in arrayStatus)
@@ -136,7 +140,7 @@
 
 
                 <div class="col-12">
-            <label for="inputAddress2"  class="form-label">Ghi chú</label>
+            <label for="inputAddress2"  class="form-label">Ghi ch�</label>
             <textarea name="noted"  id="txtNoted" class="form-control" style="height: 100px">@Model.Noted</textarea>
                 </div>
 
@@ -146,8 +150,9 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
                     data-bs-dismiss="modal">
-                Đóng
+                ��ng
             </button>
-    <button type="button" onclick="SaveGroup(@Model.Id)" class="btn btn-primary">Lưu</button>
+    <button type="button" onclick="SaveGroup(@Model.Id)" class="btn btn-primary">Luu</button>
         </div>
+
 

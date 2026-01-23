@@ -1,0 +1,156 @@
+﻿@page
+@model crmHuman.Pages.LateEarly.ApprovalModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+}
+
+@Html.AntiForgeryToken()
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Duyệt yêu cầu</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Danh sách chờ duyệt</h5>
+
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nhân viên</th>
+                                <th>Loại</th>
+                                <th>Ngày</th>
+                                <th>Từ giờ</th>
+                                <th>Đến giờ</th>
+                                <th>Lý do</th>
+                                <th class="text-center">Trạng thái</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int i = 0; }
+                            @foreach (var item in Model.RequestList.Data)
+                            {
+                                i++;
+                                var info = item as dynamic;
+                                <tr>
+                                    <td>@i</td>
+                                    <td>@info.EmployeeName</td>
+                                    <td>@(info.RequestType == "LATE" ? "Đi trễ" : "Về sớm")</td>
+                                    <td>@info.RequestDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@info.StartTime.ToString("HH:mm")</td>
+                                    <td>@info.EndTime.ToString("HH:mm")</td>
+                                    <td>@info.Reason</td>
+                                    <td class="text-center">
+                                        @if (info.Status == 0)
+                                        {
+                                            <span class="badge bg-warning text-dark">Chờ TL duyệt</span>
+                                        }
+                                        else if (info.Status == 1)
+                                        {
+                                            <span class="badge bg-info text-dark">Chờ HCNS duyệt</span>
+                                        }
+                                        else if (info.Status == 2)
+                                        {
+                                            <span class="badge bg-primary">Chờ BGĐ duyệt</span>
+                                        }
+                                        else if (info.Status == 3)
+                                        {
+                                            <span class="badge bg-secondary">Chờ Admin duyệt</span>
+                                        }
+                                        else if (info.Status == 4)
+                                        {
+                                            <span class="badge bg-success">Đã duyệt</span>
+                                        }
+                                        else if (info.Status == 5)
+                                        {
+                                            <span class="badge bg-danger">Từ chối</span>
+                                        }
+                                        else if (info.Status == 6)
+                                        {
+                                            <span class="badge bg-secondary">Đã hủy</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-info" onclick="viewLateEarlyHistory(@info.Id)"><i class="bi bi-clock-history"></i></button>
+                                            <button class="btn btn-sm btn-success" onclick="approveLateEarly(@info.Id, 'Agree')">Duyệt</button>
+                                            <button class="btn btn-sm btn-danger" onclick="approveLateEarly(@info.Id, 'Reject')">Từ chối</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            @if (i == 0)
+                            {
+                                <tr>
+                                    <td colspan="9" class="text-center">Không có yêu cầu</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal fade" id="commentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ghi chú duyệt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="approveId" />
+                <input type="hidden" id="approveAction" />
+                <div class="mb-3">
+                    <label class="form-label">Ý kiến phản hồi</label>
+                    <textarea class="form-control" id="approveComment" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="submitLateEarlyApproval()">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lịch sử xử lý</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Người xử lý</th>
+                                <th>Hành động</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyContent"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/pages/late-early-approval.js?v=@DateTime.Now.Ticks"></script>

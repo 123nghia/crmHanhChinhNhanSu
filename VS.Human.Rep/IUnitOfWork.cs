@@ -38,6 +38,9 @@
         public IInternalNewsRep InternalNewsRep { get; set; }
         public INotificationRep NotificationRep { get; set; }
         public IAttendanceRep AttendanceRep { get; set; }
+        public IEmailConfigRep EmailConfigRep { get; set; }
+        public IMeetingRoomRep MeetingRoomRep { get; set; }
+        public ILateEarlyRep LateEarlyRep { get; set; }
 
     }
 }
