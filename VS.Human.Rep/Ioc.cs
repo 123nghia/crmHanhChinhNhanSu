@@ -45,6 +45,8 @@ namespace VS.Human.Rep
             services.AddSingleton<IAuditLogRep, AuditLogRep>();
             services.AddSingleton<IUserThemeSettingRep, UserThemeSettingRep>();
             services.AddSingleton<ISystemBrandingRep, SystemBrandingRep>();
+            services.AddSingleton<IContractRep, ContractRep>();
+            services.AddSingleton<IReportAnalyticsRep, ReportAnalyticsRep>();
 
         }
     }

@@ -45,6 +45,8 @@
         public IAuditLogRep AuditLogRep { get; set; }
         public IUserThemeSettingRep UserThemeSettingRep { get; set; }
         public ISystemBrandingRep SystemBrandingRep { get; set; }
+        public IContractRep ContractRep { get; set; }
+        public IReportAnalyticsRep ReportAnalyticsRep { get; set; }
 
     }
 }

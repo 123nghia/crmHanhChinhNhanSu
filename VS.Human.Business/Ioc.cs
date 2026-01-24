@@ -47,6 +47,8 @@ namespace VS.Human.Business
             services.AddSingleton<IAuditLogBusiness, AuditLogBusiness>();
             services.AddSingleton<IThemeSettingBusiness, ThemeSettingBusiness>();
             services.AddSingleton<IBrandingBusiness, BrandingBusiness>();
+            services.AddSingleton<IContractBusiness, ContractBusiness>();
+            services.AddSingleton<IReportAnalyticsBusiness, ReportAnalyticsBusiness>();
 
 
         }

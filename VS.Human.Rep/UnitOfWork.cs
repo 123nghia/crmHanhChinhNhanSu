@@ -42,6 +42,8 @@
         public IAuditLogRep AuditLogRep { get; set; }
         public IUserThemeSettingRep UserThemeSettingRep { get; set; }
         public ISystemBrandingRep SystemBrandingRep { get; set; }
+        public IContractRep ContractRep { get; set; }
+        public IReportAnalyticsRep ReportAnalyticsRep { get; set; }
         public UnitOfWork(
             IHDLDItemRep hDLDItemRep,
             IRelationItemRep relationItemRep,
@@ -75,7 +77,9 @@
             ILogHistoryRep logHistoryRep,
             IAuditLogRep auditLogRep,
             IUserThemeSettingRep userThemeSettingRep,
-            ISystemBrandingRep systemBrandingRep
+            ISystemBrandingRep systemBrandingRep,
+            IContractRep contractRep,
+            IReportAnalyticsRep reportAnalyticsRep
             )
         {
             this.BHXHItemRep = bHXHItemRep;
@@ -112,6 +116,8 @@
             AuditLogRep = auditLogRep;
             UserThemeSettingRep = userThemeSettingRep;
             SystemBrandingRep = systemBrandingRep;
+            ContractRep = contractRep;
+            ReportAnalyticsRep = reportAnalyticsRep;
         }
     }
 }
