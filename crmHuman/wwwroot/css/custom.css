@@ -28,6 +28,10 @@
     opacity: .8
 }
 
+body {
+    background: var(--page-bg);
+}
+
 .header-nav .nav-profile {
     color: #98181c
 }
@@ -297,6 +301,9 @@
     --brand-accent: #1f4e79;
     --brand-accent-strong: #173b5c;
     --brand-accent-soft: #e8f1ff;
+    --button-bg: #1f4e79;
+    --button-bg-hover: #173b5c;
+    --page-bg: #f6f9ff;
     --text-strong: #1f2d3d;
     --text-muted-strong: #4b5563;
     --input-border: #bfc9d9;
@@ -334,45 +341,45 @@
 
 .btn-primary,
 .btn-success {
-    background-color: var(--brand-accent);
-    border-color: var(--brand-accent);
+    background-color: var(--button-bg);
+    border-color: var(--button-bg);
 }
 
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-success:hover,
 .btn-success:focus {
-    background-color: var(--brand-accent-strong) !important;
-    border-color: var(--brand-accent-strong) !important;
+    background-color: var(--button-bg-hover) !important;
+    border-color: var(--button-bg-hover) !important;
     opacity: 1;
 }
 
 .btn-primary:focus,
 .btn-success:focus {
-    box-shadow: 0 0 0 0.2rem rgba(31, 78, 121, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.15);
 }
 
 .btn-outline-primary {
-    color: var(--brand-accent);
-    border-color: var(--brand-accent);
+    color: var(--button-bg);
+    border-color: var(--button-bg);
 }
 
 .btn-outline-primary:hover,
 .btn-outline-primary:focus {
-    background-color: var(--brand-accent);
-    border-color: var(--brand-accent);
+    background-color: var(--button-bg);
+    border-color: var(--button-bg);
     color: #fff;
 }
 
 .btn-outline-success {
-    color: var(--brand-accent);
-    border-color: var(--brand-accent);
+    color: var(--button-bg);
+    border-color: var(--button-bg);
 }
 
 .btn-outline-success:hover,
 .btn-outline-success:focus {
-    background-color: var(--brand-accent);
-    border-color: var(--brand-accent);
+    background-color: var(--button-bg);
+    border-color: var(--button-bg);
     color: #fff;
 }
 

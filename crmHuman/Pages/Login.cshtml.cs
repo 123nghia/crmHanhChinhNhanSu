@@ -15,21 +15,45 @@ namespace crmHuman.Pages
         private ILoginBussiness _business;
         private IEmpBusiness _empBusiness;
         private ICandidateBusiness _candidateBusiness;
+        private readonly ILogHistoryBusiness _logHistoryBusiness;
+        private readonly IBrandingBusiness _brandingBusiness;
+
+        public string LogoPath { get; set; } = "/assets/img/logo.png";
 
         public LoginModel(ILogger<LoginModel> logger, ILoginBussiness loginBussiness,
             IEmpBusiness empBusiness,
-            ICandidateBusiness candidateBusiness
+            ICandidateBusiness candidateBusiness,
+            ILogHistoryBusiness logHistoryBusiness,
+            IBrandingBusiness brandingBusiness
             )
         {
             _logger = logger;
             _business = loginBussiness;
             _empBusiness = empBusiness;
             _candidateBusiness = candidateBusiness;
+            _logHistoryBusiness = logHistoryBusiness;
+            _brandingBusiness = brandingBusiness;
 
+        }
+
+        private async Task LoadBrandingAsync()
+        {
+            try
+            {
+                var branding = await _brandingBusiness.GetActiveAsync();
+                if (!string.IsNullOrWhiteSpace(branding?.LogoPath))
+                {
+                    LogoPath = branding.LogoPath;
+                }
+            }
+            catch
+            {
+            }
         }
 
         private async Task<IActionResult> Login(string userName, string pass)
         {
+            await LoadBrandingAsync();
             var userProfile = await _empBusiness.Login(userName, pass);
             if (userProfile != null && userProfile.Id > 0)
             {
@@ -64,6 +88,8 @@ namespace crmHuman.Pages
                 {
                     IsPersistent = false
                 };
+                UserActive.DataActiveOnline.MarkLogin(account.id.ToString(), account.UserName, account.FullName);
+                await _logHistoryBusiness.LogLogin(account.id, account.UserName, account.FullName, account.RoleCode, "Employee");
                 await HttpContext.SignInAsync(principal);
                 return Redirect("/");
             }
@@ -101,6 +127,8 @@ namespace crmHuman.Pages
 
             var candidateIdentity = new ClaimsIdentity(candidateClaims, CookieAuthenticationDefaults.AuthenticationScheme);
             ClaimsPrincipal candidatePrincipal = new ClaimsPrincipal(candidateIdentity);
+            UserActive.DataActiveOnline.MarkLogin(candidateAccount.id.ToString(), candidateAccount.UserName ?? string.Empty, candidateAccount.FullName ?? string.Empty);
+            await _logHistoryBusiness.LogLogin(candidateAccount.id, candidateAccount.UserName, candidateAccount.FullName, candidateAccount.RoleCode, "Candidate");
             await HttpContext.SignInAsync(candidatePrincipal);
             return Redirect("/Candidate/Dashboard");
 
@@ -118,9 +146,10 @@ namespace crmHuman.Pages
             {
 
                 HttpContext.Response.Redirect("/");
+                return;
             }
 
-
+            LoadBrandingAsync().GetAwaiter().GetResult();
         }
         public async Task<IActionResult> OnPostLogin(LoginRequest request)
         {

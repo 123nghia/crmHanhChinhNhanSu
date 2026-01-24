@@ -27,6 +27,7 @@ namespace crmHuman.Pages
         private readonly IEmpBusiness _empBusiness;
         private readonly ILeaveBusiness _leaveBusiness;
         private readonly IScheduleInterviewBussiness _scheduleInterviewBussiness;
+        private readonly ILogHistoryBusiness _logHistoryBusiness;
 
         public BaseList TopOrder;
         public BaseList TopImpact;
@@ -51,7 +52,8 @@ namespace crmHuman.Pages
         public DashboardExtendedStats ExtendedStats { get; set; } = new DashboardExtendedStats();
 
         public IndexModel(ILogger<IndexModel> logger, IDashboardBusinness dashboardBusinness, ImasterDataBussiness imasterDataBussiness,
-        IJobItemBusiness jobItemBusiness, IEmpBusiness empBusiness, ILeaveBusiness leaveBusiness, IScheduleInterviewBussiness scheduleInterviewBussiness)
+        IJobItemBusiness jobItemBusiness, IEmpBusiness empBusiness, ILeaveBusiness leaveBusiness, IScheduleInterviewBussiness scheduleInterviewBussiness,
+        ILogHistoryBusiness logHistoryBusiness)
         {
             _logger = logger;
             this.dashboardBusinness = dashboardBusinness;
@@ -64,11 +66,29 @@ namespace crmHuman.Pages
             _empBusiness = empBusiness;
             _leaveBusiness = leaveBusiness;
             _scheduleInterviewBussiness = scheduleInterviewBussiness;
+            _logHistoryBusiness = logHistoryBusiness;
             RecordSource = 10;
         }
 
         public async Task<IActionResult> OnPostLogOut(LoginRequest request)
         {
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            if (identity != null)
+            {
+                var idUser = identity.Claims.FirstOrDefault(o => o.Type == "userId")?.Value;
+                var userName = identity.Claims.FirstOrDefault(o => o.Type == "UserName")?.Value;
+                var fullName = identity.Claims.FirstOrDefault(o => o.Type == "FullName")?.Value;
+                var roleCode = identity.Claims.FirstOrDefault(o => o.Type == "RoleCode")?.Value;
+                if (!string.IsNullOrWhiteSpace(idUser))
+                {
+                    UserActive.DataActiveOnline.MarkLogout(idUser, userName, fullName);
+                    if (int.TryParse(idUser, out var userId))
+                    {
+                        await _logHistoryBusiness.LogLogout(userId, roleCode);
+                    }
+                }
+            }
+
             var authenticationScheme =
                 HttpContext.User
                 .FindFirstValue

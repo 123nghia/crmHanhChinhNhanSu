@@ -17,6 +17,7 @@
     var showExport = Model.HasViewPermission("Report");
     var showMyLeave = Model.UserData?.RoleCode == "4" && Model.HasViewPermission("LeaveRequest");
     var showExtendedStats = Model.UserData?.RoleCode != "2";
+    var showOnlineCount = Model.UserData?.RoleCode != "2";
     var extendedStats = Model.ExtendedStats;
     var leftColumnClass = showActivity ? "col-lg-8" : "col-12";
 
@@ -209,6 +210,27 @@
                                             <div class="ps-3">
                                                 <h6>@(leaveStats?.ApprovedMonth ?? 0) lượt</h6>
                                                 <span class="text-muted small pt-2 ps-1">@leaveMonthSub</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (showOnlineCount)
+                        {
+                            <div class="col-xxl-4 col-md-6">
+                                <div class="card info-card sales-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">User đang online</h5>
+                                        <div class="d-flex align-items-center">
+                                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-people"></i>
+                                            </div>
+                                            <div class="ps-3">
+                                                <h6>@Model.UserDataGlobal.GetCountUserOnline()</h6>
+                                                <span class="text-success small pt-1 fw-bold">@Model.GlobalData.TotalUser</span>
+                                                <span class="text-muted small pt-2 ps-1">Tổng User</span>
                                             </div>
                                         </div>
                                     </div>

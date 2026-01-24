@@ -43,6 +43,10 @@ namespace VS.Human.Business
             services.AddSingleton<IEmailService, EmailService>();
             services.AddSingleton<IMeetingRoomBusiness, MeetingRoomBusiness>();
             services.AddSingleton<ILateEarlyBusiness, LateEarlyBusiness>();
+            services.AddSingleton<ILogHistoryBusiness, LogHistoryBusiness>();
+            services.AddSingleton<IAuditLogBusiness, AuditLogBusiness>();
+            services.AddSingleton<IThemeSettingBusiness, ThemeSettingBusiness>();
+            services.AddSingleton<IBrandingBusiness, BrandingBusiness>();
 
 
         }

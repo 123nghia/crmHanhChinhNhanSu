@@ -9,6 +9,7 @@
         private static UserActive? instance;
         private static readonly object lockObject = new();
         private readonly List<UserItem> DataUsser;
+        internal static readonly TimeSpan OnlineWindow = TimeSpan.FromMinutes(3);
 
         private UserActive()
         {
@@ -34,23 +35,37 @@
         {
             lock (lockObject)
             {
-                var itemUser = new UserItem
+                var itemUserData = GetOrCreateUser(UserId, userName, fullName);
+                itemUserData.LastUpdated = DateTime.Now;
+                itemUserData.IsOnline = true;
+                if (!itemUserData.LastLogin.HasValue)
                 {
-                    LastUpdated = DateTime.Now,
-                    UserId = UserId,
-                    UserName = userName,
-                    FullName = fullName
-                };
+                    itemUserData.LastLogin = itemUserData.LastUpdated;
+                }
+            }
+        }
 
-                var itemUserData = DataUsser.FirstOrDefault(x => x.UserId == UserId);
-                if (itemUserData == null)
-                {
-                    DataUsser.Add(itemUser);
-                }
-                else
-                {
-                    itemUserData.LastUpdated = DateTime.Now;
-                }
+        public void MarkLogin(string userId, string? userName, string? fullName)
+        {
+            lock (lockObject)
+            {
+                var itemUserData = GetOrCreateUser(userId, userName, fullName);
+                var now = DateTime.Now;
+                itemUserData.LastLogin = now;
+                itemUserData.LastUpdated = now;
+                itemUserData.IsOnline = true;
+            }
+        }
+
+        public void MarkLogout(string userId, string? userName, string? fullName)
+        {
+            lock (lockObject)
+            {
+                var itemUserData = GetOrCreateUser(userId, userName, fullName);
+                var now = DateTime.Now;
+                itemUserData.LastLogout = now;
+                itemUserData.LastUpdated = now;
+                itemUserData.IsOnline = false;
             }
         }
 
@@ -59,8 +74,8 @@
         {
             lock (lockObject)
             {
-                var datetiemDiff = DateTime.Now.AddMinutes(-3);
-                return DataUsser.Count(x => x.LastUpdated > datetiemDiff);
+                var datetiemDiff = DateTime.Now.Subtract(OnlineWindow);
+                return DataUsser.Count(x => x.IsOnline && x.LastUpdated.HasValue && x.LastUpdated > datetiemDiff);
             }
         }
 
@@ -78,6 +93,31 @@
                     .ToList();
             }
         }
+
+        private UserItem GetOrCreateUser(string userId, string? userName, string? fullName)
+        {
+            var itemUserData = DataUsser.FirstOrDefault(x => x.UserId == userId);
+            if (itemUserData == null)
+            {
+                itemUserData = new UserItem
+                {
+                    UserId = userId
+                };
+                DataUsser.Add(itemUserData);
+            }
+
+            if (!string.IsNullOrWhiteSpace(userName))
+            {
+                itemUserData.UserName = userName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(fullName))
+            {
+                itemUserData.FullName = fullName;
+            }
+
+            return itemUserData;
+        }
     }
 
     public class UserItem
@@ -88,20 +128,30 @@
 
         public DateTime? LastUpdated { get; set; }
 
+        public DateTime? LastLogin { get; set; }
+
+        public DateTime? LastLogout { get; set; }
+
         public string? UserId { get; set; }
+
+        public bool IsOnline { get; set; }
+
+        private bool IsOnlineNow()
+        {
+            if (!IsOnline || !LastUpdated.HasValue)
+            {
+                return false;
+            }
+
+            var datecompare = DateTime.Now.Subtract(UserActive.OnlineWindow);
+            return LastUpdated >= datecompare;
+        }
 
         public string StatusOnline
         {
             get
             {
-                var datecompare = DateTime.Now.AddMinutes(-3);
-
-                if (LastUpdated >= datecompare)
-                {
-                    return "Online";
-                }
-                return "Off";
-
+                return IsOnlineNow() ? "Online" : "Off";
             }
         }
     }

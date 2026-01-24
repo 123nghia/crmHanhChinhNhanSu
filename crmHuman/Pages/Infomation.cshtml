@@ -92,7 +92,11 @@
                             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profile-overview">Thông tin</button>
                         </li>
 
-                        <li class="nav-item">
+                                                <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-settings">Ca nhan hoa</button>
+                        </li>
+
+<li class="nav-item">
                             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-change-password">Thay đổi mật khẩu</button>
                         </li>
 
@@ -131,10 +135,38 @@
                         </div>
 
                         <div class="tab-pane fade pt-3" id="profile-settings">
+                            <h5 class="card-title">Ca nhan hoa giao dien</h5>
 
-                            <!-- Settings Form -->
-                          
+                            @if (TempData["ThemeSaved"] != null)
+                            {
+                                var saved = TempData["ThemeSaved"]?.ToString();
+                                if (saved == "1")
+                                {
+                                    <div class="alert alert-success">Da luu cai dat giao dien.</div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-danger">Khong the luu cai dat giao dien.</div>
+                                }
+                            }
 
+                            <form method="post" asp-page-handler="SaveTheme" class="row g-3">
+                                <div class="col-md-4 form-group">
+                                    <label class="form-label" for="ThemeForm_PrimaryColor">Mau chu dao</label>
+                                    <input type="color" class="form-control form-control-color" asp-for="ThemeForm.PrimaryColor">
+                                </div>
+                                <div class="col-md-4 form-group">
+                                    <label class="form-label" for="ThemeForm_ButtonColor">Mau nut</label>
+                                    <input type="color" class="form-control form-control-color" asp-for="ThemeForm.ButtonColor">
+                                </div>
+                                <div class="col-md-4 form-group">
+                                    <label class="form-label" for="ThemeForm_BackgroundColor">Mau nen</label>
+                                    <input type="color" class="form-control form-control-color" asp-for="ThemeForm.BackgroundColor">
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-primary" type="submit">Luu cai dat</button>
+                                </div>
+                            </form>
                         </div>
 
                         <div class="tab-pane fade pt-3" id="profile-change-password">

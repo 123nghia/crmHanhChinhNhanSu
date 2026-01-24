@@ -72,6 +72,7 @@ namespace crmHuman
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseMiddleware<AuditLogMiddleware>();
             app.MapRazorPages();
 
             // Khởi chạy Quartz scheduler

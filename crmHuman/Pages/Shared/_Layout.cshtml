@@ -1,6 +1,8 @@
 @model crmHuman.Pages.BaseModel2
 @{
     var profileLink = Model?.UserData?.RoleCode == "CANDIDATE" ? "/Candidate/Profile" : "/Infomation";
+    var logoPath = string.IsNullOrWhiteSpace(Model?.LogoPath) ? "/assets/img/logo.png" : Model.LogoPath;
+    var themeStyle = Model?.ThemeStyle ?? string.Empty;
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -10,13 +12,13 @@
     @await Html.PartialAsync("_LayoutHeadResources")
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body>
+<body style="@themeStyle">
     @Html.AntiForgeryToken()
 
     <header id="header" class="header fixed-top d-flex align-items-center">
         <div class="d-flex align-items-center justify-content-between">
             <a href="~/" class="logo d-flex align-items-center">
-                <img src="~/assets/img/logo.png" alt="crmHuman logo" asp-append-version="true">
+                <img src="@logoPath" alt="crmHuman logo" asp-append-version="true">
             </a>
             <button class="btn btn-link toggle-sidebar-btn" type="button" aria-label="Toggle sidebar">
                 <i class="bi bi-list"></i>

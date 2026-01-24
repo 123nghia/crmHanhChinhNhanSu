@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using System.IO;
 using VS.Human.Business;
 using VS.Human.Business.Model;
 using VS.Human.Item;
@@ -12,19 +14,27 @@ namespace crmHuman.Pages
     {
         private readonly ILogger<SettingModel> _logger;
         private readonly IEmpBusiness _empBusiness;
+        private readonly IBrandingBusiness _brandingBusiness;
+        private readonly IWebHostEnvironment _env;
         public Employee UserProfile;
         public EmployeeRequest RequestSearch { get; set; }
 
+        [BindProperty]
+        public IFormFile? LogoFile { get; set; }
 
 
 
 
         public SettingModel(ILogger<SettingModel> logger,
-            IEmpBusiness empBusiness
+            IEmpBusiness empBusiness,
+            IBrandingBusiness brandingBusiness,
+            IWebHostEnvironment env
             )
         {
             _logger = logger;
             _empBusiness = empBusiness;
+            _brandingBusiness = brandingBusiness;
+            _env = env;
             TitlePage = "Thông tin nhân viên";
             KeyPage = "Infomation";
 
@@ -38,6 +48,57 @@ namespace crmHuman.Pages
             };
 
 
+        }
+
+        public async Task<IActionResult> OnPostUpdateLogo()
+        {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Redirect("/Login");
+            }
+
+            GetInfoUser();
+            if (UserData == null || UserData.RoleCode != "1")
+            {
+                return Redirect("/");
+            }
+
+            if (LogoFile == null || LogoFile.Length == 0)
+            {
+                TempData["LogoError"] = "missing";
+                return RedirectToPage();
+            }
+
+            if (LogoFile.Length > 2 * 1024 * 1024)
+            {
+                TempData["LogoError"] = "size";
+                return RedirectToPage();
+            }
+
+            var ext = Path.GetExtension(LogoFile.FileName).ToLowerInvariant();
+            var allowed = new[] { ".png", ".jpg", ".jpeg" };
+            if (!allowed.Contains(ext))
+            {
+                TempData["LogoError"] = "type";
+                return RedirectToPage();
+            }
+
+            var folder = Path.Combine(_env.WebRootPath, "assets", "img", "branding");
+            Directory.CreateDirectory(folder);
+
+            var fileName = $"logo_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{ext}";
+            var filePath = Path.Combine(folder, fileName);
+
+            await using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await LogoFile.CopyToAsync(stream);
+            }
+
+            var logoPath = $"/assets/img/branding/{fileName}";
+            var ok = await _brandingBusiness.SaveLogoAsync(logoPath, UserData.UserId);
+            TempData["LogoSaved"] = ok ? "1" : "0";
+
+            return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostAddEmployeee
@@ -129,7 +190,7 @@ namespace crmHuman.Pages
 
             }
             GetInfoUser();
-            if (UserData.RoleCode == "2")
+            if (UserData.RoleCode != "1")
             {
                 return Redirect("/");
             }

@@ -94,6 +94,37 @@
             @if (Model.UserData.RoleCode != "2")
             {
             <section class="reportSection">
+                <p class="title">Truy cập hôm nay</p>
+
+                <div class="card info-card revenue-card">
+
+                    <div class="card-body">
+                        <h5 class="card-title"><span>Thống kê truy cập</span></h5>
+
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-activity"></i>
+                            </div>
+                            <div class="ps-3">
+                                <div class="d-flex gap-4 align-items-center">
+                                    <div>
+                                        <h6>@infoDashboard.totalRequestsToday</h6>
+                                        <span class="text-muted small">Request</span>
+                                    </div>
+                                    <div>
+                                        <h6>@infoDashboard.totalVisitsToday</h6>
+                                        <span class="text-muted small">Truy cập</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <section class="reportSection">
                 <p class="title">User đang online </p>
 
                 <div class="card info-card sales-card">

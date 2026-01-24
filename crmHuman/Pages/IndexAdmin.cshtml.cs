@@ -19,6 +19,8 @@ namespace crmHuman.Pages
 
         private readonly ImasterDataBussiness _masterDataBusinness;
         private readonly IJobItemBusiness _jobItemBusiness;
+        private readonly ILogHistoryBusiness _logHistoryBusiness;
+        private readonly IAuditLogBusiness _auditLogBusiness;
 
         public BaseList TopOrder;
         public BaseList TopImpact;
@@ -41,7 +43,9 @@ namespace crmHuman.Pages
          ILogger<IndexAdminModel> logger,
         IDashboardBusinness dashboardBusinness,
         ImasterDataBussiness imasterDataBussiness,
-        IJobItemBusiness jobItemBusiness
+        IJobItemBusiness jobItemBusiness,
+        ILogHistoryBusiness logHistoryBusiness,
+        IAuditLogBusiness auditLogBusiness
             )
         {
             _logger = logger;
@@ -52,10 +56,29 @@ namespace crmHuman.Pages
             InfoDashboard = new { };
             _masterDataBusinness = imasterDataBussiness;
             _jobItemBusiness = jobItemBusiness;
+            _logHistoryBusiness = logHistoryBusiness;
+            _auditLogBusiness = auditLogBusiness;
         }
 
         public async Task<IActionResult> OnPostLogOut(LoginRequest request)
         {
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            if (identity != null)
+            {
+                var idUser = identity.Claims.FirstOrDefault(o => o.Type == "userId")?.Value;
+                var userName = identity.Claims.FirstOrDefault(o => o.Type == "UserName")?.Value;
+                var fullName = identity.Claims.FirstOrDefault(o => o.Type == "FullName")?.Value;
+                var roleCode = identity.Claims.FirstOrDefault(o => o.Type == "RoleCode")?.Value;
+                if (!string.IsNullOrWhiteSpace(idUser))
+                {
+                    UserActive.DataActiveOnline.MarkLogout(idUser, userName, fullName);
+                    if (int.TryParse(idUser, out var userId))
+                    {
+                        await _logHistoryBusiness.LogLogout(userId, roleCode);
+                    }
+                }
+            }
+
             var authenticationScheme = HttpContext.User.FindFirstValue(ClaimTypes.AuthenticationMethod);
             if (authenticationScheme == null)
             {
@@ -238,6 +261,7 @@ namespace crmHuman.Pages
 
             }
             var listUser = UserActive.DataActiveOnline.GetListUser(UserData.RoleCode, UserData.UserId);
+            var auditStats = await _auditLogBusiness.GetTodayStatsAsync();
 
             string rateUV = "0";
             string rateOB = "0";
@@ -268,7 +292,9 @@ namespace crmHuman.Pages
                 rateCVPass,
                 sumOnboardcV,
                 SumcvPass,
-                allOnboardCV
+                allOnboardCV,
+                totalRequestsToday = auditStats.TotalRequests,
+                totalVisitsToday = auditStats.TotalVisits
             };
             return Page();
         }

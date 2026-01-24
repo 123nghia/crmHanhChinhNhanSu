@@ -1,7 +1,11 @@
 using crmHuman.Model;
+using crmHuman.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Filters;
 using System.Security.Claims;
+using VS.Human.Business;
+using VS.Human.Rep.Model;
 
 namespace crmHuman.Pages
 {
@@ -28,6 +32,12 @@ namespace crmHuman.Pages
 
         public int? RecordSource { get; set; }
 
+        public UserThemeSetting? ThemeSetting { get; set; }
+        public SystemBranding? Branding { get; set; }
+        public string ThemeStyle { get; set; }
+        public string LogoPath { get; set; }
+
+        private bool _hasLoadedUserInfo;
 
 
         public List<SelectDisplay> arrayRol =
@@ -156,6 +166,8 @@ namespace crmHuman.Pages
 
             GlobalData = GlobalVar.GlobalData;
             UserDataGlobal = UserActive.DataActiveOnline;
+            ThemeStyle = string.Empty;
+            LogoPath = "/assets/img/logo.png";
         }
 
 
@@ -216,8 +228,27 @@ namespace crmHuman.Pages
             }
         }
 
+        public override void OnPageHandlerExecuting(PageHandlerExecutingContext context)
+        {
+            base.OnPageHandlerExecuting(context);
+            if (_hasLoadedUserInfo)
+            {
+                return;
+            }
+
+            if (HttpContext?.User?.Identity?.IsAuthenticated ?? false)
+            {
+                GetInfoUser();
+            }
+        }
+
         public void GetInfoUser()
         {
+            if (_hasLoadedUserInfo)
+            {
+                return;
+            }
+
             var identity = HttpContext.User.Identity as ClaimsIdentity;
 
             if (identity != null)
@@ -257,7 +288,43 @@ namespace crmHuman.Pages
                     }
                 }
             }
+
+            _hasLoadedUserInfo = true;
+
+            LoadThemeAndBranding();
         }
+        private void LoadThemeAndBranding()
+        {
+            try
+            {
+                var brandingBusiness = HttpContext.RequestServices.GetService(typeof(IBrandingBusiness)) as IBrandingBusiness;
+                if (brandingBusiness != null)
+                {
+                    Branding = brandingBusiness.GetActiveAsync().GetAwaiter().GetResult();
+                    if (!string.IsNullOrWhiteSpace(Branding?.LogoPath))
+                    {
+                        LogoPath = Branding.LogoPath;
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                var themeBusiness = HttpContext.RequestServices.GetService(typeof(IThemeSettingBusiness)) as IThemeSettingBusiness;
+                if (themeBusiness != null && UserData != null && UserData.UserId > 0)
+                {
+                    ThemeSetting = themeBusiness.GetByUserIdAsync(UserData.UserId).GetAwaiter().GetResult();
+                    ThemeStyle = ThemeStyleBuilder.Build(ThemeSetting);
+                }
+            }
+            catch
+            {
+            }
+        }
+
 
 
 
