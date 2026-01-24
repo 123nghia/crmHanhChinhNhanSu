@@ -64,6 +64,14 @@
                             </a>
                         </li>
                     }
+                    @if (Model.HasViewPermission("Contract"))
+                    {
+                        <li>
+                            <a href="/Contract">
+                                <i class="bi bi-circle"></i><span>Hop dong lao dong</span>
+                            </a>
+                        </li>
+                    }
                 </ul>
             </li>
         }
@@ -165,6 +173,15 @@
                 <a class="nav-link collapsed" href="/Meeting">
                     <i class="bi bi-door-open"></i>
                     <span>Đặt phòng họp</span>
+                </a>
+            </li>
+        }
+        @if (Model.HasViewPermission("ReportAnalytics"))
+        {
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="/ReportAnalytics">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Bao cao va phan tich</span>
                 </a>
             </li>
         }

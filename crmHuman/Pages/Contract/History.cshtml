@@ -1,0 +1,60 @@
+@{
+    var history = Model as IEnumerable<dynamic>;
+}
+
+<div class="modal-header">
+    <h5 class="modal-title">Lich su hop dong</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Thoi gian</th>
+                <th>Hanh dong</th>
+                <th>Loai hop dong</th>
+                <th>Ngay bat dau</th>
+                <th>Ngay ket thuc</th>
+                <th>Trang thai</th>
+                <th>Ghi chu</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (history != null)
+            {
+                foreach (var item in history)
+                {
+                    var createdText = "";
+                    if (item.CreateAt != null)
+                    {
+                        createdText = item.CreateAt.ToString("dd/MM/yyyy HH:mm");
+                    }
+                    var startText = "";
+                    var endText = "";
+                    if (item.StartDate != null)
+                    {
+                        startText = item.StartDate.ToString("dd/MM/yyyy");
+                    }
+                    if (item.EndDate != null)
+                    {
+                        endText = item.EndDate.ToString("dd/MM/yyyy");
+                    }
+                    <tr>
+                        <td>@createdText</td>
+                        <td>@item.Action</td>
+                        <td>@item.ContractTypeName</td>
+                        <td>@startText</td>
+                        <td>@endText</td>
+                        <td>@item.Status</td>
+                        <td>@item.Note</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
+</div>

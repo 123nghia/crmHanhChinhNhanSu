@@ -1,0 +1,168 @@
+@page
+@model ContractModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+}
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
+            <li class="breadcrumb-item active">Hop dong lao dong</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <form class="row g-3" method="get" action="/Contract">
+                        <div class="col-md-4">
+                            <label class="form-label">Tu ngay</label>
+                            <input value="@Model.RequestSearch.FromText" type="date" name="from" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Den ngay</label>
+                            <input value="@Model.RequestSearch.ToText" type="date" name="to" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tu khoa</label>
+                            <input type="text" value="@Model.RequestSearch.Token" name="token" class="form-control" placeholder="Ten nhan vien / username">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Loai hop dong</label>
+                            <select name="contractTypeCode" class="form-select">
+                                <option value="">Tat ca</option>
+                                @foreach (var item in Model.ContractTypes)
+                                {
+                                    if (item.Code == Model.RequestSearch.ContractTypeCode)
+                                    {
+                                        <option selected value="@item.Code">@item.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@item.Code">@item.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nhan vien</label>
+                            <select name="employeeId" class="form-select">
+                                <option value="">Tat ca</option>
+                                @foreach (var emp in Model.EmployeeList.Data)
+                                {
+                                    var empItem = emp as dynamic;
+                                    if (Model.RequestSearch.EmployeeId.HasValue && Model.RequestSearch.EmployeeId.Value == empItem.Id)
+                                    {
+                                        <option selected value="@empItem.Id">@empItem.UserName - @empItem.FullName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@empItem.Id">@empItem.UserName - @empItem.FullName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Trang thai</label>
+                            <input type="text" list="contractStatusList" value="@Model.RequestSearch.Status" name="status" class="form-control" placeholder="Tat ca">
+                            <datalist id="contractStatusList">
+                                @foreach (var status in Model.StatusSuggestions)
+                                {
+                                    <option value="@status"></option>
+                                }
+                            </datalist>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">Tim kiem</button>
+                            @if (Model.Permision.Add == true)
+                            {
+                                <button type="button" class="btn btn-primary" onclick="openFormContract(-1)">Them moi</button>
+                            }
+                        </div>
+                    </form>
+
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                @foreach (var item in Model.TableColumnText)
+                                {
+                                    <th>@item</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int i = 0;
+                            }
+                            @foreach (var itemData in Model.DataAll.Data)
+                            {
+                                var itemInfo = itemData as dynamic;
+                                var updateText = "";
+                                if (itemInfo.UpdateAt != null)
+                                {
+                                    updateText = itemInfo.UpdateAt.ToString("dd/MM/yyyy");
+                                }
+                                i++;
+                                <tr>
+                                    <td>@i</td>
+                                    <td>@itemInfo.UserName - @itemInfo.FullName</td>
+                                    <td>@itemInfo.ContractTypeName</td>
+                                    <td>@itemInfo.StartDateDisplay</td>
+                                    <td>@itemInfo.EndDateDisplay</td>
+                                    <td>@itemInfo.Status</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(itemInfo.FileUrl))
+                                        {
+                                            <a href="@itemInfo.FileUrl" target="_blank">Tai ve</a>
+                                        }
+                                        else
+                                        {
+                                            <span>-</span>
+                                        }
+                                    </td>
+                                    <td>@updateText</td>
+                                    <td>
+                                        @if (Model.Permision.Edit == true)
+                                        {
+                                            <a href="javascript:void(0)" onclick="openFormContract(@itemInfo.Id)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                        }
+                                        @if (Model.Permision.Delete == true)
+                                        {
+                                            <a href="javascript:void(0)" onclick="confirmDelete(@itemInfo.Id, 'Contract')">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </a>
+                                        }
+                                        <a href="javascript:void(0)" onclick="openContractHistory(@itemInfo.Id)">
+                                            <i class="bi bi-clock-history"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    @{ Html.RenderPartial("formSearch/pagination", Model); }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal fade" id="formModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="contentModal"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="historyModalContent"></div>
+    </div>
+</div>

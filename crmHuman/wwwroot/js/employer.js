@@ -568,6 +568,101 @@ function openFormGroupEdit(id = -1) {
         },
     });
 }
+
+function openFormContract(id = -1) {
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "GET",
+        url: '/Contract?handler=FormEdit&id=' + id,
+        success: function (data) {
+            $("#contentModal").empty();
+            $("#contentModal").append(data);
+            $('#formModal').modal('show');
+        },
+        error: function (jqXHR, exception) {
+        }
+    });
+}
+
+function saveContract(id) {
+    removeAllEror("contractForm");
+
+    var employeeId = getValueControl("cbEmployeeId");
+    var contractType = getValueControl("cbContractType");
+    var startDate = getValueControl("dtStartDate");
+    var endDate = getValueControl("dtEndDate");
+    var status = getValueControl("txtStatus");
+    var note = getValueControl("txtNote");
+
+    var fileInput = document.getElementById("fileContract");
+    if (employeeId == "" || employeeId == "-1") {
+        addError("cbEmployeeId", "Chon nhan vien");
+        return;
+    }
+    if (contractType == "") {
+        addError("cbContractType", "Chon loai hop dong");
+        return;
+    }
+    if (id < 1 && (!fileInput || fileInput.files.length < 1)) {
+        addError("fileContract", "Can tai file hop dong");
+        return;
+    }
+    if (id > 0 && fileInput && fileInput.files.length > 0) {
+        addError("fileContract", "File hop dong khong thay doi");
+        return;
+    }
+
+    var formData = new FormData();
+    formData.append("Id", id);
+    formData.append("EmployeeId", employeeId);
+    formData.append("ContractTypeCode", contractType);
+    formData.append("StartDate", startDate);
+    formData.append("EndDate", endDate);
+    formData.append("Status", status);
+    formData.append("Note", note);
+    if (fileInput && fileInput.files.length > 0) {
+        formData.append("ContractFile", fileInput.files[0]);
+    }
+
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "POST",
+        processData: false,
+        contentType: false,
+        url: '/Contract?handler=Add',
+        data: formData,
+        success: function (data) {
+            successAdd(id);
+        },
+        error: function (jqXHR, exception) {
+            showError(jqXHR);
+        }
+    });
+}
+
+function openContractHistory(id) {
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "GET",
+        url: '/Contract?handler=History&contractId=' + id,
+        success: function (data) {
+            $("#historyModalContent").empty();
+            $("#historyModalContent").append(data);
+            $('#historyModal').modal('show');
+        },
+        error: function (jqXHR, exception) {
+        }
+    });
+}
 function changePage(pageNumber) {
 
     var urlcurent = new URL(window.location.href);

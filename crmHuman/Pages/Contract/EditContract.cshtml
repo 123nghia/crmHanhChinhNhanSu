@@ -1,0 +1,118 @@
+@{
+    var contract = Model.Contract as dynamic;
+    var contractTypes = Model.ContractTypes as IEnumerable<dynamic>;
+    var employees = Model.Employees as IEnumerable<dynamic>;
+    var statusSuggestions = Model.StatusSuggestions as IEnumerable<string>;
+    var isNew = contract == null || contract.Id < 1;
+    var startDate = "";
+    var endDate = "";
+    if (contract != null && contract.StartDate != null)
+    {
+        startDate = ((DateTime)contract.StartDate).ToString("yyyy-MM-dd");
+    }
+    if (contract != null && contract.EndDate != null)
+    {
+        endDate = ((DateTime)contract.EndDate).ToString("yyyy-MM-dd");
+    }
+}
+
+<div class="modal-header">
+    <h5 class="modal-title">@(isNew ? "Them hop dong" : "Cap nhat hop dong")</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    <form id="contractForm" class="needs-validation" novalidate>
+        <div class="col-12 form-group">
+            <label class="form-label">Nhan vien</label>
+            <select id="cbEmployeeId" class="form-select">
+                <option value="">Chon nhan vien</option>
+                @foreach (var emp in employees)
+                {
+                    if (contract != null && contract.EmployeeId == emp.Id)
+                    {
+                        <option selected value="@emp.Id">@emp.UserName - @emp.FullName</option>
+                    }
+                    else
+                    {
+                        <option value="@emp.Id">@emp.UserName - @emp.FullName</option>
+                    }
+                }
+            </select>
+            <div class="invalid-feedback-cs"></div>
+        </div>
+
+        <div class="col-12 form-group">
+            <label class="form-label">Loai hop dong</label>
+            <select id="cbContractType" class="form-select">
+                <option value="">Chon loai</option>
+                @foreach (var type in contractTypes)
+                {
+                    if (contract != null && contract.ContractTypeCode == type.Code)
+                    {
+                        <option selected value="@type.Code">@type.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@type.Code">@type.Name</option>
+                    }
+                }
+            </select>
+            <div class="invalid-feedback-cs"></div>
+        </div>
+
+        <div class="row">
+            <div class="col-6 form-group">
+                <label class="form-label">Ngay bat dau</label>
+                <input type="date" id="dtStartDate" class="form-control" value="@startDate" />
+            </div>
+            <div class="col-6 form-group">
+                <label class="form-label">Ngay ket thuc</label>
+                <input type="date" id="dtEndDate" class="form-control" value="@endDate" />
+            </div>
+        </div>
+
+        <div class="col-12 form-group">
+            <label class="form-label">Trang thai</label>
+            <input type="text" id="txtStatus" class="form-control" list="contractStatusList" value="@(contract?.Status ?? "")" />
+            <datalist id="contractStatusList">
+                @foreach (var status in statusSuggestions)
+                {
+                    <option value="@status"></option>
+                }
+            </datalist>
+        </div>
+
+        <div class="col-12 form-group">
+            <label class="form-label">Ghi chu</label>
+            <textarea id="txtNote" class="form-control" style="height: 100px">@(contract?.Note ?? "")</textarea>
+        </div>
+
+        @if (isNew)
+        {
+            <div class="col-12 form-group">
+                <label class="form-label">File hop dong</label>
+                <input type="file" id="fileContract" class="form-control" />
+                <div class="invalid-feedback-cs"></div>
+            </div>
+        }
+        else
+        {
+            <div class="col-12 form-group">
+                <label class="form-label">File hop dong</label>
+                @if (!string.IsNullOrWhiteSpace(contract?.FileUrl))
+                {
+                    <div>
+                        <a href="@contract.FileUrl" target="_blank">Tai ve</a>
+                    </div>
+                }
+                <small class="text-muted">File hop dong khong thay doi sau khi tao.</small>
+            </div>
+        }
+    </form>
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
+    <button type="button" class="btn btn-primary" onclick="saveContract(@(contract?.Id ?? -1))">Luu</button>
+</div>

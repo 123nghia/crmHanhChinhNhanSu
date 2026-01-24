@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
+using Quartz;
 using Quartz.Impl;
 using System.Globalization;
 using VS.Human.Business;
 using crmHuman.Services;
+using crmHuman.ImpJob;
 
 namespace crmHuman
 {
@@ -75,16 +77,33 @@ namespace crmHuman
             app.UseMiddleware<AuditLogMiddleware>();
             app.MapRazorPages();
 
-            // Khởi chạy Quartz scheduler
+            // Khoi chay Quartz scheduler
             try 
             {
                 var scheduler = await StdSchedulerFactory.GetDefaultScheduler();
                 await scheduler.Start();
+
+                ContractExpiryJob.ServiceProvider = app.Services;
+                var jobKey = new JobKey("ContractExpiryJob");
+                if (!await scheduler.CheckExists(jobKey))
+                {
+                    var job = JobBuilder.Create<ContractExpiryJob>()
+                        .WithIdentity(jobKey)
+                        .UsingJobData("Days", 30)
+                        .Build();
+
+                    var trigger = TriggerBuilder.Create()
+                        .WithIdentity("ContractExpiryTrigger")
+                        .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(8, 0))
+                        .Build();
+
+                    await scheduler.ScheduleJob(job, trigger);
+                }
             }
             catch (Exception ex)
             {
                 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "Lỗi khi khởi chạy Quartz scheduler.");
+                logger.LogError(ex, "Loi khi khoi chay Quartz scheduler.");
             }
 
             app.Run();
