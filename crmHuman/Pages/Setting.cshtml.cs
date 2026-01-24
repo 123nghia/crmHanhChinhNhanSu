@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using crmHuman.Model;
+using crmHuman.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using System.IO;
@@ -14,10 +16,14 @@ namespace crmHuman.Pages
     {
         private readonly ILogger<SettingModel> _logger;
         private readonly IEmpBusiness _empBusiness;
+        private readonly IThemeSettingBusiness _themeSettingBusiness;
         private readonly IBrandingBusiness _brandingBusiness;
         private readonly IWebHostEnvironment _env;
         public Employee UserProfile;
         public EmployeeRequest RequestSearch { get; set; }
+
+        [BindProperty]
+        public ThemeSettingRequest ThemeForm { get; set; } = new ThemeSettingRequest();
 
         [BindProperty]
         public IFormFile? LogoFile { get; set; }
@@ -27,12 +33,14 @@ namespace crmHuman.Pages
 
         public SettingModel(ILogger<SettingModel> logger,
             IEmpBusiness empBusiness,
+            IThemeSettingBusiness themeSettingBusiness,
             IBrandingBusiness brandingBusiness,
             IWebHostEnvironment env
             )
         {
             _logger = logger;
             _empBusiness = empBusiness;
+            _themeSettingBusiness = themeSettingBusiness;
             _brandingBusiness = brandingBusiness;
             _env = env;
             TitlePage = "Thông tin nhân viên";
@@ -48,6 +56,38 @@ namespace crmHuman.Pages
             };
 
 
+        }
+
+        public async Task<IActionResult> OnPostSaveTheme()
+        {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Redirect("/Login");
+            }
+
+            GetInfoUser();
+            if (UserData == null || UserData.UserId < 1)
+            {
+                return Redirect("/Login");
+            }
+
+            var primary = ThemeStyleBuilder.NormalizeOrDefault(ThemeForm?.PrimaryColor, ThemeStyleBuilder.DefaultPrimary);
+            var button = ThemeStyleBuilder.NormalizeOrDefault(ThemeForm?.ButtonColor, primary);
+            var background = ThemeStyleBuilder.NormalizeOrDefault(ThemeForm?.BackgroundColor, ThemeStyleBuilder.DefaultBackground);
+
+            var setting = new UserThemeSetting
+            {
+                UserId = UserData.UserId,
+                PrimaryColor = primary,
+                ButtonColor = button,
+                BackgroundColor = background,
+                CreatedBy = UserData.UserId,
+                UpdatedBy = UserData.UserId
+            };
+
+            var ok = await _themeSettingBusiness.SaveAsync(setting);
+            TempData["ThemeSaved"] = ok ? "1" : "0";
+            return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostUpdateLogo()
@@ -190,11 +230,13 @@ namespace crmHuman.Pages
 
             }
             GetInfoUser();
-            if (UserData.RoleCode != "1")
-            {
-                return Redirect("/");
-            }
             UserProfile = await _empBusiness.GetById(UserData.UserId);
+
+            var themeSetting = await _themeSettingBusiness.GetByUserIdAsync(UserData.UserId);
+            var primary = ThemeStyleBuilder.NormalizeOrDefault(themeSetting?.PrimaryColor, ThemeStyleBuilder.DefaultPrimary);
+            ThemeForm.PrimaryColor = primary;
+            ThemeForm.ButtonColor = ThemeStyleBuilder.NormalizeOrDefault(themeSetting?.ButtonColor, primary);
+            ThemeForm.BackgroundColor = ThemeStyleBuilder.NormalizeOrDefault(themeSetting?.BackgroundColor, ThemeStyleBuilder.DefaultBackground);
 
             return Page();
         }

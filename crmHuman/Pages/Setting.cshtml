@@ -74,60 +74,98 @@
 
 <section class="section profile">
     <div class="row">
-     <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">Logo he thong</h5>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Ca nhan hoa giao dien</h5>
 
-            @if (TempData["LogoSaved"] != null)
-            {
-                var saved = TempData["LogoSaved"]?.ToString();
-                if (saved == "1")
+                @if (TempData["ThemeSaved"] != null)
                 {
-                    <div class="alert alert-success">Da cap nhat logo.</div>
+                    var saved = TempData["ThemeSaved"]?.ToString();
+                    if (saved == "1")
+                    {
+                        <div class="alert alert-success">Da luu cai dat giao dien.</div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger">Khong the luu cai dat giao dien.</div>
+                    }
                 }
-                else
-                {
-                    <div class="alert alert-danger">Khong the cap nhat logo.</div>
-                }
-            }
 
-            @if (TempData["LogoError"] != null)
-            {
-                var err = TempData["LogoError"]?.ToString();
-                if (err == "missing")
-                {
-                    <div class="alert alert-danger">Vui long chon file logo.</div>
-                }
-                else if (err == "size")
-                {
-                    <div class="alert alert-danger">Logo qua lon (toi da 2MB).</div>
-                }
-                else if (err == "type")
-                {
-                    <div class="alert alert-danger">Chi ho tro PNG/JPG.</div>
-                }
-                else
-                {
-                    <div class="alert alert-danger">Khong the cap nhat logo.</div>
-                }
-            }
-
-            <div class="mb-3">
-                <img src="@Model.LogoPath" alt="logo" style="max-height:80px;">
+                <form method="post" asp-page-handler="SaveTheme" class="row g-3">
+                    <div class="col-md-4 form-group">
+                        <label class="form-label" for="ThemeForm_PrimaryColor">Mau chu dao</label>
+                        <input type="color" class="form-control form-control-color" asp-for="ThemeForm.PrimaryColor">
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label class="form-label" for="ThemeForm_ButtonColor">Mau nut</label>
+                        <input type="color" class="form-control form-control-color" asp-for="ThemeForm.ButtonColor">
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label class="form-label" for="ThemeForm_BackgroundColor">Mau nen</label>
+                        <input type="color" class="form-control form-control-color" asp-for="ThemeForm.BackgroundColor">
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-primary" type="submit">Luu cai dat</button>
+                    </div>
+                </form>
             </div>
-
-            <form method="post" asp-page-handler="UpdateLogo" enctype="multipart/form-data" class="row g-3">
-                <div class="col-12 form-group">
-                    <label class="form-label" for="LogoFile">Chon logo (png/jpg, <= 2MB)</label>
-                    <input type="file" asp-for="LogoFile" class="form-control" accept=".png,.jpg,.jpeg">
-                </div>
-                <div class="col-12">
-                    <button class="btn btn-primary" type="submit">Cap nhat logo</button>
-                </div>
-            </form>
         </div>
-    </div>
 
-      
+        @if (Model.UserData?.RoleCode == "1")
+        {
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Logo he thong</h5>
+
+                    @if (TempData["LogoSaved"] != null)
+                    {
+                        var saved = TempData["LogoSaved"]?.ToString();
+                        if (saved == "1")
+                        {
+                            <div class="alert alert-success">Da cap nhat logo.</div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-danger">Khong the cap nhat logo.</div>
+                        }
+                    }
+
+                    @if (TempData["LogoError"] != null)
+                    {
+                        var err = TempData["LogoError"]?.ToString();
+                        if (err == "missing")
+                        {
+                            <div class="alert alert-danger">Vui long chon file logo.</div>
+                        }
+                        else if (err == "size")
+                        {
+                            <div class="alert alert-danger">Logo qua lon (toi da 2MB).</div>
+                        }
+                        else if (err == "type")
+                        {
+                            <div class="alert alert-danger">Chi ho tro PNG/JPG.</div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-danger">Khong the cap nhat logo.</div>
+                        }
+                    }
+
+                    <div class="mb-3">
+                        <img src="@Model.LogoPath" alt="logo" style="max-height:80px;">
+                    </div>
+
+                    <form method="post" asp-page-handler="UpdateLogo" enctype="multipart/form-data" class="row g-3">
+                        <div class="col-12 form-group">
+                            <label class="form-label" for="LogoFile">Chon logo (png/jpg, &lt;= 2MB)</label>
+                            <input type="file" asp-for="LogoFile" class="form-control" accept=".png,.jpg,.jpeg">
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-primary" type="submit">Cap nhat logo</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
     </div>
 </section>

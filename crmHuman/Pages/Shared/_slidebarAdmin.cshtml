@@ -87,7 +87,8 @@
                     {
                         <li>
                             <a href="/LateEarly/Request">
-                                <i class="bi bi-circle"></i><span>Xin phép đi trễ/về sớm</span>
+                                <i class="bi bi-circle"></i><span>Xin phép đi tr�
+/về sớm</span>
                             </a>
                         </li>
                     }
@@ -95,7 +96,8 @@
                     {
                         <li>
                             <a href="/LateEarly/Approval">
-                                <i class="bi bi-circle"></i><span>Duyệt đi trễ/về sớm</span>
+                                <i class="bi bi-circle"></i><span>Duyệt đi tr�
+/về sớm</span>
                             </a>
                         </li>
                     }
@@ -163,6 +165,16 @@
                 <a class="nav-link collapsed" href="/Meeting">
                     <i class="bi bi-door-open"></i>
                     <span>Đặt phòng họp</span>
+                </a>
+            </li>
+        }
+
+        @if (Model?.UserData?.RoleCode != "1")
+        {
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="/setting">
+                    <i class="bi bi-gear"></i>
+                    <span>Cai dat ca nhan</span>
                 </a>
             </li>
         }
