@@ -172,6 +172,46 @@ namespace crmHuman.Pages.Attendance
             }
         }
 
+        public async Task<IActionResult> OnPostSyncAttendanceFromMdb([FromForm] string? month)
+        {
+            if (!(Permision.Add ?? false))
+            {
+                return ApiResponseHelper.Error("No permission");
+            }
+
+            try
+            {
+                GetInfoUser();
+                var (fromDate, toDate, _) = ResolveMonth(month);
+                var syncResult = await _attendanceBusiness.SyncFromAccessAsync(fromDate, toDate, UserData.UserId);
+                var formattedErrors = syncResult.Errors
+                    .Select(e => (object)new { e.Row, e.Content })
+                    .ToList();
+                var response = new
+                {
+                    success = syncResult.TotalError == 0,
+                    syncResult.Total,
+                    syncResult.TotalSuccess,
+                    syncResult.TotalError,
+                    errors = formattedErrors
+                };
+
+                if (syncResult.TotalError > 0)
+                {
+                    var errs = string.Join(" | ", syncResult.Errors.Select(e => $"Row {e.Row}: {e.Content}"));
+                    _logger.LogWarning("Sync attendance failed: {Errors}", errs);
+                    return ApiResponseHelper.BadRequest(formattedErrors);
+                }
+
+                return ApiResponseHelper.SuccessResponse(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while syncing attendance");
+                return ApiResponseHelper.Error("Loi he thong khi dong bo. Vui long thu lai sau.");
+            }
+        }
+
         private bool IsFullAccessRole()
         {
             if (UserData == null)

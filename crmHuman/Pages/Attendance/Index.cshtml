@@ -116,11 +116,12 @@
                     <label class="form-label">Tu khoa</label>
                     <input type="text" class="form-control" name="token" value="@Model.RequestSearch.Token" placeholder="Ten, ma van tay" />
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">Xem</button>
+                <div class="col-md-3 d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Xem</button>
                     @if (canImport)
                     {
-                        <button type="button" class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#attendanceImportModal">Import</button>
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#attendanceImportModal">Import</button>
+                        <button type="button" class="btn btn-outline-primary" onclick="syncAttendanceFromMdb()">Dong bo may cong</button>
                     }
                 </div>
             </form>

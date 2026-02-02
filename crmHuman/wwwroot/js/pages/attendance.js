@@ -292,6 +292,47 @@ async function submitAttendanceImport() {
     }
 }
 
+async function syncAttendanceFromMdb() {
+    var monthInput = document.querySelector('input[name="month"]');
+    var month = monthInput ? monthInput.value : '';
+
+    if (!confirm('Dong bo cham cong tu file may cong?')) {
+        return;
+    }
+
+    var formData = new FormData();
+    if (month) {
+        formData.append('month', month);
+    }
+
+    try {
+        var response = await fetch('?handler=SyncAttendanceFromMdb', {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            },
+            body: formData
+        });
+
+        var result = await response.json();
+        if (response.ok && result.success) {
+            alert('Dong bo thanh cong. Tong: ' + (result.total || 0) + ', thanh cong: ' + (result.totalSuccess || 0));
+            location.reload();
+            return;
+        }
+
+        if (Array.isArray(result)) {
+            var message = result.map(function (item) { return item.Content || item.content; }).join('\n');
+            alert(message || 'Dong bo that bai');
+        } else {
+            alert(result.message || 'Dong bo that bai');
+        }
+    } catch (error) {
+        console.error(error);
+        alert('Loi he thong khi dong bo');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     var meta = document.getElementById('attendanceMeta');
     if (!meta) return;

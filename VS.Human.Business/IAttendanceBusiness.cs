@@ -8,6 +8,7 @@ namespace VS.Human.Business
         Task<BaseList> GetSummary(AttendanceRequest request);
         Task<List<AttendanceDetailModel>> GetDetails(int? employeeId, string? fingerprintCode, DateTime fromDate, DateTime toDate, int userId);
         Task<AttendanceImportResult> ImportAsync(IFormFile file, int userId);
+        Task<AttendanceImportResult> SyncFromAccessAsync(DateTime fromDate, DateTime toDate, int userId);
     }
 
     public class AttendanceImportResult
