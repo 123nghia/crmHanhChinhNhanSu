@@ -1,0 +1,146 @@
+﻿@page
+@model crmHuman.Pages.Attendance.CheckInOutModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+}
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="/Attendance">Chấm công</a></li>
+            <li class="breadcrumb-item active">Lịch sử quẹt thẻ</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="card">
+        <div class="card-body">
+            <form class="row g-3 align-items-end" method="get">
+                <div class="col-md-4">
+                    <label class="form-label">Từ khóa</label>
+                    <input type="text" class="form-control" name="q" value="@Model.SearchToken" placeholder="Tìm theo giá trị bất kỳ" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Nhân viên</label>
+                    <select class="form-select" name="emp">
+                        <option value="">Tất cả</option>
+                        @foreach (var employee in Model.Employees)
+                        {
+                            if (string.Equals(Model.SelectedEmployee, employee.Id, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@employee.Id" selected>@employee.Name (@employee.Id)</option>
+                            }
+                            else
+                            {
+                                <option value="@employee.Id">@employee.Name (@employee.Id)</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Số dòng/trang</label>
+                    <select class="form-select" name="ps">
+                        @{
+                            var sizes = new[] { 20, 50, 100, 200 };
+                            foreach (var size in sizes)
+                            {
+                                if (Model.PageSize == size)
+                                {
+                                    <option value="@size" selected>@size</option>
+                                }
+                                else
+                                {
+                                    <option value="@size">@size</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">Tìm</button>
+                </div>
+            </form>
+
+            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+            {
+                <div class="alert alert-warning">@Model.ErrorMessage</div>
+            }
+
+            @{
+                var tablesWithData = Model.Tables.Where(t => t.TotalCount > 0).ToList();
+                var tablesEmpty = Model.Tables.Where(t => t.TotalCount <= 0).ToList();
+            }
+
+            @foreach (var table in tablesWithData)
+            {
+                <div class="mt-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center">
+                        <h5 id="@table.Name">@((table.DisplayName ?? table.Name))</h5>
+                        <div class="text-muted">
+                            Tổng: @table.TotalCount | Trang: @table.Page
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(table.Error))
+                    {
+                        <div class="text-muted">@table.Error</div>
+                    }
+                    else if (table.Columns.Count == 0)
+                    {
+                        <div class="text-muted">Không có dữ liệu.</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm">
+                                <thead>
+                                    <tr>
+                                        @foreach (var col in table.Headers)
+                                        {
+                                            <th>@col</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in table.Rows)
+                                    {
+                                        <tr>
+                                            @for (var i = 0; i < table.Columns.Count; i++)
+                                            {
+                                                <td>@(i < row.Count ? row[i] : string.Empty)</td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            @{
+                                var prevPage = table.Page > 1 ? table.Page - 1 : 1;
+                                var nextPage = table.Page + 1;
+                            }
+                            <a class="btn btn-outline-secondary btn-sm" href="@Model.BuildPageLink(table.Name, prevPage)#@table.Name">Trang trước</a>
+                            <a class="btn btn-outline-secondary btn-sm" href="@Model.BuildPageLink(table.Name, nextPage)#@table.Name">Trang sau</a>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (tablesEmpty.Count > 0)
+            {
+                <div class="mt-4">
+                    <h5>Dữ liệu trống</h5>
+                    <ul class="text-muted">
+                        @foreach (var table in tablesEmpty)
+                        {
+                            <li>@((table.DisplayName ?? table.Name))</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </div>
+    </div>
+</section>

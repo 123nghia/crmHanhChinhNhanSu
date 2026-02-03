@@ -9,6 +9,7 @@ using System.Data.OleDb;
 using System.Globalization;
 using System.Linq;
 using System.IO;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.RegularExpressions;
 using VS.Human.Business.Imp;
@@ -57,6 +58,61 @@ namespace VS.Human.Business
             "name", "username", "fullname", "hoten", "ten"
         };
 
+        private static readonly string[] ScheduleIdColumns = new[]
+        {
+            "schid", "scheduleid", "schedule_id", "sch_id"
+        };
+
+        private static readonly string[] ScheduleNameColumns = new[]
+        {
+            "schname", "schedulename", "name"
+        };
+
+        private static readonly string[] ScheduleAbsentSatColumns = new[]
+        {
+            "isabsentsat", "absentsat", "isoffsat", "offsat"
+        };
+
+        private static readonly string[] ScheduleAbsentSunColumns = new[]
+        {
+            "isabsentsun", "absentsun", "isoffsun", "offsun"
+        };
+
+        private static readonly string[] ShiftIdColumns = new[]
+        {
+            "shiftid", "shift_id", "id"
+        };
+
+        private static readonly string[] ShiftCodeColumns = new[]
+        {
+            "shiftcode", "code"
+        };
+
+        private static readonly string[] ShiftNameColumns = new[]
+        {
+            "shiftname", "name"
+        };
+
+        private static readonly string[] WeekScheduleDayColumns = new[]
+        {
+            "dayid", "day_id", "dayofweek", "day"
+        };
+
+        private static readonly string[] TempScheduleUserColumns = new[]
+        {
+            "userenrollnumber", "userid", "user_id", "enrollnumber", "badgenumber"
+        };
+
+        private static readonly string[] TempScheduleStartColumns = new[]
+        {
+            "bdate", "startdate", "begindate", "fromdate", "sdate"
+        };
+
+        private static readonly string[] TempScheduleEndColumns = new[]
+        {
+            "edate", "enddate", "todate"
+        };
+
         private static readonly Dictionary<string, string> HeaderAliases = new(StringComparer.OrdinalIgnoreCase)
         {
             { "manv", "FingerprintCode" },
@@ -96,11 +152,21 @@ namespace VS.Human.Business
 
         public async Task<BaseList> GetSummary(AttendanceRequest request)
         {
+            if (UseAccessRealtime() && OperatingSystem.IsWindows())
+            {
+                return await GetSummaryFromAccess(request);
+            }
+
             return await _unitOfWork.AttendanceRep.GetSummary(request);
         }
 
         public async Task<List<AttendanceDetailModel>> GetDetails(int? employeeId, string? fingerprintCode, DateTime fromDate, DateTime toDate, int userId)
         {
+            if (UseAccessRealtime() && OperatingSystem.IsWindows())
+            {
+                return await GetDetailsFromAccess(employeeId, fingerprintCode, fromDate, toDate);
+            }
+
             return await _unitOfWork.AttendanceRep.GetDetails(employeeId, fingerprintCode, fromDate, toDate, userId);
         }
 
@@ -230,8 +296,15 @@ namespace VS.Human.Business
             return result;
         }
 
+        [SupportedOSPlatform("windows")]
         public async Task<AttendanceImportResult> SyncFromAccessAsync(DateTime fromDate, DateTime toDate, int userId)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                var notSupported = new AttendanceImportResult();
+                return ErrorResult(notSupported, "Chuc nang dong bo Access chi ho tro tren Windows");
+            }
+
             var result = new AttendanceImportResult();
             var options = GetMachineOptions();
 
@@ -388,6 +461,311 @@ namespace VS.Human.Business
             }
 
             return result;
+        }
+
+        [SupportedOSPlatform("windows")]
+        private async Task<BaseList> GetSummaryFromAccess(AttendanceRequest request)
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                return new BaseList();
+            }
+
+            var result = new BaseList();
+            var options = GetMachineOptions();
+
+            if (string.IsNullOrWhiteSpace(options.DbPath))
+            {
+                return result;
+            }
+
+            if (!File.Exists(options.DbPath))
+            {
+                return result;
+            }
+
+                var (fromDate, toDate) = NormalizeDateRange(request.From, request.To);
+
+            if (!TryOpenAccessConnection(options, out var connection, out _))
+            {
+                return result;
+            }
+
+            using (connection)
+            {
+                var tables = GetTableNames(connection);
+                if (tables.Count == 0)
+                {
+                    return result;
+                }
+
+                var columnsByTable = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                foreach (var table in tables)
+                {
+                    columnsByTable[table] = GetColumnNames(connection, table);
+                }
+
+                var logSchema = ResolveLogTableSchema(options, columnsByTable);
+                if (logSchema == null)
+                {
+                    return result;
+                }
+
+                var userSchema = ResolveUserTableSchema(options, columnsByTable);
+                var userMap = LoadUserMap(connection, userSchema);
+
+                string? requestedFingerprint = string.IsNullOrWhiteSpace(request.FingerprintCode)
+                    ? null
+                    : request.FingerprintCode.Trim();
+                int? requestedEmployeeId = request.EmployeeId;
+                if (requestedEmployeeId.HasValue && requestedEmployeeId.Value > 0)
+                {
+                    var employee = await _unitOfWork.EmployeeRep.GetById(requestedEmployeeId.Value);
+                    requestedFingerprint = employee?.FingerprintCode;
+                }
+
+                var aggregates = LoadAggregates(connection, logSchema, userMap, fromDate, toDate);
+                var grouped = aggregates.Values
+                    .GroupBy(a => a.FingerprintCode, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+                var items = new List<AttendanceSummaryIndexModel>();
+                var token = request.Token?.Trim();
+                var tokenLower = string.IsNullOrWhiteSpace(token) ? null : token.ToLowerInvariant();
+
+                var employeeRequest = new EmployeeRequest
+                {
+                    Page = 1,
+                    Limit = 10000,
+                    UserId = request.UserId,
+                    Token = token,
+                    IsDeleted = false
+                };
+
+                var employeeList = await _unitOfWork.EmployeeRep.GetAll(employeeRequest);
+                var employees = employeeList.Data?.OfType<EmployeeIndexModel>().ToList() ?? new List<EmployeeIndexModel>();
+                var employeeMap = new Dictionary<string, EmployeeIndexModel>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var employee in employees)
+                {
+                    if (string.IsNullOrWhiteSpace(employee.FingerprintCode))
+                    {
+                        continue;
+                    }
+
+                    var fingerprint = employee.FingerprintCode.Trim();
+                    if (!employeeMap.ContainsKey(fingerprint))
+                    {
+                        employeeMap[fingerprint] = employee;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(requestedFingerprint) &&
+                        !string.Equals(requestedFingerprint, fingerprint, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(tokenLower))
+                    {
+                        var fingerprintLower = fingerprint.ToLowerInvariant();
+                        var nameLower = (employee.FullName ?? string.Empty).ToLowerInvariant();
+                        if (!fingerprintLower.Contains(tokenLower) && !nameLower.Contains(tokenLower))
+                        {
+                            continue;
+                        }
+                    }
+
+                    var summary = new AttendanceSummaryIndexModel
+                    {
+                        EmployeeId = employee.Id,
+                        FingerprintCode = fingerprint,
+                        FullName = employee.FullName,
+                        DepartmentText = employee.DepartmentText,
+                        PositionText = employee.PositionText,
+                        TotalWorkDays = 0,
+                        TotalWorkHours = 0,
+                        TotalOvertimeHours = 0,
+                        TotalHours = 0,
+                        LateCount = 0,
+                        LateMinutes = 0,
+                        EarlyCount = 0,
+                        EarlyMinutes = 0,
+                        OffCount = 0
+                    };
+
+                    items.Add(summary);
+                }
+
+                foreach (var kvp in grouped)
+                {
+                    var fingerprint = kvp.Key;
+                    var group = kvp.Value;
+
+                    if (!string.IsNullOrWhiteSpace(requestedFingerprint) &&
+                        !string.Equals(requestedFingerprint, fingerprint, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (!employeeMap.TryGetValue(fingerprint, out var employee))
+                    {
+                        if (!string.IsNullOrWhiteSpace(tokenLower))
+                        {
+                            var fingerprintLower = fingerprint.ToLowerInvariant();
+                            if (!fingerprintLower.Contains(tokenLower))
+                            {
+                                continue;
+                            }
+                        }
+                    }
+
+                    var totalHours = group.Sum(x => CalculateWorkHours(x) ?? 0m);
+                    var totalDays = group.Count;
+
+                    var existing = items.FirstOrDefault(x => string.Equals(x.FingerprintCode, fingerprint, StringComparison.OrdinalIgnoreCase));
+                    if (existing != null)
+                    {
+                        existing.TotalWorkDays = totalDays;
+                        existing.TotalWorkHours = totalHours;
+                        existing.TotalHours = totalHours;
+                        continue;
+                    }
+
+                    var nameFromAccess = group.Select(x => x.EmployeeName).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+                    var fullName = employee?.FullName ?? nameFromAccess ?? string.Empty;
+                    var computedId = ComputeStableEmployeeId(fingerprint);
+
+                    items.Add(new AttendanceSummaryIndexModel
+                    {
+                        EmployeeId = employee?.Id ?? computedId,
+                        FingerprintCode = fingerprint,
+                        FullName = string.IsNullOrWhiteSpace(fullName) ? null : fullName,
+                        DepartmentText = employee?.DepartmentText,
+                        PositionText = employee?.PositionText,
+                        TotalWorkDays = totalDays,
+                        TotalWorkHours = totalHours,
+                        TotalOvertimeHours = 0,
+                        TotalHours = totalHours,
+                        LateCount = 0,
+                        LateMinutes = 0,
+                        EarlyCount = 0,
+                        EarlyMinutes = 0,
+                        OffCount = 0
+                    });
+                }
+
+                items = items
+                    .OrderBy(x => x.FullName ?? x.FingerprintCode)
+                    .ToList();
+
+                result.Total = items.Count;
+                result.Data = items;
+                return result;
+            }
+        }
+
+        [SupportedOSPlatform("windows")]
+        private async Task<List<AttendanceDetailModel>> GetDetailsFromAccess(int? employeeId, string? fingerprintCode, DateTime fromDate, DateTime toDate)
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                return new List<AttendanceDetailModel>();
+            }
+
+            var options = GetMachineOptions();
+            var results = new List<AttendanceDetailModel>();
+
+            if (string.IsNullOrWhiteSpace(options.DbPath))
+            {
+                return results;
+            }
+
+            if (!File.Exists(options.DbPath))
+            {
+                return results;
+            }
+
+            var (from, to) = NormalizeDateRange(fromDate, toDate);
+
+            string? targetFingerprint = fingerprintCode;
+            if (employeeId.HasValue && employeeId.Value > 0)
+            {
+                var employee = await _unitOfWork.EmployeeRep.GetById(employeeId.Value);
+                targetFingerprint = employee?.FingerprintCode;
+            }
+
+            if (!TryOpenAccessConnection(options, out var connection, out _))
+            {
+                return results;
+            }
+
+            using (connection)
+            {
+                var tables = GetTableNames(connection);
+                if (tables.Count == 0)
+                {
+                    return results;
+                }
+
+                var columnsByTable = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                foreach (var table in tables)
+                {
+                    columnsByTable[table] = GetColumnNames(connection, table);
+                }
+
+                var logSchema = ResolveLogTableSchema(options, columnsByTable);
+                if (logSchema == null)
+                {
+                    return results;
+                }
+
+                var userSchema = ResolveUserTableSchema(options, columnsByTable);
+                var userMap = LoadUserMap(connection, userSchema);
+                var scheduleContext = LoadScheduleContext(connection, columnsByTable);
+
+                var aggregates = LoadAggregates(connection, logSchema, userMap, from, to);
+
+                foreach (var aggregate in aggregates.Values)
+                {
+                    if (!string.IsNullOrWhiteSpace(targetFingerprint) &&
+                        !string.Equals(aggregate.FingerprintCode, targetFingerprint, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (employeeId.HasValue && employeeId.Value < 0)
+                    {
+                        var computedId = ComputeStableEmployeeId(aggregate.FingerprintCode);
+                        if (employeeId.Value != computedId)
+                        {
+                            continue;
+                        }
+                    }
+
+                    var workHours = CalculateWorkHours(aggregate);
+                    var scheduleInfo = scheduleContext.GetScheduleInfo(aggregate.UserInfo, aggregate.WorkDate);
+                    results.Add(new AttendanceDetailModel
+                    {
+                        WorkDate = aggregate.WorkDate,
+                        DayName = GetDayName(aggregate.WorkDate),
+                        CheckIn = aggregate.FirstTime,
+                        CheckOut = aggregate.PunchCount > 1 ? aggregate.LastTime : null,
+                        WorkDay = aggregate.PunchCount > 0 ? 1 : 0,
+                        WorkHours = workHours,
+                        WorkDayPlus = 0,
+                        WorkHoursPlus = 0,
+                        LateMinutes = 0,
+                        EarlyMinutes = 0,
+                        ShiftName = scheduleInfo.ShiftCode,
+                        Symbol = scheduleInfo.WeekendSymbol,
+                        SymbolPlus = null,
+                        TotalHours = workHours,
+                        FingerprintCode = aggregate.FingerprintCode
+                    });
+                }
+            }
+
+            return results.OrderBy(x => x.WorkDate).ToList();
         }
 
         private static string GetValue(Dictionary<string, int> headerMap, List<string> values, string key)
@@ -599,6 +977,12 @@ namespace VS.Human.Business
             return options;
         }
 
+        private bool UseAccessRealtime()
+        {
+            return _configuration.GetValue<bool>("AttendanceMachine:UseAccessRealtime");
+        }
+
+        [SupportedOSPlatform("windows")]
         private static bool TryOpenAccessConnection(AttendanceMachineOptions options, out OleDbConnection? connection, out string error)
         {
             connection = null;
@@ -635,6 +1019,7 @@ namespace VS.Human.Business
             return false;
         }
 
+        [SupportedOSPlatform("windows")]
         private static string BuildConnectionString(string provider, string dbPath, string? password)
         {
             var builder = new OleDbConnectionStringBuilder
@@ -652,6 +1037,7 @@ namespace VS.Human.Business
             return builder.ConnectionString;
         }
 
+        [SupportedOSPlatform("windows")]
         private static List<string> GetTableNames(OleDbConnection connection)
         {
             var tables = new List<string>();
@@ -676,6 +1062,7 @@ namespace VS.Human.Business
             return tables;
         }
 
+        [SupportedOSPlatform("windows")]
         private static List<string> GetColumnNames(OleDbConnection connection, string tableName)
         {
             var columns = new List<string>();
@@ -767,7 +1154,8 @@ namespace VS.Human.Business
                     return null;
                 }
 
-                return new UserTableSchema(options.UserTable, userIdColumn, fingerprintColumn, nameColumn);
+                var scheduleColumn = ResolveColumn(columns, options.UserScheduleColumn, ScheduleIdColumns);
+                return new UserTableSchema(options.UserTable, userIdColumn, fingerprintColumn, nameColumn, scheduleColumn);
             }
 
             UserTableSchema? best = null;
@@ -786,6 +1174,7 @@ namespace VS.Human.Business
 
                 var fingerprintColumn = ResolveColumn(columns, null, UserFingerprintColumns);
                 var nameColumn = ResolveColumn(columns, null, UserNameColumns);
+                var scheduleColumn = ResolveColumn(columns, options.UserScheduleColumn, ScheduleIdColumns);
 
                 if (string.IsNullOrWhiteSpace(fingerprintColumn) && string.IsNullOrWhiteSpace(nameColumn))
                 {
@@ -813,7 +1202,7 @@ namespace VS.Human.Business
                 if (score > bestScore)
                 {
                     bestScore = score;
-                    best = new UserTableSchema(tableName, userIdColumn, fingerprintColumn, nameColumn);
+                    best = new UserTableSchema(tableName, userIdColumn, fingerprintColumn, nameColumn, scheduleColumn);
                 }
             }
 
@@ -851,6 +1240,7 @@ namespace VS.Human.Business
             return hints.Any(hint => normalized.Contains(hint));
         }
 
+        [SupportedOSPlatform("windows")]
         private static Dictionary<string, MachineUserInfo> LoadUserMap(OleDbConnection connection, UserTableSchema? schema)
         {
             var map = new Dictionary<string, MachineUserInfo>(StringComparer.OrdinalIgnoreCase);
@@ -868,6 +1258,11 @@ namespace VS.Human.Business
             if (!string.IsNullOrWhiteSpace(schema.NameColumn))
             {
                 selectColumns.Add(schema.NameColumn);
+            }
+
+            if (!string.IsNullOrWhiteSpace(schema.ScheduleColumn))
+            {
+                selectColumns.Add(schema.ScheduleColumn);
             }
 
             var selectList = string.Join(", ", selectColumns.Select(col => $"[{col}]"));
@@ -892,6 +1287,7 @@ namespace VS.Human.Business
                 var index = 1;
                 string? fingerprint = null;
                 string? name = null;
+                int? scheduleId = null;
 
                 if (!string.IsNullOrWhiteSpace(schema.FingerprintColumn))
                 {
@@ -903,10 +1299,17 @@ namespace VS.Human.Business
                     name = GetReaderValue(reader, index++);
                 }
 
+                if (!string.IsNullOrWhiteSpace(schema.ScheduleColumn))
+                {
+                    scheduleId = TryGetInt(reader.GetValue(index++));
+                }
+
                 var info = new MachineUserInfo
                 {
+                    UserId = rawUserId.Trim(),
                     FingerprintCode = string.IsNullOrWhiteSpace(fingerprint) ? null : fingerprint.Trim(),
-                    Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim()
+                    Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim(),
+                    ScheduleId = scheduleId
                 };
 
                 AddUserMap(map, rawUserId, normalized, info);
@@ -947,18 +1350,7 @@ namespace VS.Human.Business
         {
             var checkIn = aggregate.FirstTime;
             var checkOut = aggregate.PunchCount > 1 ? aggregate.LastTime : null;
-            decimal? workHours = null;
-
-            if (checkIn.HasValue && checkOut.HasValue)
-            {
-                var duration = checkOut.Value - checkIn.Value;
-                if (duration < TimeSpan.Zero)
-                {
-                    duration = duration.Add(TimeSpan.FromDays(1));
-                }
-
-                workHours = Math.Round((decimal)duration.TotalHours, 2);
-            }
+            var workHours = CalculateWorkHours(aggregate);
 
             var record = new AttendanceRecord
             {
@@ -975,6 +1367,143 @@ namespace VS.Human.Business
             };
 
             return record;
+        }
+
+        [SupportedOSPlatform("windows")]
+        private static Dictionary<string, AttendanceAggregate> LoadAggregates(
+            OleDbConnection connection,
+            LogTableSchema logSchema,
+            Dictionary<string, MachineUserInfo> userMap,
+            DateTime fromDate,
+            DateTime toDate)
+        {
+            var aggregates = new Dictionary<string, AttendanceAggregate>(StringComparer.OrdinalIgnoreCase);
+            var fromDateOnly = fromDate.Date;
+            var toExclusive = toDate.Date.AddDays(1);
+
+            var logQuery = $"SELECT [{logSchema.UserIdColumn}], [{logSchema.TimeColumn}] FROM [{logSchema.TableName}] " +
+                           $"WHERE [{logSchema.TimeColumn}] >= ? AND [{logSchema.TimeColumn}] < ? " +
+                           $"ORDER BY [{logSchema.TimeColumn}]";
+
+            using var command = new OleDbCommand(logQuery, connection);
+            command.Parameters.Add(new OleDbParameter { OleDbType = OleDbType.Date, Value = fromDateOnly });
+            command.Parameters.Add(new OleDbParameter { OleDbType = OleDbType.Date, Value = toExclusive });
+
+            using var reader = command.ExecuteReader();
+            if (reader == null)
+            {
+                return aggregates;
+            }
+
+            while (reader.Read())
+            {
+                var rawUserId = GetReaderValue(reader, 0);
+                if (string.IsNullOrWhiteSpace(rawUserId))
+                {
+                    continue;
+                }
+
+                var normalizedUserId = NormalizeUserId(rawUserId);
+                if (!TryGetDateTime(reader.GetValue(1), out var checkTime))
+                {
+                    continue;
+                }
+
+                if (checkTime < fromDateOnly || checkTime >= toExclusive)
+                {
+                    continue;
+                }
+
+                var userInfo = FindUserInfo(userMap, rawUserId, normalizedUserId);
+                var fingerprint = userInfo?.FingerprintCode;
+                if (string.IsNullOrWhiteSpace(fingerprint))
+                {
+                    fingerprint = rawUserId;
+                }
+
+                fingerprint = fingerprint.Trim();
+                if (string.IsNullOrWhiteSpace(fingerprint))
+                {
+                    continue;
+                }
+
+                var workDate = checkTime.Date;
+                var key = fingerprint + "|" + workDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                if (!aggregates.TryGetValue(key, out var aggregate))
+                {
+                    aggregate = new AttendanceAggregate(fingerprint, workDate);
+                    aggregates[key] = aggregate;
+                }
+
+                if (string.IsNullOrWhiteSpace(aggregate.EmployeeName))
+                {
+                    aggregate.EmployeeName = userInfo?.Name;
+                }
+
+                if (aggregate.UserInfo == null && userInfo != null)
+                {
+                    aggregate.UserInfo = userInfo;
+                }
+
+                aggregate.Update(checkTime.TimeOfDay);
+            }
+
+            return aggregates;
+        }
+
+        private static (DateTime from, DateTime to) NormalizeDateRange(DateTime? fromDate, DateTime? toDate)
+        {
+            if (!fromDate.HasValue || !toDate.HasValue || fromDate.Value == DateTime.MinValue || toDate.Value == DateTime.MinValue)
+            {
+                var now = DateTime.Today;
+                var from = new DateTime(now.Year, now.Month, 1);
+                var to = from.AddMonths(1).AddDays(-1);
+                return (from, to);
+            }
+
+            if (fromDate.Value > toDate.Value)
+            {
+                return (toDate.Value.Date, fromDate.Value.Date);
+            }
+
+            return (fromDate.Value.Date, toDate.Value.Date);
+        }
+
+        private static decimal? CalculateWorkHours(AttendanceAggregate aggregate)
+        {
+            if (!aggregate.FirstTime.HasValue || !aggregate.LastTime.HasValue)
+            {
+                return null;
+            }
+
+            var duration = aggregate.LastTime.Value - aggregate.FirstTime.Value;
+            if (duration < TimeSpan.Zero)
+            {
+                duration = duration.Add(TimeSpan.FromDays(1));
+            }
+
+            return Math.Round((decimal)duration.TotalHours, 2);
+        }
+
+        private static int ComputeStableEmployeeId(string fingerprint)
+        {
+            if (string.IsNullOrWhiteSpace(fingerprint))
+            {
+                return -1;
+            }
+
+            unchecked
+            {
+                uint hash = 2166136261;
+                foreach (var ch in fingerprint.ToUpperInvariant())
+                {
+                    hash ^= ch;
+                    hash *= 16777619;
+                }
+
+                var stable = (int)(hash % int.MaxValue);
+                return stable >= 0 ? -(stable + 1) : stable;
+            }
         }
 
         private static string NormalizeUserId(string rawUserId)
@@ -1044,6 +1573,103 @@ namespace VS.Human.Business
             return false;
         }
 
+        private static int? TryGetInt(object? value)
+        {
+            if (value == null || value == DBNull.Value)
+            {
+                return null;
+            }
+
+            if (value is int intValue)
+            {
+                return intValue;
+            }
+
+            if (value is short shortValue)
+            {
+                return shortValue;
+            }
+
+            if (value is long longValue)
+            {
+                return (int)longValue;
+            }
+
+            if (value is decimal decimalValue)
+            {
+                return (int)decimalValue;
+            }
+
+            if (value is double doubleValue)
+            {
+                return (int)doubleValue;
+            }
+
+            var text = Convert.ToString(value, CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            {
+                return parsed;
+            }
+
+            if (int.TryParse(text, NumberStyles.Integer, new CultureInfo("vi-VN"), out parsed))
+            {
+                return parsed;
+            }
+
+            return null;
+        }
+
+        private static bool? TryGetBool(object? value)
+        {
+            if (value == null || value == DBNull.Value)
+            {
+                return null;
+            }
+
+            if (value is bool boolValue)
+            {
+                return boolValue;
+            }
+
+            if (value is short shortValue)
+            {
+                return shortValue != 0;
+            }
+
+            if (value is int intValue)
+            {
+                return intValue != 0;
+            }
+
+            if (value is long longValue)
+            {
+                return longValue != 0;
+            }
+
+            var text = Convert.ToString(value, CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            if (bool.TryParse(text, out var parsedBool))
+            {
+                return parsedBool;
+            }
+
+            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedInt))
+            {
+                return parsedInt != 0;
+            }
+
+            return null;
+        }
+
         private static string GetDayName(DateTime workDate)
         {
             return workDate.DayOfWeek switch
@@ -1056,6 +1682,367 @@ namespace VS.Human.Business
                 DayOfWeek.Saturday => "Thu 7",
                 _ => "CN"
             };
+        }
+
+        [SupportedOSPlatform("windows")]
+        private static ScheduleContext LoadScheduleContext(OleDbConnection connection, Dictionary<string, List<string>> columnsByTable)
+        {
+            var context = new ScheduleContext();
+
+            var scheduleTable = FindTableName(columnsByTable, "Schedule", "Schedules");
+            if (!string.IsNullOrWhiteSpace(scheduleTable))
+            {
+                var columns = columnsByTable[scheduleTable];
+                var scheduleIdColumn = ResolveColumn(columns, null, ScheduleIdColumns);
+                if (!string.IsNullOrWhiteSpace(scheduleIdColumn))
+                {
+                    var scheduleNameColumn = ResolveColumn(columns, null, ScheduleNameColumns);
+                    var absentSatColumn = ResolveColumn(columns, null, ScheduleAbsentSatColumns);
+                    var absentSunColumn = ResolveColumn(columns, null, ScheduleAbsentSunColumns);
+
+                    var selectColumns = new List<string> { scheduleIdColumn };
+                    if (!string.IsNullOrWhiteSpace(scheduleNameColumn))
+                    {
+                        selectColumns.Add(scheduleNameColumn);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(absentSatColumn))
+                    {
+                        selectColumns.Add(absentSatColumn);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(absentSunColumn))
+                    {
+                        selectColumns.Add(absentSunColumn);
+                    }
+
+                    var selectList = string.Join(", ", selectColumns.Select(col => $"[{col}]"));
+                    using var command = new OleDbCommand($"SELECT {selectList} FROM [{scheduleTable}]", connection);
+                    using var reader = command.ExecuteReader();
+                    if (reader != null)
+                    {
+                        while (reader.Read())
+                        {
+                            var scheduleId = TryGetInt(reader.GetValue(0));
+                            if (!scheduleId.HasValue)
+                            {
+                                continue;
+                            }
+
+                            var index = 1;
+                            string? name = null;
+                            bool? absentSat = null;
+                            bool? absentSun = null;
+
+                            if (!string.IsNullOrWhiteSpace(scheduleNameColumn))
+                            {
+                                name = GetReaderValue(reader, index++);
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(absentSatColumn))
+                            {
+                                absentSat = TryGetBool(reader.GetValue(index++));
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(absentSunColumn))
+                            {
+                                absentSun = TryGetBool(reader.GetValue(index++));
+                            }
+
+                            context.Schedules[scheduleId.Value] = new ScheduleInfo
+                            {
+                                Name = name,
+                                IsAbsentSat = absentSat,
+                                IsAbsentSun = absentSun
+                            };
+                        }
+                    }
+                }
+            }
+
+            var shiftTable = FindTableName(columnsByTable, "Shifts", "Shift");
+            if (!string.IsNullOrWhiteSpace(shiftTable))
+            {
+                var columns = columnsByTable[shiftTable];
+                var shiftIdColumn = ResolveColumn(columns, null, ShiftIdColumns);
+                if (!string.IsNullOrWhiteSpace(shiftIdColumn))
+                {
+                    var shiftCodeColumn = ResolveColumn(columns, null, ShiftCodeColumns);
+                    var shiftNameColumn = ResolveColumn(columns, null, ShiftNameColumns);
+
+                    var selectColumns = new List<string> { shiftIdColumn };
+                    if (!string.IsNullOrWhiteSpace(shiftCodeColumn))
+                    {
+                        selectColumns.Add(shiftCodeColumn);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(shiftNameColumn) &&
+                        !string.Equals(shiftNameColumn, shiftCodeColumn, StringComparison.OrdinalIgnoreCase))
+                    {
+                        selectColumns.Add(shiftNameColumn);
+                    }
+
+                    var selectList = string.Join(", ", selectColumns.Select(col => $"[{col}]"));
+                    using var command = new OleDbCommand($"SELECT {selectList} FROM [{shiftTable}]", connection);
+                    using var reader = command.ExecuteReader();
+                    if (reader != null)
+                    {
+                        while (reader.Read())
+                        {
+                            var shiftId = TryGetInt(reader.GetValue(0));
+                            if (!shiftId.HasValue)
+                            {
+                                continue;
+                            }
+
+                            var index = 1;
+                            string? code = null;
+                            string? name = null;
+
+                            if (!string.IsNullOrWhiteSpace(shiftCodeColumn))
+                            {
+                                code = GetReaderValue(reader, index++);
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(shiftNameColumn) &&
+                                !string.Equals(shiftNameColumn, shiftCodeColumn, StringComparison.OrdinalIgnoreCase))
+                            {
+                                name = GetReaderValue(reader, index++);
+                            }
+
+                            var finalName = !string.IsNullOrWhiteSpace(code) ? code : name;
+                            if (!string.IsNullOrWhiteSpace(finalName))
+                            {
+                                context.Shifts[shiftId.Value] = finalName.Trim();
+                            }
+                        }
+                    }
+                }
+            }
+
+            var wScheduleTable = FindTableName(columnsByTable, "WSchedules", "WSchedule", "WShifts", "WShift");
+            if (!string.IsNullOrWhiteSpace(wScheduleTable))
+            {
+                var columns = columnsByTable[wScheduleTable];
+                var scheduleIdColumn = ResolveColumn(columns, null, ScheduleIdColumns);
+                var dayIdColumn = ResolveColumn(columns, null, WeekScheduleDayColumns);
+                var shiftIdColumn = ResolveColumn(columns, null, ShiftIdColumns);
+                if (!string.IsNullOrWhiteSpace(scheduleIdColumn) &&
+                    !string.IsNullOrWhiteSpace(dayIdColumn) &&
+                    !string.IsNullOrWhiteSpace(shiftIdColumn))
+                {
+                    var selectList = string.Join(", ", new[] { scheduleIdColumn, dayIdColumn, shiftIdColumn }
+                        .Select(col => $"[{col}]"));
+                    using var command = new OleDbCommand($"SELECT {selectList} FROM [{wScheduleTable}]", connection);
+                    using var reader = command.ExecuteReader();
+                    if (reader != null)
+                    {
+                        while (reader.Read())
+                        {
+                            var scheduleId = TryGetInt(reader.GetValue(0));
+                            var dayId = TryGetInt(reader.GetValue(1));
+                            var shiftId = TryGetInt(reader.GetValue(2));
+                            if (!scheduleId.HasValue || !dayId.HasValue || !shiftId.HasValue)
+                            {
+                                continue;
+                            }
+
+                            var key = (scheduleId.Value, dayId.Value);
+                            context.WeekSchedules[key] = shiftId.Value;
+                        }
+                    }
+                }
+            }
+
+            var tempScheduleTable = FindTableName(columnsByTable, "UserTempSch", "UserTempSchedule", "TempSchedule");
+            if (!string.IsNullOrWhiteSpace(tempScheduleTable))
+            {
+                var columns = columnsByTable[tempScheduleTable];
+                var userIdColumn = ResolveColumn(columns, null, TempScheduleUserColumns);
+                var scheduleIdColumn = ResolveColumn(columns, null, ScheduleIdColumns);
+                var startColumn = ResolveColumn(columns, null, TempScheduleStartColumns);
+                var endColumn = ResolveColumn(columns, null, TempScheduleEndColumns);
+                if (!string.IsNullOrWhiteSpace(userIdColumn) &&
+                    !string.IsNullOrWhiteSpace(scheduleIdColumn) &&
+                    !string.IsNullOrWhiteSpace(startColumn) &&
+                    !string.IsNullOrWhiteSpace(endColumn))
+                {
+                    var selectList = string.Join(", ", new[] { userIdColumn, scheduleIdColumn, startColumn, endColumn }
+                        .Select(col => $"[{col}]"));
+                    using var command = new OleDbCommand($"SELECT {selectList} FROM [{tempScheduleTable}]", connection);
+                    using var reader = command.ExecuteReader();
+                    if (reader != null)
+                    {
+                        while (reader.Read())
+                        {
+                            var rawUserId = GetReaderValue(reader, 0);
+                            if (string.IsNullOrWhiteSpace(rawUserId))
+                            {
+                                continue;
+                            }
+
+                            var scheduleId = TryGetInt(reader.GetValue(1));
+                            if (!scheduleId.HasValue)
+                            {
+                                continue;
+                            }
+
+                            if (!TryGetDateTime(reader.GetValue(2), out var startDate))
+                            {
+                                continue;
+                            }
+
+                            if (!TryGetDateTime(reader.GetValue(3), out var endDate))
+                            {
+                                continue;
+                            }
+
+                            var item = new UserTempSchedule
+                            {
+                                UserId = rawUserId.Trim(),
+                                ScheduleId = scheduleId.Value,
+                                StartDate = startDate.Date,
+                                EndDate = endDate.Date
+                            };
+
+                            context.AddTempSchedule(item);
+                        }
+                    }
+                }
+            }
+
+            return context;
+        }
+
+        private static string? FindTableName(Dictionary<string, List<string>> columnsByTable, params string[] candidates)
+        {
+            foreach (var candidate in candidates)
+            {
+                var match = columnsByTable.Keys.FirstOrDefault(
+                    table => string.Equals(table, candidate, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrWhiteSpace(match))
+                {
+                    return match;
+                }
+            }
+
+            return null;
+        }
+
+        private sealed class ScheduleContext
+        {
+            public Dictionary<int, ScheduleInfo> Schedules { get; } = new();
+            public Dictionary<int, string> Shifts { get; } = new();
+            public Dictionary<(int scheduleId, int dayId), int> WeekSchedules { get; } = new();
+            public Dictionary<string, List<UserTempSchedule>> TempSchedulesByUserId { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+            public void AddTempSchedule(UserTempSchedule item)
+            {
+                if (!TempSchedulesByUserId.TryGetValue(item.UserId, out var list))
+                {
+                    list = new List<UserTempSchedule>();
+                    TempSchedulesByUserId[item.UserId] = list;
+                }
+
+                list.Add(item);
+            }
+
+            public ScheduleDisplayInfo GetScheduleInfo(MachineUserInfo? userInfo, DateTime workDate)
+            {
+                if (userInfo == null)
+                {
+                    return ScheduleDisplayInfo.Empty;
+                }
+
+                var scheduleId = ResolveScheduleId(userInfo, workDate);
+                if (!scheduleId.HasValue)
+                {
+                    return ScheduleDisplayInfo.Empty;
+                }
+
+                var dayId = ToScheduleDayId(workDate.DayOfWeek);
+                if (WeekSchedules.TryGetValue((scheduleId.Value, dayId), out var shiftId) &&
+                    Shifts.TryGetValue(shiftId, out var shiftCode))
+                {
+                    return new ScheduleDisplayInfo
+                    {
+                        ShiftCode = shiftCode,
+                        WeekendSymbol = GetWeekendSymbol(scheduleId.Value, workDate)
+                    };
+                }
+
+                return new ScheduleDisplayInfo
+                {
+                    ShiftCode = null,
+                    WeekendSymbol = GetWeekendSymbol(scheduleId.Value, workDate)
+                };
+            }
+
+            private int? ResolveScheduleId(MachineUserInfo userInfo, DateTime workDate)
+            {
+                var scheduleId = userInfo.ScheduleId;
+                var userId = userInfo.UserId;
+                if (!string.IsNullOrWhiteSpace(userId) &&
+                    TempSchedulesByUserId.TryGetValue(userId, out var list))
+                {
+                    var date = workDate.Date;
+                    var overrideSchedule = list.FirstOrDefault(item =>
+                        item.StartDate <= date && item.EndDate >= date);
+                    if (overrideSchedule != null)
+                    {
+                        return overrideSchedule.ScheduleId;
+                    }
+                }
+
+                return scheduleId;
+            }
+
+            private string? GetWeekendSymbol(int scheduleId, DateTime workDate)
+            {
+                if (!Schedules.TryGetValue(scheduleId, out var schedule))
+                {
+                    return null;
+                }
+
+                if (workDate.DayOfWeek == DayOfWeek.Saturday && schedule.IsAbsentSat == true)
+                {
+                    return "T7";
+                }
+
+                if (workDate.DayOfWeek == DayOfWeek.Sunday && schedule.IsAbsentSun == true)
+                {
+                    return "CN";
+                }
+
+                return null;
+            }
+
+            private static int ToScheduleDayId(DayOfWeek dayOfWeek)
+            {
+                return dayOfWeek == DayOfWeek.Sunday ? 1 : ((int)dayOfWeek + 1);
+            }
+        }
+
+        private sealed class ScheduleInfo
+        {
+            public string? Name { get; set; }
+            public bool? IsAbsentSat { get; set; }
+            public bool? IsAbsentSun { get; set; }
+        }
+
+        private sealed class ScheduleDisplayInfo
+        {
+            public static ScheduleDisplayInfo Empty { get; } = new();
+            public string? ShiftCode { get; set; }
+            public string? WeekendSymbol { get; set; }
+        }
+
+        private sealed class UserTempSchedule
+        {
+            public string UserId { get; set; } = string.Empty;
+            public int ScheduleId { get; set; }
+            public DateTime StartDate { get; set; }
+            public DateTime EndDate { get; set; }
         }
 
         private sealed class LogTableSchema
@@ -1074,24 +2061,28 @@ namespace VS.Human.Business
 
         private sealed class UserTableSchema
         {
-            public UserTableSchema(string tableName, string userIdColumn, string? fingerprintColumn, string? nameColumn)
+            public UserTableSchema(string tableName, string userIdColumn, string? fingerprintColumn, string? nameColumn, string? scheduleColumn)
             {
                 TableName = tableName;
                 UserIdColumn = userIdColumn;
                 FingerprintColumn = fingerprintColumn;
                 NameColumn = nameColumn;
+                ScheduleColumn = scheduleColumn;
             }
 
             public string TableName { get; }
             public string UserIdColumn { get; }
             public string? FingerprintColumn { get; }
             public string? NameColumn { get; }
+            public string? ScheduleColumn { get; }
         }
 
         private sealed class MachineUserInfo
         {
+            public string? UserId { get; set; }
             public string? FingerprintCode { get; set; }
             public string? Name { get; set; }
+            public int? ScheduleId { get; set; }
         }
 
         private sealed class AttendanceAggregate
@@ -1104,6 +2095,7 @@ namespace VS.Human.Business
 
             public string FingerprintCode { get; }
             public string? EmployeeName { get; set; }
+            public MachineUserInfo? UserInfo { get; set; }
             public DateTime WorkDate { get; }
             public TimeSpan? FirstTime { get; private set; }
             public TimeSpan? LastTime { get; private set; }

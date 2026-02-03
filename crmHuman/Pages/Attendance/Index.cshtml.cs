@@ -5,7 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.IO;
 using System.Threading.Tasks;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
 using VS.Human.Business;
 using VS.Human.Business.Model;
 using VS.Human.Item;
@@ -172,45 +175,169 @@ namespace crmHuman.Pages.Attendance
             }
         }
 
-        public async Task<IActionResult> OnPostSyncAttendanceFromMdb([FromForm] string? month)
+        public async Task<IActionResult> OnPostExport([FromForm] AttendanceRequest request)
         {
-            if (!(Permision.Add ?? false))
+            GetInfoUser();
+            if (!(Permision.View ?? false))
             {
                 return ApiResponseHelper.Error("No permission");
             }
 
-            try
-            {
-                GetInfoUser();
-                var (fromDate, toDate, _) = ResolveMonth(month);
-                var syncResult = await _attendanceBusiness.SyncFromAccessAsync(fromDate, toDate, UserData.UserId);
-                var formattedErrors = syncResult.Errors
-                    .Select(e => (object)new { e.Row, e.Content })
-                    .ToList();
-                var response = new
-                {
-                    success = syncResult.TotalError == 0,
-                    syncResult.Total,
-                    syncResult.TotalSuccess,
-                    syncResult.TotalError,
-                    errors = formattedErrors
-                };
+            request ??= new AttendanceRequest();
+            request.Token ??= string.Empty;
 
-                if (syncResult.TotalError > 0)
+            var (fromDate, toDate, normalizedMonth) = ResolveMonth(request.Month);
+            request.Month = normalizedMonth;
+            request.From = fromDate;
+            request.To = toDate;
+            request.UserId = UserData.UserId;
+
+            IsFullAccess = IsFullAccessRole();
+            IsManager = UserData?.RoleCode == "3";
+            IsTcRole = UserData?.RoleCode == "2" && !IsFullAccess;
+
+            if (IsTcRole)
+            {
+                request.EmployeeId = UserData.UserId;
+            }
+            else if (request.EmployeeId.HasValue && request.EmployeeId.Value <= 0)
+            {
+                request.EmployeeId = null;
+            }
+
+            var summary = await _attendanceBusiness.GetSummary(request);
+            var items = summary.Data?.OfType<AttendanceSummaryIndexModel>().ToList() ?? new List<AttendanceSummaryIndexModel>();
+
+            if (request.EmployeeId.HasValue)
+            {
+                items = items.Where(x => x.EmployeeId == request.EmployeeId.Value).ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.FingerprintCode))
+            {
+                items = items.Where(x => string.Equals(x.FingerprintCode, request.FingerprintCode, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            if (items.Count == 0)
+            {
+                var errorBytes = global::System.Text.Encoding.UTF8.GetBytes("Kh\u00F4ng c\u00F3 d\u1EEF li\u1EC7u \u0111\u1EC3 xu\u1EA5t.");
+                return File(errorBytes, "text/plain", "Khong_co_du_lieu.txt");
+            }
+
+            var headers = new[]
+            {
+                "M\u00E3 NV",
+                "T\u00EAn nh\u00E2n vi\u00EAn",
+                "Ph\u00F2ng ban",
+                "Ch\u1EE9c v\u1EE5",
+                "Ng\u00E0y",
+                "Th\u1EE9",
+                "V\u00E0o",
+                "Ra",
+                "C\u00F4ng",
+                "Gi\u1EDD",
+                "C\u00F4ng+",
+                "Gi\u1EDD+",
+                "V\u00E0o tr\u1EC5",
+                "Ra s\u1EDBm",
+                "TC1",
+                "TC2",
+                "TC3",
+                "T\u00EAn ca",
+                "K\u00FD hi\u1EC7u",
+                "K\u00FD hi\u1EC7u+",
+                "T\u1ED5ng gi\u1EDD"
+            };
+
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using var package = new ExcelPackage();
+            var worksheet = package.Workbook.Worksheets.Add("Chi tiết chấm công");
+
+            var colCount = headers.Length;
+            worksheet.Cells[1, 1, 1, colCount].Merge = true;
+            worksheet.Cells[1, 1].Value = "CHI TI\u1EBET CH\u1EA4M C\u00D4NG";
+            worksheet.Cells[2, 1, 2, colCount].Merge = true;
+            worksheet.Cells[2, 1].Value = $"T\u1EEB ng\u00E0y {fromDate:dd/MM/yyyy} \u0111\u1EBFn ng\u00E0y {toDate:dd/MM/yyyy}";
+
+            worksheet.Cells[1, 1, 2, colCount].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            worksheet.Cells[1, 1, 2, colCount].Style.Font.Bold = true;
+
+            const int headerRow = 4;
+            for (int i = 0; i < headers.Length; i++)
+            {
+                worksheet.Cells[headerRow, i + 1].Value = headers[i];
+            }
+
+            worksheet.Cells[headerRow, 1, headerRow, colCount].Style.Font.Bold = true;
+            worksheet.Cells[headerRow, 1, headerRow, colCount].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            worksheet.Cells[headerRow, 1, headerRow, colCount].Style.Fill.BackgroundColor.SetColor(global::System.Drawing.Color.LightGray);
+
+            var row = headerRow + 1;
+            var dateList = BuildDateRange(fromDate, toDate);
+
+            foreach (var item in items)
+            {
+                var details = await _attendanceBusiness.GetDetails(item.EmployeeId, item.FingerprintCode, fromDate, toDate, UserData.UserId);
+                var detailMap = details.ToDictionary(d => d.WorkDate.Date, d => d);
+
+                foreach (var date in dateList)
                 {
-                    var errs = string.Join(" | ", syncResult.Errors.Select(e => $"Row {e.Row}: {e.Content}"));
-                    _logger.LogWarning("Sync attendance failed: {Errors}", errs);
-                    return ApiResponseHelper.BadRequest(formattedErrors);
+                    detailMap.TryGetValue(date, out var detail);
+
+                    var checkIn = FormatTime(detail?.CheckIn);
+                    var checkOut = FormatTime(detail?.CheckOut);
+                    var workDay = detail?.WorkDay ?? 0;
+                    var workHours = detail?.WorkHours ?? 0;
+                    var workDayPlus = detail?.WorkDayPlus ?? 0;
+                    var workHoursPlus = detail?.WorkHoursPlus ?? 0;
+                    var lateMinutes = detail?.LateMinutes ?? 0;
+                    var earlyMinutes = detail?.EarlyMinutes ?? 0;
+                    var totalHours = detail?.TotalHours ?? detail?.WorkHours ?? 0;
+
+                    int col = 1;
+                    worksheet.Cells[row, col++].Value = item.FingerprintCode;
+                    worksheet.Cells[row, col++].Value = item.FullName;
+                    worksheet.Cells[row, col++].Value = item.DepartmentText;
+                    worksheet.Cells[row, col++].Value = item.PositionText;
+                    worksheet.Cells[row, col++].Value = date.ToString("dd/MM/yy");
+                    worksheet.Cells[row, col++].Value = GetDayNameShort(date);
+                    worksheet.Cells[row, col++].Value = checkIn;
+                    worksheet.Cells[row, col++].Value = checkOut;
+                    worksheet.Cells[row, col++].Value = workDay;
+                    worksheet.Cells[row, col++].Value = workHours;
+                    worksheet.Cells[row, col++].Value = workDayPlus;
+                    worksheet.Cells[row, col++].Value = workHoursPlus;
+                    worksheet.Cells[row, col++].Value = lateMinutes;
+                    worksheet.Cells[row, col++].Value = earlyMinutes;
+                    worksheet.Cells[row, col++].Value = 0;
+                    worksheet.Cells[row, col++].Value = 0;
+                    worksheet.Cells[row, col++].Value = 0;
+                    worksheet.Cells[row, col++].Value = detail?.ShiftName;
+                    worksheet.Cells[row, col++].Value = detail?.Symbol;
+                    worksheet.Cells[row, col++].Value = detail?.SymbolPlus;
+                    worksheet.Cells[row, col++].Value = totalHours;
+
+                    row++;
                 }
+            }
 
-                return ApiResponseHelper.SuccessResponse(response);
-            }
-            catch (Exception ex)
+            if (row > headerRow + 1)
             {
-                _logger.LogError(ex, "Unexpected error while syncing attendance");
-                return ApiResponseHelper.Error("Loi he thong khi dong bo. Vui long thu lai sau.");
+                var dataRange = worksheet.Cells[headerRow, 1, row - 1, colCount];
+                dataRange.Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                dataRange.Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                dataRange.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                dataRange.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             }
+
+            worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+
+            var fileContents = package.GetAsByteArray();
+            var fileName = $"ChamCong_{fromDate:yyyyMM}_ChiTiet.xlsx";
+            return File(fileContents, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
+
+        
 
         private bool IsFullAccessRole()
         {
@@ -230,6 +357,32 @@ namespace crmHuman.Pages.Attendance
         private static string FormatTime(TimeSpan? time)
         {
             return time.HasValue ? time.Value.ToString(@"hh\:mm", CultureInfo.InvariantCulture) : string.Empty;
+        }
+
+        private static string GetDayNameShort(DateTime date)
+        {
+            return date.DayOfWeek switch
+            {
+                DayOfWeek.Monday => "Hai",
+                DayOfWeek.Tuesday => "Ba",
+                DayOfWeek.Wednesday => "Tư",
+                DayOfWeek.Thursday => "Năm",
+                DayOfWeek.Friday => "Sáu",
+                DayOfWeek.Saturday => "Bảy",
+                _ => "CN"
+            };
+        }
+
+        private static List<DateTime> BuildDateRange(DateTime from, DateTime to)
+        {
+            var list = new List<DateTime>();
+            var start = from.Date;
+            var end = to.Date;
+            for (var date = start; date <= end; date = date.AddDays(1))
+            {
+                list.Add(date);
+            }
+            return list;
         }
 
         private static (DateTime fromDate, DateTime toDate, string monthText) ResolveMonth(string? monthText)

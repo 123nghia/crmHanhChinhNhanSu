@@ -64,6 +64,25 @@
             font-size: 0.72rem;
             font-weight: 600;
         }
+
+        .attendance-row-absent {
+            background-color: #fdecec;
+        }
+
+        .attendance-cell-late {
+            background-color: #fff3cd;
+            font-weight: 600;
+        }
+
+        .attendance-cell-early {
+            background-color: #dbeafe;
+            font-weight: 600;
+        }
+
+        .attendance-cell-absent {
+            background-color: #f8d7da;
+            font-weight: 600;
+        }
     </style>
 }
 
@@ -85,13 +104,13 @@
             <form class="row g-3 align-items-end" method="get">
                 <div class="col-md-3">
                     <label class="form-label">Thang</label>
-                    <input type="month" class="form-control" name="month" value="@monthValue" />
+                    <input type="month" class="form-control" id="attendanceMonthInput" name="month" value="@monthValue" />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Nhan vien</label>
                     @if (isTcRole)
                     {
-                        <input type="hidden" name="employeeId" value="@Model.SelectedEmployeeId" />
+                        <input type="hidden" id="attendanceEmployeeId" name="employeeId" value="@Model.SelectedEmployeeId" />
                         <input type="text" class="form-control" value="@(summary?.FullName ?? Model.UserData?.FullName)" disabled />
                     }
                     else
@@ -114,16 +133,20 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Tu khoa</label>
-                    <input type="text" class="form-control" name="token" value="@Model.RequestSearch.Token" placeholder="Ten, ma van tay" />
+                    <input type="text" class="form-control" id="attendanceTokenInput" name="token" value="@Model.RequestSearch.Token" placeholder="Ten, ma van tay" />
                 </div>
-                <div class="col-md-3 d-grid gap-2">
-                    <button type="submit" class="btn btn-primary">Xem</button>
-                    @if (canImport)
-                    {
-                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#attendanceImportModal">Import</button>
-                        <button type="button" class="btn btn-outline-primary" onclick="syncAttendanceFromMdb()">Dong bo may cong</button>
-                    }
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">Xem</button>
+                    <button type="button" class="btn btn-outline-success w-100" onclick="submitAttendanceExport()">Xuất Excel</button>
+                    @* Bo nut Import theo yeu cau *@
                 </div>
+            </form>
+
+            <form id="attendanceExportForm" method="post" asp-page-handler="Export">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Month" id="exportMonth" />
+                <input type="hidden" name="EmployeeId" id="exportEmployeeId" />
+                <input type="hidden" name="Token" id="exportToken" />
             </form>
 
             <div class="row g-3 mt-3" id="attendanceSummaryCards">
@@ -232,7 +255,7 @@
                         @if (index == 0)
                         {
                             <tr>
-                                <td colspan="11" class="text-center">Khong co du lieu</td>
+                                <td colspan="11" class="text-center">Không có dữ liệu</td>
                             </tr>
                         }
                     </tbody>
@@ -257,16 +280,16 @@
                 <table class="table table-sm table-striped">
                     <thead>
                         <tr>
-                            <th>Ngay</th>
-                            <th>Thu</th>
-                            <th>Vao</th>
+                            <th>Ngày</th>
+                            <th>Thứ</th>
+                            <th>Vào</th>
                             <th>Ra</th>
-                            <th class="text-end">Cong</th>
-                            <th class="text-end">Gio</th>
-                            <th class="text-end">Tre (p)</th>
-                            <th class="text-end">Som (p)</th>
+                            <th class="text-end">Công</th>
+                            <th class="text-end">Giờ</th>
+                            <th class="text-end">Trễ (p)</th>
+                            <th class="text-end">Sớm (p)</th>
                             <th>Ca</th>
-                            <th>Ky hieu</th>
+                            <th>Ký hiệu</th>
                         </tr>
                     </thead>
                     <tbody id="attendanceDetailBody"></tbody>

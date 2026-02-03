@@ -1,0 +1,3 @@
+﻿-- No schema change required.
+-- Dedup for employee list is handled in application code (Employee.cshtml.cs).
+-- This migration is intentionally a no-op for tracking/maintainance.

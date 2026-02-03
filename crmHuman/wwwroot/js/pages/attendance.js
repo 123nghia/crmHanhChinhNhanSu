@@ -35,6 +35,25 @@ function setText(id, value) {
     el.textContent = value == null || value === '' ? '0' : value;
 }
 
+function submitAttendanceExport() {
+    var exportForm = document.getElementById('attendanceExportForm');
+    if (!exportForm) return;
+
+    var monthInput = document.querySelector('input[name="month"]');
+    var employeeInput = document.querySelector('[name="employeeId"]');
+    var tokenInput = document.querySelector('input[name="token"]');
+
+    var exportMonth = document.getElementById('exportMonth');
+    var exportEmployee = document.getElementById('exportEmployeeId');
+    var exportToken = document.getElementById('exportToken');
+
+    if (exportMonth) exportMonth.value = monthInput ? monthInput.value : '';
+    if (exportEmployee) exportEmployee.value = employeeInput ? employeeInput.value : '';
+    if (exportToken) exportToken.value = tokenInput ? tokenInput.value : '';
+
+    exportForm.submit();
+}
+
 function toggleAttendanceView(view) {
     var tableWrapper = document.getElementById('attendanceDetailTableWrapper');
     var calendarWrapper = document.getElementById('attendanceCalendarWrapper');
@@ -64,13 +83,13 @@ async function loadAttendanceDetails(employeeId, fingerprint) {
     var calendarWrapper = document.getElementById('attendanceCalendarWrapper');
 
     if ((!employeeId || employeeId <= 0) && !fingerprint) {
-        hint.textContent = 'Chon nhan vien de xem chi tiet.';
+        hint.textContent = 'Chọn nhân viên để xem chi tiết.';
         tableWrapper.classList.add('d-none');
         calendarWrapper.classList.add('d-none');
         return;
     }
 
-    hint.textContent = 'Dang tai du lieu...';
+    hint.textContent = 'Đang tải dữ liệu...';
 
     var url = '?handler=AttendanceDetails&month=' + encodeURIComponent(month);
     if (employeeId && employeeId > 0) {
@@ -87,7 +106,7 @@ async function loadAttendanceDetails(employeeId, fingerprint) {
         if (!Array.isArray(data) || data.length === 0) {
             renderAttendanceTable([]);
             renderAttendanceCalendar([], month);
-            hint.textContent = 'Khong co du lieu chi tiet.';
+            hint.textContent = 'Không có dữ liệu chi tiết.';
             tableWrapper.classList.remove('d-none');
             return;
         }
@@ -106,7 +125,7 @@ async function loadAttendanceDetails(employeeId, fingerprint) {
         }
     } catch (error) {
         console.error(error);
-        hint.textContent = 'Loi he thong khi tai du lieu.';
+        hint.textContent = 'Lỗi hệ thống khi tải dữ liệu.';
     }
 }
 
@@ -115,7 +134,7 @@ function renderAttendanceTable(data) {
     if (!body) return;
 
     if (!Array.isArray(data) || data.length === 0) {
-        body.innerHTML = '<tr><td colspan="10" class="text-center">Khong co du lieu</td></tr>';
+        body.innerHTML = '<tr><td colspan="10" class="text-center">Không có dữ liệu</td></tr>';
         return;
     }
 
@@ -132,17 +151,22 @@ function renderAttendanceTable(data) {
         var shiftName = item.shiftName || item.ShiftName || '';
         var symbol = item.symbol || item.Symbol || '';
 
-        html += '<tr>'
+        var rowClass = symbol ? 'attendance-row-absent' : '';
+        var lateClass = lateMinutes > 0 ? 'attendance-cell-late' : '';
+        var earlyClass = earlyMinutes > 0 ? 'attendance-cell-early' : '';
+        var symbolClass = symbol ? 'attendance-cell-absent' : '';
+
+        html += '<tr class="' + rowClass + '">'
             + '<td>' + dateText + '</td>'
             + '<td>' + escapeHtml(dayName) + '</td>'
             + '<td>' + escapeHtml(checkIn) + '</td>'
             + '<td>' + escapeHtml(checkOut) + '</td>'
             + '<td class="text-end">' + workDay + '</td>'
             + '<td class="text-end">' + workHours + '</td>'
-            + '<td class="text-end">' + lateMinutes + '</td>'
-            + '<td class="text-end">' + earlyMinutes + '</td>'
+            + '<td class="text-end ' + lateClass + '">' + lateMinutes + '</td>'
+            + '<td class="text-end ' + earlyClass + '">' + earlyMinutes + '</td>'
             + '<td>' + escapeHtml(shiftName) + '</td>'
-            + '<td>' + escapeHtml(symbol) + '</td>'
+            + '<td class="' + symbolClass + '">' + escapeHtml(symbol) + '</td>'
             + '</tr>';
     });
 
@@ -201,22 +225,22 @@ function renderAttendanceCalendar(data, month) {
             var symbol = record.symbol || record.Symbol || '';
 
             if (symbol) {
-                cellHtml += '<div class="attendance-day-meta">Nghi: ' + escapeHtml(symbol) + '</div>';
+                cellHtml += '<div class="attendance-day-meta">Nghỉ: ' + escapeHtml(symbol) + '</div>';
             } else if (checkIn || checkOut) {
-                cellHtml += '<div class="attendance-day-meta">Vao: ' + escapeHtml(checkIn) + '</div>';
+                cellHtml += '<div class="attendance-day-meta">Vào: ' + escapeHtml(checkIn) + '</div>';
                 cellHtml += '<div class="attendance-day-meta">Ra: ' + escapeHtml(checkOut) + '</div>';
             } else {
-                cellHtml += '<div class="attendance-day-meta">Nghi</div>';
+                cellHtml += '<div class="attendance-day-meta">Nghỉ</div>';
             }
 
-            cellHtml += '<div class="attendance-day-meta">Cong: ' + workDay + '</div>';
+            cellHtml += '<div class="attendance-day-meta">Công: ' + workDay + '</div>';
 
             if (lateMinutes > 0) {
-                cellHtml += '<div class="attendance-badge bg-warning text-dark mt-1">Tre ' + lateMinutes + 'p</div>';
+                cellHtml += '<div class="attendance-badge bg-warning text-dark mt-1">Trễ ' + lateMinutes + 'p</div>';
             }
 
             if (earlyMinutes > 0) {
-                cellHtml += '<div class="attendance-badge bg-info text-dark mt-1">Som ' + earlyMinutes + 'p</div>';
+                cellHtml += '<div class="attendance-badge bg-info text-dark mt-1">Sớm ' + earlyMinutes + 'p</div>';
             }
         }
 
@@ -292,47 +316,6 @@ async function submitAttendanceImport() {
     }
 }
 
-async function syncAttendanceFromMdb() {
-    var monthInput = document.querySelector('input[name="month"]');
-    var month = monthInput ? monthInput.value : '';
-
-    if (!confirm('Dong bo cham cong tu file may cong?')) {
-        return;
-    }
-
-    var formData = new FormData();
-    if (month) {
-        formData.append('month', month);
-    }
-
-    try {
-        var response = await fetch('?handler=SyncAttendanceFromMdb', {
-            method: 'POST',
-            headers: {
-                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-            },
-            body: formData
-        });
-
-        var result = await response.json();
-        if (response.ok && result.success) {
-            alert('Dong bo thanh cong. Tong: ' + (result.total || 0) + ', thanh cong: ' + (result.totalSuccess || 0));
-            location.reload();
-            return;
-        }
-
-        if (Array.isArray(result)) {
-            var message = result.map(function (item) { return item.Content || item.content; }).join('\n');
-            alert(message || 'Dong bo that bai');
-        } else {
-            alert(result.message || 'Dong bo that bai');
-        }
-    } catch (error) {
-        console.error(error);
-        alert('Loi he thong khi dong bo');
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function () {
     var meta = document.getElementById('attendanceMeta');
     if (!meta) return;
@@ -363,4 +346,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    setInterval(function () {
+        if (document.hidden) return;
+        if (document.querySelector('.modal.show')) return;
+        location.reload();
+    }, 30000);
 });

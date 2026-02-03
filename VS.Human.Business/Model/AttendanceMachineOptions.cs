@@ -5,6 +5,7 @@ namespace VS.Human.Business.Model
         public string? DbPath { get; set; }
         public string? Password { get; set; }
         public string? Provider { get; set; }
+        public bool UseAccessRealtime { get; set; }
 
         public string? LogTable { get; set; }
         public string? LogUserIdColumn { get; set; }
@@ -14,5 +15,6 @@ namespace VS.Human.Business.Model
         public string? UserIdColumn { get; set; }
         public string? UserFingerprintColumn { get; set; }
         public string? UserNameColumn { get; set; }
+        public string? UserScheduleColumn { get; set; }
     }
 }

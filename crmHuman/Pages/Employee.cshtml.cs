@@ -218,6 +218,7 @@ namespace crmHuman.Pages
             }
 
             DataAll = await _empBusiness.GetAllExtended(request2);
+            DataAll = DeduplicateEmployees(DataAll);
 
             if (hasHeaderFilters)
             {
@@ -310,6 +311,34 @@ namespace crmHuman.Pages
                     && (!HasFilterValue(request.DocumentStatus) || string.Equals(item.DocumentStatus, request.DocumentStatus, StringComparison.OrdinalIgnoreCase))
                 )
                 .ToList();
+        }
+
+        private static BaseList DeduplicateEmployees(BaseList dataAll)
+        {
+            if (dataAll?.Data == null)
+            {
+                return dataAll;
+            }
+
+            var list = dataAll.Data.Cast<EmployeeExtendedModel>().ToList();
+            if (list.Count == 0)
+            {
+                return dataAll;
+            }
+
+            var deduped = list
+                .GroupBy(item => item.Id)
+                .Select(group => group
+                    .OrderByDescending(item => item.UpdateAt ?? DateTime.MinValue)
+                    .First())
+                .ToList();
+
+            if (deduped.Count != list.Count)
+            {
+                dataAll.Data = deduped;
+            }
+
+            return dataAll;
         }
         private async Task ApplyDefaultStatusWork(EmployeeRequest request)
         {
