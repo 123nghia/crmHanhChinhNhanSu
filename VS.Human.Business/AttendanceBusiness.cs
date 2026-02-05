@@ -93,9 +93,38 @@ namespace VS.Human.Business
             "shiftname", "name"
         };
 
+        private static readonly string[] ShiftInTimeColumns = new[]
+        {
+            "onduty", "on_duty",
+            "intime", "starttime", "begintime", "fromtime", "timein",
+            "ontimein", "ontime_in"
+        };
+
+        private static readonly string[] ShiftOutTimeColumns = new[]
+        {
+            "offduty", "off_duty",
+            "outtime", "endtime", "totime", "timeout",
+            "ontimeout", "ontime_out"
+        };
+
+        private static readonly string[] ShiftLateMinutesColumns = new[]
+        {
+            "lateminutes", "late_minutes", "lategrace", "late_grace"
+        };
+
+        private static readonly string[] ShiftEarlyMinutesColumns = new[]
+        {
+            "earlyminutes", "early_minutes", "earlygrace", "early_grace"
+        };
+
         private static readonly string[] WeekScheduleDayColumns = new[]
         {
             "dayid", "day_id", "dayofweek", "day"
+        };
+
+        private static readonly string[] ScheduleMonthColumns = new[]
+        {
+            "monthid", "month_id", "month"
         };
 
         private static readonly string[] TempScheduleUserColumns = new[]
@@ -358,6 +387,7 @@ namespace VS.Human.Business
 
                 var userSchema = ResolveUserTableSchema(options, columnsByTable);
                 var userMap = LoadUserMap(connection, userSchema);
+                var scheduleContext = LoadScheduleContext(connection, columnsByTable);
                 var aggregates = new Dictionary<string, AttendanceAggregate>(StringComparer.OrdinalIgnoreCase);
 
                 var fromDateOnly = fromDate.Date;
@@ -430,7 +460,14 @@ namespace VS.Human.Business
                 var employeeCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 foreach (var aggregate in aggregates.Values)
                 {
+                    var scheduleInfo = scheduleContext.GetScheduleInfo(aggregate.UserInfo, aggregate.WorkDate);
+                    var (lateMinutes, earlyMinutes) = CalculateLateEarly(aggregate, scheduleInfo.Shift);
+
                     var record = BuildAttendanceRecord(aggregate, options.DbPath);
+                    record.LateMinutes = lateMinutes;
+                    record.EarlyMinutes = earlyMinutes;
+                    record.ShiftName = scheduleInfo.ShiftCode;
+                    record.Symbol = scheduleInfo.WeekendSymbol;
 
                     if (!string.IsNullOrWhiteSpace(record.FingerprintCode))
                     {
@@ -524,6 +561,7 @@ namespace VS.Human.Business
                     requestedFingerprint = employee?.FingerprintCode;
                 }
 
+                var scheduleContext = LoadScheduleContext(connection, columnsByTable);
                 var aggregates = LoadAggregates(connection, logSchema, userMap, fromDate, toDate);
                 var grouped = aggregates.Values
                     .GroupBy(a => a.FingerprintCode, StringComparer.OrdinalIgnoreCase)
@@ -621,6 +659,27 @@ namespace VS.Human.Business
 
                     var totalHours = group.Sum(x => CalculateWorkHours(x) ?? 0m);
                     var totalDays = group.Count;
+                    var lateMinutesTotal = 0;
+                    var earlyMinutesTotal = 0;
+                    var lateCount = 0;
+                    var earlyCount = 0;
+
+                    foreach (var aggregate in group)
+                    {
+                        var scheduleInfo = scheduleContext.GetScheduleInfo(aggregate.UserInfo, aggregate.WorkDate);
+                        var (lateMinutes, earlyMinutes) = CalculateLateEarly(aggregate, scheduleInfo.Shift);
+                        if (lateMinutes > 0)
+                        {
+                            lateCount++;
+                            lateMinutesTotal += lateMinutes;
+                        }
+
+                        if (earlyMinutes > 0)
+                        {
+                            earlyCount++;
+                            earlyMinutesTotal += earlyMinutes;
+                        }
+                    }
 
                     var existing = items.FirstOrDefault(x => string.Equals(x.FingerprintCode, fingerprint, StringComparison.OrdinalIgnoreCase));
                     if (existing != null)
@@ -628,6 +687,10 @@ namespace VS.Human.Business
                         existing.TotalWorkDays = totalDays;
                         existing.TotalWorkHours = totalHours;
                         existing.TotalHours = totalHours;
+                        existing.LateCount = lateCount;
+                        existing.LateMinutes = lateMinutesTotal;
+                        existing.EarlyCount = earlyCount;
+                        existing.EarlyMinutes = earlyMinutesTotal;
                         continue;
                     }
 
@@ -646,10 +709,10 @@ namespace VS.Human.Business
                         TotalWorkHours = totalHours,
                         TotalOvertimeHours = 0,
                         TotalHours = totalHours,
-                        LateCount = 0,
-                        LateMinutes = 0,
-                        EarlyCount = 0,
-                        EarlyMinutes = 0,
+                        LateCount = lateCount,
+                        LateMinutes = lateMinutesTotal,
+                        EarlyCount = earlyCount,
+                        EarlyMinutes = earlyMinutesTotal,
                         OffCount = 0
                     });
                 }
@@ -744,6 +807,7 @@ namespace VS.Human.Business
 
                     var workHours = CalculateWorkHours(aggregate);
                     var scheduleInfo = scheduleContext.GetScheduleInfo(aggregate.UserInfo, aggregate.WorkDate);
+                    var (lateMinutes, earlyMinutes) = CalculateLateEarly(aggregate, scheduleInfo.Shift);
                     results.Add(new AttendanceDetailModel
                     {
                         WorkDate = aggregate.WorkDate,
@@ -754,8 +818,8 @@ namespace VS.Human.Business
                         WorkHours = workHours,
                         WorkDayPlus = 0,
                         WorkHoursPlus = 0,
-                        LateMinutes = 0,
-                        EarlyMinutes = 0,
+                        LateMinutes = lateMinutes,
+                        EarlyMinutes = earlyMinutes,
                         ShiftName = scheduleInfo.ShiftCode,
                         Symbol = scheduleInfo.WeekendSymbol,
                         SymbolPlus = null,
@@ -1485,6 +1549,63 @@ namespace VS.Human.Business
             return Math.Round((decimal)duration.TotalHours, 2);
         }
 
+        private static (int lateMinutes, int earlyMinutes) CalculateLateEarly(AttendanceAggregate aggregate, ShiftDetail? shift)
+        {
+            if (shift == null ||
+                !aggregate.FirstTime.HasValue ||
+                !shift.InTime.HasValue)
+            {
+                return (0, 0);
+            }
+
+            var lateGrace = Math.Max(shift.LateGraceMinutes ?? 0, 0);
+            var earlyGrace = Math.Max(shift.EarlyGraceMinutes ?? 0, 0);
+
+            var lateMinutes = 0;
+            var earlyMinutes = 0;
+
+            var checkIn = aggregate.FirstTime.Value;
+            var shiftStart = shift.InTime.Value;
+            var lateDiff = (checkIn - shiftStart).TotalMinutes;
+            if (lateDiff > lateGrace)
+            {
+                lateMinutes = (int)Math.Round(lateDiff - lateGrace);
+            }
+
+            if (!shift.OutTime.HasValue)
+            {
+                return (Math.Max(0, lateMinutes), 0);
+            }
+
+            var shiftEnd = shift.OutTime.Value;
+
+            if (!aggregate.LastTime.HasValue || aggregate.PunchCount <= 1)
+            {
+                return (Math.Max(0, lateMinutes), 0);
+            }
+
+            var checkOut = aggregate.LastTime.Value;
+            var checkOutMinutes = checkOut.TotalMinutes;
+            var shiftStartMinutes = shiftStart.TotalMinutes;
+            var shiftEndMinutes = shiftEnd.TotalMinutes;
+            if (shiftEndMinutes <= shiftStartMinutes)
+            {
+                shiftEndMinutes += 24 * 60;
+                if (checkOutMinutes < shiftStartMinutes)
+                {
+                    checkOutMinutes += 24 * 60;
+                }
+            }
+
+            var earlyDiff = shiftEndMinutes - checkOutMinutes;
+            if (earlyDiff > earlyGrace)
+            {
+                earlyMinutes = (int)Math.Round(earlyDiff - earlyGrace);
+            }
+
+            return (Math.Max(0, lateMinutes), Math.Max(0, earlyMinutes));
+        }
+
         private static int ComputeStableEmployeeId(string fingerprint)
         {
             if (string.IsNullOrWhiteSpace(fingerprint))
@@ -1567,6 +1688,83 @@ namespace VS.Human.Business
 
             if (DateTime.TryParse(text, new CultureInfo("vi-VN"), DateTimeStyles.AssumeLocal, out dateTime))
             {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetTimeOfDay(object value, out TimeSpan time)
+        {
+            time = default;
+            if (value == null || value == DBNull.Value)
+            {
+                return false;
+            }
+
+            if (value is TimeSpan ts)
+            {
+                time = ts;
+                return true;
+            }
+
+            if (value is DateTime dt)
+            {
+                time = dt.TimeOfDay;
+                return true;
+            }
+
+            if (value is double d)
+            {
+                time = TimeSpan.FromMinutes(d);
+                return true;
+            }
+
+            if (value is int i)
+            {
+                time = TimeSpan.FromMinutes(i);
+                return true;
+            }
+
+            if (value is short s)
+            {
+                time = TimeSpan.FromMinutes(s);
+                return true;
+            }
+
+            if (value is long l)
+            {
+                time = TimeSpan.FromMinutes(l);
+                return true;
+            }
+
+            if (value is decimal dec)
+            {
+                time = TimeSpan.FromMinutes((double)dec);
+                return true;
+            }
+
+            var text = Convert.ToString(value, CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var parsed))
+            {
+                time = parsed;
+                return true;
+            }
+
+            if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsedDate))
+            {
+                time = parsedDate.TimeOfDay;
+                return true;
+            }
+
+            if (DateTime.TryParse(text, new CultureInfo("vi-VN"), DateTimeStyles.AssumeLocal, out parsedDate))
+            {
+                time = parsedDate.TimeOfDay;
                 return true;
             }
 
@@ -1769,18 +1967,37 @@ namespace VS.Human.Business
                 {
                     var shiftCodeColumn = ResolveColumn(columns, null, ShiftCodeColumns);
                     var shiftNameColumn = ResolveColumn(columns, null, ShiftNameColumns);
+                    var shiftInColumn = ResolveColumn(columns, null, ShiftInTimeColumns);
+                    var shiftOutColumn = ResolveColumn(columns, null, ShiftOutTimeColumns);
+                    var shiftLateColumn = ResolveColumn(columns, null, ShiftLateMinutesColumns);
+                    var shiftEarlyColumn = ResolveColumn(columns, null, ShiftEarlyMinutesColumns);
 
-                    var selectColumns = new List<string> { shiftIdColumn };
-                    if (!string.IsNullOrWhiteSpace(shiftCodeColumn))
+                    var selectColumns = new List<string>();
+                    int? AddColumn(string? columnName)
                     {
-                        selectColumns.Add(shiftCodeColumn);
+                        if (string.IsNullOrWhiteSpace(columnName))
+                        {
+                            return null;
+                        }
+
+                        var existingIndex = selectColumns.FindIndex(c =>
+                            string.Equals(c, columnName, StringComparison.OrdinalIgnoreCase));
+                        if (existingIndex >= 0)
+                        {
+                            return existingIndex;
+                        }
+
+                        selectColumns.Add(columnName);
+                        return selectColumns.Count - 1;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(shiftNameColumn) &&
-                        !string.Equals(shiftNameColumn, shiftCodeColumn, StringComparison.OrdinalIgnoreCase))
-                    {
-                        selectColumns.Add(shiftNameColumn);
-                    }
+                    var shiftIdIndex = AddColumn(shiftIdColumn) ?? 0;
+                    var shiftCodeIndex = AddColumn(shiftCodeColumn);
+                    var shiftNameIndex = AddColumn(shiftNameColumn);
+                    var shiftInIndex = AddColumn(shiftInColumn);
+                    var shiftOutIndex = AddColumn(shiftOutColumn);
+                    var shiftLateIndex = AddColumn(shiftLateColumn);
+                    var shiftEarlyIndex = AddColumn(shiftEarlyColumn);
 
                     var selectList = string.Join(", ", selectColumns.Select(col => $"[{col}]"));
                     using var command = new OleDbCommand($"SELECT {selectList} FROM [{shiftTable}]", connection);
@@ -1789,32 +2006,31 @@ namespace VS.Human.Business
                     {
                         while (reader.Read())
                         {
-                            var shiftId = TryGetInt(reader.GetValue(0));
+                            var shiftId = TryGetInt(reader.GetValue(shiftIdIndex));
                             if (!shiftId.HasValue)
                             {
                                 continue;
                             }
 
-                            var index = 1;
-                            string? code = null;
-                            string? name = null;
-
-                            if (!string.IsNullOrWhiteSpace(shiftCodeColumn))
+                            var detail = new ShiftDetail
                             {
-                                code = GetReaderValue(reader, index++);
+                                Code = shiftCodeIndex.HasValue ? GetReaderValue(reader, shiftCodeIndex.Value)?.Trim() : null,
+                                Name = shiftNameIndex.HasValue ? GetReaderValue(reader, shiftNameIndex.Value)?.Trim() : null,
+                                LateGraceMinutes = shiftLateIndex.HasValue ? TryGetInt(reader.GetValue(shiftLateIndex.Value)) : null,
+                                EarlyGraceMinutes = shiftEarlyIndex.HasValue ? TryGetInt(reader.GetValue(shiftEarlyIndex.Value)) : null
+                            };
+
+                            if (shiftInIndex.HasValue && TryGetTimeOfDay(reader.GetValue(shiftInIndex.Value), out var shiftInTime))
+                            {
+                                detail.InTime = shiftInTime;
                             }
 
-                            if (!string.IsNullOrWhiteSpace(shiftNameColumn) &&
-                                !string.Equals(shiftNameColumn, shiftCodeColumn, StringComparison.OrdinalIgnoreCase))
+                            if (shiftOutIndex.HasValue && TryGetTimeOfDay(reader.GetValue(shiftOutIndex.Value), out var shiftOutTime))
                             {
-                                name = GetReaderValue(reader, index++);
+                                detail.OutTime = shiftOutTime;
                             }
 
-                            var finalName = !string.IsNullOrWhiteSpace(code) ? code : name;
-                            if (!string.IsNullOrWhiteSpace(finalName))
-                            {
-                                context.Shifts[shiftId.Value] = finalName.Trim();
-                            }
+                            context.Shifts[shiftId.Value] = detail;
                         }
                     }
                 }
@@ -1849,6 +2065,80 @@ namespace VS.Human.Business
 
                             var key = (scheduleId.Value, dayId.Value);
                             context.WeekSchedules[key] = shiftId.Value;
+                        }
+                    }
+                }
+            }
+
+            var mScheduleTable = FindTableName(columnsByTable, "MSchedules", "MSchedule", "MShifts", "MShift");
+            if (!string.IsNullOrWhiteSpace(mScheduleTable))
+            {
+                var columns = columnsByTable[mScheduleTable];
+                var scheduleIdColumn = ResolveColumn(columns, null, ScheduleIdColumns);
+                var dayIdColumn = ResolveColumn(columns, null, WeekScheduleDayColumns);
+                var monthIdColumn = ResolveColumn(columns, null, ScheduleMonthColumns);
+                var shiftIdColumn = ResolveColumn(columns, null, ShiftIdColumns);
+                if (!string.IsNullOrWhiteSpace(scheduleIdColumn) &&
+                    !string.IsNullOrWhiteSpace(dayIdColumn) &&
+                    !string.IsNullOrWhiteSpace(monthIdColumn) &&
+                    !string.IsNullOrWhiteSpace(shiftIdColumn))
+                {
+                    var selectList = string.Join(", ", new[] { scheduleIdColumn, dayIdColumn, monthIdColumn, shiftIdColumn }
+                        .Select(col => $"[{col}]"));
+                    using var command = new OleDbCommand($"SELECT {selectList} FROM [{mScheduleTable}]", connection);
+                    using var reader = command.ExecuteReader();
+                    if (reader != null)
+                    {
+                        while (reader.Read())
+                        {
+                            var scheduleId = TryGetInt(reader.GetValue(0));
+                            var dayId = TryGetInt(reader.GetValue(1));
+                            var monthId = TryGetInt(reader.GetValue(2));
+                            var shiftId = TryGetInt(reader.GetValue(3));
+                            if (!scheduleId.HasValue || !dayId.HasValue || !monthId.HasValue || !shiftId.HasValue)
+                            {
+                                continue;
+                            }
+
+                            var key = (scheduleId.Value, monthId.Value, dayId.Value);
+                            context.YearSchedules[key] = shiftId.Value;
+                        }
+                    }
+                }
+            }
+
+            var yScheduleTable = FindTableName(columnsByTable, "YSchedules", "YSchedule", "YShifts", "YShift");
+            if (!string.IsNullOrWhiteSpace(yScheduleTable))
+            {
+                var columns = columnsByTable[yScheduleTable];
+                var scheduleIdColumn = ResolveColumn(columns, null, ScheduleIdColumns);
+                var dayIdColumn = ResolveColumn(columns, null, WeekScheduleDayColumns);
+                var monthIdColumn = ResolveColumn(columns, null, ScheduleMonthColumns);
+                var shiftIdColumn = ResolveColumn(columns, null, ShiftIdColumns);
+                if (!string.IsNullOrWhiteSpace(scheduleIdColumn) &&
+                    !string.IsNullOrWhiteSpace(dayIdColumn) &&
+                    !string.IsNullOrWhiteSpace(monthIdColumn) &&
+                    !string.IsNullOrWhiteSpace(shiftIdColumn))
+                {
+                    var selectList = string.Join(", ", new[] { scheduleIdColumn, dayIdColumn, monthIdColumn, shiftIdColumn }
+                        .Select(col => $"[{col}]"));
+                    using var command = new OleDbCommand($"SELECT {selectList} FROM [{yScheduleTable}]", connection);
+                    using var reader = command.ExecuteReader();
+                    if (reader != null)
+                    {
+                        while (reader.Read())
+                        {
+                            var scheduleId = TryGetInt(reader.GetValue(0));
+                            var dayId = TryGetInt(reader.GetValue(1));
+                            var monthId = TryGetInt(reader.GetValue(2));
+                            var shiftId = TryGetInt(reader.GetValue(3));
+                            if (!scheduleId.HasValue || !dayId.HasValue || !monthId.HasValue || !shiftId.HasValue)
+                            {
+                                continue;
+                            }
+
+                            var key = (scheduleId.Value, monthId.Value, dayId.Value);
+                            context.YearSchedules[key] = shiftId.Value;
                         }
                     }
                 }
@@ -1932,8 +2222,10 @@ namespace VS.Human.Business
         private sealed class ScheduleContext
         {
             public Dictionary<int, ScheduleInfo> Schedules { get; } = new();
-            public Dictionary<int, string> Shifts { get; } = new();
+            public Dictionary<int, ShiftDetail> Shifts { get; } = new();
             public Dictionary<(int scheduleId, int dayId), int> WeekSchedules { get; } = new();
+            public Dictionary<(int scheduleId, int dayId), int> MonthSchedules { get; } = new();
+            public Dictionary<(int scheduleId, int monthId, int dayId), int> YearSchedules { get; } = new();
             public Dictionary<string, List<UserTempSchedule>> TempSchedulesByUserId { get; } = new(StringComparer.OrdinalIgnoreCase);
 
             public void AddTempSchedule(UserTempSchedule item)
@@ -1960,21 +2252,33 @@ namespace VS.Human.Business
                     return ScheduleDisplayInfo.Empty;
                 }
 
-                var dayId = ToScheduleDayId(workDate.DayOfWeek);
-                if (WeekSchedules.TryGetValue((scheduleId.Value, dayId), out var shiftId) &&
-                    Shifts.TryGetValue(shiftId, out var shiftCode))
+                var shiftId = ResolveShiftId(scheduleId.Value, workDate);
+                if (shiftId.HasValue &&
+                    Shifts.TryGetValue(shiftId.Value, out var shift))
                 {
                     return new ScheduleDisplayInfo
                     {
-                        ShiftCode = shiftCode,
-                        WeekendSymbol = GetWeekendSymbol(scheduleId.Value, workDate)
+                        ShiftCode = GetShiftDisplayName(shift),
+                        WeekendSymbol = GetWeekendSymbol(scheduleId.Value, workDate),
+                        Shift = shift
+                    };
+                }
+
+                if (scheduleId.HasValue && Shifts.TryGetValue(scheduleId.Value, out var directShift))
+                {
+                    return new ScheduleDisplayInfo
+                    {
+                        ShiftCode = GetShiftDisplayName(directShift),
+                        WeekendSymbol = GetWeekendSymbol(scheduleId.Value, workDate),
+                        Shift = directShift
                     };
                 }
 
                 return new ScheduleDisplayInfo
                 {
                     ShiftCode = null,
-                    WeekendSymbol = GetWeekendSymbol(scheduleId.Value, workDate)
+                    WeekendSymbol = GetWeekendSymbol(scheduleId.Value, workDate),
+                    Shift = null
                 };
             }
 
@@ -2021,6 +2325,39 @@ namespace VS.Human.Business
             {
                 return dayOfWeek == DayOfWeek.Sunday ? 1 : ((int)dayOfWeek + 1);
             }
+
+            private int? ResolveShiftId(int scheduleId, DateTime workDate)
+            {
+                var dayId = ToScheduleDayId(workDate.DayOfWeek);
+                var monthId = workDate.Month;
+
+                if (YearSchedules.TryGetValue((scheduleId, monthId, dayId), out var yearShiftId))
+                {
+                    return yearShiftId;
+                }
+
+                if (MonthSchedules.TryGetValue((scheduleId, dayId), out var monthShiftId))
+                {
+                    return monthShiftId;
+                }
+
+                if (WeekSchedules.TryGetValue((scheduleId, dayId), out var weekShiftId))
+                {
+                    return weekShiftId;
+                }
+
+                return null;
+            }
+
+            private static string? GetShiftDisplayName(ShiftDetail shift)
+            {
+                if (!string.IsNullOrWhiteSpace(shift.Code))
+                {
+                    return shift.Code;
+                }
+
+                return string.IsNullOrWhiteSpace(shift.Name) ? null : shift.Name;
+            }
         }
 
         private sealed class ScheduleInfo
@@ -2035,6 +2372,17 @@ namespace VS.Human.Business
             public static ScheduleDisplayInfo Empty { get; } = new();
             public string? ShiftCode { get; set; }
             public string? WeekendSymbol { get; set; }
+            public ShiftDetail? Shift { get; set; }
+        }
+
+        private sealed class ShiftDetail
+        {
+            public string? Code { get; set; }
+            public string? Name { get; set; }
+            public TimeSpan? InTime { get; set; }
+            public TimeSpan? OutTime { get; set; }
+            public int? LateGraceMinutes { get; set; }
+            public int? EarlyGraceMinutes { get; set; }
         }
 
         private sealed class UserTempSchedule

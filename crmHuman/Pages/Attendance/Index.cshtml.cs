@@ -299,7 +299,7 @@ namespace crmHuman.Pages.Attendance
                     worksheet.Cells[row, col++].Value = item.FullName;
                     worksheet.Cells[row, col++].Value = item.DepartmentText;
                     worksheet.Cells[row, col++].Value = item.PositionText;
-                    worksheet.Cells[row, col++].Value = date.ToString("dd/MM/yy");
+                    worksheet.Cells[row, col++].Value = date.ToString("dd/MM/yyyy");
                     worksheet.Cells[row, col++].Value = GetDayNameShort(date);
                     worksheet.Cells[row, col++].Value = checkIn;
                     worksheet.Cells[row, col++].Value = checkOut;

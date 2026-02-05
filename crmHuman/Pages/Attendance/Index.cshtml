@@ -104,7 +104,8 @@
             <form class="row g-3 align-items-end" method="get">
                 <div class="col-md-3">
                     <label class="form-label">Thang</label>
-                    <input type="month" class="form-control" id="attendanceMonthInput" name="month" value="@monthValue" />
+                    <input type="hidden" id="attendanceMonthInput" name="month" value="@monthValue" />
+                    <input type="text" class="form-control" id="attendanceMonthDisplay" placeholder="MM/YYYY" autocomplete="off" />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Nhan vien</label>

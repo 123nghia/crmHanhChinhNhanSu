@@ -54,6 +54,63 @@ function submitAttendanceExport() {
     exportForm.submit();
 }
 
+function initMonthPicker() {
+    var hiddenInput = document.getElementById('attendanceMonthInput');
+    var displayInput = document.getElementById('attendanceMonthDisplay');
+    if (!hiddenInput || !displayInput) return;
+
+    var toDisplay = function (value) {
+        if (!value) return '';
+        var parts = value.split('-');
+        if (parts.length < 2) return '';
+        return parts[1].padStart(2, '0') + '/' + parts[0];
+    };
+
+    var toHidden = function (value) {
+        if (!value) return '';
+        var match = value.trim().match(/^(\d{1,2})[\/\-](\d{4})$/);
+        if (!match) return '';
+        var mm = match[1].padStart(2, '0');
+        var yyyy = match[2];
+        var month = parseInt(mm, 10);
+        if (Number.isNaN(month) || month < 1 || month > 12) return '';
+        return yyyy + '-' + mm;
+    };
+
+    displayInput.value = toDisplay(hiddenInput.value);
+
+    displayInput.addEventListener('change', function () {
+        var converted = toHidden(displayInput.value);
+        if (converted) {
+            hiddenInput.value = converted;
+            displayInput.value = toDisplay(converted);
+        }
+    });
+
+    displayInput.addEventListener('blur', function () {
+        var converted = toHidden(displayInput.value);
+        if (converted) {
+            hiddenInput.value = converted;
+            displayInput.value = toDisplay(converted);
+        } else {
+            displayInput.value = toDisplay(hiddenInput.value);
+        }
+    });
+
+    var form = displayInput.closest('form');
+    if (form) {
+        form.addEventListener('submit', function () {
+            var converted = toHidden(displayInput.value);
+            if (converted) {
+                hiddenInput.value = converted;
+                displayInput.value = toDisplay(converted);
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initMonthPicker);
+
 function toggleAttendanceView(view) {
     var tableWrapper = document.getElementById('attendanceDetailTableWrapper');
     var calendarWrapper = document.getElementById('attendanceCalendarWrapper');
