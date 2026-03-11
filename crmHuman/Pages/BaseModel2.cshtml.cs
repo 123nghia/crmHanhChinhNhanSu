@@ -62,7 +62,7 @@ namespace crmHuman.Pages
             },
              new Model.SelectDisplay()
             {
-            Code ="8", Name ="BGÐ"
+            Code ="8", Name ="BGï¿½"
             }
         };
 
@@ -86,7 +86,7 @@ namespace crmHuman.Pages
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không ho?t d?ng"
+                Code ="0", Name ="Khï¿½ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
@@ -134,7 +134,7 @@ namespace crmHuman.Pages
         {
             if (code < 1)
             {
-                return "Không ho?t d?ng";
+                return "Khï¿½ng ho?t d?ng";
             }
             return "Ho?t d?ng";
 
@@ -318,6 +318,22 @@ namespace crmHuman.Pages
                 {
                     ThemeSetting = themeBusiness.GetByUserIdAsync(UserData.UserId).GetAwaiter().GetResult();
                     ThemeStyle = ThemeStyleBuilder.Build(ThemeSetting);
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                var empBusiness = HttpContext.RequestServices.GetService(typeof(IEmpBusiness)) as IEmpBusiness;
+                if (empBusiness != null && UserData != null && UserData.UserId > 0)
+                {
+                    var employee = empBusiness.GetById(UserData.UserId).GetAwaiter().GetResult();
+                    if (employee != null && employee.Id > 0)
+                    {
+                        UserData.AvatarFile = employee.AvatarFile ?? string.Empty;
+                    }
                 }
             }
             catch

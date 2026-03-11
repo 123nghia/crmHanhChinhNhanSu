@@ -3,6 +3,7 @@
     var profileLink = Model?.UserData?.RoleCode == "CANDIDATE" ? "/Candidate/Profile" : "/Infomation";
     var logoPath = string.IsNullOrWhiteSpace(Model?.LogoPath) ? "/assets/img/logo.png" : Model.LogoPath;
     var themeStyle = Model?.ThemeStyle ?? string.Empty;
+    var avatarPath = string.IsNullOrWhiteSpace(Model?.UserData?.AvatarFile) ? "/assets/img/profile-img.jpg" : Model.UserData.AvatarFile;
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -37,7 +38,7 @@
                        href="#"
                        data-bs-toggle="dropdown"
                        aria-expanded="false">
-                        <img src="~/assets/img/profile-img.jpg" alt="Profile" class="rounded-circle" asp-append-version="true">
+                        <img src="@avatarPath" alt="Profile" class="rounded-circle" asp-append-version="true">
                         <span class="d-none d-md-block dropdown-toggle ps-2">@Model.UserData?.FullName</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">

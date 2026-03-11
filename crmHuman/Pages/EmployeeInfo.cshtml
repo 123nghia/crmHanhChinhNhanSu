@@ -14,6 +14,7 @@
     var isTcRole = Model.UserData?.RoleCode == "2";
     var canEdit = !isTcRole;
     var showAccountTab = !isSelfView && !isTcRole;
+    var canRequestDocumentSign = !isSelfView && (Model.UserData?.RoleCode == "1" || Model.UserData?.RoleCode == "8" || Model.UserData?.RoleCode == "9");
 
     var textTiltel  =  "Thông tin nhân viên";
     if(itemResult.Id < 1)
@@ -1077,13 +1078,56 @@
                             @foreach (var item in Model.DataFile.Data)
                             {
                                 var itemDraw = item as dynamic;
+                                var requestedByDisplay = string.Empty;
+                                if (!string.IsNullOrWhiteSpace((string?)itemDraw.SignatureRequestedByUserName))
+                                {
+                                    requestedByDisplay = (string)itemDraw.SignatureRequestedByUserName;
+                                    if (!string.IsNullOrWhiteSpace((string?)itemDraw.SignatureRequestedByFullName))
+                                    {
+                                        requestedByDisplay += " - " + (string)itemDraw.SignatureRequestedByFullName;
+                                    }
+                                }
+
+                                var signedByDisplay = string.Empty;
+                                if (!string.IsNullOrWhiteSpace((string?)itemDraw.SignedByUserNameSnapshot))
+                                {
+                                    signedByDisplay = (string)itemDraw.SignedByUserNameSnapshot;
+                                    if (!string.IsNullOrWhiteSpace((string?)itemDraw.SignedByFullNameSnapshot))
+                                    {
+                                        signedByDisplay += " - " + (string)itemDraw.SignedByFullNameSnapshot;
+                                    }
+                                }
+                                else if (!string.IsNullOrWhiteSpace((string?)itemDraw.SignedByUserName))
+                                {
+                                    signedByDisplay = (string)itemDraw.SignedByUserName;
+                                    if (!string.IsNullOrWhiteSpace((string?)itemDraw.SignedByFullName))
+                                    {
+                                        signedByDisplay += " - " + (string)itemDraw.SignedByFullName;
+                                    }
+                                }
+
                                 await Html.RenderPartialAsync("ControlForm/FileInputDocument",new
                                 {
                                 ValueControl = itemDraw.ValueFile,
                                 NameControl =  itemDraw.Code,
                                 IdControl = itemDraw.Code,
                                 Lable = itemDraw.DisplayText, 
-                                ValueId =  itemDraw.Id
+                                ValueId =  itemDraw.Id,
+                                CanEditFile = canEdit,
+                                CanRequestSignature = canRequestDocumentSign,
+                                CanSignInternal = isSelfView,
+                                IsSignatureRequested = itemDraw.IsSignatureRequested,
+                                SignatureRequestedAt = itemDraw.SignatureRequestedAt,
+                                SignatureRequestedByDisplay = requestedByDisplay,
+                                IsSignedInternal = itemDraw.IsSignedInternal,
+                                SignedAt = itemDraw.SignedAt,
+                                SignedByDisplay = signedByDisplay,
+                                SignedIpAddress = itemDraw.SignedIpAddress,
+                                SignedUserAgent = itemDraw.SignedUserAgent,
+                                SignedFileArchivePath = itemDraw.SignedFileArchivePath,
+                                SignatureImagePath = itemDraw.SignatureImagePath,
+                                SignatureIntentText = itemDraw.SignatureIntentText,
+                                SignActionId = itemDraw.Id
                                 });
                             }
                     </div>

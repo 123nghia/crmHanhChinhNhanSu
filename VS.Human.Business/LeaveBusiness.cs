@@ -200,7 +200,7 @@ namespace VS.Human.Business
             return roleCode switch
             {
                 "1" => "Admin",
-                "2" => "HCNS",
+                "2" => "TC",
                 "9" => "HCNS",
                 "3" => "Lead",
                 "8" => "BGD",

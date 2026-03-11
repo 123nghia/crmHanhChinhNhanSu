@@ -1,10 +1,74 @@
 ﻿<div class="col-12 form-group">
+    @{
+        var modelType = Model?.GetType();
+
+        string? GetString(string propertyName)
+        {
+            var property = modelType?.GetProperty(propertyName);
+            return property?.GetValue(Model)?.ToString();
+        }
+
+        bool GetBool(string propertyName, bool defaultValue = false)
+        {
+            var raw = GetString(propertyName);
+            return bool.TryParse(raw, out var result) ? result : defaultValue;
+        }
+
+        DateTime? GetDateTime(string propertyName)
+        {
+            var property = modelType?.GetProperty(propertyName);
+            var raw = property?.GetValue(Model);
+            if (raw is DateTime dateTime)
+            {
+                return dateTime;
+            }
+
+            DateTime parsed;
+            if (DateTime.TryParse(raw?.ToString(), out parsed))
+            {
+                return parsed;
+            }
+
+            return null;
+        }
+
+        var canEditFile = GetBool("CanEditFile", true);
+        var canRequestSignature = GetBool("CanRequestSignature");
+        var canSignInternal = GetBool("CanSignInternal");
+        var isSignatureRequested = GetBool("IsSignatureRequested");
+        var isSignedInternal = GetBool("IsSignedInternal");
+        var requestedAt = GetDateTime("SignatureRequestedAt");
+        var signedAt = GetDateTime("SignedAt");
+        var requestedByDisplay = GetString("SignatureRequestedByDisplay") ?? string.Empty;
+        var signedByDisplay = GetString("SignedByDisplay") ?? string.Empty;
+        var signatureIntentText = GetString("SignatureIntentText") ?? string.Empty;
+        var signedIpAddress = GetString("SignedIpAddress") ?? string.Empty;
+        var signedUserAgent = GetString("SignedUserAgent") ?? string.Empty;
+        var signedFileArchivePath = GetString("SignedFileArchivePath") ?? string.Empty;
+        var signatureImagePath = GetString("SignatureImagePath") ?? string.Empty;
+        var allowFileEdit = canEditFile && !isSignatureRequested && !isSignedInternal;
+    }
+
     <label class="form-label">@Model.Lable</label>
-    <input type="file" onchange="UploadImage(this)" name="@Model.NameControl" class="form-control" required placeholder="" />
-    <div class="invalid-feedback-cs">
-    </div>
+    @if (allowFileEdit)
+    {
+        <input type="file" onchange="UploadImage(this)" name="@Model.NameControl" class="form-control" required placeholder="" />
+        <div class="invalid-feedback-cs">
+        </div>
+    }
     <div class="fileResult">
         @{
+            var valueId = 0;
+
+            if (modelType != null)
+            {
+                var valueIdProperty = modelType.GetProperty("ValueId");
+                if (valueIdProperty != null && valueIdProperty.GetValue(Model) != null)
+                {
+                    int.TryParse(valueIdProperty.GetValue(Model)?.ToString(), out valueId);
+                }
+            }
+
             var linkfiledisplay = Model.ValueControl as string;
             var linkWithoutQuery = linkfiledisplay ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(linkWithoutQuery))
@@ -77,14 +141,87 @@
                     }
                 </a>
                 <a href="@linkfiledisplay" target="_blank" class="file-link">@displayName</a>
+                @if (valueId > 0)
+                {
+                    <div class="mt-2">
+                        <span class="badge bg-secondary">Tai lieu nhan vien</span>
+                        @if (isSignatureRequested && !isSignedInternal)
+                        {
+                            <span class="badge bg-warning text-dark ms-1">Dang cho ky</span>
+                        }
+                        @if (isSignedInternal)
+                        {
+                            <span class="badge bg-success ms-1">Da ky noi bo</span>
+                        }
+                    </div>
+                    @if (isSignatureRequested && !isSignedInternal)
+                    {
+                        <div class="small text-muted mt-2">
+                            @if (requestedAt.HasValue)
+                            {
+                                <div>Yeu cau ky: <strong>@requestedAt.Value.ToString("dd/MM/yyyy HH:mm")</strong></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(requestedByDisplay))
+                            {
+                                <div>Nguoi yeu cau: <strong>@requestedByDisplay</strong></div>
+                            }
+                        </div>
+                    }
+                    @if (isSignedInternal)
+                    {
+                        <div class="small text-muted mt-2">
+                            @if (signedAt.HasValue)
+                            {
+                                <div>Da ky luc: <strong>@signedAt.Value.ToString("dd/MM/yyyy HH:mm")</strong></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(signedByDisplay))
+                            {
+                                <div>Nguoi ky: <strong>@signedByDisplay</strong></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(signatureIntentText))
+                            {
+                                <div>Y chi dong y: <strong>@signatureIntentText</strong></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(signedIpAddress))
+                            {
+                                <div>IP luc ky: <strong>@signedIpAddress</strong></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(signedUserAgent))
+                            {
+                                <div class="text-break">User-Agent: <strong>@signedUserAgent</strong></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(signedFileArchivePath))
+                            {
+                                <div class="text-break">Ban sao da ky: <a href="@signedFileArchivePath" target="_blank">Mo file da ky</a></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(signatureImagePath))
+                            {
+                                <div class="text-break">Anh chu ky: <a href="@signatureImagePath" target="_blank">Mo anh chu ky</a></div>
+                            }
+                            <div>Tai lieu da khoa chinh sua.</div>
+                        </div>
+                    }
+                    @if (canRequestSignature && !isSignatureRequested && !isSignedInternal && !string.IsNullOrWhiteSpace(linkfiledisplay))
+                    {
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="requestEmployeeDocumentSign(@valueId)">Yeu cau ky</button>
+                        </div>
+                    }
+                    @if (canSignInternal && isSignatureRequested && !isSignedInternal)
+                    {
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="openEmployeeDocumentSign(@valueId)">Ky xac nhan</button>
+                        </div>
+                    }
+                }
             </div>
         }
     </div>
     <div class="fileValue">
-        <input type="hidden" id="@Model.IdControl"  class="valuefile" value="@Model.ValueControl" />
+        <input type="hidden" id="@Model.IdControl" class="valuefile" value="@Model.ValueControl" />
     </div>
 
-      <div class="inputId">
-        <input type="hidden"   class="ValueId" value="@Model.ValueId" />
+    <div class="inputId">
+        <input type="hidden" class="ValueId" value="@Model.ValueId" />
     </div>
 </div>

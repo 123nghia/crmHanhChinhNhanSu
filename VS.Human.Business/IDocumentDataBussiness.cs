@@ -22,6 +22,8 @@ namespace VS.Human.Business
         Task<bool> UpdateAccessLevel(int documentId, int accessLevel, int userId);
         Task<DocumentData?> GetByToken(string token);
         Task<bool> UpdateDisplayText(int id, string text, int userId);
+        Task<bool> RequestInternalSign(int id, int requestedBy, DateTime requestedAt);
+        Task<bool> SignInternal(int id, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod, string? signedByUserNameSnapshot, string? signedByFullNameSnapshot, string? signedIpAddress, string? signedUserAgent, string? signedFileArchivePath, string? signatureImagePath, string? signatureIntentText, DateTime? termsAcceptedAt = null);
         Task<BaseList> GetallRegional();
     }
 }

@@ -1,8 +1,8 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VS.Human.Business;
+using VS.Human.Business.Model;
 using VS.Human.Item;
-using VS.Human.Rep.Model;
 
 namespace crmHuman.Pages.Cloud
 {
@@ -26,7 +26,7 @@ namespace crmHuman.Pages.Cloud
             _documentBusiness = documentBusiness;
             _empBusiness = empBusiness;
             _hostingEnvironment = hostingEnvironment;
-            TitlePage = "Kho tài liệu trực tuyến";
+            TitlePage = "Kho tai lieu truc tuyen";
         }
 
         public async Task OnGetAsync(int? parentId)
@@ -34,28 +34,31 @@ namespace crmHuman.Pages.Cloud
             GetInfoUser();
             CurrentParentId = parentId;
             var userId = UserData.UserId;
-            
+
             Documents = await _documentBusiness.GetDocuments(parentId, userId);
 
-            // Build breadcrumbs
             if (parentId.HasValue)
             {
                 var current = await _documentBusiness.GetById(parentId.Value);
                 while (current != null)
                 {
-                    Breadcrumbs.Insert(0, new DocumentDataIndexModel 
-                    { 
-                        Id = current.Id, 
-                        DisplayText = current.DisplayText 
+                    Breadcrumbs.Insert(0, new DocumentDataIndexModel
+                    {
+                        Id = current.Id,
+                        DisplayText = current.DisplayText
                     });
+
                     if (current.ParentId.HasValue)
+                    {
                         current = await _documentBusiness.GetById(current.ParentId.Value);
+                    }
                     else
+                    {
                         break;
+                    }
                 }
             }
 
-            // For sharing modal
             AllEmployees = await _empBusiness.GetAll(new EmployeeRequest { Limit = 1000 });
         }
 
@@ -70,13 +73,17 @@ namespace crmHuman.Pages.Cloud
         public async Task<IActionResult> OnPostUploadFileAsync(IFormFile file, int? parentId)
         {
             if (file == null || file.Length == 0)
+            {
                 return new JsonResult(new { success = false, message = "No file selected." });
+            }
 
             GetInfoUser();
             var userId = UserData.UserId;
             var folderPath = Path.Combine(_hostingEnvironment.WebRootPath, "uploads", "cloud", userId.ToString());
             if (!Directory.Exists(folderPath))
+            {
                 Directory.CreateDirectory(folderPath);
+            }
 
             var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
             var filePath = Path.Combine(folderPath, fileName);
@@ -115,10 +122,16 @@ namespace crmHuman.Pages.Cloud
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {
             GetInfoUser();
-            var userId = UserData.UserId;
-            // Check ownership if needed: var item = await _documentBusiness.GetById(id);
             var result = await _documentBusiness.Delete(id);
             return new JsonResult(new { success = result });
+        }
+
+        public async Task<IActionResult> OnPostSignInternalAsync([FromForm] DocumentSignRequest request)
+        {
+            return new JsonResult(new { success = false, message = "Tai lieu nhan vien khong ap dung ky noi bo" })
+            {
+                StatusCode = StatusCodes.Status403Forbidden
+            };
         }
     }
 }

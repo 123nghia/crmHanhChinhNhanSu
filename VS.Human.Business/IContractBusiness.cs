@@ -10,6 +10,8 @@ namespace VS.Human.Business
         Task<bool> Add(Contract item, int userId);
         Task<bool> Update(Contract item, int userId);
         Task<bool> Delete(int id, int userId);
+        Task<bool> SignInternalHr(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod);
+        Task<bool> SignInternal(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod);
         Task<List<ContractHistory>> GetHistory(int contractId);
         Task<List<Contract>> GetExpiring(int days);
         Task<List<ContractStatusCount>> GetStatusCounts();

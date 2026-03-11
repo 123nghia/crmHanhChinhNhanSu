@@ -103,9 +103,49 @@
                             {
                                 var itemInfo = itemData as dynamic;
                                 var updateText = "";
+                                var hrSignedAtText = "";
+                                var hrSignedByText = "";
+                                var signedAtText = "";
+                                var signedByText = "";
+                                var isHrSigned = itemInfo.IsHrSigned != null && itemInfo.IsHrSigned == true;
+                                var isSignedInternal = itemInfo.IsSignedInternal != null && itemInfo.IsSignedInternal == true;
+                                var canSignHr =
+                                    !isHrSigned &&
+                                    !isSignedInternal &&
+                                    !string.IsNullOrWhiteSpace(itemInfo.FileUrl) &&
+                                    (Model.UserData.RoleCode == "1" || Model.UserData.RoleCode == "9");
+                                var canSignEmployee =
+                                    isHrSigned &&
+                                    !isSignedInternal &&
+                                    !string.IsNullOrWhiteSpace(itemInfo.FileUrl) &&
+                                    Model.UserData.UserId == itemInfo.EmployeeId;
                                 if (itemInfo.UpdateAt != null)
                                 {
                                     updateText = itemInfo.UpdateAt.ToString("dd/MM/yyyy");
+                                }
+                                if (itemInfo.HrSignedAt != null)
+                                {
+                                    hrSignedAtText = itemInfo.HrSignedAt.ToString("dd/MM/yyyy HH:mm");
+                                }
+                                if (!string.IsNullOrWhiteSpace(itemInfo.HrSignedByUserName))
+                                {
+                                    hrSignedByText = itemInfo.HrSignedByUserName;
+                                    if (!string.IsNullOrWhiteSpace(itemInfo.HrSignedByFullName))
+                                    {
+                                        hrSignedByText += " - " + itemInfo.HrSignedByFullName;
+                                    }
+                                }
+                                if (itemInfo.SignedAt != null)
+                                {
+                                    signedAtText = itemInfo.SignedAt.ToString("dd/MM/yyyy HH:mm");
+                                }
+                                if (!string.IsNullOrWhiteSpace(itemInfo.SignedByUserName))
+                                {
+                                    signedByText = itemInfo.SignedByUserName;
+                                    if (!string.IsNullOrWhiteSpace(itemInfo.SignedByFullName))
+                                    {
+                                        signedByText += " - " + itemInfo.SignedByFullName;
+                                    }
                                 }
                                 i++;
                                 <tr>
@@ -115,6 +155,42 @@
                                     <td>@itemInfo.StartDateDisplay</td>
                                     <td>@itemInfo.EndDateDisplay</td>
                                     <td>@itemInfo.Status</td>
+                                    <td>
+                                        @if (isHrSigned)
+                                        {
+                                            <span class="badge bg-success">HR da ky</span>
+                                            @if (!string.IsNullOrWhiteSpace(hrSignedAtText))
+                                            {
+                                                <div class="small text-muted">@hrSignedAtText</div>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(hrSignedByText))
+                                            {
+                                                <div class="small text-muted">@hrSignedByText</div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">HR chua ky</span>
+                                        }
+                                        <div class="mt-1">
+                                            @if (isSignedInternal)
+                                            {
+                                                <span class="badge bg-success">NV da ky</span>
+                                                @if (!string.IsNullOrWhiteSpace(signedAtText))
+                                                {
+                                                    <div class="small text-muted">@signedAtText</div>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(signedByText))
+                                                {
+                                                    <div class="small text-muted">@signedByText</div>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark">NV chua ky</span>
+                                            }
+                                        </div>
+                                    </td>
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(itemInfo.FileUrl))
                                         {
@@ -137,6 +213,18 @@
                                         {
                                             <a href="javascript:void(0)" onclick="confirmDelete(@itemInfo.Id, 'Contract')">
                                                 <i class="bi bi-trash-fill"></i>
+                                            </a>
+                                        }
+                                        @if (canSignHr)
+                                        {
+                                            <a href="javascript:void(0)" onclick="openSignContract(@itemInfo.Id)" title="Ky HR">
+                                                <i class="bi bi-pen-fill"></i>
+                                            </a>
+                                        }
+                                        @if (canSignEmployee)
+                                        {
+                                            <a href="javascript:void(0)" onclick="openSignContract(@itemInfo.Id)" title="Ky nhan vien">
+                                                <i class="bi bi-pen-fill"></i>
                                             </a>
                                         }
                                         <a href="javascript:void(0)" onclick="openContractHistory(@itemInfo.Id)">

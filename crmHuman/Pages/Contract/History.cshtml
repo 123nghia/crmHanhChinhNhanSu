@@ -17,6 +17,8 @@
                 <th>Ngay bat dau</th>
                 <th>Ngay ket thuc</th>
                 <th>Trang thai</th>
+                <th>Nguoi ky</th>
+                <th>Thoi diem ky</th>
                 <th>Ghi chu</th>
             </tr>
         </thead>
@@ -32,6 +34,12 @@
                     }
                     var startText = "";
                     var endText = "";
+                    var signedAtText = "";
+                    var signedByText = "";
+                    var hrSignedAtText = "";
+                    var hrSignedByText = "";
+                    var employeeSignedAtText = "";
+                    var employeeSignedByText = "";
                     if (item.StartDate != null)
                     {
                         startText = item.StartDate.ToString("dd/MM/yyyy");
@@ -40,6 +48,50 @@
                     {
                         endText = item.EndDate.ToString("dd/MM/yyyy");
                     }
+                    if (item.HrSignedAt != null)
+                    {
+                        hrSignedAtText = item.HrSignedAt.ToString("dd/MM/yyyy HH:mm");
+                    }
+                    if (!string.IsNullOrWhiteSpace(item.HrSignedByUserName))
+                    {
+                        hrSignedByText = item.HrSignedByUserName;
+                        if (!string.IsNullOrWhiteSpace(item.HrSignedByFullName))
+                        {
+                            hrSignedByText += " - " + item.HrSignedByFullName;
+                        }
+                    }
+                    if (item.SignedAt != null)
+                    {
+                        employeeSignedAtText = item.SignedAt.ToString("dd/MM/yyyy HH:mm");
+                    }
+                    if (!string.IsNullOrWhiteSpace(item.SignedByUserName))
+                    {
+                        employeeSignedByText = item.SignedByUserName;
+                        if (!string.IsNullOrWhiteSpace(item.SignedByFullName))
+                        {
+                            employeeSignedByText += " - " + item.SignedByFullName;
+                        }
+                    }
+                    if (!string.IsNullOrWhiteSpace(hrSignedByText))
+                    {
+                        signedByText = "HR: " + hrSignedByText;
+                    }
+                    if (!string.IsNullOrWhiteSpace(employeeSignedByText))
+                    {
+                        signedByText = string.IsNullOrWhiteSpace(signedByText)
+                            ? "NV: " + employeeSignedByText
+                            : signedByText + " | NV: " + employeeSignedByText;
+                    }
+                    if (!string.IsNullOrWhiteSpace(hrSignedAtText))
+                    {
+                        signedAtText = "HR: " + hrSignedAtText;
+                    }
+                    if (!string.IsNullOrWhiteSpace(employeeSignedAtText))
+                    {
+                        signedAtText = string.IsNullOrWhiteSpace(signedAtText)
+                            ? "NV: " + employeeSignedAtText
+                            : signedAtText + " | NV: " + employeeSignedAtText;
+                    }
                     <tr>
                         <td>@createdText</td>
                         <td>@item.Action</td>
@@ -47,7 +99,15 @@
                         <td>@startText</td>
                         <td>@endText</td>
                         <td>@item.Status</td>
-                        <td>@item.Note</td>
+                        <td>@signedByText</td>
+                        <td>@signedAtText</td>
+                        <td>
+                            @item.Note
+                            @if (!string.IsNullOrWhiteSpace(item.SignNote))
+                            {
+                                <div class="small text-muted">@item.SignNote</div>
+                            }
+                        </td>
                     </tr>
                 }
             }

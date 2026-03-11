@@ -12,6 +12,24 @@ namespace VS.Human.Rep.Model
         public string? Status { get; set; }
         public string? FileUrl { get; set; }
         public string? Note { get; set; }
+        public bool IsHrSigned { get; set; }
+        public DateTime? HrSignedAt { get; set; }
+        public int? HrSignedBy { get; set; }
+        public string? HrSignedByUserName { get; set; }
+        public string? HrSignedByFullName { get; set; }
+        public string? HrSignatureHash { get; set; }
+        public string? HrFileHash { get; set; }
+        public string? HrSignNote { get; set; }
+        public string? HrSignMethod { get; set; }
+        public bool IsSignedInternal { get; set; }
+        public DateTime? SignedAt { get; set; }
+        public int? SignedBy { get; set; }
+        public string? SignedByUserName { get; set; }
+        public string? SignedByFullName { get; set; }
+        public string? SignatureHash { get; set; }
+        public string? FileHash { get; set; }
+        public string? SignNote { get; set; }
+        public string? SignMethod { get; set; }
         public string? FullName { get; set; }
         public string? UserName { get; set; }
     }
@@ -28,5 +46,23 @@ namespace VS.Human.Rep.Model
         public string? Status { get; set; }
         public string? FileUrl { get; set; }
         public string? Note { get; set; }
+        public bool? IsHrSigned { get; set; }
+        public DateTime? HrSignedAt { get; set; }
+        public int? HrSignedBy { get; set; }
+        public string? HrSignedByUserName { get; set; }
+        public string? HrSignedByFullName { get; set; }
+        public string? HrSignatureHash { get; set; }
+        public string? HrFileHash { get; set; }
+        public string? HrSignNote { get; set; }
+        public string? HrSignMethod { get; set; }
+        public bool? IsSignedInternal { get; set; }
+        public DateTime? SignedAt { get; set; }
+        public int? SignedBy { get; set; }
+        public string? SignedByUserName { get; set; }
+        public string? SignedByFullName { get; set; }
+        public string? SignatureHash { get; set; }
+        public string? FileHash { get; set; }
+        public string? SignNote { get; set; }
+        public string? SignMethod { get; set; }
     }
 }

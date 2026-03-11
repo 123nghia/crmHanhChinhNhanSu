@@ -216,6 +216,24 @@ namespace VS.Human.Rep
                 password
             });
         }
+
+        public async Task<bool> UpdateAvatar(int id, string avatarFile, int updatedBy)
+        {
+            var sql = @"
+                UPDATE Employees
+                SET AvatarFile = @avatarFile,
+                    UpdatedBy = @updatedBy,
+                    UpdateAt = GETDATE()
+                WHERE Id = @id AND ISNULL(Deleted, 0) = 0";
+
+            return await ExecuteSQL(sql, new
+            {
+                id,
+                avatarFile,
+                updatedBy
+            });
+        }
+
         public async Task<bool> AddOrUpdate(Employee item)
         {
             if (item.Id > 0)

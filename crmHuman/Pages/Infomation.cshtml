@@ -4,6 +4,7 @@
     ViewData["Title"] = "Thông tin";
 
     var userCurrent = Model.UserProfile;
+    var avatarPath = string.IsNullOrWhiteSpace(userCurrent.AvatarFile) ? "/assets/img/profile-img.jpg" : userCurrent.AvatarFile;
     var dateText = "";
     var onboardText = "";
     if (userCurrent.Dob != null)
@@ -105,6 +106,59 @@
 
                         <div class="tab-pane fade show active profile-overview" id="profile-overview">
                             <h5 class="card-title">Thông tin cá nhân</h5>
+
+                            @if (TempData["AvatarSaved"] != null)
+                            {
+                                var saved = TempData["AvatarSaved"]?.ToString();
+                                if (saved == "1")
+                                {
+                                    <div class="alert alert-success">Đã cập nhật ảnh đại diện.</div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-danger">Không thể cập nhật ảnh đại diện.</div>
+                                }
+                            }
+
+                            @if (TempData["AvatarError"] != null)
+                            {
+                                var err = TempData["AvatarError"]?.ToString();
+                                if (err == "missing")
+                                {
+                                    <div class="alert alert-danger">Vui lòng chọn ảnh đại diện.</div>
+                                }
+                                else if (err == "size")
+                                {
+                                    <div class="alert alert-danger">Ảnh đại diện quá lớn (tối đa 2MB).</div>
+                                }
+                                else if (err == "type")
+                                {
+                                    <div class="alert alert-danger">Chỉ hỗ trợ PNG, JPG, JPEG, GIF hoặc WEBP.</div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-danger">Không thể cập nhật ảnh đại diện.</div>
+                                }
+                            }
+
+                            <div class="row align-items-start g-4 mb-4">
+                                <div class="col-lg-3 col-md-4 text-center">
+                                    <img src="@avatarPath" alt="Ảnh đại diện" class="rounded-circle border shadow-sm" style="width: 140px; height: 140px; object-fit: cover;" asp-append-version="true">
+                                </div>
+                                <div class="col-lg-9 col-md-8">
+                                    <form method="post" asp-page-handler="UpdateAvatar" enctype="multipart/form-data" class="row g-3">
+                                        <div class="col-12 form-group">
+                                            <label class="form-label" for="AvatarFileUpload">Ảnh đại diện</label>
+                                            <input type="file" asp-for="AvatarFileUpload" class="form-control" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp">
+                                            <small class="text-muted">Bạn có thể tự tải ảnh lên. Hỗ trợ PNG/JPG/JPEG/GIF/WEBP, tối đa 2MB.</small>
+                                        </div>
+                                        <div class="col-12">
+                                            <button class="btn btn-primary" type="submit">Cập nhật ảnh đại diện</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
                             <div class="row">
                                 <div class="col-lg-3 col-md-4 label">Họ và tên</div>
                                 <div class="col-lg-9 col-md-8">@userCurrent.FullName</div>

@@ -663,6 +663,333 @@ function openContractHistory(id) {
         }
     });
 }
+
+function openSignContract(id) {
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "GET",
+        url: '/Contract?handler=SignForm&id=' + id,
+        success: function (data) {
+            $("#contentModal").empty();
+            $("#contentModal").append(data);
+            $('#formModal').modal('show');
+        },
+        error: function (jqXHR, exception) {
+            var message = "Khong mo duoc form ky noi bo";
+            if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                message = jqXHR.responseJSON.message;
+            }
+            Swal.fire({
+                icon: "error",
+                title: "Khong thanh cong",
+                text: message
+            });
+        }
+    });
+}
+
+function signContract(id) {
+    removeAllEror("signContractForm");
+
+    var passwordConfirm = getValueControl("txtSignPassword");
+    var signatureCode = getValueControl("txtSignatureCode");
+    var signNote = getValueControl("txtSignNote");
+
+    if (passwordConfirm == "") {
+        addError("txtSignPassword", "Nhap mat khau xac nhan");
+        return;
+    }
+
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "POST",
+        url: '/Contract?handler=SignInternal',
+        data: {
+            Id: id,
+            PasswordConfirm: passwordConfirm,
+            SignatureCode: signatureCode,
+            SignNote: signNote
+        },
+        success: function (data) {
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "Ky hop dong thanh cong",
+                showConfirmButton: false,
+                timer: 1800
+            }).then(function () {
+                window.location.reload();
+            });
+        },
+        error: function (jqXHR, exception) {
+            if (jqXHR && jqXHR.status == 400) {
+                showError(jqXHR);
+                return;
+            }
+
+            var message = "Khong the ky hop dong";
+            if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                message = jqXHR.responseJSON.message;
+            }
+
+            Swal.fire({
+                icon: "error",
+                title: "Khong thanh cong",
+                text: message
+            });
+        }
+    });
+}
+
+function requestEmployeeDocumentSign(id) {
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "POST",
+        url: '/EmployeeInfo?handler=RequestDocumentSign',
+        data: {
+            id: id
+        },
+        success: function (data) {
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "Da gui yeu cau ky tai lieu",
+                showConfirmButton: false,
+                timer: 1800
+            }).then(function () {
+                window.location.reload();
+            });
+        },
+        error: function (jqXHR, exception) {
+            var message = "Khong the yeu cau ky tai lieu";
+            if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                message = jqXHR.responseJSON.message;
+            }
+
+            Swal.fire({
+                icon: "error",
+                title: "Khong thanh cong",
+                text: message
+            });
+        }
+    });
+}
+
+function openEmployeeDocumentSign(id) {
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "GET",
+        url: '/EmployeeInfo?handler=DocumentSignForm&id=' + id,
+        success: function (data) {
+            $("#contentModal").empty();
+            $("#contentModal").append(data);
+            initializeEmployeeSignaturePad();
+            $('#formModal').modal('show');
+        },
+        error: function (jqXHR, exception) {
+            var message = "Khong mo duoc form ky tai lieu";
+            if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                message = jqXHR.responseJSON.message;
+            }
+            Swal.fire({
+                icon: "error",
+                title: "Khong thanh cong",
+                text: message
+            });
+        }
+    });
+}
+
+let employeeSignaturePadState = null;
+
+function initializeEmployeeSignaturePad() {
+    const canvas = document.getElementById("employeeSignatureCanvas");
+    if (!canvas) {
+        employeeSignaturePadState = null;
+        return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(Math.floor(rect.width || 520), 320);
+    const height = Math.max(Math.floor(rect.height || 180), 160);
+    const ratio = window.devicePixelRatio || 1;
+
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#111";
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    employeeSignaturePadState = {
+        canvas: canvas,
+        ctx: ctx,
+        drawing: false,
+        hasStroke: false,
+        width: width,
+        height: height
+    };
+
+    const getPoint = function (event) {
+        const bounds = canvas.getBoundingClientRect();
+        const source = event.touches && event.touches.length > 0 ? event.touches[0] : event;
+        return {
+            x: source.clientX - bounds.left,
+            y: source.clientY - bounds.top
+        };
+    };
+
+    const startDraw = function (event) {
+        event.preventDefault();
+        const point = getPoint(event);
+        employeeSignaturePadState.drawing = true;
+        employeeSignaturePadState.hasStroke = true;
+        ctx.beginPath();
+        ctx.moveTo(point.x, point.y);
+    };
+
+    const draw = function (event) {
+        if (!employeeSignaturePadState || !employeeSignaturePadState.drawing) {
+            return;
+        }
+        event.preventDefault();
+        const point = getPoint(event);
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+    };
+
+    const endDraw = function (event) {
+        if (!employeeSignaturePadState) {
+            return;
+        }
+        if (event) {
+            event.preventDefault();
+        }
+        employeeSignaturePadState.drawing = false;
+        ctx.closePath();
+    };
+
+    canvas.onmousedown = startDraw;
+    canvas.onmousemove = draw;
+    canvas.onmouseup = endDraw;
+    canvas.onmouseleave = endDraw;
+    canvas.ontouchstart = startDraw;
+    canvas.ontouchmove = draw;
+    canvas.ontouchend = endDraw;
+    canvas.ontouchcancel = endDraw;
+}
+
+function clearEmployeeSignaturePad() {
+    if (!employeeSignaturePadState) {
+        return;
+    }
+
+    const state = employeeSignaturePadState;
+    state.ctx.clearRect(0, 0, state.width, state.height);
+    state.ctx.fillStyle = "#ffffff";
+    state.ctx.fillRect(0, 0, state.width, state.height);
+    state.hasStroke = false;
+}
+
+function getEmployeeSignatureDataUrl() {
+    if (!employeeSignaturePadState || !employeeSignaturePadState.hasStroke) {
+        return "";
+    }
+
+    return employeeSignaturePadState.canvas.toDataURL("image/png");
+}
+
+function signEmployeeDocument(id) {
+    removeAllEror("signEmployeeDocumentForm");
+
+    var passwordConfirm = getValueControl("txtDocumentSignPassword");
+    var signatureCode = getValueControl("txtDocumentSignatureCode");
+    var signNote = getValueControl("txtDocumentSignNote");
+    var acceptTerms = document.getElementById("cbDocumentAcceptTerms")?.checked === true;
+    var signatureDataUrl = getEmployeeSignatureDataUrl();
+
+    if (passwordConfirm == "") {
+        addError("txtDocumentSignPassword", "Nhap mat khau xac nhan");
+        return;
+    }
+
+    if (!acceptTerms) {
+        addError("cbDocumentAcceptTerms", "Ban can chap nhan dieu khoan truoc khi ky");
+        return;
+    }
+
+    if (signatureDataUrl == "") {
+        addError("employeeSignatureCanvas", "Nhan vien can ve chu ky truoc khi ky tai lieu");
+        return;
+    }
+
+    $.ajax({
+        headers: {
+            "RequestVerificationToken":
+                $('input[name="__RequestVerificationToken"]').val()
+        },
+        type: "POST",
+        url: '/EmployeeInfo?handler=SignDocumentInternal',
+        data: {
+            Id: id,
+            PasswordConfirm: passwordConfirm,
+            SignatureCode: signatureCode,
+            SignNote: signNote,
+            AcceptTerms: acceptTerms,
+            SignatureDataUrl: signatureDataUrl
+        },
+        success: function (data) {
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "Ky tai lieu thanh cong",
+                showConfirmButton: false,
+                timer: 1800
+            }).then(function () {
+                window.location.reload();
+            });
+        },
+        error: function (jqXHR, exception) {
+            if (jqXHR && jqXHR.status == 400) {
+                showError(jqXHR);
+                return;
+            }
+
+            var message = "Khong the ky tai lieu";
+            if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                message = jqXHR.responseJSON.message;
+            }
+
+            Swal.fire({
+                icon: "error",
+                title: "Khong thanh cong",
+                text: message
+            });
+        }
+    });
+}
+
 function changePage(pageNumber) {
 
     var urlcurent = new URL(window.location.href);
@@ -3237,10 +3564,32 @@ function AddDocument(idCandidate, dataType = 1) {
         contentType: 'application/json; charset=utf-8',
         data: JSON.stringify(bodyRequest),
         success: function (data) {
+            if (data && data.success === false) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Khong thanh cong",
+                    text: data.message || "Khong the cap nhat chung tu"
+                });
+                return;
+            }
             successAdd(idCandidate);
         },
         error: function (jqXHR, exception) {
-            showError(jqXHR);
+            var message = "Khong the cap nhat chung tu";
+            if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                message = jqXHR.responseJSON.message;
+            }
+
+            if (jqXHR && jqXHR.status == 400) {
+                showError(jqXHR);
+                return;
+            }
+
+            Swal.fire({
+                icon: "error",
+                title: "Khong thanh cong",
+                text: message
+            });
         },
         complete: function () {
 

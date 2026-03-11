@@ -1,7 +1,10 @@
 ﻿using crmHuman.Model;
 using crmHuman.Services;
+using IOFile = System.IO.File;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using System.IO;
 using VS.Human.Business;
 using VS.Human.Business.Model;
 using VS.Human.Item;
@@ -15,23 +18,29 @@ namespace crmHuman.Pages
         private readonly ILogger<InfomationModel> _logger;
         private readonly IEmpBusiness _empBusiness;
         private readonly IThemeSettingBusiness _themeSettingBusiness;
+        private readonly IWebHostEnvironment _env;
         public Employee UserProfile;
         public EmployeeRequest RequestSearch { get; set; }
 
         [BindProperty]
         public ThemeSettingRequest ThemeForm { get; set; } = new ThemeSettingRequest();
 
+        [BindProperty]
+        public IFormFile? AvatarFileUpload { get; set; }
+
 
 
 
         public InfomationModel(ILogger<InfomationModel> logger,
             IEmpBusiness empBusiness,
-            IThemeSettingBusiness themeSettingBusiness
+            IThemeSettingBusiness themeSettingBusiness,
+            IWebHostEnvironment env
             )
         {
             _logger = logger;
             _empBusiness = empBusiness;
             _themeSettingBusiness = themeSettingBusiness;
+            _env = env;
             TitlePage = "Thông tin tài khoản";
             KeyPage = "Infomation";
 
@@ -45,6 +54,75 @@ namespace crmHuman.Pages
             };
 
 
+        }
+
+        public async Task<IActionResult> OnPostUpdateAvatar()
+        {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Redirect("/Login");
+            }
+
+            GetInfoUser();
+            if (UserData == null || UserData.UserId < 1)
+            {
+                return Redirect("/Login");
+            }
+
+            if (AvatarFileUpload == null || AvatarFileUpload.Length == 0)
+            {
+                TempData["AvatarError"] = "missing";
+                return RedirectToPage();
+            }
+
+            if (AvatarFileUpload.Length > 2 * 1024 * 1024)
+            {
+                TempData["AvatarError"] = "size";
+                return RedirectToPage();
+            }
+
+            var ext = Path.GetExtension(AvatarFileUpload.FileName).ToLowerInvariant();
+            var allowed = new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp" };
+            if (!allowed.Contains(ext))
+            {
+                TempData["AvatarError"] = "type";
+                return RedirectToPage();
+            }
+
+            var currentEmployee = await _empBusiness.GetById(UserData.UserId);
+            var folder = Path.Combine(_env.WebRootPath, "uploads", "avatars", UserData.UserId.ToString());
+            Directory.CreateDirectory(folder);
+
+            var fileName = $"avatar_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{ext}";
+            var filePath = Path.Combine(folder, fileName);
+
+            await using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await AvatarFileUpload.CopyToAsync(stream);
+            }
+
+            var avatarPath = $"/uploads/avatars/{UserData.UserId}/{fileName}";
+            var ok = await _empBusiness.UpdateAvatar(UserData.UserId, avatarPath, UserData.UserId);
+
+            if (ok && !string.IsNullOrWhiteSpace(currentEmployee?.AvatarFile)
+                && currentEmployee.AvatarFile.StartsWith("/uploads/avatars/", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var oldRelativePath = currentEmployee.AvatarFile.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    var oldPhysicalPath = Path.Combine(_env.WebRootPath, oldRelativePath);
+                    if (!string.Equals(oldPhysicalPath, filePath, StringComparison.OrdinalIgnoreCase) && IOFile.Exists(oldPhysicalPath))
+                    {
+                        IOFile.Delete(oldPhysicalPath);
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            TempData["AvatarSaved"] = ok ? "1" : "0";
+            return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostSaveTheme()

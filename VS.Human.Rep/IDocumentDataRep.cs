@@ -13,5 +13,7 @@ namespace VS.Human.Rep
         Task<bool> AddShare(int documentId, int userId);
         Task<bool> RemoveShare(int documentId, int userId);
         Task<DocumentData?> GetByToken(string token);
+        Task<bool> RequestInternalSign(int id, int requestedBy, DateTime requestedAt);
+        Task<bool> SignInternal(int id, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod, string? signedByUserNameSnapshot, string? signedByFullNameSnapshot, string? signedIpAddress, string? signedUserAgent, string? signedFileArchivePath, string? signatureImagePath, string? signatureIntentText, DateTime? termsAcceptedAt = null);
     }
 }

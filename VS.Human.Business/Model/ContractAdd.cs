@@ -7,4 +7,12 @@ namespace VS.Human.Business.Model
     {
         public IFormFile? ContractFile { get; set; }
     }
+
+    public class ContractSignRequest
+    {
+        public int Id { get; set; }
+        public string? PasswordConfirm { get; set; }
+        public string? SignatureCode { get; set; }
+        public string? SignNote { get; set; }
+    }
 }

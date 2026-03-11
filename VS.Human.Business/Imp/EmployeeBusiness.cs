@@ -85,6 +85,17 @@ namespace VS.Human.Business.Imp
 
             return await _unitOfWork.EmployeeRep.ChangePassword(passwordNew, id);
         }
+
+        public async Task<bool> UpdateAvatar(int id, string avatarFile, int updatedBy)
+        {
+            if (id <= 0 || string.IsNullOrWhiteSpace(avatarFile))
+            {
+                return false;
+            }
+
+            return await _unitOfWork.EmployeeRep.UpdateAvatar(id, avatarFile.Trim(), updatedBy);
+        }
+
         public async Task<bool> Update(EmployeeInfoAdd itemUpdate)
         {
             // Set UpdatedBy và UpdatedAt

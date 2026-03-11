@@ -120,5 +120,37 @@ namespace VS.Human.Rep
             var parameter = new { id };
             return await ExecuteSQL2<DocumentData>("sp_DocumentData_GetById", parameter);
         }
+
+        public async Task<bool> RequestInternalSign(int id, int requestedBy, DateTime requestedAt)
+        {
+            var p = new DynamicParameters();
+            p.Add("@Id", id);
+            p.Add("@RequestedBy", requestedBy);
+            p.Add("@RequestedAt", requestedAt);
+            var rows = await ExecuteSQLScalar<int>("sp_DocumentData_requestInternalSign", p);
+            return rows > 0;
+        }
+
+        public async Task<bool> SignInternal(int id, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod, string? signedByUserNameSnapshot, string? signedByFullNameSnapshot, string? signedIpAddress, string? signedUserAgent, string? signedFileArchivePath, string? signatureImagePath, string? signatureIntentText, DateTime? termsAcceptedAt = null)
+        {
+            var p = new DynamicParameters();
+            p.Add("@Id", id);
+            p.Add("@SignedBy", signedBy);
+            p.Add("@SignedAt", signedAt);
+            p.Add("@SignatureHash", signatureHash);
+            p.Add("@FileHash", fileHash);
+            p.Add("@SignNote", signNote);
+            p.Add("@SignMethod", signMethod);
+            p.Add("@SignedByUserNameSnapshot", signedByUserNameSnapshot);
+            p.Add("@SignedByFullNameSnapshot", signedByFullNameSnapshot);
+            p.Add("@SignedIpAddress", signedIpAddress);
+            p.Add("@SignedUserAgent", signedUserAgent);
+            p.Add("@SignedFileArchivePath", signedFileArchivePath);
+            p.Add("@SignatureImagePath", signatureImagePath);
+            p.Add("@SignatureIntentText", signatureIntentText);
+            p.Add("@TermsAcceptedAt", termsAcceptedAt);
+            var rows = await ExecuteSQLScalar<int>("sp_DocumentData_signInternal", p);
+            return rows > 0;
+        }
     }
 }

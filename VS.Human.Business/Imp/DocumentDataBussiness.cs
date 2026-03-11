@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
+using System;
 using VS.Human.Business.Model;
 using VS.Human.Item;
 using VS.Human.Rep;
@@ -22,6 +23,36 @@ namespace VS.Human.Business.Imp
             var dataDocument = item.Data;
             foreach (var item1 in dataDocument)
             {
+                if (item1.Id <= 0)
+                {
+                    continue;
+                }
+
+                var current = await _unitOfWork.DocumentDataRep.GetById(item1.Id);
+                if (current == null || current.Id <= 0)
+                {
+                    return false;
+                }
+
+                if (current.IsSignedInternal || current.IsSignatureRequested)
+                {
+                    var currentFile = (current.ValueFile ?? string.Empty).Trim();
+                    var newFile = (item1.ValueFile ?? string.Empty).Trim();
+                    var currentCode = (current.Code ?? string.Empty).Trim();
+                    var newCode = (item1.Code ?? string.Empty).Trim();
+                    var currentDisplayText = (current.DisplayText ?? string.Empty).Trim();
+                    var newDisplayText = (item1.DisplayText ?? string.Empty).Trim();
+                    if (!string.Equals(currentFile, newFile, StringComparison.OrdinalIgnoreCase)
+                        || !string.Equals(currentCode, newCode, StringComparison.OrdinalIgnoreCase)
+                        || !string.Equals(currentDisplayText, newDisplayText, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            foreach (var item1 in dataDocument)
+            {
                 var itemDocumentAdd = new DocumentData()
                 {
                     Id = item1.Id,
@@ -40,6 +71,12 @@ namespace VS.Human.Business.Imp
         }
         public async Task<bool> Delete(int id)
         {
+            var item = await _unitOfWork.DocumentDataRep.GetById(id);
+            if (item != null && item.Id > 0 && (item.IsSignedInternal || item.IsSignatureRequested))
+            {
+                return false;
+            }
+
             return await _unitOfWork.DocumentDataRep.Delete(id);
         }
 
@@ -144,6 +181,28 @@ namespace VS.Human.Business.Imp
             return await _unitOfWork.DocumentDataRep.AddOrUpdate(item);
         }
 
+        public async Task<bool> RequestInternalSign(int id, int requestedBy, DateTime requestedAt)
+        {
+            var item = await _unitOfWork.DocumentDataRep.GetById(id);
+            if (item == null || item.Id <= 0 || item.IsFolder || item.IsSignedInternal || item.IsSignatureRequested)
+            {
+                return false;
+            }
+
+            return await _unitOfWork.DocumentDataRep.RequestInternalSign(id, requestedBy, requestedAt);
+        }
+
+        public async Task<bool> SignInternal(int id, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod, string? signedByUserNameSnapshot, string? signedByFullNameSnapshot, string? signedIpAddress, string? signedUserAgent, string? signedFileArchivePath, string? signatureImagePath, string? signatureIntentText, DateTime? termsAcceptedAt = null)
+        {
+            var item = await _unitOfWork.DocumentDataRep.GetById(id);
+            if (item == null || item.Id <= 0 || item.IsFolder || item.IsSignedInternal || !item.IsSignatureRequested)
+            {
+                return false;
+            }
+
+            return await _unitOfWork.DocumentDataRep.SignInternal(id, signedBy, signedAt, signatureHash, fileHash, signNote, signMethod, signedByUserNameSnapshot, signedByFullNameSnapshot, signedIpAddress, signedUserAgent, signedFileArchivePath, signatureImagePath, signatureIntentText, termsAcceptedAt);
+        }
+
         public async Task<BaseList> GetallRegional()
         {
             return await _unitOfWork.LocationRep.GetAll();
@@ -155,3 +214,4 @@ namespace VS.Human.Business.Imp
         }
     }
 }
+

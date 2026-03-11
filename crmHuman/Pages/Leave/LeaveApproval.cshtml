@@ -85,7 +85,7 @@
                                         <div class="btn-group">
                                             <button class="btn btn-sm btn-info" onclick="viewHistory(@info.Id)" title="Xem lịch sử"><i class="bi bi-clock-history"></i></button>
                                             <button class="btn btn-sm btn-success" onclick="approveLeave(@info.Id, 'Agree')">Duyệt</button>
-                                            @if (Model.UserData.RoleCode == "2" || Model.UserData.RoleCode == "9" || Model.UserData.RoleCode == "1")
+                                            @if (Model.UserData.RoleCode == "9" || Model.UserData.RoleCode == "1")
                                             {
                                                 <button class="btn btn-sm btn-primary" onclick="approveLeave(@info.Id, 'Acting')">Duyệt thay BGĐ</button>
                                             }

@@ -37,19 +37,8 @@ namespace VS.Human.Business.Imp
                 return false;
             }
 
-            var history = new ContractHistory
-            {
-                ContractId = newId,
-                EmployeeId = item.EmployeeId,
-                Action = "CREATE",
-                ContractTypeCode = item.ContractTypeCode,
-                StartDate = item.StartDate,
-                EndDate = item.EndDate,
-                Status = item.Status,
-                FileUrl = item.FileUrl,
-                Note = item.Note,
-                CreatedBy = userId
-            };
+            item.Id = newId;
+            var history = BuildHistory(item, "CREATE", userId);
 
             await _unitOfWork.ContractRep.AddHistory(history);
             return true;
@@ -76,19 +65,7 @@ namespace VS.Human.Business.Imp
                 return false;
             }
 
-            var history = new ContractHistory
-            {
-                ContractId = current.Id,
-                EmployeeId = current.EmployeeId,
-                Action = "UPDATE",
-                ContractTypeCode = current.ContractTypeCode,
-                StartDate = current.StartDate,
-                EndDate = current.EndDate,
-                Status = current.Status,
-                FileUrl = current.FileUrl,
-                Note = current.Note,
-                CreatedBy = userId
-            };
+            var history = BuildHistory(current, "UPDATE", userId);
 
             await _unitOfWork.ContractRep.AddHistory(history);
             return true;
@@ -108,20 +85,79 @@ namespace VS.Human.Business.Imp
                 return false;
             }
 
-            var history = new ContractHistory
-            {
-                ContractId = current.Id,
-                EmployeeId = current.EmployeeId,
-                Action = "DELETE",
-                ContractTypeCode = current.ContractTypeCode,
-                StartDate = current.StartDate,
-                EndDate = current.EndDate,
-                Status = current.Status,
-                FileUrl = current.FileUrl,
-                Note = current.Note,
-                CreatedBy = userId
-            };
+            var history = BuildHistory(current, "DELETE", userId);
 
+            await _unitOfWork.ContractRep.AddHistory(history);
+            return true;
+        }
+
+        public async Task<bool> SignInternal(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod)
+        {
+            var current = await _unitOfWork.ContractRep.GetById(contractId);
+            if (current == null || current.Id <= 0)
+            {
+                return false;
+            }
+
+            if (current.IsSignedInternal)
+            {
+                return false;
+            }
+
+            if (!current.IsHrSigned)
+            {
+                return false;
+            }
+
+            var signed = await _unitOfWork.ContractRep.SignInternal(contractId, signedBy, signedAt, signatureHash, fileHash, signNote, signMethod);
+            if (!signed)
+            {
+                return false;
+            }
+
+            current.IsSignedInternal = true;
+            current.SignedAt = signedAt;
+            current.SignedBy = signedBy;
+            current.SignatureHash = signatureHash;
+            current.FileHash = fileHash;
+            current.SignNote = signNote;
+            current.SignMethod = signMethod;
+            current.UpdatedBy = signedBy;
+
+            var history = BuildHistory(current, "SIGN_INTERNAL", signedBy);
+            await _unitOfWork.ContractRep.AddHistory(history);
+            return true;
+        }
+
+        public async Task<bool> SignInternalHr(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod)
+        {
+            var current = await _unitOfWork.ContractRep.GetById(contractId);
+            if (current == null || current.Id <= 0)
+            {
+                return false;
+            }
+
+            if (current.IsHrSigned || current.IsSignedInternal)
+            {
+                return false;
+            }
+
+            var signed = await _unitOfWork.ContractRep.SignInternalHr(contractId, signedBy, signedAt, signatureHash, fileHash, signNote, signMethod);
+            if (!signed)
+            {
+                return false;
+            }
+
+            current.IsHrSigned = true;
+            current.HrSignedAt = signedAt;
+            current.HrSignedBy = signedBy;
+            current.HrSignatureHash = signatureHash;
+            current.HrFileHash = fileHash;
+            current.HrSignNote = signNote;
+            current.HrSignMethod = signMethod;
+            current.UpdatedBy = signedBy;
+
+            var history = BuildHistory(current, "SIGN_INTERNAL_HR", signedBy);
             await _unitOfWork.ContractRep.AddHistory(history);
             return true;
         }
@@ -139,6 +175,37 @@ namespace VS.Human.Business.Imp
         public async Task<List<ContractStatusCount>> GetStatusCounts()
         {
             return await _unitOfWork.ContractRep.GetStatusCounts();
+        }
+
+        private static ContractHistory BuildHistory(Contract contract, string action, int userId)
+        {
+            return new ContractHistory
+            {
+                ContractId = contract.Id,
+                EmployeeId = contract.EmployeeId,
+                Action = action,
+                ContractTypeCode = contract.ContractTypeCode,
+                StartDate = contract.StartDate,
+                EndDate = contract.EndDate,
+                Status = contract.Status,
+                FileUrl = contract.FileUrl,
+                Note = contract.Note,
+                IsHrSigned = contract.IsHrSigned,
+                HrSignedAt = contract.HrSignedAt,
+                HrSignedBy = contract.HrSignedBy,
+                HrSignatureHash = contract.HrSignatureHash,
+                HrFileHash = contract.HrFileHash,
+                HrSignNote = contract.HrSignNote,
+                HrSignMethod = contract.HrSignMethod,
+                IsSignedInternal = contract.IsSignedInternal,
+                SignedAt = contract.SignedAt,
+                SignedBy = contract.SignedBy,
+                SignatureHash = contract.SignatureHash,
+                FileHash = contract.FileHash,
+                SignNote = contract.SignNote,
+                SignMethod = contract.SignMethod,
+                CreatedBy = userId
+            };
         }
     }
 }

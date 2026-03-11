@@ -1,0 +1,174 @@
+@{
+    var contract = Model.Contract as dynamic;
+    var canSignHr = Model.CanSignHr != null && (bool)Model.CanSignHr;
+    var canSignEmployee = Model.CanSignEmployee != null && (bool)Model.CanSignEmployee;
+    var isHrSigned = contract != null && contract.IsHrSigned == true;
+    var canShowForm = (canSignHr && !isHrSigned) || (canSignEmployee && isHrSigned);
+    var signedAtText = "";
+    if (contract != null && contract.SignedAt != null)
+    {
+        signedAtText = contract.SignedAt.ToString("dd/MM/yyyy HH:mm");
+    }
+    var signerDisplay = "";
+    if (contract != null && !string.IsNullOrWhiteSpace(contract.SignedByUserName))
+    {
+        signerDisplay = contract.SignedByUserName;
+        if (!string.IsNullOrWhiteSpace(contract.SignedByFullName))
+        {
+            signerDisplay += " - " + contract.SignedByFullName;
+        }
+    }
+    var hrSignedAtText = "";
+    if (contract != null && contract.HrSignedAt != null)
+    {
+        hrSignedAtText = contract.HrSignedAt.ToString("dd/MM/yyyy HH:mm");
+    }
+    var hrSignerDisplay = "";
+    if (contract != null && !string.IsNullOrWhiteSpace(contract.HrSignedByUserName))
+    {
+        hrSignerDisplay = contract.HrSignedByUserName;
+        if (!string.IsNullOrWhiteSpace(contract.HrSignedByFullName))
+        {
+            hrSignerDisplay += " - " + contract.HrSignedByFullName;
+        }
+    }
+    var dialogTitle = "Thong tin ky hop dong";
+    if (canSignHr && !isHrSigned)
+    {
+        dialogTitle = "Ky HR hop dong";
+    }
+    else if (canSignEmployee && isHrSigned && contract != null && contract.IsSignedInternal != true)
+    {
+        dialogTitle = "Ky nhan vien";
+    }
+}
+
+<div class="modal-header">
+    <h5 class="modal-title">@dialogTitle</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    @if (contract == null || contract.Id < 1)
+    {
+        <div class="alert alert-danger mb-0">Không tìm thấy hợp đồng.</div>
+    }
+        else if (contract.IsSignedInternal == true)
+    {
+        <div class="alert alert-success">
+            Hop dong da duoc nhan vien ky.
+            @if (!string.IsNullOrWhiteSpace(signedAtText))
+            {
+                <div class="mt-2">Thoi gian ky: <strong>@signedAtText</strong></div>
+            }
+            @if (!string.IsNullOrWhiteSpace(signerDisplay))
+            {
+                <div>Nguoi ky: <strong>@signerDisplay</strong></div>
+            }
+        </div>
+        @if (isHrSigned)
+        {
+            <div class="alert alert-success mt-2">
+                HR da ky hop dong.
+                @if (!string.IsNullOrWhiteSpace(hrSignedAtText))
+                {
+                    <div class="mt-2">Thoi gian ky HR: <strong>@hrSignedAtText</strong></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(hrSignerDisplay))
+                {
+                    <div>Nguoi ky HR: <strong>@hrSignerDisplay</strong></div>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        if (isHrSigned)
+        {
+            <div class="alert alert-success">
+                HR da ky hop dong.
+                @if (!string.IsNullOrWhiteSpace(hrSignedAtText))
+                {
+                    <div class="mt-2">Thoi gian ky HR: <strong>@hrSignedAtText</strong></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(hrSignerDisplay))
+                {
+                    <div>Nguoi ky HR: <strong>@hrSignerDisplay</strong></div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                Hop dong chua duoc HR ky.
+            </div>
+        }
+        @if (!canShowForm)
+        {
+            if (!isHrSigned)
+            {
+                <div class="alert alert-warning mb-0">Ban khong co quyen ky HR hop dong nay.</div>
+            }
+            else
+            {
+                <div class="alert alert-info mb-0">Cho nhan vien ky hop dong.</div>
+            }
+        }
+        else
+        {
+            <form id="signContractForm" class="needs-validation" novalidate>
+                <div class="col-12 form-group">
+                    <label class="form-label">Nhan vien</label>
+                    <input type="text" class="form-control" value="@($"{contract.UserName} - {contract.FullName}")" readonly />
+                </div>
+
+                <div class="col-12 form-group">
+                    <label class="form-label">File hop dong</label>
+                    @if (!string.IsNullOrWhiteSpace(contract.FileUrl))
+                    {
+                        <div>
+                            <a href="@contract.FileUrl" target="_blank">Mo file hop dong</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-danger">Hop dong chua co file.</div>
+                    }
+                </div>
+
+                <div class="col-12 form-group mt-2">
+                    <label class="form-label">Ma ky noi bo (tuy chon)</label>
+                    <input type="text" id="txtSignatureCode" class="form-control" maxlength="100" placeholder="VD: TOI_DONG_Y_KY_HOP_DONG" />
+                </div>
+
+                <div class="col-12 form-group mt-2">
+                    <label class="form-label">Mat khau xac nhan <span class="text-danger">*</span></label>
+                    <input type="password" id="txtSignPassword" class="form-control" maxlength="100" autocomplete="off" />
+                    <div class="invalid-feedback-cs"></div>
+                </div>
+
+                <div class="col-12 form-group mt-2">
+                    <label class="form-label">Ghi chu ky (tuy chon)</label>
+                    <textarea id="txtSignNote" class="form-control" style="height: 90px" maxlength="500"></textarea>
+                </div>
+            </form>
+        }
+    }
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
+    @if (contract != null && contract.Id > 0 && contract.IsSignedInternal != true)
+    {
+        if (canSignHr && !isHrSigned)
+        {
+            <button type="button" class="btn btn-primary" onclick="signContract(@contract.Id)">Ky HR</button>
+        }
+        else if (canSignEmployee && isHrSigned)
+        {
+            <button type="button" class="btn btn-primary" onclick="signContract(@contract.Id)">Ky nhan vien</button>
+        }
+    }
+</div>
+
+

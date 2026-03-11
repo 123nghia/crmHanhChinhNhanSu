@@ -222,6 +222,16 @@ namespace VS.Human.Business.Model
         public int Id { get; set; }
     }
 
+    public class DocumentSignRequest
+    {
+        public int Id { get; set; }
+        public string? PasswordConfirm { get; set; }
+        public string? SignatureCode { get; set; }
+        public string? SignNote { get; set; }
+        public bool AcceptTerms { get; set; }
+        public string? SignatureDataUrl { get; set; }
+    }
+
 
     public class CandidateScheduleAdd : ScheduleInterview
     {

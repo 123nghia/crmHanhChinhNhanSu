@@ -11,6 +11,7 @@ namespace VS.Human.Business
         Task<Employee> CheckDuplicate(string email, string phone);
         Task<Employee?> Add(EmployeeInfoAdd item);
         Task<bool> Update(EmployeeInfoAdd item);
+        Task<bool> UpdateAvatar(int id, string avatarFile, int updatedBy);
         Task<bool> ChangePassword(string password, int id);
         Task<bool> Delete(int id, bool reactive = false);
         Task<BaseList> GetAllManager();

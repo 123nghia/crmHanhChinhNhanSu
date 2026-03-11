@@ -12,6 +12,28 @@ namespace crmHuman.Pages.Leave
     {
         private readonly ILeaveBusiness _leaveBusiness;
 
+        private static bool IsApprovalRole(string? roleCode)
+        {
+            return roleCode == "1" || roleCode == "3" || roleCode == "8" || roleCode == "9";
+        }
+
+        private static int? ResolveApprovalStatus(string? roleCode, int? requestedStatus)
+        {
+            if (requestedStatus.HasValue)
+            {
+                return requestedStatus;
+            }
+
+            return roleCode switch
+            {
+                "3" => 0,
+                "9" => 1,
+                "8" => 2,
+                "1" => null,
+                _ => -999
+            };
+        }
+
         public LeaveApprovalModel(ILeaveBusiness leaveBusiness)
         {
             _leaveBusiness = leaveBusiness;
@@ -30,15 +52,13 @@ namespace crmHuman.Pages.Leave
             }
             else
             {
-                int? filterStatus = status;
-                // If status is not specified, auto-filter based on role
-                if (filterStatus == null && UserData.RoleCode != "1")
+                if (!IsApprovalRole(UserData.RoleCode))
                 {
-                    if (UserData.RoleCode == "3") filterStatus = 0; // TL (Lead) sees requests pending Lead
-                    else if (UserData.RoleCode == "2" || UserData.RoleCode == "9") filterStatus = 1; // HCNS sees requests pending HCNS
-                    else filterStatus = 2; // Others see pending BGD (assuming)
+                    LeaveList = new BaseList { Data = new List<object>(), Total = 0 };
+                    return;
                 }
 
+                int? filterStatus = ResolveApprovalStatus(UserData.RoleCode, status);
                 LeaveList = await _leaveBusiness.GetLeaveList(null, filterStatus, null, null, page, limit, UserData.UserId);
             }
         }

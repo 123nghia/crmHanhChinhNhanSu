@@ -90,12 +90,12 @@ namespace VS.Human.Rep
             {
                 // Logic based on role:
                 // TL (3): Sees status 0
-                // HCNS (2): Sees status 1
-                // BGĐ (1): Sees status 2
+                // HCNS (9): Sees status 1
+                // BGĐ/Admin (8/1): Sees status 2
                 int levelStatus = -1;
                 if (roleCode == "3") levelStatus = 0;
-                else if (roleCode == "2" || roleCode == "9") levelStatus = 1;
-                else if (roleCode == "1") levelStatus = 2;
+                else if (roleCode == "9") levelStatus = 1;
+                else if (roleCode == "1" || roleCode == "8") levelStatus = 2;
 
                 int? approvedEmployeeId = null;
                 // For regular employees (TC), show their own approved leave this month

@@ -48,5 +48,7 @@
         public string RoleCode { get; set; } = string.Empty;
 
         public string LineCode { get; set; } = string.Empty;
+
+        public string AvatarFile { get; set; } = string.Empty;
     }
 }
