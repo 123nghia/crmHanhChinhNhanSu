@@ -301,7 +301,50 @@
                         </div>
                         }
                     
-                        
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <h5 class="card-title mb-0">Thông báo (@Model.UnreadNotificationCount chưa đọc)</h5>
+                                        @if (Model.UnreadNotificationCount > 0)
+                                        {
+                                            <form method="post" asp-page-handler="MarkAllRead" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">Đánh dấu đã đọc</button>
+                                            </form>
+                                        }
+                                    </div>
+
+                                    <ul class="list-group list-group-flush mt-3">
+                                        @if (Model.Notifications.Count == 0)
+                                        {
+                                            <li class="list-group-item text-muted">Chưa có thông báo nào.</li>
+                                        }
+                                        else
+                                        {
+                                            foreach (var notif in Model.Notifications)
+                                            {
+                                                var itemClass = notif.IsRead ? string.Empty : "fw-bold bg-light";
+                                                <li class="list-group-item @itemClass">
+                                                    <div class="d-flex justify-content-between align-items-start gap-3">
+                                                        <div>
+                                                            @if (!string.IsNullOrWhiteSpace(notif.Link))
+                                                            {
+                                                                <a href="@notif.Link" class="text-decoration-none">@notif.Message</a>
+                                                            }
+                                                            else
+                                                            {
+                                                                @notif.Message
+                                                            }
+                                                        </div>
+                                                        <small class="text-muted text-nowrap">@notif.CreateAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                                    </div>
+                                                </li>
+                                            }
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
 
 
                         @if (showExtendedStats)

@@ -72,6 +72,7 @@
                   </div>
 
                                     <form class="row g-3 needs-validation" method="post" asp-page-handler="Login" id="formLogin" novalidate>
+                                        @Html.AntiForgeryToken()
 
                                          @if(ModelState.Any())
                                         {
@@ -158,7 +159,6 @@
     <script src="/js/common.js"></script>
     <script src="/js/main.js"></script>
     <script src="/js/employer.js"></script>
-    @Html.AntiForgeryToken()
 </body>
 
 </html>

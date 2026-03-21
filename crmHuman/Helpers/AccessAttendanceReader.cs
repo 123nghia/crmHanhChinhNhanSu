@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
+using VS.Human.Utility;
 
 namespace crmHuman.Helpers
 {
@@ -46,7 +47,8 @@ namespace crmHuman.Helpers
 
         public string? GetConfigError()
         {
-            var dbPath = _configuration.GetValue<string>("AttendanceMachine:DbPath");
+            var dbPath = AttendanceMachinePathResolver.ResolveDbPath(
+                _configuration.GetValue<string>("AttendanceMachine:DbPath"));
             if (string.IsNullOrWhiteSpace(dbPath))
             {
                 return "Ch\u01B0a c\u1EA5u h\u00ECnh \u0111\u01B0\u1EDDng d\u1EABn file ch\u1EA5m c\u00F4ng.";
@@ -76,7 +78,8 @@ namespace crmHuman.Helpers
                 return result;
             }
 
-            var dbPath = _configuration.GetValue<string>("AttendanceMachine:DbPath") ?? string.Empty;
+            var dbPath = AttendanceMachinePathResolver.ResolveDbPath(
+                _configuration.GetValue<string>("AttendanceMachine:DbPath")) ?? string.Empty;
             var password = _configuration.GetValue<string>("AttendanceMachine:Password");
             var provider = _configuration.GetValue<string>("AttendanceMachine:Provider");
             var providers = new List<string>();

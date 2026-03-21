@@ -11,11 +11,13 @@ namespace crmHuman.Pages.Attendance
 {
     public class CheckInOutModel : BaseModel2
     {
-        private readonly AccessAttendanceReader _reader;
+        private readonly AccessAttendanceReader _accessReader;
+        private readonly DirectAttendanceReader _directReader;
 
         public CheckInOutModel(IConfiguration configuration)
         {
-            _reader = new AccessAttendanceReader(configuration);
+            _accessReader = new AccessAttendanceReader(configuration);
+            _directReader = new DirectAttendanceReader(configuration);
             KeyPage = "Attendance";
             TitlePage = "L\u1ECBch s\u1EED qu\u1EB9t th\u1EBB/\u0111i\u1EC3m danh";
         }
@@ -41,7 +43,14 @@ namespace crmHuman.Pages.Attendance
                 return Task.FromResult<IActionResult>(Page());
             }
 
-            if (!OperatingSystem.IsWindows())
+            var useDirectSql = _directReader.IsEnabled();
+            if (!useDirectSql)
+            {
+                ErrorMessage = "He thong chi dong bo nen tu file MDB vao SQL. Man hinh nay khong doc truc tiep Access de tranh loi OLEDB.";
+                return Task.FromResult<IActionResult>(Page());
+            }
+
+            if (!useDirectSql && !OperatingSystem.IsWindows())
             {
                 ErrorMessage = "Ch\u1EC9 h\u1ED7 tr\u1EE3 \u0111\u1ECDc d\u1EEF li\u1EC7u Access tr\u00EAn Windows.";
                 return Task.FromResult<IActionResult>(Page());
@@ -51,25 +60,42 @@ namespace crmHuman.Pages.Attendance
             SelectedEmployee = Request.Query["emp"];
             PageSize = ParseInt(Request.Query["ps"], 50);
 
-            ErrorMessage = _reader.GetConfigError();
+            ErrorMessage = useDirectSql
+                ? _directReader.GetConfigError()
+                : _accessReader.GetConfigError();
             if (string.IsNullOrWhiteSpace(ErrorMessage))
             {
-                var userTable = _reader.LoadTables(new[]
+                var userTable = (useDirectSql ? _directReader : null)?.LoadTables(new[]
+                {
+                    BuildUserQuery()
+                }, 5000) ?? _accessReader.LoadTables(new[]
                 {
                     BuildUserQuery()
                 }, 5000);
                 var userMap = BuildUserMap(userTable.FirstOrDefault());
                 Employees = BuildEmployeeOptions(userMap);
 
-                Tables = _reader.LoadTables(new[]
-                {
-                    BuildQuery("CheckInOut", new[] { "UserEnrollNumber", "TimeStr", "OriginType", "NewType", "MachineNo", "Source" }),
-                    BuildQuery("DelInOut", new[] { "UserEnrollNumber", "TimeStr", "TimeType", "TimeSource", "MachineNo" })
-                }, 5000);
+                Tables = useDirectSql
+                    ? _directReader.LoadTables(new[]
+                    {
+                        BuildQuery("CheckInOut", new[] { "UserEnrollNumber", "TimeStr", "MachineNo", "Source" })
+                    }, 5000)
+                    : _accessReader.LoadTables(new[]
+                    {
+                        BuildQuery("CheckInOut", new[] { "UserEnrollNumber", "TimeStr", "OriginType", "NewType", "MachineNo", "Source" }),
+                        BuildQuery("DelInOut", new[] { "UserEnrollNumber", "TimeStr", "TimeType", "TimeSource", "MachineNo" })
+                    }, 5000);
                 AttendanceTableFormatter.NormalizeTables(Tables);
                 ApplyUserNames(Tables, userMap);
                 PrepareHistoryTables(Tables);
-                Tables = MergeHistoryTables(Tables);
+                if (!useDirectSql)
+                {
+                    Tables = MergeHistoryTables(Tables);
+                }
+                else if (Tables.Sum(table => table.TotalCount) == 0)
+                {
+                    ErrorMessage = "Ngu\u1ED3n direct SQL \u0111ang ho\u1EA1t \u0111\u1ED9ng, nh\u01B0ng ch\u01B0a c\u00F3 log qu\u1EB9t m\u1EDBi t\u1EEB m\u00E1y ch\u1EA5m c\u00F4ng. D\u1EEF li\u1EC7u s\u1EBD hi\u1EC3n th\u1ECB ngay sau l\u1EA7n ch\u1EA5m c\u00F4ng k\u1EBF ti\u1EBFp.";
+                }
             }
 
             return Task.FromResult<IActionResult>(Page());

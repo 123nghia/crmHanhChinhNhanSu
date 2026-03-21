@@ -76,7 +76,7 @@ namespace crmHuman.Pages
         {
             _logger = logger;
             _empBusiness = empBusiness;
-            TitlePage = "Th�ng tin nh�n vi�n";
+            TitlePage = "Thông tin nhân viên";
             KeyPage = "CandidateDetail";
             _masterDataBussiness = masterDataBussiness;
             DataPostion = new BaseList();
@@ -108,7 +108,7 @@ namespace crmHuman.Pages
             },
              new Model.SelectDisplay()
             {
-            Code ="8", Name ="BG�"
+            Code ="8", Name ="BGĐ"
             }
         };
 
@@ -175,8 +175,8 @@ namespace crmHuman.Pages
                 UpdatedBy = userId
             };
 
-            var result = await _scheduleInterviewBussiness.AddOrUpdate(itemInsert);
-            return ApiResponseHelper.SuccessResponse(new { success = result });
+            var result = await _scheduleInterviewBussiness.SaveInterviewSchedule(itemInsert, userId);
+            return ApiResponseHelper.SuccessResponse(new { success = result.Success, message = result.Message });
         }
 
         public async Task<IActionResult> OnPostAddRelationItem(RelationItemAdd request)
@@ -385,7 +385,7 @@ namespace crmHuman.Pages
             }
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
-            ValidationHelper.ValidateRequired(request.NewPassword, "txtrenewPassword", "m?t kh?u m?i", errors);
+            ValidationHelper.ValidateRequired(request.NewPassword, "txtrenewPassword", "mật khẩu mới", errors);
             
             if (ValidationHelper.HasErrors(errors))
             {
@@ -438,7 +438,7 @@ namespace crmHuman.Pages
             }
             var isSelfView = UserData?.RoleCode == "2";
             var errors = new List<object>();
-            ValidationHelper.ValidateId(request.RelId, "txtFullName", "d?i tu?ng Id", errors);
+            ValidationHelper.ValidateId(request.RelId, "txtFullName", "đối tượng Id", errors);
             
             if (ValidationHelper.HasErrors(errors))
             {
@@ -748,7 +748,7 @@ namespace crmHuman.Pages
             DataPostion = dataAllMaster;
             if (idInput < 1)
             {
-                TitlePage = "Th�m m?i nh�n vi�n";
+                TitlePage = "Thêm mới nhân viên";
             }
 
             var itemInfo = await _empBusiness.GetById(idInput);

@@ -17,7 +17,6 @@ namespace crmHuman.Pages
         private readonly IEmpBusiness _empBusiness;
         private readonly IOnboardMemberBusiness _onboardMemberBusiness;
         private readonly INotificationBusiness _notificationBusiness;
-
         public BaseList DataAll { get; set; }
         public BaseList CandidateList { get; set; }
         public BaseList InterviewerList { get; set; }
@@ -76,8 +75,8 @@ namespace crmHuman.Pages
                 UpdatedBy = userId
             };
 
-            var result = await _scheduleInterviewBussiness.AddOrUpdate(itemInsert);
-            if (result && request.RelId > 0)
+            var result = await _scheduleInterviewBussiness.SaveInterviewSchedule(itemInsert, userId);
+            if (_notificationBusiness != null && result.Success && request.RelId > 0 && string.IsNullOrWhiteSpace("disabled"))
             {
                 var scheduleText = request.ScheduleDate?.ToString("HH:mm dd/MM/yyyy") ?? "";
                 if (request.Id <= 0)
@@ -99,7 +98,7 @@ namespace crmHuman.Pages
                     );
                 }
             }
-            return ApiResponseHelper.SuccessResponse(new { success = result });
+            return ApiResponseHelper.SuccessResponse(new { success = result.Success, message = result.Message });
         }
 
         public async Task<IActionResult> OnPostDeleteSchedule(int Id)

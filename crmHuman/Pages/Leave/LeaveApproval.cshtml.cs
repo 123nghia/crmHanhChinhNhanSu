@@ -17,6 +17,11 @@ namespace crmHuman.Pages.Leave
             return roleCode == "1" || roleCode == "3" || roleCode == "8" || roleCode == "9";
         }
 
+        private static bool IsAdminOrBgdRole(string? roleCode)
+        {
+            return roleCode == "1" || roleCode == "8";
+        }
+
         private static int? ResolveApprovalStatus(string? roleCode, int? requestedStatus)
         {
             if (requestedStatus.HasValue)
@@ -74,9 +79,20 @@ namespace crmHuman.Pages.Leave
             GetInfoUser();
             if (!(Permision.Approve ?? false)) return new JsonResult(new { success = false, message = "No permission to approve" });
 
+            var leave = await _leaveBusiness.GetLeaveById(model.Id);
+            if (leave == null || leave.Id <= 0)
+            {
+                return new JsonResult(new { success = false, message = "Khong tim thay don nghi phep" });
+            }
+
+            if (IsAdminOrBgdRole(UserData.RoleCode) && leave.EmployeeId == UserData.UserId)
+            {
+                return new JsonResult(new { success = false, message = "Admin/BGD khong duoc tu xu ly don cua chinh minh" });
+            }
+
             // model.Action should be 'Agree', 'Reject', or 'Acting'
             var result = await _leaveBusiness.ApproveWorkflow(model.Id, model.Action, UserData.UserId, UserData.RoleCode, model.Comment);
-            return new JsonResult(new { success = result });
+            return new JsonResult(new { success = result, message = result ? string.Empty : "Khong the xu ly don nghi phep" });
         }
     }
 }

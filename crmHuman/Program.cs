@@ -42,6 +42,8 @@ namespace crmHuman
             
             // Đăng ký DatabaseMigrationService
             builder.Services.AddSingleton<DatabaseMigrationService>();
+            builder.Services.AddHostedService<AttendanceRealtimeSyncService>();
+            builder.Services.AddHostedService<StartupMailTestService>();
             
             //builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
             var app = builder.Build();

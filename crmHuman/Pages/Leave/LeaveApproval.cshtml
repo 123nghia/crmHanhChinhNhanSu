@@ -82,14 +82,25 @@
                                         }
                                     </td>
                                     <td class="text-center">
+                                        @{
+                                            var isSelfApprovalBlocked = (Model.UserData.RoleCode == "1" || Model.UserData.RoleCode == "8")
+                                                && info.EmployeeId == Model.UserData.UserId;
+                                        }
                                         <div class="btn-group">
                                             <button class="btn btn-sm btn-info" onclick="viewHistory(@info.Id)" title="Xem lịch sử"><i class="bi bi-clock-history"></i></button>
-                                            <button class="btn btn-sm btn-success" onclick="approveLeave(@info.Id, 'Agree')">Duyệt</button>
-                                            @if (Model.UserData.RoleCode == "9" || Model.UserData.RoleCode == "1")
+                                            @if (!isSelfApprovalBlocked)
                                             {
-                                                <button class="btn btn-sm btn-primary" onclick="approveLeave(@info.Id, 'Acting')">Duyệt thay BGĐ</button>
+                                                <button class="btn btn-sm btn-success" onclick="approveLeave(@info.Id, 'Agree')">Duyệt</button>
+                                                @if (Model.UserData.RoleCode == "9" || Model.UserData.RoleCode == "1")
+                                                {
+                                                    <button class="btn btn-sm btn-primary" onclick="approveLeave(@info.Id, 'Acting')">Duyệt thay BGĐ</button>
+                                                }
+                                                <button class="btn btn-sm btn-danger" onclick="approveLeave(@info.Id, 'Reject')">Từ chối</button>
                                             }
-                                            <button class="btn btn-sm btn-danger" onclick="approveLeave(@info.Id, 'Reject')">Từ chối</button>
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Khong tu duyet</span>
+                                            }
                                         </div>
                                     </td>
                                 </tr>

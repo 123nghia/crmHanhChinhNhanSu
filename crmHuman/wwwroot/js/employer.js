@@ -3455,13 +3455,24 @@ function saveSchedule(idEmp, handlerUrl) {
         },
         success: function (data) {
             if (data && data.success === true) {
+                if (data.message) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Thanh cong",
+                        text: data.message
+                    }).then(function () {
+                        window.location.reload();
+                    });
+                    return;
+                }
+
                 successAdd(candidateId);
                 return;
             }
             Swal.fire({
                 icon: "error",
                 title: "Khong thanh cong",
-                text: "Khong the tao lich phong van"
+                text: data && data.message ? data.message : "Khong the tao lich phong van"
             });
         },
         error: function (jqXHR, exception) {

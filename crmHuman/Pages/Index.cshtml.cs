@@ -28,6 +28,7 @@ namespace crmHuman.Pages
         private readonly ILeaveBusiness _leaveBusiness;
         private readonly IScheduleInterviewBussiness _scheduleInterviewBussiness;
         private readonly ILogHistoryBusiness _logHistoryBusiness;
+        private readonly INotificationBusiness _notificationBusiness;
 
         public BaseList TopOrder;
         public BaseList TopImpact;
@@ -47,13 +48,15 @@ namespace crmHuman.Pages
         public BaseList StatusList { get; set; }
         public dynamic LeaveSummary { get; set; }
         public BaseList UpcomingInterviews { get; set; } = new BaseList();
+        public List<AppNotification> Notifications { get; set; } = new List<AppNotification>();
+        public int UnreadNotificationCount { get; set; }
         public List<CommonIndexModel> InterviewRoundOptions { get; set; } = new List<CommonIndexModel>();
         public List<CommonIndexModel> InterviewModeOptions { get; set; } = new List<CommonIndexModel>();
         public DashboardExtendedStats ExtendedStats { get; set; } = new DashboardExtendedStats();
 
         public IndexModel(ILogger<IndexModel> logger, IDashboardBusinness dashboardBusinness, ImasterDataBussiness imasterDataBussiness,
         IJobItemBusiness jobItemBusiness, IEmpBusiness empBusiness, ILeaveBusiness leaveBusiness, IScheduleInterviewBussiness scheduleInterviewBussiness,
-        ILogHistoryBusiness logHistoryBusiness)
+        ILogHistoryBusiness logHistoryBusiness, INotificationBusiness notificationBusiness)
         {
             _logger = logger;
             this.dashboardBusinness = dashboardBusinness;
@@ -67,6 +70,7 @@ namespace crmHuman.Pages
             _leaveBusiness = leaveBusiness;
             _scheduleInterviewBussiness = scheduleInterviewBussiness;
             _logHistoryBusiness = logHistoryBusiness;
+            _notificationBusiness = notificationBusiness;
             RecordSource = 10;
         }
 
@@ -264,8 +268,17 @@ namespace crmHuman.Pages
             InterviewRoundOptions = rounds?.Data?.Cast<CommonIndexModel>().ToList() ?? new List<CommonIndexModel>();
             var modes = await _masterDataBusinness.GetAll(new CommonRequest { Type = 6 });
             InterviewModeOptions = modes?.Data?.Cast<CommonIndexModel>().ToList() ?? new List<CommonIndexModel>();
+            Notifications = await _notificationBusiness.GetByReceiverId(UserData.UserId, 10);
+            UnreadNotificationCount = await _notificationBusiness.GetUnreadCount(UserData.UserId);
 
             return Page();
+        }
+
+        public async Task<IActionResult> OnPostMarkAllRead()
+        {
+            GetInfoUser();
+            await _notificationBusiness.MarkAllAsRead(UserData.UserId);
+            return RedirectToPage();
         }
 
 

@@ -103,8 +103,8 @@ namespace crmHuman.Pages
                 UpdatedBy = userId
             };
 
-            var result = await _scheduleInterviewBussiness.AddOrUpdate(itemInsert);
-            return ApiResponseHelper.SuccessResponse(new { success = result });
+            var result = await _scheduleInterviewBussiness.SaveInterviewSchedule(itemInsert, userId);
+            return ApiResponseHelper.SuccessResponse(new { success = result.Success, message = result.Message });
         }
 
         public async Task<IActionResult> OnPostDeleteSchedule(int scheduleId)

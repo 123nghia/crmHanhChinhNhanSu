@@ -14,6 +14,7 @@ namespace crmHuman.Pages.Leave
         private readonly ILeaveBusiness _leaveBusiness;
         private readonly ImasterDataBussiness _masterDataBusiness;
         private readonly IEmpBusiness _employeeBusiness;
+        private const string RoleHcns = "9";
 
         public LeaveRequestModel(ILeaveBusiness leaveBusiness, ImasterDataBussiness masterDataBusiness, IEmpBusiness employeeBusiness)
         {
@@ -75,8 +76,36 @@ namespace crmHuman.Pages.Leave
                 ?.Where(t => t.Code == "NP" || t.Code == "NKL")
                 .ToList()
                 ?? new List<VS.Human.Rep.Model.MasterData>();
+
             var managers = await _employeeBusiness.GetAllManager();
-            EmployeeList = managers.Data?.Cast<ManagerLeadIndex>().ToList() ?? new List<ManagerLeadIndex>();
+            var handoverEmployees = managers.Data?.Cast<ManagerLeadIndex>().ToList() ?? new List<ManagerLeadIndex>();
+
+            var allEmployees = await _employeeBusiness.GetAll(new EmployeeRequest
+            {
+                Page = 1,
+                Limit = 1000,
+                Status = 1
+            });
+
+            var hcnsEmployees = allEmployees.Data?
+                .Cast<EmployeeIndexModel>()
+                .Where(x => string.Equals(x.RoleCode, RoleHcns, StringComparison.OrdinalIgnoreCase))
+                .Select(x => new ManagerLeadIndex
+                {
+                    Id = x.Id,
+                    FullName = x.FullName ?? string.Empty,
+                    UserName = x.UserName ?? string.Empty
+                })
+                .ToList()
+                ?? new List<ManagerLeadIndex>();
+
+            EmployeeList = handoverEmployees
+                .Concat(hcnsEmployees)
+                .Where(x => x.Id > 0 && x.Id != UserData.UserId)
+                .GroupBy(x => x.Id)
+                .Select(g => g.First())
+                .OrderBy(x => x.FullName)
+                .ToList();
         }
 
         public async Task<IActionResult> OnGetLeaveListAsync(int page = 1, int limit = 20)
