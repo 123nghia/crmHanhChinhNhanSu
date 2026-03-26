@@ -8,6 +8,7 @@ namespace VS.Human.Business
     {
 
         Task<bool> Add(CandidateAdd item);
+        Task<Candidate?> FindDuplicateForCreate(CandidateAdd item);
         Task<Candidate> GetById(int Id);
         Task<bool> Update(CandidateDetailUpdate item);
         Task<bool> UpdateProfile(CandidateProfileUpdate item);

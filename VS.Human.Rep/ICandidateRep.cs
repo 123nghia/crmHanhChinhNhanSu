@@ -19,6 +19,7 @@ namespace VS.Human.Rep
         Task<Candidate> Login(string userName, string password);
         Task<bool> ChangePassword(string password, int id);
         Task<Candidate> GetByUserName(string userName);
+        Task<Candidate?> FindDuplicateForCreate(string? name, string? phone, string? email, int? position, int? departmentId);
         Task<bool> HasViewAccess(int candidateId, int userId, string? roleCode);
         Task<bool> HasManageAccess(int candidateId, int userId, string? roleCode);
     }

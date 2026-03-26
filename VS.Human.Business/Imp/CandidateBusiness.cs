@@ -22,6 +22,12 @@ namespace VS.Human.Business.Imp
 
         public async Task<bool> Add(CandidateAdd itemAdd)
         {
+            var duplicateCandidate = await FindDuplicateForCreate(itemAdd);
+            if (duplicateCandidate != null && duplicateCandidate.Id > 0)
+            {
+                return false;
+            }
+
             var userName = itemAdd.UserName;
             if (string.IsNullOrWhiteSpace(userName))
             {
@@ -62,6 +68,16 @@ namespace VS.Human.Business.Imp
             item.CreateAt = DateTime.Now;
             item.CreatedBy = GetUserId();
             return await _unitOfWork.CandidateRep.AddOrUpdate(item);
+        }
+
+        public async Task<Candidate?> FindDuplicateForCreate(CandidateAdd item)
+        {
+            return await _unitOfWork.CandidateRep.FindDuplicateForCreate(
+                item.Name,
+                item.Phone,
+                item.Email,
+                item.Position,
+                item.DepartmentId);
         }
 
 

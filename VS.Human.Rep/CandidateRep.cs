@@ -297,6 +297,39 @@ OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;";
             return await ExecuteSQL<Candidate>(sql, parameter);
         }
 
+        public async Task<Candidate?> FindDuplicateForCreate(string? name, string? phone, string? email, int? position, int? departmentId)
+        {
+            var normalizedName = (name ?? string.Empty).Trim();
+            var normalizedPhone = (phone ?? string.Empty).Trim();
+            var normalizedEmail = (email ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(normalizedName) || string.IsNullOrWhiteSpace(normalizedPhone))
+            {
+                return null;
+            }
+
+            const string sql = @"
+SELECT TOP 1 *
+FROM Candidate
+WHERE ISNULL(Deleted, 0) = 0
+  AND LTRIM(RTRIM(ISNULL(Name, ''))) = @name
+  AND LTRIM(RTRIM(ISNULL(Phone, ''))) = @phone
+  AND ISNULL(NULLIF(LTRIM(RTRIM(Email)), ''), '') = @email
+  AND ISNULL(Position, -1) = @position
+  AND ISNULL(DepartmentId, -1) = @departmentId
+ORDER BY Id DESC";
+
+            using var con = GetConnection();
+            return await con.QueryFirstOrDefaultAsync<Candidate>(sql, new
+            {
+                name = normalizedName,
+                phone = normalizedPhone,
+                email = normalizedEmail,
+                position = position ?? -1,
+                departmentId = departmentId ?? -1
+            });
+        }
+
         public async Task<bool> Delete(int id)
         {
             return await this.DeleteBase(id, tableDelete: "", delete: 1);

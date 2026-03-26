@@ -1,0 +1,269 @@
+@page
+@model crmHuman.Pages.System.MailHistoryModel
+@using global::System.Linq
+@using VS.Human.Rep.Model
+@{
+    Layout = "_Layout";
+    var logs = Model.LogData?.Data?.Cast<EmailSentLog>().ToList() ?? new List<EmailSentLog>();
+    var currentPage = Model.RequestSearch?.Page > 0 ? Model.RequestSearch.Page : 1;
+    var canGoPrev = currentPage > 1;
+    var canGoNext = currentPage < Model.TotalPages;
+}
+
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="card-title mb-0">@Model.TitlePage</h5>
+            <a class="btn btn-outline-secondary btn-sm" href="/System/MailSetting">Cau hinh mail</a>
+        </div>
+
+        <div class="alert alert-secondary small mt-3 mb-3">
+            Luu lai mail he thong da render va gui. Admin/BGD/HCNS xem toan bo, cac role khac chi xem mail do chinh minh kich hoat gui.
+        </div>
+
+        <form method="get" class="row g-3 mb-3">
+            <div class="col-md-2">
+                <label class="form-label">Tu ngay</label>
+                <input type="date" class="form-control" name="from" value="@Model.RequestSearch?.FromText" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Den ngay</label>
+                <input type="date" class="form-control" name="to" value="@Model.RequestSearch?.ToText" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Ket qua</label>
+                <select class="form-select" name="sendStatus">
+                    <option value="-1" selected="@((Model.RequestSearch?.SendStatus ?? -1) < 0)">Tat ca</option>
+                    <option value="1" selected="@((Model.RequestSearch?.SendStatus ?? -1) == 1)">Thanh cong</option>
+                    <option value="0" selected="@((Model.RequestSearch?.SendStatus ?? -1) == 0)">That bai</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Template</label>
+                <select class="form-select" name="templateCode">
+                    <option value="">Tat ca</option>
+                    @foreach (var item in Model.Templates)
+                    {
+                        if (string.Equals(Model.RequestSearch?.TemplateCode, item.Code, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <option value="@item.Code" selected>@item.Code - @item.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@item.Code">@item.Code - @item.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tim kiem</label>
+                <input type="text" class="form-control" name="token" value="@Model.RequestSearch?.Token" placeholder="subject, to, from, template..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">So dong</label>
+                <select class="form-select" name="limit">
+                    @foreach (var size in new[] { 10, 20, 50, 100 })
+                    {
+                        if ((Model.RequestSearch?.Limit ?? 20) == size)
+                        {
+                            <option value="@size" selected>@size</option>
+                        }
+                        else
+                        {
+                            <option value="@size">@size</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-12 d-flex gap-2 justify-content-end">
+                <button type="submit" class="btn btn-primary">Tim kiem</button>
+                <a class="btn btn-outline-secondary" href="/System/MailHistory">Xoa loc</a>
+            </div>
+        </form>
+
+        <div class="small text-muted mb-2">Tong so: @Model.LogData.Total mail</div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 150px;">Thoi gian</th>
+                        <th style="width: 150px;">Template</th>
+                        <th style="min-width: 240px;">Tieu de</th>
+                        <th style="min-width: 220px;">Gui tu</th>
+                        <th style="min-width: 220px;">Nguoi kich hoat</th>
+                        <th style="min-width: 260px;">Nguoi nhan</th>
+                        <th style="width: 120px;">Ket qua</th>
+                        <th style="width: 110px;" class="text-center">Thao tac</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (logs.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">Chua co mail nao trong pham vi xem.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in logs)
+                        {
+                            <tr>
+                                <td>@item.CreateAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <div class="fw-semibold">@item.TemplateCode</div>
+                                    @if (!string.IsNullOrWhiteSpace(item.TemplateName))
+                                    {
+                                        <div class="small text-muted">@item.TemplateName</div>
+                                    }
+                                </td>
+                                <td>@item.Subject</td>
+                                <td>
+                                    <div>@item.FromName</div>
+                                    <div class="small text-muted">@item.FromEmail</div>
+                                </td>
+                                <td>@item.TriggeredByDisplay</td>
+                                <td class="small">@item.ToEmails</td>
+                                <td>
+                                    @if (item.SendSuccess)
+                                    {
+                                        <span class="badge bg-success">Thanh cong</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">That bai</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewMailDetail(@item.Id)">Xem</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="small text-muted">Trang @currentPage / @Model.TotalPages</div>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-sm btn-outline-secondary @(canGoPrev ? string.Empty : "disabled")"
+                       asp-page="/System/MailHistory"
+                       asp-route-page="@(currentPage - 1)"
+                       asp-route-limit="@Model.RequestSearch?.Limit"
+                       asp-route-token="@Model.RequestSearch?.Token"
+                       asp-route-sendStatus="@Model.RequestSearch?.SendStatus"
+                       asp-route-templateCode="@Model.RequestSearch?.TemplateCode"
+                       asp-route-from="@Model.RequestSearch?.FromText"
+                       asp-route-to="@Model.RequestSearch?.ToText">Truoc</a>
+                    <a class="btn btn-sm btn-outline-secondary @(canGoNext ? string.Empty : "disabled")"
+                       asp-page="/System/MailHistory"
+                       asp-route-page="@(currentPage + 1)"
+                       asp-route-limit="@Model.RequestSearch?.Limit"
+                       asp-route-token="@Model.RequestSearch?.Token"
+                       asp-route-sendStatus="@Model.RequestSearch?.SendStatus"
+                       asp-route-templateCode="@Model.RequestSearch?.TemplateCode"
+                       asp-route-from="@Model.RequestSearch?.FromText"
+                       asp-route-to="@Model.RequestSearch?.ToText">Sau</a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="mailDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chi tiet mail da gui</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Template</label>
+                        <div class="border rounded p-2 bg-light" id="mailDetailTemplate"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Thoi gian gui</label>
+                        <div class="border rounded p-2 bg-light" id="mailDetailCreateAt"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Gui tu</label>
+                        <div class="border rounded p-2 bg-light" id="mailDetailFrom"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Nguoi kich hoat</label>
+                        <div class="border rounded p-2 bg-light" id="mailDetailTriggeredBy"></div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">To</label>
+                        <div class="border rounded p-2 bg-light" id="mailDetailTo"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">CC</label>
+                        <div class="border rounded p-2 bg-light" id="mailDetailCc"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">BCC</label>
+                        <div class="border rounded p-2 bg-light" id="mailDetailBcc"></div>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold">Tieu de</label>
+                        <div class="border rounded p-2 bg-light" id="mailDetailSubject"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Ket qua</label>
+                        <div class="border rounded p-2 bg-light" id="mailDetailStatus"></div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Message Id / Loi</label>
+                        <div class="border rounded p-2 bg-light" id="mailDetailError"></div>
+                    </div>
+                </div>
+
+                <label class="form-label fw-semibold">Noi dung mail</label>
+                <div id="mailDetailBody" class="border rounded p-3 bg-white" style="min-height: 280px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function viewMailDetail(id) {
+            try {
+                const response = await fetch(`/System/MailHistory?handler=Detail&id=${id}`);
+                const result = await response.json();
+                if (!result.success || !result.data) {
+                    alert(result.message || 'Khong tai duoc chi tiet mail');
+                    return;
+                }
+
+                const data = result.data;
+                document.getElementById('mailDetailTemplate').textContent = [data.templateCode, data.templateName].filter(Boolean).join(' - ');
+                document.getElementById('mailDetailCreateAt').textContent = data.createAt || '';
+                document.getElementById('mailDetailFrom').textContent = [data.fromName, data.fromEmail].filter(Boolean).join(' - ');
+                document.getElementById('mailDetailTriggeredBy').textContent = data.triggeredByDisplay || '';
+                document.getElementById('mailDetailTo').textContent = data.toEmails || '';
+                document.getElementById('mailDetailCc').textContent = data.ccEmails || '';
+                document.getElementById('mailDetailBcc').textContent = data.bccEmails || '';
+                document.getElementById('mailDetailSubject').textContent = data.subject || '';
+                document.getElementById('mailDetailStatus').innerHTML = data.sendSuccess
+                    ? '<span class="badge bg-success">Thanh cong</span>'
+                    : '<span class="badge bg-danger">That bai</span>';
+                document.getElementById('mailDetailError').textContent = data.sendSuccess
+                    ? (data.messageId || '')
+                    : [data.messageId, data.errorMessage].filter(Boolean).join(' | ');
+                document.getElementById('mailDetailBody').innerHTML = data.bodyHtml || '<div class="text-muted">Khong co noi dung mail</div>';
+
+                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('mailDetailModal'));
+                modal.show();
+            } catch (error) {
+                alert('Loi khi tai chi tiet mail');
+            }
+        }
+    </script>
+}

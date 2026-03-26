@@ -39,6 +39,7 @@
         public INotificationRep NotificationRep { get; set; }
         public IAttendanceRep AttendanceRep { get; set; }
         public IEmailConfigRep EmailConfigRep { get; set; }
+        public IEmailSentLogRep EmailSentLogRep { get; set; }
         public IMeetingRoomRep MeetingRoomRep { get; set; }
         public ILateEarlyRep LateEarlyRep { get; set; }
         public ILogHistoryRep LogHistoryRep { get; set; }

@@ -8,7 +8,10 @@
 <div class="card">
     <div class="card-body">
         @Html.AntiForgeryToken()
-        <h5 class="card-title">@Model.TitlePage</h5>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="card-title mb-0">@Model.TitlePage</h5>
+            <a class="btn btn-outline-secondary btn-sm" href="/System/MailHistory">Xem mail da gui</a>
+        </div>
 
         <ul class="nav nav-tabs" id="mailSettingTabs" role="tablist">
             <li class="nav-item" role="presentation">

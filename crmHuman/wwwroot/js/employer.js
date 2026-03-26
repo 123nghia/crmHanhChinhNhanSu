@@ -2066,6 +2066,10 @@ function saveJob(idEmp) {
 
 function SaveCandidatenew(idEmp) {
 
+    if (window.__candidateCreateSubmitting === true) {
+        return;
+    }
+
     var txtFullName = getValueControl("txtFullName");
     var txtPhone = getValueControl("txtPhone");
     var dobcb = getValueControl("dob");
@@ -2111,7 +2115,7 @@ function SaveCandidatenew(idEmp) {
         removeError("cbisActive");
     }
 
-
+    window.__candidateCreateSubmitting = true;
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -2135,20 +2139,31 @@ function SaveCandidatenew(idEmp) {
             IsActive: 1
         },
         success: function (data) {
-
+            if (data && data.success === false) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Không thể lưu ứng viên",
+                    text: data.message || "Ứng viên đã tồn tại hoặc dữ liệu chưa hợp lệ."
+                });
+                return;
+            }
             successAdd(idEmp);
         },
         error: function (jqXHR, exception) {
             showError(jqXHR);
         },
         complete: function () {
-
+            window.__candidateCreateSubmitting = false;
         }
     });
 }
 
 
 function SaveCandidate(idEmp) {
+
+    if (window.__candidateCreateSubmitting === true) {
+        return;
+    }
 
     var txtFullName = getValueControl("txtFullName");
     var txtPhone = getValueControl("txtPhone");
@@ -2195,7 +2210,7 @@ function SaveCandidate(idEmp) {
         removeError("cbisActive");
     }
 
-
+    window.__candidateCreateSubmitting = true;
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -2219,14 +2234,21 @@ function SaveCandidate(idEmp) {
             IsActive: cbisActive
         },
         success: function (data) {
-
+            if (data && data.success === false) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Không thể lưu ứng viên",
+                    text: data.message || "Ứng viên đã tồn tại hoặc dữ liệu chưa hợp lệ."
+                });
+                return;
+            }
             successAdd(idEmp);
         },
         error: function (jqXHR, exception) {
             showError(jqXHR);
         },
         complete: function () {
-
+            window.__candidateCreateSubmitting = false;
         }
     });
 }
@@ -2577,6 +2599,10 @@ function saveInfoCV(idEmp, saveungtuyen = false) {
 
 function saveCanddiateOrder(idEmp) {
 
+    if (window.__candidateCreateSubmitting === true) {
+        return;
+    }
+
     var cbcandidateId = getValueControl("cbcandidateId");
     var txtFullName = getValueControl("txtFullName");
     var dobCan = getValueControl("dob");
@@ -2630,6 +2656,8 @@ function saveCanddiateOrder(idEmp) {
         ShortDesOrder: txtNotedCand
     };
     console.log(bodyRequest);
+    window.__candidateCreateSubmitting = true;
+    $("#btnSaveCandidateOrder").prop("disabled", true);
     $.ajax({
         headers: {
             "RequestVerificationToken":
@@ -2640,12 +2668,22 @@ function saveCanddiateOrder(idEmp) {
         url: '/Candidate?handler=Add',
         data: bodyRequest,
         success: function (data) {
+            if (data && data.success === false) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Không thể lưu ứng viên",
+                    text: data.message || "Ứng viên đã tồn tại hoặc dữ liệu chưa hợp lệ."
+                });
+                return;
+            }
             successAdd(idEmp);
         },
         error: function (jqXHR, exception) {
             showError(jqXHR);
         },
         complete: function () {
+            window.__candidateCreateSubmitting = false;
+            $("#btnSaveCandidateOrder").prop("disabled", false);
         }
     });
 }

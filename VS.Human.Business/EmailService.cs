@@ -51,21 +51,25 @@ namespace VS.Human.Business
 
         public async Task<(bool Success, string? Error)> SendTemplateWithErrorAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null)
         {
+            var normalizedTo = NormalizeEmails(toEmails).ToList();
+            var normalizedCcInput = NormalizeEmails(ccEmails).ToList();
+            var normalizedBccInput = NormalizeEmails(bccEmails).ToList();
+            var log = CreateEmailSentLog(templateCode, normalizedTo, normalizedCcInput, normalizedBccInput, managerId, senderEmployeeId);
+
             if (string.IsNullOrWhiteSpace(templateCode) || toEmails == null)
             {
-                return (false, "Template code or recipient is missing");
+                return await FinalizeEmailResultAsync(log, false, "Template code or recipient is missing");
             }
 
-            var normalizedTo = NormalizeEmails(toEmails).ToList();
             if (normalizedTo.Count == 0)
             {
-                return (false, "Recipient email is missing");
+                return await FinalizeEmailResultAsync(log, false, "Recipient email is missing");
             }
 
             var setting = await _unitOfWork.EmailConfigRep.GetActiveSetting();
             if (setting == null || setting.IsActive <= 0 || string.IsNullOrWhiteSpace(setting.SmtpHost))
             {
-                return (false, "SMTP is not configured or inactive");
+                return await FinalizeEmailResultAsync(log, false, "SMTP is not configured or inactive");
             }
 
             setting.HrSignature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(setting.HrSignature);
@@ -74,15 +78,33 @@ namespace VS.Human.Business
             var template = await _unitOfWork.EmailConfigRep.GetTemplateByCode(templateCode);
             if (template == null || template.IsActive <= 0)
             {
-                return (false, "Template not found or inactive");
+                return await FinalizeEmailResultAsync(log, false, "Template not found or inactive");
             }
 
-            var senderProfile = await ResolveSenderProfileAsync(setting, template, senderEmployeeId);
+            log.TemplateId = template.Id > 0 ? template.Id : null;
+            log.TemplateCode = TrimToLength(template.Code, 50);
+
+            var senderEmployee = await ResolveSenderEmployeeAsync(senderEmployeeId);
+            log.SenderEmployeeId ??= senderEmployee?.Id;
+            if (string.IsNullOrWhiteSpace(log.TriggeredByUserName))
+            {
+                log.TriggeredByUserName = TrimToLength(senderEmployee?.UserName, 200);
+            }
+            if (string.IsNullOrWhiteSpace(log.TriggeredByFullName))
+            {
+                log.TriggeredByFullName = TrimToLength(senderEmployee?.FullName, 200);
+            }
+
+            var senderProfile = ResolveSenderProfile(setting, template, senderEmployee);
             var fromEmail = senderProfile.Email;
             if (string.IsNullOrWhiteSpace(fromEmail))
             {
-                return (false, "From email is missing");
+                return await FinalizeEmailResultAsync(log, false, "From email is missing");
             }
+
+            log.SenderType = TrimToLength(senderProfile.SenderType, 20) ?? EmailSenderTypes.Hr;
+            log.FromEmail = TrimToLength(fromEmail, 200);
+            log.FromName = TrimToLength(senderProfile.Name, 200);
 
             var templateTokens = new Dictionary<string, string>(tokens ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase)
             {
@@ -104,6 +126,8 @@ namespace VS.Human.Business
             }
 
             body = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(body) ?? string.Empty;
+            log.Subject = TrimToLength(subject, 500);
+            log.BodyHtml = body;
 
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(senderProfile.Name ?? string.Empty, fromEmail));
@@ -113,6 +137,8 @@ namespace VS.Human.Business
                 message.ReplyTo.Add(new MailboxAddress(senderProfile.Name ?? string.Empty, fromEmail));
             }
             message.Subject = subject;
+            message.MessageId = MimeUtils.GenerateMessageId();
+            log.MessageId = TrimToLength(message.MessageId, 255);
 
             var bodyBuilder = new BodyBuilder();
             bodyBuilder.HtmlBody = InlineLocalImages(bodyBuilder, body);
@@ -129,13 +155,17 @@ namespace VS.Human.Business
             }
 
             AddRecipients(message.Cc, ParseEmails(template.CcEmails), usedRecipients);
-            AddRecipients(message.Cc, NormalizeEmails(ccEmails), usedRecipients);
+            AddRecipients(message.Cc, normalizedCcInput, usedRecipients);
             AddRecipients(message.Bcc, ParseEmails(template.BccEmails), usedRecipients);
-            AddRecipients(message.Bcc, NormalizeEmails(bccEmails), usedRecipients);
+            AddRecipients(message.Bcc, normalizedBccInput, usedRecipients);
+
+            log.ToEmails = JoinRecipientAddresses(message.To);
+            log.CcEmails = JoinRecipientAddresses(message.Cc);
+            log.BccEmails = JoinRecipientAddresses(message.Bcc);
 
             if (message.To.Count == 0)
             {
-                return (false, "Recipient email is missing");
+                return await FinalizeEmailResultAsync(log, false, "Recipient email is missing");
             }
 
             try
@@ -162,22 +192,26 @@ namespace VS.Human.Business
             }
             catch (MailKit.Security.AuthenticationException ex)
             {
-                return BuildError("SMTP authentication error", ex);
+                var error = BuildError("SMTP authentication error", ex);
+                return await FinalizeEmailResultAsync(log, error.Success, error.Error);
             }
             catch (MailKit.Net.Smtp.SmtpCommandException ex)
             {
-                return BuildError($"SMTP command error ({ex.StatusCode})", ex);
+                var error = BuildError($"SMTP command error ({ex.StatusCode})", ex);
+                return await FinalizeEmailResultAsync(log, error.Success, error.Error);
             }
             catch (MailKit.Net.Smtp.SmtpProtocolException ex)
             {
-                return BuildError("SMTP protocol error", ex);
+                var error = BuildError("SMTP protocol error", ex);
+                return await FinalizeEmailResultAsync(log, error.Success, error.Error);
             }
             catch (Exception ex)
             {
-                return BuildError(ex.GetType().Name, ex);
+                var error = BuildError(ex.GetType().Name, ex);
+                return await FinalizeEmailResultAsync(log, error.Success, error.Error);
             }
 
-            return (true, null);
+            return await FinalizeEmailResultAsync(log, true, null);
         }
 
         private static IEnumerable<string> NormalizeEmails(IEnumerable<string>? emails)
@@ -459,10 +493,9 @@ namespace VS.Human.Business
             return Directory.Exists(webRootPath) ? webRootPath : null;
         }
 
-        private async Task<EmailSenderProfile> ResolveSenderProfileAsync(EmailSetting setting, EmailTemplate template, int? senderEmployeeId)
+        private static EmailSenderProfile ResolveSenderProfile(EmailSetting setting, EmailTemplate template, Employee? senderEmployee)
         {
             var fallbackProfile = ResolveSenderProfile(setting, template);
-            var senderEmployee = await ResolveSenderEmployeeAsync(senderEmployeeId);
             if (senderEmployee == null || senderEmployee.Id <= 0)
             {
                 return fallbackProfile;
@@ -478,7 +511,7 @@ namespace VS.Human.Business
             {
                 SenderType = fallbackProfile.SenderType,
                 Email = senderEmail,
-                Name = FirstNonEmpty(senderEmployee.FullName, senderEmployee.UserName, fallbackProfile.Name),
+                Name = FirstNonEmpty(fallbackProfile.Name, senderEmployee.FullName, senderEmployee.UserName),
                 Signature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(
                     FirstNonEmpty(senderEmployee.MailSignature, fallbackProfile.Signature))
             };
@@ -591,6 +624,62 @@ namespace VS.Human.Business
             return SecureSocketOptions.StartTls;
         }
 
+        private EmailSentLog CreateEmailSentLog(string templateCode, IEnumerable<string> toEmails, IEnumerable<string> ccEmails, IEnumerable<string> bccEmails, int? managerId, int? senderEmployeeId)
+        {
+            var (userId, userName, fullName) = ResolveCurrentUserSnapshot();
+            var effectiveUserId = senderEmployeeId.GetValueOrDefault() > 0 ? senderEmployeeId.Value : userId;
+
+            return new EmailSentLog
+            {
+                TemplateCode = TrimToLength(templateCode, 50),
+                ToEmails = JoinEmails(toEmails),
+                CcEmails = JoinEmails(ccEmails),
+                BccEmails = JoinEmails(bccEmails),
+                TriggeredByUserId = effectiveUserId > 0 ? effectiveUserId : null,
+                TriggeredByUserName = TrimToLength(userName, 200),
+                TriggeredByFullName = TrimToLength(fullName, 200),
+                SenderEmployeeId = senderEmployeeId.GetValueOrDefault() > 0 ? senderEmployeeId : (effectiveUserId > 0 ? effectiveUserId : null),
+                ManagerId = managerId,
+                CreatedBy = effectiveUserId > 0 ? effectiveUserId : 0,
+                UpdatedBy = effectiveUserId > 0 ? effectiveUserId : 0,
+                IsActive = 1
+            };
+        }
+
+        private async Task<(bool Success, string? Error)> FinalizeEmailResultAsync(EmailSentLog log, bool success, string? error)
+        {
+            await TryPersistEmailLogAsync(log, success, error);
+            return (success, error);
+        }
+
+        private async Task TryPersistEmailLogAsync(EmailSentLog? log, bool success, string? error)
+        {
+            if (log == null)
+            {
+                return;
+            }
+
+            try
+            {
+                log.SendSuccess = success;
+                log.ErrorMessage = error;
+                if (log.TriggeredByUserId.GetValueOrDefault() > 0)
+                {
+                    if (log.CreatedBy <= 0)
+                    {
+                        log.CreatedBy = log.TriggeredByUserId.Value;
+                    }
+
+                    log.UpdatedBy = log.TriggeredByUserId.Value;
+                }
+
+                await _unitOfWork.EmailSentLogRep.InsertAsync(log);
+            }
+            catch
+            {
+            }
+        }
+
         private static (bool Success, string? Error) BuildError(string prefix, Exception ex)
         {
             var errorMessage = $"{prefix}: {ex.Message}";
@@ -633,6 +722,45 @@ namespace VS.Human.Business
 
             var trimmed = email.Trim();
             return MailboxAddress.TryParse(trimmed, out var mailbox) ? mailbox.Address : null;
+        }
+
+        private (int UserId, string? UserName, string? FullName) ResolveCurrentUserSnapshot()
+        {
+            var identity = _httpContextAccessor.HttpContext?.User?.Identity as ClaimsIdentity;
+            var userIdText = identity?.Claims.FirstOrDefault(x => x.Type == "userId")?.Value;
+            var userName = identity?.Claims.FirstOrDefault(x => x.Type == "UserName")?.Value;
+            var fullName = identity?.Claims.FirstOrDefault(x => x.Type == "FullName")?.Value;
+            var userId = int.TryParse(userIdText, out var parsedUserId) ? parsedUserId : 0;
+            return (userId, userName, fullName);
+        }
+
+        private static string JoinEmails(IEnumerable<string>? emails)
+        {
+            if (emails == null)
+            {
+                return string.Empty;
+            }
+
+            return string.Join("; ", emails
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase));
+        }
+
+        private static string JoinRecipientAddresses(InternetAddressList addresses)
+        {
+            return string.Join("; ", addresses.Mailboxes.Select(x => x.Address));
+        }
+
+        private static string? TrimToLength(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var trimmed = value.Trim();
+            return trimmed.Length <= maxLength ? trimmed : trimmed.Substring(0, maxLength);
         }
 
         private sealed class EmailSenderProfile

@@ -1,7 +1,8 @@
 param(
     [string]$ProjectPath = (Join-Path $PSScriptRoot 'crmHuman\crmHuman.csproj'),
     [string]$Configuration = 'Release',
-    [string]$OutputPath = 'C:\hcns'
+    [string]$OutputPath = 'C:\hcns',
+    [string]$MigrationsPath = (Join-Path $PSScriptRoot 'migrations')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,6 +39,20 @@ $publishArgs = @(
 
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish that bai voi ma loi $LASTEXITCODE"
+}
+
+if (Test-Path -LiteralPath $MigrationsPath) {
+    $resolvedMigrationsPath = (Resolve-Path -LiteralPath $MigrationsPath).Path
+    $targetMigrationsPath = Join-Path $resolvedOutputPath 'migrations'
+    if (-not (Test-Path -LiteralPath $targetMigrationsPath)) {
+        New-Item -ItemType Directory -Path $targetMigrationsPath -Force | Out-Null
+    }
+
+    Copy-Item -Path (Join-Path $resolvedMigrationsPath '*') -Destination $targetMigrationsPath -Recurse -Force
+    Write-Host "Copied migrations to $targetMigrationsPath"
+}
+else {
+    Write-Host "Bo qua copy migrations vi khong tim thay thu muc: $MigrationsPath"
 }
 
 Write-Host 'Publish thanh cong.'

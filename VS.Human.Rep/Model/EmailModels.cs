@@ -51,4 +51,28 @@ namespace VS.Human.Rep.Model
         public string? BccEmails { get; set; }
         public string SenderType { get; set; } = EmailSenderTypes.Hr;
     }
+
+    public class EmailSentLog : BaseModel
+    {
+        public int? TemplateId { get; set; }
+        public string? TemplateCode { get; set; }
+        public string? TemplateName { get; set; }
+        public string SenderType { get; set; } = EmailSenderTypes.Hr;
+        public string? FromEmail { get; set; }
+        public string? FromName { get; set; }
+        public string? ToEmails { get; set; }
+        public string? CcEmails { get; set; }
+        public string? BccEmails { get; set; }
+        public string? Subject { get; set; }
+        public string? BodyHtml { get; set; }
+        public bool SendSuccess { get; set; }
+        public string? ErrorMessage { get; set; }
+        public int? TriggeredByUserId { get; set; }
+        public string? TriggeredByUserName { get; set; }
+        public string? TriggeredByFullName { get; set; }
+        public string? TriggeredByDisplay { get; set; }
+        public int? SenderEmployeeId { get; set; }
+        public int? ManagerId { get; set; }
+        public string? MessageId { get; set; }
+    }
 }

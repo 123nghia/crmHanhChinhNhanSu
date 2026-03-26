@@ -102,11 +102,25 @@ namespace crmHuman.Pages
                     StatusCode = StatusCodes.Status400BadRequest
                 };
             }
+
+            if (request.Id < 0)
+            {
+                var duplicateCandidate = await _empBusiness.FindDuplicateForCreate(request);
+                if (duplicateCandidate != null && duplicateCandidate.Id > 0)
+                {
+                    return ApiResponseHelper.BadRequest("txtPhone", "Ứng viên đã tồn tại trong hệ thống.");
+                }
+            }
+
             bool result = false;
             if (request.Id < 0)
             {
                 request.Status = 91;
                 result = await _empBusiness.Add(request);
+                if (!result)
+                {
+                    return ApiResponseHelper.BadRequest("txtPhone", "Không thể lưu ứng viên. Vui lòng thử lại.");
+                }
                 if (result)
                 {
                     // Get the newly created candidate to find their ID
@@ -146,10 +160,7 @@ namespace crmHuman.Pages
             {
                 success = result,
             };
-            return new JsonResult(dataReponse)
-            {
-                StatusCode = StatusCodes.Status200OK
-            };
+            return ApiResponseHelper.SuccessResponse(dataReponse);
         }
 
 
