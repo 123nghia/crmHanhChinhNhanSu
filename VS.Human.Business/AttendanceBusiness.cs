@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
+using System.Data.SqlClient;
 using System.Globalization;
 using System.Linq;
 using System.IO;
@@ -18,6 +19,7 @@ using VS.Human.Business.Model;
 using VS.Human.Item;
 using VS.Human.Rep;
 using VS.Human.Rep.Model;
+using VS.Human.Utility;
 
 namespace VS.Human.Business
 {
@@ -181,21 +183,11 @@ namespace VS.Human.Business
 
         public async Task<BaseList> GetSummary(AttendanceRequest request)
         {
-            if (UseAccessRealtime() && OperatingSystem.IsWindows())
-            {
-                return await GetSummaryFromAccess(request);
-            }
-
             return await _unitOfWork.AttendanceRep.GetSummary(request);
         }
 
         public async Task<List<AttendanceDetailModel>> GetDetails(int? employeeId, string? fingerprintCode, DateTime fromDate, DateTime toDate, int userId)
         {
-            if (UseAccessRealtime() && OperatingSystem.IsWindows())
-            {
-                return await GetDetailsFromAccess(employeeId, fingerprintCode, fromDate, toDate);
-            }
-
             return await _unitOfWork.AttendanceRep.GetDetails(employeeId, fingerprintCode, fromDate, toDate, userId);
         }
 
@@ -336,6 +328,10 @@ namespace VS.Human.Business
 
             var result = new AttendanceImportResult();
             var options = GetMachineOptions();
+            if (!string.IsNullOrWhiteSpace(options.DbSourceError))
+            {
+                return ErrorResult(result, options.DbSourceError);
+            }
 
             if (string.IsNullOrWhiteSpace(options.DbPath))
             {
@@ -463,7 +459,9 @@ namespace VS.Human.Business
                     var scheduleInfo = scheduleContext.GetScheduleInfo(aggregate.UserInfo, aggregate.WorkDate);
                     var (lateMinutes, earlyMinutes) = CalculateLateEarly(aggregate, scheduleInfo.Shift);
 
-                    var record = BuildAttendanceRecord(aggregate, options.DbPath);
+                    var record = BuildAttendanceRecord(
+                        aggregate,
+                        options.DbSourceName ?? options.DbConfiguredSource ?? options.DbPath);
                     record.LateMinutes = lateMinutes;
                     record.EarlyMinutes = earlyMinutes;
                     record.ShiftName = scheduleInfo.ShiftCode;
@@ -500,6 +498,176 @@ namespace VS.Human.Business
             return result;
         }
 
+        public async Task<AttendanceImportResult> SyncFromDirectSqlAsync(DateTime fromDate, DateTime toDate, int userId)
+        {
+            var result = new AttendanceImportResult();
+            var options = GetMachineOptions();
+
+            if (!options.UseDirectSqlRealtime || string.IsNullOrWhiteSpace(options.DirectSqlConnectionString))
+            {
+                return ErrorResult(result, "Chua cau hinh nguon cham cong direct SQL");
+            }
+
+            if (fromDate == DateTime.MinValue || toDate == DateTime.MinValue)
+            {
+                fromDate = DateTime.Today.AddDays(-7);
+                toDate = DateTime.Today;
+            }
+
+            if (fromDate > toDate)
+            {
+                var temp = fromDate;
+                fromDate = toDate;
+                toDate = temp;
+            }
+
+            var sourceName = GetDirectSqlSourceName(options.DirectSqlConnectionString);
+            var userMap = new Dictionary<string, MachineUserInfo>(StringComparer.OrdinalIgnoreCase);
+            var aggregates = new Dictionary<string, AttendanceAggregate>(StringComparer.OrdinalIgnoreCase);
+            var fromDateOnly = fromDate.Date;
+            var toExclusive = toDate.Date.AddDays(1);
+
+            try
+            {
+                using var connection = new SqlConnection(options.DirectSqlConnectionString);
+                await connection.OpenAsync();
+
+                using (var userCommand = new SqlCommand(@"
+SELECT DeviceUserId, [Name]
+FROM dbo.DeviceUsers
+WHERE (@DeviceIp IS NULL OR DeviceIp = @DeviceIp);", connection))
+                {
+                    userCommand.Parameters.Add("@DeviceIp", SqlDbType.NVarChar, 50).Value =
+                        string.IsNullOrWhiteSpace(options.DeviceIp)
+                            ? DBNull.Value
+                            : options.DeviceIp;
+
+                    using var reader = await userCommand.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var rawUserId = reader["DeviceUserId"]?.ToString()?.Trim();
+                        if (string.IsNullOrWhiteSpace(rawUserId))
+                        {
+                            continue;
+                        }
+
+                        var info = new MachineUserInfo
+                        {
+                            UserId = rawUserId,
+                            FingerprintCode = rawUserId,
+                            Name = reader["Name"]?.ToString()?.Trim()
+                        };
+
+                        AddUserMap(userMap, rawUserId, NormalizeUserId(rawUserId), info);
+                    }
+                }
+
+                using (var logCommand = new SqlCommand(@"
+SELECT DeviceUserId, RecordTime
+FROM dbo.DeviceAttendanceLogs
+WHERE (@DeviceIp IS NULL OR DeviceIp = @DeviceIp)
+  AND RecordTime >= @FromDate
+  AND RecordTime < @ToDate
+ORDER BY RecordTime;", connection))
+                {
+                    logCommand.Parameters.Add("@DeviceIp", SqlDbType.NVarChar, 50).Value =
+                        string.IsNullOrWhiteSpace(options.DeviceIp)
+                            ? DBNull.Value
+                            : options.DeviceIp;
+                    logCommand.Parameters.Add("@FromDate", SqlDbType.DateTime2).Value = fromDateOnly;
+                    logCommand.Parameters.Add("@ToDate", SqlDbType.DateTime2).Value = toExclusive;
+
+                    using var reader = await logCommand.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var rawUserId = reader["DeviceUserId"]?.ToString();
+                        if (string.IsNullOrWhiteSpace(rawUserId))
+                        {
+                            continue;
+                        }
+
+                        if (reader["RecordTime"] is not DateTime checkTime)
+                        {
+                            continue;
+                        }
+
+                        var normalizedUserId = NormalizeUserId(rawUserId);
+                        var userInfo = FindUserInfo(userMap, rawUserId, normalizedUserId);
+                        var fingerprint = userInfo?.FingerprintCode;
+                        if (string.IsNullOrWhiteSpace(fingerprint))
+                        {
+                            fingerprint = rawUserId;
+                        }
+
+                        fingerprint = fingerprint.Trim();
+                        if (string.IsNullOrWhiteSpace(fingerprint))
+                        {
+                            continue;
+                        }
+
+                        var workDate = checkTime.Date;
+                        var key = fingerprint + "|" + workDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                        if (!aggregates.TryGetValue(key, out var aggregate))
+                        {
+                            aggregate = new AttendanceAggregate(fingerprint, workDate);
+                            aggregates[key] = aggregate;
+                        }
+
+                        if (string.IsNullOrWhiteSpace(aggregate.EmployeeName))
+                        {
+                            aggregate.EmployeeName = userInfo?.Name;
+                        }
+
+                        if (aggregate.UserInfo == null && userInfo != null)
+                        {
+                            aggregate.UserInfo = userInfo;
+                        }
+
+                        aggregate.Update(checkTime.TimeOfDay);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return ErrorResult(result, $"Khong the doc du lieu direct SQL: {ex.Message}");
+            }
+
+            var employeeCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var aggregate in aggregates.Values)
+            {
+                var record = BuildAttendanceRecord(aggregate, sourceName);
+                record.SourceFile = sourceName;
+
+                if (!string.IsNullOrWhiteSpace(record.FingerprintCode))
+                {
+                    if (!employeeCache.TryGetValue(record.FingerprintCode, out var employeeId))
+                    {
+                        var employee = await _unitOfWork.EmployeeRep.GetByFingerprintCode(record.FingerprintCode);
+                        employeeId = employee != null && employee.Id > 0 ? employee.Id : 0;
+                        employeeCache[record.FingerprintCode] = employeeId;
+                    }
+
+                    if (employeeId > 0)
+                    {
+                        record.EmployeeId = employeeId;
+                    }
+                }
+
+                result.Total++;
+                var saved = await _unitOfWork.AttendanceRep.UpsertAsync(record, userId);
+                if (saved)
+                {
+                    result.TotalSuccess++;
+                }
+                else
+                {
+                    AddError(result, result.Total, "Khong the luu du lieu");
+                }
+            }
+
+            return result;
+        }
+
         [SupportedOSPlatform("windows")]
         private async Task<BaseList> GetSummaryFromAccess(AttendanceRequest request)
         {
@@ -510,6 +678,10 @@ namespace VS.Human.Business
 
             var result = new BaseList();
             var options = GetMachineOptions();
+            if (!string.IsNullOrWhiteSpace(options.DbSourceError))
+            {
+                return result;
+            }
 
             if (string.IsNullOrWhiteSpace(options.DbPath))
             {
@@ -737,6 +909,10 @@ namespace VS.Human.Business
 
             var options = GetMachineOptions();
             var results = new List<AttendanceDetailModel>();
+            if (!string.IsNullOrWhiteSpace(options.DbSourceError))
+            {
+                return results;
+            }
 
             if (string.IsNullOrWhiteSpace(options.DbPath))
             {
@@ -1038,12 +1214,64 @@ namespace VS.Human.Business
         {
             var options = new AttendanceMachineOptions();
             _configuration.GetSection("AttendanceMachine").Bind(options);
+            try
+            {
+                var resolvedSource = AttendanceMachinePathResolver.Resolve(options.DbUrl, options.DbPath);
+                options.DbConfiguredSource = resolvedSource?.ConfiguredSource;
+                options.DbSourceName = resolvedSource?.DisplayName;
+                options.DbPath = resolvedSource?.LocalPath;
+            }
+            catch (Exception ex)
+            {
+                options.DbConfiguredSource = AttendanceMachinePathResolver.ResolveConfiguredSource(
+                    options.DbUrl,
+                    options.DbPath);
+                options.DbSourceError = ex.Message;
+                options.DbPath = null;
+            }
+
+            options.DbUrl = string.IsNullOrWhiteSpace(options.DbUrl)
+                ? null
+                : options.DbUrl.Trim();
+            options.DeviceIp = string.IsNullOrWhiteSpace(options.DeviceIp)
+                ? null
+                : options.DeviceIp.Trim();
+            options.DevicePort = options.DevicePort <= 0 ? 4370 : options.DevicePort;
+            options.RealtimeSyncIntervalSeconds = options.RealtimeSyncIntervalSeconds <= 0
+                ? 10
+                : options.RealtimeSyncIntervalSeconds;
+            options.RealtimeSyncLookbackDays = options.RealtimeSyncLookbackDays <= 0
+                ? 2
+                : options.RealtimeSyncLookbackDays;
+            options.DirectSqlConnectionString = string.IsNullOrWhiteSpace(options.DirectSqlConnectionString)
+                ? null
+                : options.DirectSqlConnectionString.Trim();
             return options;
         }
 
         private bool UseAccessRealtime()
         {
             return _configuration.GetValue<bool>("AttendanceMachine:UseAccessRealtime");
+        }
+
+        private bool UseDirectSqlRealtime()
+        {
+            return _configuration.GetValue<bool>("AttendanceMachine:UseDirectSqlRealtime");
+        }
+
+        private static string GetDirectSqlSourceName(string connectionString)
+        {
+            try
+            {
+                var builder = new SqlConnectionStringBuilder(connectionString);
+                return string.IsNullOrWhiteSpace(builder.InitialCatalog)
+                    ? "AttendanceDirectSync"
+                    : builder.InitialCatalog;
+            }
+            catch
+            {
+                return "AttendanceDirectSync";
+            }
         }
 
         [SupportedOSPlatform("windows")]

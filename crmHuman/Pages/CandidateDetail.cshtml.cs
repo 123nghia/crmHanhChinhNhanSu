@@ -2,6 +2,7 @@
 using crmHuman.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 using VS.Human.Business;
 using VS.Human.Business.Model;
 using VS.Human.Item;
@@ -87,6 +88,28 @@ namespace crmHuman.Pages
             }
 
             var userId = UserData?.UserId ?? 0;
+            var roleCode = UserData?.RoleCode;
+            if (request.RelId <= 0 || !await _empBusiness.HasManageAccess(request.RelId, userId, roleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
+            if (request.Id > 0)
+            {
+                var existingSchedule = await _scheduleInterviewBussiness.GetById(request.Id);
+                if (existingSchedule == null || existingSchedule.Id <= 0)
+                {
+                    return ApiResponseHelper.Error("Không tìm thấy lịch phỏng vấn", StatusCodes.Status404NotFound);
+                }
+
+                if (!await _empBusiness.HasManageAccess(existingSchedule.RelId, userId, roleCode))
+                {
+                    return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+                }
+
+                request.RelId = existingSchedule.RelId;
+            }
+
             var itemInsert = new ScheduleInterviewAdd()
             {
                 Id = request.Id,
@@ -99,6 +122,7 @@ namespace crmHuman.Pages
                 InterviewerId = request.InterviewerId,
                 InterviewMode = request.InterviewMode,
                 InterviewResult = request.InterviewResult,
+                SendEmail = request.SendEmail,
                 CreatedBy = userId,
                 UpdatedBy = userId
             };
@@ -123,6 +147,19 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.BadRequest(errors);
             }
 
+            var schedule = await _scheduleInterviewBussiness.GetById(scheduleId);
+            if (schedule == null || schedule.Id <= 0)
+            {
+                return ApiResponseHelper.Error("Không tìm thấy lịch phỏng vấn", StatusCodes.Status404NotFound);
+            }
+
+            var canManageSchedule = await _scheduleInterviewBussiness.HasManageAccess(scheduleId, UserData.UserId, UserData.RoleCode);
+            var canManageCandidate = await _empBusiness.HasManageAccess(schedule.RelId, UserData.UserId, UserData.RoleCode);
+            if (!canManageSchedule && !canManageCandidate)
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
             var result = await _scheduleInterviewBussiness.Delete(scheduleId);
             return ApiResponseHelper.SuccessResponse(new { success = result });
         }
@@ -139,6 +176,13 @@ namespace crmHuman.Pages
             if (schedule == null || schedule.Id <= 0)
             {
                 return ApiResponseHelper.Error("Không tìm thấy lịch phỏng vấn", StatusCodes.Status404NotFound);
+            }
+
+            var canViewSchedule = await _scheduleInterviewBussiness.HasViewAccess(scheduleId, UserData.UserId, UserData.RoleCode);
+            var canViewCandidate = await _empBusiness.HasViewAccess(schedule.RelId, UserData.UserId, UserData.RoleCode);
+            if (!canViewSchedule && !canViewCandidate)
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
 
             return ApiResponseHelper.SuccessResponse(new { 
@@ -160,6 +204,7 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostUpdate(CandidateDetailUpdate request)
         {
+            GetInfoUser();
             var errors = new List<object>();
             ValidationHelper.ValidateId(request.CandidateId, "txtFullName", "đối tượng Id", errors);
             ValidationHelper.ValidatePhone(request.Phone, errors);
@@ -167,6 +212,11 @@ namespace crmHuman.Pages
             if (ValidationHelper.HasErrors(errors))
             {
                 return ApiResponseHelper.BadRequest(errors);
+            }
+
+            if (!await _empBusiness.HasManageAccess(request.CandidateId, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
 
             request.Id = request.CandidateId;
@@ -190,6 +240,11 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.BadRequest(errors);
             }
 
+            if (!await _empBusiness.HasManageAccess(candidateId, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
             var employee = await _empBusiness.Onboard(candidateId);
             if (employee == null || employee.Id <= 0)
             {
@@ -203,12 +258,18 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostAddDocument(DocumentDataAddRequest request)
         {
+            GetInfoUser();
             var errors = new List<object>();
             ValidationHelper.ValidateId(request.RelId, "txtFullName", "đối tượng Id", errors);
             
             if (ValidationHelper.HasErrors(errors))
             {
                 return ApiResponseHelper.BadRequest(errors);
+            }
+
+            if (!await _empBusiness.HasManageAccess(request.RelId, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
 
             var result = await _documentDataBussiness.AddOrUpdate(request);
@@ -224,6 +285,10 @@ namespace crmHuman.Pages
             GetInfoUser();
 
             var idInput = request.Id.HasValue == true ? request.Id.Value : -1;
+            if (idInput <= 0 || !await _empBusiness.HasViewAccess(idInput, UserData.UserId, UserData.RoleCode))
+            {
+                return Forbid();
+            }
 
             var dataAllMaster = await _masterDataBussiness.GetAll(new CommonRequest()
             {
@@ -280,6 +345,7 @@ namespace crmHuman.Pages
             ResultModel = resultView;
             var dataAllHistory = await _scheduleInterviewBussiness.GetAll(new ScheduleInterviewRquest()
             {
+                UserId = UserData.UserId,
                 RelId = idInput,
                 Type = -1,
                 From = null,
@@ -295,12 +361,7 @@ namespace crmHuman.Pages
 
             });
             DataLead = await _empBusiness1.GetAllManager();
-            DataInterviewer = await _empBusiness1.GetAll(new EmployeeRequest()
-            {
-                Page = 1,
-                Limit = 1000,
-                Status = 1
-            });
+            DataInterviewer = await BuildInterviewerListAsync();
 
             return Page();
         }
@@ -349,12 +410,18 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostDelete(int Id = -1)
         {
+            GetInfoUser();
             var errors = new List<object>();
             ValidationHelper.ValidateIdForDelete(Id, errors);
             
             if (ValidationHelper.HasErrors(errors))
             {
                 return ApiResponseHelper.BadRequest(errors);
+            }
+
+            if (!await _empBusiness.HasManageAccess(Id, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
 
             var result = await _empBusiness.Delete(Id);
@@ -364,6 +431,7 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostReactive(int Id = -1)
         {
+            GetInfoUser();
             var errors = new List<object>();
             ValidationHelper.ValidateIdForDelete(Id, errors);
             
@@ -372,8 +440,26 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.BadRequest(errors);
             }
 
+            if (!await _empBusiness.HasManageAccess(Id, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
             var result = await _empBusiness.Delete(Id, true);
             return ApiResponseHelper.SuccessResponse(new { success = result });
+        }
+
+        private async Task<BaseList> BuildInterviewerListAsync()
+        {
+            var interviewers = await _empBusiness1.GetByRoleCodes(new[] { "1", "3", "6", "8", "9" });
+            return new BaseList
+            {
+                Total = interviewers.Count,
+                Data = interviewers
+                    .Where(x => x != null && x.Id > 0 && !string.IsNullOrWhiteSpace(x.FullName))
+                    .OrderBy(x => x.FullName)
+                    .ToList()
+            };
         }
 
 

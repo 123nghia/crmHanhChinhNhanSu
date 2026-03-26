@@ -47,8 +47,17 @@ namespace crmHuman.Helpers
 
         public string? GetConfigError()
         {
-            var dbPath = AttendanceMachinePathResolver.ResolveDbPath(
-                _configuration.GetValue<string>("AttendanceMachine:DbPath"));
+            AttendanceMachinePathResolution? source;
+            try
+            {
+                source = ResolveAccessSource();
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
+
+            var dbPath = source?.LocalPath;
             if (string.IsNullOrWhiteSpace(dbPath))
             {
                 return "Ch\u01B0a c\u1EA5u h\u00ECnh \u0111\u01B0\u1EDDng d\u1EABn file ch\u1EA5m c\u00F4ng.";
@@ -78,8 +87,32 @@ namespace crmHuman.Helpers
                 return result;
             }
 
-            var dbPath = AttendanceMachinePathResolver.ResolveDbPath(
-                _configuration.GetValue<string>("AttendanceMachine:DbPath")) ?? string.Empty;
+            AttendanceMachinePathResolution? source;
+            try
+            {
+                source = ResolveAccessSource();
+            }
+            catch (Exception ex)
+            {
+                result.Add(new AccessTableData
+                {
+                    Name = "Access",
+                    Error = ex.Message
+                });
+                return result;
+            }
+
+            var dbPath = source?.LocalPath ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(dbPath))
+            {
+                result.Add(new AccessTableData
+                {
+                    Name = "Access",
+                    Error = "Ch\u01B0a c\u1EA5u h\u00ECnh \u0111\u01B0\u1EDDng d\u1EABn file ch\u1EA5m c\u00F4ng."
+                });
+                return result;
+            }
+
             var password = _configuration.GetValue<string>("AttendanceMachine:Password");
             var provider = _configuration.GetValue<string>("AttendanceMachine:Provider");
             var providers = new List<string>();
@@ -235,6 +268,13 @@ namespace crmHuman.Helpers
             }
 
             return result;
+        }
+
+        private AttendanceMachinePathResolution? ResolveAccessSource()
+        {
+            return AttendanceMachinePathResolver.Resolve(
+                _configuration.GetValue<string>("AttendanceMachine:DbUrl"),
+                _configuration.GetValue<string>("AttendanceMachine:DbPath"));
         }
 
         [SupportedOSPlatform("windows")]

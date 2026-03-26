@@ -48,6 +48,12 @@ namespace VS.Human.Rep
                             SmtpPassword = @SmtpPassword,
                             FromEmail = @FromEmail,
                             FromName = @FromName,
+                            HrFromEmail = @HrFromEmail,
+                            HrFromName = @HrFromName,
+                            HrSignature = @HrSignature,
+                            EmployeeFromEmail = @EmployeeFromEmail,
+                            EmployeeFromName = @EmployeeFromName,
+                            EmployeeSignature = @EmployeeSignature,
                             IsActive = @IsActive,
                             UpdatedBy = @UpdatedBy,
                             UpdateAt = GETDATE()
@@ -67,9 +73,9 @@ namespace VS.Human.Rep
                 {
                     var sql = @"
                         INSERT INTO EmailSettings
-                        (SmtpHost, SmtpPort, EnableSsl, SmtpUser, SmtpPassword, FromEmail, FromName, IsActive, Deleted, CreatedBy, UpdatedBy, CreateAt, UpdateAt)
+                        (SmtpHost, SmtpPort, EnableSsl, SmtpUser, SmtpPassword, FromEmail, FromName, HrFromEmail, HrFromName, HrSignature, EmployeeFromEmail, EmployeeFromName, EmployeeSignature, IsActive, Deleted, CreatedBy, UpdatedBy, CreateAt, UpdateAt)
                         VALUES
-                        (@SmtpHost, @SmtpPort, @EnableSsl, @SmtpUser, @SmtpPassword, @FromEmail, @FromName, @IsActive, 0, @CreatedBy, @UpdatedBy, GETDATE(), GETDATE());
+                        (@SmtpHost, @SmtpPort, @EnableSsl, @SmtpUser, @SmtpPassword, @FromEmail, @FromName, @HrFromEmail, @HrFromName, @HrSignature, @EmployeeFromEmail, @EmployeeFromName, @EmployeeSignature, @IsActive, 0, @CreatedBy, @UpdatedBy, GETDATE(), GETDATE());
                         SELECT CAST(SCOPE_IDENTITY() as int);";
                     var newId = await con.ExecuteScalarAsync<int>(sql, setting);
                     if (setting.IsActive > 0 && newId > 0)
@@ -132,6 +138,7 @@ namespace VS.Human.Rep
                             Name = @Name,
                             Subject = @Subject,
                             Body = @Body,
+                            SenderType = @SenderType,
                             CcManager = @CcManager,
                             CcEmails = @CcEmails,
                             BccEmails = @BccEmails,
@@ -146,9 +153,9 @@ namespace VS.Human.Rep
                 {
                     var sql = @"
                         INSERT INTO EmailTemplates
-                        (Code, Name, Subject, Body, CcManager, CcEmails, BccEmails, IsActive, Deleted, CreatedBy, UpdatedBy, CreateAt, UpdateAt)
+                        (Code, Name, Subject, Body, SenderType, CcManager, CcEmails, BccEmails, IsActive, Deleted, CreatedBy, UpdatedBy, CreateAt, UpdateAt)
                         VALUES
-                        (@Code, @Name, @Subject, @Body, @CcManager, @CcEmails, @BccEmails, @IsActive, 0, @CreatedBy, @UpdatedBy, GETDATE(), GETDATE())";
+                        (@Code, @Name, @Subject, @Body, @SenderType, @CcManager, @CcEmails, @BccEmails, @IsActive, 0, @CreatedBy, @UpdatedBy, GETDATE(), GETDATE())";
                     var affected = await con.ExecuteAsync(sql, template);
                     return affected > 0;
                 }

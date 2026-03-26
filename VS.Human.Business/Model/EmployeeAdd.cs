@@ -84,10 +84,11 @@ namespace VS.Human.Business.Model
 
     public class ScheduleInterviewAdd : ScheduleInterview
     {
+        public bool SendEmail { get; set; }
 
         public ScheduleInterviewAdd()
         {
-
+            SendEmail = true;
         }
     }
 
@@ -235,11 +236,12 @@ namespace VS.Human.Business.Model
 
     public class CandidateScheduleAdd : ScheduleInterview
     {
+        public bool SendEmail { get; set; }
 
 
         public CandidateScheduleAdd()
         {
-
+            SendEmail = true;
         }
     }
     public class CandidateOrderAdd

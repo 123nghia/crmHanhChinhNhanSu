@@ -157,6 +157,78 @@ namespace crmHuman.Pages
             return RedirectToPage();
         }
 
+        public async Task<IActionResult> OnPostSaveMailSignature([FromForm] string? mailSignature)
+        {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Redirect("/Login");
+            }
+
+            GetInfoUser();
+            if (UserData == null || UserData.UserId < 1)
+            {
+                return Redirect("/Login");
+            }
+
+            var ok = await _empBusiness.UpdateMailSignature(UserData.UserId, mailSignature, UserData.UserId);
+            TempData["MailSignatureSaved"] = ok ? "1" : "0";
+            return RedirectToPage(new { tab = "mail-signature" });
+        }
+
+        public async Task<IActionResult> OnPostUploadMailSignatureImageAsync(IFormFile? file)
+        {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Unauthorized();
+            }
+
+            GetInfoUser();
+            if (UserData == null || UserData.UserId < 1)
+            {
+                return Unauthorized();
+            }
+
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { error = "No file uploaded" });
+            }
+
+            if (file.Length > 5 * 1024 * 1024)
+            {
+                return BadRequest(new { error = "Image size must be 5MB or smaller" });
+            }
+
+            var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
+            var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".gif",
+                ".webp",
+                ".bmp"
+            };
+
+            if (string.IsNullOrWhiteSpace(extension) || !allowedExtensions.Contains(extension))
+            {
+                return BadRequest(new { error = "Unsupported file type" });
+            }
+
+            var uploadRoot = Path.Combine(_env.WebRootPath, "uploads", "mail-signatures", UserData.UserId.ToString());
+            Directory.CreateDirectory(uploadRoot);
+
+            var storedName = $"signature_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
+            var fullPath = Path.Combine(uploadRoot, storedName);
+
+            await using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var location = $"/uploads/mail-signatures/{UserData.UserId}/{storedName}";
+            return new JsonResult(new { location });
+        }
+
         public async Task<IActionResult> OnPostAddEmployeee
             (EmployeeInfoAdd request)
         {

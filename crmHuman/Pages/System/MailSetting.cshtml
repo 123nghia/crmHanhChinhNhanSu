@@ -1,5 +1,6 @@
 @page
 @model crmHuman.Pages.System.MailSettingModel
+@using VS.Human.Rep.Model
 @{
     Layout = "_Layout";
 }
@@ -42,13 +43,60 @@
                     </div>
                 </div>
                 <div class="row mb-3">
-                    <label class="col-sm-2 col-form-label">From Email</label>
-                    <div class="col-sm-4">
-                        <input type="text" class="form-control" id="fromEmail" value="@Model.Setting?.FromEmail" />
+                    <label class="col-sm-2 col-form-label">SMTP ghi chu</label>
+                    <div class="col-sm-10">
+                        <div class="form-text mt-2">
+                            SMTP server dung chung cho toan he thong. Ben duoi la cau hinh mac dinh/fallback cho template.
+                            Neu nguoi dang gui co email va chu ky rieng trong ho so ca nhan, he thong se uu tien dung thong tin nguoi do lam sender hien thi.
+                            Neu mail server chi cho phep gui tu dung dia chi/xac thuc, can cau hinh send-as/alias phu hop cho tai khoan SMTP admin.
+                        </div>
                     </div>
-                    <label class="col-sm-2 col-form-label">From Name</label>
-                    <div class="col-sm-4">
-                        <input type="text" class="form-control" id="fromName" value="@Model.Setting?.FromName" />
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-lg-6">
+                        <div class="card border shadow-sm h-100">
+                            <div class="card-header bg-light fw-semibold">Mail nhan su mac dinh</div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">From Email</label>
+                                    <input type="text" class="form-control" id="hrFromEmail" value="@(Model.Setting?.HrFromEmail ?? Model.Setting?.FromEmail)" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">From Name</label>
+                                    <input type="text" class="form-control" id="hrFromName" value="@(Model.Setting?.HrFromName ?? Model.Setting?.FromName)" />
+                                </div>
+                                <textarea class="d-none" id="hrSignature">@(Model.Setting?.HrSignature ?? string.Empty)</textarea>
+                                <div class="d-flex gap-2 mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openSignatureEditor('hr')">Edit chu ky</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSignature('hr')">Xoa chu ky</button>
+                                </div>
+                                <div class="signature-preview" id="hrSignaturePreview"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card border shadow-sm h-100">
+                            <div class="card-header bg-light fw-semibold">Mail nhan vien mac dinh</div>
+                            <div class="card-body">
+                                <div class="small text-muted mb-3">
+                                    Duoc dung khi nguoi gui khong co email/chu ky rieng trong ho so ca nhan.
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">From Email</label>
+                                    <input type="text" class="form-control" id="employeeFromEmail" value="@Model.Setting?.EmployeeFromEmail" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">From Name</label>
+                                    <input type="text" class="form-control" id="employeeFromName" value="@Model.Setting?.EmployeeFromName" />
+                                </div>
+                                <textarea class="d-none" id="employeeSignature">@(Model.Setting?.EmployeeSignature ?? string.Empty)</textarea>
+                                <div class="d-flex gap-2 mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openSignatureEditor('employee')">Edit chu ky</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSignature('employee')">Xoa chu ky</button>
+                                </div>
+                                <div class="signature-preview" id="employeeSignaturePreview"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -92,7 +140,11 @@
 
             <div class="tab-pane fade" id="templateTab" role="tabpanel">
                 <div class="alert alert-secondary small">
-                    Tokens: {{EmployeeName}}, {{ManagerName}}, {{LeaveType}}, {{FromDate}}, {{ToDate}}, {{TotalDays}}, {{Reason}}, {{RejectReason}}. Ho tro ca {{Token}} va {Token}.
+                    Tokens leave: {{EmployeeName}}, {{ManagerName}}, {{LeaveType}}, {{FromDate}}, {{ToDate}}, {{TotalDays}}, {{Reason}}, {{RejectReason}}.
+                    Tokens interview: {{CandidateName}}, {{AppliedPosition}}, {{InterviewAction}}, {{InterviewRound}}, {{ScheduleDate}}, {{InterviewMode}}, {{AddressInfo}}, {{InterviewerName}}, {{RoomName}}, {{Noted}}.
+                    Tokens sender: {{SenderName}}, {{SenderEmail}}, {{SenderTypeText}}, {{SenderSignature}}.
+                    Ho tro ca {{Token}} va {Token}. Neu body khong co {{SenderSignature}} thi he thong se tu dong noi chu ky vao cuoi mail.
+                    Anh/logo trong mail nen duoc chen bang nut anh de he thong upload va nhung inline khi gui. Khong nen paste truc tiep tu Word/Outlook vi de sinh duong dan file:/// hoac cid: se bi vo anh trong mail.
                 </div>
                 <table class="table table-striped">
                     <thead>
@@ -100,6 +152,7 @@
                             <th>Code</th>
                             <th>Name</th>
                             <th>Subject</th>
+                            <th>Gui tu</th>
                             <th class="text-center">Active</th>
                             <th class="text-center">CC Manager</th>
                             <th class="text-end">Action</th>
@@ -112,6 +165,7 @@
                                 data-code="@item.Code"
                                 data-name="@item.Name"
                                 data-subject="@item.Subject"
+                                data-sendertype="@item.SenderType"
                                 data-active="@item.IsActive"
                                 data-ccmanager="@item.CcManager"
                                 data-ccemails="@item.CcEmails"
@@ -119,6 +173,7 @@
                                 <td>@item.Code</td>
                                 <td>@item.Name</td>
                                 <td>@item.Subject</td>
+                                <td>@EmailSenderTypes.GetDisplayText(item.SenderType)</td>
                                 <td class="text-center">@((item.IsActive == 1) ? "Yes" : "No")</td>
                                 <td class="text-center">@((item.CcManager) ? "Yes" : "No")</td>
                                 <td class="text-end">
@@ -135,7 +190,7 @@
 </div>
 
 <div class="modal fade" id="templateModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Edit template</h5>
@@ -162,9 +217,118 @@
                     </div>
                 </div>
                 <div class="row mb-3">
+                    <label class="col-sm-3 col-form-label">Gui tu</label>
+                    <div class="col-sm-9">
+                        <select class="form-select" id="tplSenderType">
+                            <option value="HR">Mail nhan su</option>
+                            <option value="EMPLOYEE">Mail nhan vien</option>
+                        </select>
+                        <div class="form-text">
+                            Chon profile gui mail cho template nay. Chu ky cua profile duoc tu dong noi vao cuoi mail.
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
                     <label class="col-sm-3 col-form-label">Body</label>
                     <div class="col-sm-9">
-                        <textarea class="form-control" id="tplBody" rows="8"></textarea>
+                        <div class="template-editor-shell">
+                            <div class="template-editor-toolbar">
+                                <div class="btn-toolbar gap-2 flex-wrap" role="toolbar">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary active" id="tplVisualModeBtn" onclick="setTemplateEditorMode('visual')">Visual</button>
+                                        <button type="button" class="btn btn-outline-primary" id="tplHtmlModeBtn" onclick="setTemplateEditorMode('html')">HTML</button>
+                                    </div>
+
+                                    <select class="form-select form-select-sm template-editor-select template-editor-visual-only" id="tplBlockFormat" onchange="applyBlockFormat(this.value)">
+                                        <option value="<p>">Doan van</option>
+                                        <option value="<h1>">Tieu de 1</option>
+                                        <option value="<h2>">Tieu de 2</option>
+                                        <option value="<h3>">Tieu de 3</option>
+                                        <option value="<blockquote>">Trich dan</option>
+                                    </select>
+
+                                    <select class="form-select form-select-sm template-editor-select template-editor-visual-only" id="tplFontFamily" onchange="applyFontName(this.value)">
+                                        <option value="Arial">Arial</option>
+                                        <option value="Tahoma">Tahoma</option>
+                                        <option value="Verdana">Verdana</option>
+                                        <option value="Times New Roman">Times New Roman</option>
+                                        <option value="Georgia">Georgia</option>
+                                        <option value="Courier New">Courier New</option>
+                                    </select>
+
+                                    <select class="form-select form-select-sm template-editor-select template-editor-visual-only" id="tplFontSize" onchange="applyFontSize(this.value)">
+                                        <option value="2">Nho</option>
+                                        <option value="3" selected>Vua</option>
+                                        <option value="4">Hoi lon</option>
+                                        <option value="5">Lon</option>
+                                        <option value="6">Rat lon</option>
+                                    </select>
+
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('bold')" title="Dam"><strong>B</strong></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('italic')" title="Nghieng"><em>I</em></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('underline')" title="Gach chan"><u>U</u></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('strikeThrough')" title="Gach ngang"><s>S</s></button>
+                                    </div>
+
+                                    <div class="d-flex align-items-center gap-1 template-editor-visual-only">
+                                        <label class="small text-muted mb-0" for="tplTextColor">Chu</label>
+                                        <input type="color" id="tplTextColor" class="form-control form-control-color form-control-color-sm" value="#1f2937" onchange="applyTextColor(this.value)" />
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1 template-editor-visual-only">
+                                        <label class="small text-muted mb-0" for="tplHighlightColor">Nen</label>
+                                        <input type="color" id="tplHighlightColor" class="form-control form-control-color form-control-color-sm" value="#fff59d" onchange="applyHighlightColor(this.value)" />
+                                    </div>
+
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('justifyLeft')" title="Can trai"><i class="bi bi-text-left"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('justifyCenter')" title="Can giua"><i class="bi bi-text-center"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('justifyRight')" title="Can phai"><i class="bi bi-text-right"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('justifyFull')" title="Can deu"><i class="bi bi-justify"></i></button>
+                                    </div>
+
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('insertUnorderedList')" title="Danh sach cham"><i class="bi bi-list-ul"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('insertOrderedList')" title="Danh sach so"><i class="bi bi-list-ol"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('outdent')" title="Giam le"><i class="bi bi-text-indent-right"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('indent')" title="Tang le"><i class="bi bi-text-indent-left"></i></button>
+                                    </div>
+
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="insertTemplateLink()" title="Chen link"><i class="bi bi-link-45deg"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="insertTemplateImage()" title="Chen anh"><i class="bi bi-image"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('unlink')" title="Bo link"><i class="bi bi-link"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="insertTemplateTable()" title="Chen bang"><i class="bi bi-table"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="runTemplateEditorCommand('insertHorizontalRule')" title="Duong ke ngang"><i class="bi bi-dash-lg"></i></button>
+                                        <button type="button" class="btn btn-outline-secondary template-editor-visual-only" onclick="clearTemplateFormatting()" title="Xoa dinh dang"><i class="bi bi-eraser"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="template-editor-token-bar">
+                                <span class="template-editor-token-label">Token nhanh:</span>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{EmployeeName}}')">{{EmployeeName}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{ManagerName}}')">{{ManagerName}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{LeaveType}}')">{{LeaveType}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{FromDate}}')">{{FromDate}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{ToDate}}')">{{ToDate}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{TotalDays}}')">{{TotalDays}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{Reason}}')">{{Reason}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{CandidateName}}')">{{CandidateName}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{AppliedPosition}}')">{{AppliedPosition}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{InterviewRound}}')">{{InterviewRound}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{ScheduleDate}}')">{{ScheduleDate}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{AddressInfo}}')">{{AddressInfo}}</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="insertTemplateToken('{{InterviewerName}}')">{{InterviewerName}}</button>
+                            </div>
+
+                            <div id="tplBodyEditor" class="template-editor-canvas" contenteditable="true"></div>
+                            <textarea class="form-control d-none template-editor-html" id="tplBodyHtml" rows="14" spellcheck="false"></textarea>
+                        </div>
+                        <div class="form-text">
+                            Ho tro soan noi dung kieu Word, dan tu Word/Google Docs, doi font chu va chuyen qua HTML khi can.
+                            Nen uu tien font email-safe: Arial, Tahoma, Verdana, Times New Roman, Georgia, Courier New.
+                        </div>
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -200,9 +364,1224 @@
     </div>
 </div>
 
+<div class="modal fade" id="signatureModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="signatureModalTitle">Edit chu ky</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="signatureTargetType" />
+                <div class="template-editor-shell">
+                    <div class="template-editor-toolbar">
+                        <div class="btn-toolbar gap-2 flex-wrap" role="toolbar">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary active" id="sigVisualModeBtn" onclick="setSignatureEditorMode('visual')">Visual</button>
+                                <button type="button" class="btn btn-outline-primary" id="sigHtmlModeBtn" onclick="setSignatureEditorMode('html')">HTML</button>
+                            </div>
+
+                            <select class="form-select form-select-sm template-editor-select signature-editor-visual-only" id="sigBlockFormat" onchange="applySignatureBlockFormat(this.value)">
+                                <option value="<p>">Doan van</option>
+                                <option value="<h1>">Tieu de 1</option>
+                                <option value="<h2>">Tieu de 2</option>
+                                <option value="<h3>">Tieu de 3</option>
+                                <option value="<blockquote>">Trich dan</option>
+                            </select>
+
+                            <select class="form-select form-select-sm template-editor-select signature-editor-visual-only" id="sigFontFamily" onchange="applySignatureFontName(this.value)">
+                                <option value="Arial">Arial</option>
+                                <option value="Tahoma">Tahoma</option>
+                                <option value="Verdana">Verdana</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Courier New">Courier New</option>
+                            </select>
+
+                            <select class="form-select form-select-sm template-editor-select signature-editor-visual-only" id="sigFontSize" onchange="applySignatureFontSize(this.value)">
+                                <option value="2">Nho</option>
+                                <option value="3" selected>Vua</option>
+                                <option value="4">Hoi lon</option>
+                                <option value="5">Lon</option>
+                                <option value="6">Rat lon</option>
+                            </select>
+
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('bold')" title="Dam"><strong>B</strong></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('italic')" title="Nghieng"><em>I</em></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('underline')" title="Gach chan"><u>U</u></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('strikeThrough')" title="Gach ngang"><s>S</s></button>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-1 signature-editor-visual-only">
+                                <label class="small text-muted mb-0" for="sigTextColor">Chu</label>
+                                <input type="color" id="sigTextColor" class="form-control form-control-color form-control-color-sm" value="#1f2937" onchange="applySignatureTextColor(this.value)" />
+                            </div>
+                            <div class="d-flex align-items-center gap-1 signature-editor-visual-only">
+                                <label class="small text-muted mb-0" for="sigHighlightColor">Nen</label>
+                                <input type="color" id="sigHighlightColor" class="form-control form-control-color form-control-color-sm" value="#fff59d" onchange="applySignatureHighlightColor(this.value)" />
+                            </div>
+
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('justifyLeft')" title="Can trai"><i class="bi bi-text-left"></i></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('justifyCenter')" title="Can giua"><i class="bi bi-text-center"></i></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('justifyRight')" title="Can phai"><i class="bi bi-text-right"></i></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('justifyFull')" title="Can deu"><i class="bi bi-justify"></i></button>
+                            </div>
+
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('insertUnorderedList')" title="Danh sach cham"><i class="bi bi-list-ul"></i></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('insertOrderedList')" title="Danh sach so"><i class="bi bi-list-ol"></i></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('outdent')" title="Giam le"><i class="bi bi-text-indent-right"></i></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('indent')" title="Tang le"><i class="bi bi-text-indent-left"></i></button>
+                            </div>
+
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="insertSignatureLink()" title="Chen link"><i class="bi bi-link-45deg"></i></button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="insertSignatureImage()" title="Chen anh"><i class="bi bi-image"></i></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('unlink')" title="Bo link"><i class="bi bi-link"></i></button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="insertSignatureTable()" title="Chen bang"><i class="bi bi-table"></i></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="runSignatureEditorCommand('insertHorizontalRule')" title="Duong ke ngang"><i class="bi bi-dash-lg"></i></button>
+                                <button type="button" class="btn btn-outline-secondary signature-editor-visual-only" onclick="clearSignatureFormatting()" title="Xoa dinh dang"><i class="bi bi-eraser"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="template-editor-token-bar">
+                        <span class="template-editor-token-label">Token nhanh:</span>
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="insertSignatureToken('{{SenderName}}')">{{SenderName}}</button>
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="insertSignatureToken('{{SenderEmail}}')">{{SenderEmail}}</button>
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="insertSignatureToken('{{SenderTypeText}}')">{{SenderTypeText}}</button>
+                    </div>
+
+                    <div id="signatureBodyEditor" class="template-editor-canvas" contenteditable="true"></div>
+                    <textarea class="form-control d-none template-editor-html" id="signatureBodyHtml" rows="14" spellcheck="false"></textarea>
+                </div>
+                <div class="form-text mt-2">
+                    Co the dat logo/link trong chu ky. Neu dung anh, nen su dung URL cong khai thay vi dan image base64 qua lon.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="saveSignatureEditor()">Luu chu ky</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .template-editor-shell {
+        border: 1px solid #ced4da;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .template-editor-toolbar {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+
+    .template-editor-select {
+        width: auto;
+        min-width: 120px;
+    }
+
+    .form-control-color-sm {
+        width: 2.5rem;
+        min-width: 2.5rem;
+        height: 2rem;
+        padding: 0.15rem;
+    }
+
+    .template-editor-token-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        padding: 0.75rem;
+        border-bottom: 1px solid #eef2f7;
+        background: #fcfcfd;
+    }
+
+    .template-editor-token-label {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-right: 0.25rem;
+    }
+
+    .template-editor-canvas,
+    .template-editor-html {
+        min-height: 360px;
+        max-height: 55vh;
+        padding: 1rem;
+        overflow-y: auto;
+        border: 0;
+        border-radius: 0;
+    }
+
+    .template-editor-canvas:focus,
+    .template-editor-html:focus {
+        outline: none;
+        box-shadow: none;
+    }
+
+    .template-editor-canvas table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .template-editor-canvas table td,
+    .template-editor-canvas table th {
+        border: 1px solid #cbd5e1;
+        padding: 0.5rem;
+    }
+
+    .template-editor-canvas p:last-child {
+        margin-bottom: 0;
+    }
+
+    .signature-preview {
+        min-height: 120px;
+        max-height: 220px;
+        overflow: auto;
+        border: 1px dashed #cbd5e1;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        background: #fff;
+    }
+
+    .signature-preview.is-empty {
+        color: #64748b;
+        font-style: italic;
+        display: flex;
+        align-items: center;
+    }
+</style>
+
 @section Scripts {
     <script>
+        let templateEditorInitialized = false;
+        let templateEditorRange = null;
+        let signatureEditorInitialized = false;
+        let signatureEditorRange = null;
+
+        function getRequestVerificationToken() {
+            var tokenField = document.getElementsByName('__RequestVerificationToken')[0];
+            return tokenField ? tokenField.value : '';
+        }
+
+        function pickEditorImageFile() {
+            return new Promise(function (resolve) {
+                var picker = document.createElement('input');
+                picker.type = 'file';
+                picker.accept = 'image/*';
+                picker.addEventListener('change', function () {
+                    resolve(picker.files && picker.files[0] ? picker.files[0] : null);
+                });
+                picker.click();
+            });
+        }
+
+        function uploadEditorImage(file) {
+            return new Promise(function (resolve, reject) {
+                if (!file) {
+                    reject('Chua chon anh.');
+                    return;
+                }
+
+                var formData = new FormData();
+                formData.append('file', file, file.name || 'mail-image.png');
+
+                fetch('?handler=UploadEditorImage', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': getRequestVerificationToken()
+                    },
+                    body: formData
+                })
+                .then(function (response) {
+                    return response.json()
+                        .catch(function () {
+                            return {};
+                        })
+                        .then(function (data) {
+                            if (!response.ok) {
+                                throw new Error(data && data.error ? data.error : ('Upload failed: ' + response.status));
+                            }
+
+                            if (!data || !data.location) {
+                                throw new Error('Upload response is missing image URL.');
+                            }
+
+                            resolve(data.location);
+                        });
+                })
+                .catch(function (error) {
+                    reject(error && error.message ? error.message : error);
+                });
+            });
+        }
+
+        function buildEditorImageHtml(location, altText) {
+            return '<img src="' + escapeHtml(location) + '" alt="' + escapeHtml(altText || 'Mail image') + '" style="max-width:100%;height:auto;" />';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeTemplateEditor();
+            initializeSignatureEditor();
+            renderSignaturePreview('hr');
+            renderSignaturePreview('employee');
+        });
+
+        function getTemplateVisualEditor() {
+            return document.getElementById('tplBodyEditor');
+        }
+
+        function getTemplateHtmlEditor() {
+            return document.getElementById('tplBodyHtml');
+        }
+
+        function initializeTemplateEditor() {
+            if (templateEditorInitialized) {
+                return;
+            }
+
+            var editor = getTemplateVisualEditor();
+            var htmlEditor = getTemplateHtmlEditor();
+            if (!editor || !htmlEditor) {
+                return;
+            }
+
+            ['keyup', 'mouseup', 'focus', 'blur'].forEach(function (eventName) {
+                editor.addEventListener(eventName, saveTemplateEditorSelection);
+            });
+
+            editor.addEventListener('input', function () {
+                syncTemplateHtmlFromVisual();
+            });
+
+            htmlEditor.addEventListener('input', function () {
+                if (!htmlEditor.classList.contains('d-none')) {
+                    syncTemplateVisualFromHtml(htmlEditor.value);
+                }
+            });
+
+            editor.addEventListener('paste', handleTemplateEditorPaste);
+
+            document.addEventListener('selectionchange', function () {
+                if (isSelectionInsideTemplateEditor()) {
+                    saveTemplateEditorSelection();
+                }
+            });
+
+            templateEditorInitialized = true;
+            syncTemplateVisualFromHtml('');
+            setTemplateEditorMode('visual');
+        }
+
+        function isSelectionInsideTemplateEditor() {
+            var editor = getTemplateVisualEditor();
+            var selection = window.getSelection();
+            if (!editor || !selection || selection.rangeCount === 0) {
+                return false;
+            }
+
+            return editor.contains(selection.getRangeAt(0).commonAncestorContainer);
+        }
+
+        function saveTemplateEditorSelection() {
+            var editor = getTemplateVisualEditor();
+            var selection = window.getSelection();
+            if (!editor || !selection || selection.rangeCount === 0) {
+                return;
+            }
+
+            var range = selection.getRangeAt(0);
+            if (editor.contains(range.commonAncestorContainer)) {
+                templateEditorRange = range.cloneRange();
+            }
+        }
+
+        function restoreTemplateEditorSelection() {
+            if (!templateEditorRange) {
+                return false;
+            }
+
+            var selection = window.getSelection();
+            if (!selection) {
+                return false;
+            }
+
+            selection.removeAllRanges();
+            selection.addRange(templateEditorRange);
+            return true;
+        }
+
+        function moveTemplateCaretToEnd() {
+            var editor = getTemplateVisualEditor();
+            if (!editor) {
+                return;
+            }
+
+            var range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+
+            var selection = window.getSelection();
+            if (!selection) {
+                return;
+            }
+
+            selection.removeAllRanges();
+            selection.addRange(range);
+            templateEditorRange = range.cloneRange();
+        }
+
+        function focusTemplateEditor() {
+            var editor = getTemplateVisualEditor();
+            if (!editor || editor.classList.contains('d-none')) {
+                return;
+            }
+
+            editor.focus();
+            if (!restoreTemplateEditorSelection()) {
+                moveTemplateCaretToEnd();
+            }
+        }
+
+        function setTemplateEditorMode(mode) {
+            initializeTemplateEditor();
+
+            var editor = getTemplateVisualEditor();
+            var htmlEditor = getTemplateHtmlEditor();
+            var visualBtn = document.getElementById('tplVisualModeBtn');
+            var htmlBtn = document.getElementById('tplHtmlModeBtn');
+            if (!editor || !htmlEditor || !visualBtn || !htmlBtn) {
+                return;
+            }
+
+            var isHtmlMode = mode === 'html';
+            if (isHtmlMode) {
+                syncTemplateHtmlFromVisual();
+            } else {
+                syncTemplateVisualFromHtml(htmlEditor.value);
+            }
+
+            editor.classList.toggle('d-none', isHtmlMode);
+            htmlEditor.classList.toggle('d-none', !isHtmlMode);
+            visualBtn.classList.toggle('active', !isHtmlMode);
+            htmlBtn.classList.toggle('active', isHtmlMode);
+
+            document.querySelectorAll('.template-editor-visual-only').forEach(function (element) {
+                if (element.tagName === 'BUTTON' || element.tagName === 'SELECT' || element.tagName === 'INPUT') {
+                    element.disabled = isHtmlMode;
+                }
+            });
+
+            if (!isHtmlMode) {
+                focusTemplateEditor();
+            } else {
+                htmlEditor.focus();
+            }
+        }
+
+        function normalizeTemplateBodyHtml(html) {
+            if (!html) {
+                return '';
+            }
+
+            var normalized = html
+                .replace(/<div><br><\/div>/gi, '<p></p>')
+                .replace(/<div>/gi, '<p>')
+                .replace(/<\/div>/gi, '</p>')
+                .replace(/&nbsp;(?=<\/p>)/gi, '')
+                .trim();
+
+            if (normalized === '<br>' || normalized === '<p></p>') {
+                return '';
+            }
+
+            return normalized;
+        }
+
+        function syncTemplateHtmlFromVisual() {
+            var editor = getTemplateVisualEditor();
+            var htmlEditor = getTemplateHtmlEditor();
+            if (!editor || !htmlEditor) {
+                return '';
+            }
+
+            htmlEditor.value = normalizeTemplateBodyHtml(editor.innerHTML);
+            return htmlEditor.value;
+        }
+
+        function syncTemplateVisualFromHtml(html) {
+            var editor = getTemplateVisualEditor();
+            if (!editor) {
+                return;
+            }
+
+            editor.innerHTML = html && html.trim().length > 0 ? html : '<p></p>';
+            saveTemplateEditorSelection();
+        }
+
+        function setTemplateBodyValue(html) {
+            initializeTemplateEditor();
+
+            var htmlEditor = getTemplateHtmlEditor();
+            if (!htmlEditor) {
+                return;
+            }
+
+            htmlEditor.value = html || '';
+            syncTemplateVisualFromHtml(htmlEditor.value);
+            setTemplateEditorMode('visual');
+        }
+
+        function getTemplateBodyValue() {
+            var htmlEditor = getTemplateHtmlEditor();
+            if (!htmlEditor) {
+                return '';
+            }
+
+            if (htmlEditor.classList.contains('d-none')) {
+                return syncTemplateHtmlFromVisual();
+            }
+
+            return normalizeTemplateBodyHtml(htmlEditor.value);
+        }
+
+        function runTemplateEditorCommand(command, value) {
+            var editor = getTemplateVisualEditor();
+            if (!editor || editor.classList.contains('d-none')) {
+                return;
+            }
+
+            focusTemplateEditor();
+            document.execCommand(command, false, value || null);
+            syncTemplateHtmlFromVisual();
+            saveTemplateEditorSelection();
+        }
+
+        function applyBlockFormat(value) {
+            if (!value) {
+                return;
+            }
+
+            runTemplateEditorCommand('formatBlock', value);
+        }
+
+        function applyFontName(value) {
+            if (!value) {
+                return;
+            }
+
+            runTemplateEditorCommand('fontName', value);
+        }
+
+        function applyFontSize(value) {
+            if (!value) {
+                return;
+            }
+
+            runTemplateEditorCommand('fontSize', value);
+        }
+
+        function applyTextColor(value) {
+            if (!value) {
+                return;
+            }
+
+            runTemplateEditorCommand('foreColor', value);
+        }
+
+        function applyHighlightColor(value) {
+            if (!value) {
+                return;
+            }
+
+            runTemplateEditorCommand('hiliteColor', value);
+        }
+
+        function escapeHtml(text) {
+            return (text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function insertIntoHtmlTextarea(text) {
+            var htmlEditor = getTemplateHtmlEditor();
+            if (!htmlEditor) {
+                return;
+            }
+
+            var start = htmlEditor.selectionStart || 0;
+            var end = htmlEditor.selectionEnd || 0;
+            var currentValue = htmlEditor.value || '';
+            htmlEditor.value = currentValue.substring(0, start) + text + currentValue.substring(end);
+            htmlEditor.selectionStart = htmlEditor.selectionEnd = start + text.length;
+            htmlEditor.focus();
+            syncTemplateVisualFromHtml(htmlEditor.value);
+        }
+
+        function insertHtmlAtCursor(html) {
+            var editor = getTemplateVisualEditor();
+            if (!editor || editor.classList.contains('d-none')) {
+                insertIntoHtmlTextarea(html);
+                return;
+            }
+
+            focusTemplateEditor();
+            document.execCommand('insertHTML', false, html);
+            syncTemplateHtmlFromVisual();
+            saveTemplateEditorSelection();
+        }
+
+        function insertTemplateToken(token) {
+            var htmlEditor = getTemplateHtmlEditor();
+            if (htmlEditor && !htmlEditor.classList.contains('d-none')) {
+                insertIntoHtmlTextarea(token);
+                return;
+            }
+
+            focusTemplateEditor();
+            if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
+                document.execCommand('insertText', false, token);
+            } else {
+                insertHtmlAtCursor(escapeHtml(token));
+            }
+
+            syncTemplateHtmlFromVisual();
+            saveTemplateEditorSelection();
+        }
+
+        function insertTemplateLink() {
+            var url = prompt('Nhap duong dan link');
+            if (!url) {
+                return;
+            }
+
+            var htmlEditor = getTemplateHtmlEditor();
+            if (htmlEditor && !htmlEditor.classList.contains('d-none')) {
+                var linkText = prompt('Noi dung hien thi', url) || url;
+                insertIntoHtmlTextarea('<a href="' + escapeHtml(url) + '" target="_blank">' + escapeHtml(linkText) + '</a>');
+                return;
+            }
+
+            focusTemplateEditor();
+            var selection = window.getSelection();
+            var selectedText = selection && selection.toString ? selection.toString().trim() : '';
+            if (!selectedText) {
+                selectedText = prompt('Noi dung hien thi', url) || url;
+                document.execCommand('insertText', false, selectedText);
+                saveTemplateEditorSelection();
+                focusTemplateEditor();
+            }
+
+            document.execCommand('createLink', false, url);
+            syncTemplateHtmlFromVisual();
+        }
+
+        function insertTemplateImage() {
+            pickEditorImageFile()
+                .then(function (file) {
+                    if (!file) {
+                        return null;
+                    }
+
+                    return uploadEditorImage(file).then(function (location) {
+                        insertHtmlAtCursor(buildEditorImageHtml(location, file.name || 'Template image'));
+                    });
+                })
+                .catch(function (error) {
+                    alert(error);
+                });
+        }
+
+        function insertTemplateTable() {
+            var rows = parseInt(prompt('So dong trong bang', '2') || '0', 10);
+            var columns = parseInt(prompt('So cot trong bang', '2') || '0', 10);
+
+            if (rows <= 0 || columns <= 0 || rows > 10 || columns > 10) {
+                alert('Chi ho tro bang tu 1 den 10 dong/cot.');
+                return;
+            }
+
+            var bodyRows = '';
+            for (var rowIndex = 0; rowIndex < rows; rowIndex++) {
+                var cells = '';
+                for (var columnIndex = 0; columnIndex < columns; columnIndex++) {
+                    cells += '<td style="border:1px solid #cbd5e1;padding:8px;">&nbsp;</td>';
+                }
+                bodyRows += '<tr>' + cells + '</tr>';
+            }
+
+            insertHtmlAtCursor('<table style="width:100%;border-collapse:collapse;"><tbody>' + bodyRows + '</tbody></table><p></p>');
+        }
+
+        function clearTemplateFormatting() {
+            runTemplateEditorCommand('removeFormat');
+            runTemplateEditorCommand('unlink');
+        }
+
+        function cleanupPastedHtml(html) {
+            try {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                if (!doc || !doc.body) {
+                    return html;
+                }
+
+                doc.querySelectorAll('meta, link, style, script, xml, o\\:p').forEach(function (node) {
+                    node.remove();
+                });
+
+                var allowedStyles = [
+                    'font-family',
+                    'font-size',
+                    'color',
+                    'background-color',
+                    'text-align',
+                    'font-weight',
+                    'font-style',
+                    'text-decoration',
+                    'line-height',
+                    'margin-left',
+                    'padding-left'
+                ];
+
+                doc.body.querySelectorAll('*').forEach(function (element) {
+                    Array.from(element.attributes).forEach(function (attribute) {
+                        var name = attribute.name.toLowerCase();
+                        if (name === 'style') {
+                            var safeStyles = attribute.value
+                                .split(';')
+                                .map(function (styleItem) { return styleItem.trim(); })
+                                .filter(function (styleItem) {
+                                    return allowedStyles.some(function (allowedStyle) {
+                                        return styleItem.toLowerCase().startsWith(allowedStyle + ':');
+                                    }) && styleItem.toLowerCase().indexOf('mso-') === -1;
+                                });
+
+                            if (safeStyles.length > 0) {
+                                element.setAttribute('style', safeStyles.join('; '));
+                            } else {
+                                element.removeAttribute('style');
+                            }
+                            return;
+                        }
+
+                        if (name === 'href' || name === 'src' || name === 'colspan' || name === 'rowspan') {
+                            return;
+                        }
+
+                        if (name === 'class' || name === 'lang' || name === 'xml:lang' || name.startsWith('data-')) {
+                            element.removeAttribute(attribute.name);
+                        }
+                    });
+                });
+
+                return doc.body.innerHTML;
+            } catch (error) {
+                console.warn('Unable to cleanup pasted HTML', error);
+                return html;
+            }
+        }
+
+        function handleTemplateEditorPaste(event) {
+            var editor = getTemplateVisualEditor();
+            if (!editor || editor.classList.contains('d-none')) {
+                return;
+            }
+
+            var clipboard = event.clipboardData || window.clipboardData;
+            if (!clipboard) {
+                return;
+            }
+
+            var html = clipboard.getData('text/html');
+            var text = clipboard.getData('text/plain');
+            if (!html && !text) {
+                return;
+            }
+
+            event.preventDefault();
+            if (html && html.trim().length > 0) {
+                insertHtmlAtCursor(cleanupPastedHtml(html));
+            } else {
+                insertHtmlAtCursor(escapeHtml(text).replace(/\r?\n/g, '<br>'));
+            }
+        }
+
+        function getSignatureVisualEditor() {
+            return document.getElementById('signatureBodyEditor');
+        }
+
+        function getSignatureHtmlEditor() {
+            return document.getElementById('signatureBodyHtml');
+        }
+
+        function getSignatureStorageField(targetType) {
+            return document.getElementById(targetType === 'employee' ? 'employeeSignature' : 'hrSignature');
+        }
+
+        function getSignaturePreviewField(targetType) {
+            return document.getElementById(targetType === 'employee' ? 'employeeSignaturePreview' : 'hrSignaturePreview');
+        }
+
+        function initializeSignatureEditor() {
+            if (signatureEditorInitialized) {
+                return;
+            }
+
+            var editor = getSignatureVisualEditor();
+            var htmlEditor = getSignatureHtmlEditor();
+            if (!editor || !htmlEditor) {
+                return;
+            }
+
+            ['keyup', 'mouseup', 'focus', 'blur'].forEach(function (eventName) {
+                editor.addEventListener(eventName, saveSignatureEditorSelection);
+            });
+
+            editor.addEventListener('input', function () {
+                syncSignatureHtmlFromVisual();
+            });
+
+            htmlEditor.addEventListener('input', function () {
+                if (!htmlEditor.classList.contains('d-none')) {
+                    syncSignatureVisualFromHtml(htmlEditor.value);
+                }
+            });
+
+            editor.addEventListener('paste', handleSignatureEditorPaste);
+
+            document.addEventListener('selectionchange', function () {
+                if (isSelectionInsideSignatureEditor()) {
+                    saveSignatureEditorSelection();
+                }
+            });
+
+            signatureEditorInitialized = true;
+            syncSignatureVisualFromHtml('');
+            setSignatureEditorMode('visual');
+        }
+
+        function isSelectionInsideSignatureEditor() {
+            var editor = getSignatureVisualEditor();
+            var selection = window.getSelection();
+            if (!editor || !selection || selection.rangeCount === 0) {
+                return false;
+            }
+
+            return editor.contains(selection.getRangeAt(0).commonAncestorContainer);
+        }
+
+        function saveSignatureEditorSelection() {
+            var editor = getSignatureVisualEditor();
+            var selection = window.getSelection();
+            if (!editor || !selection || selection.rangeCount === 0) {
+                return;
+            }
+
+            var range = selection.getRangeAt(0);
+            if (editor.contains(range.commonAncestorContainer)) {
+                signatureEditorRange = range.cloneRange();
+            }
+        }
+
+        function restoreSignatureEditorSelection() {
+            if (!signatureEditorRange) {
+                return false;
+            }
+
+            var selection = window.getSelection();
+            if (!selection) {
+                return false;
+            }
+
+            selection.removeAllRanges();
+            selection.addRange(signatureEditorRange);
+            return true;
+        }
+
+        function moveSignatureCaretToEnd() {
+            var editor = getSignatureVisualEditor();
+            if (!editor) {
+                return;
+            }
+
+            var range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+
+            var selection = window.getSelection();
+            if (!selection) {
+                return;
+            }
+
+            selection.removeAllRanges();
+            selection.addRange(range);
+            signatureEditorRange = range.cloneRange();
+        }
+
+        function focusSignatureEditor() {
+            var editor = getSignatureVisualEditor();
+            if (!editor || editor.classList.contains('d-none')) {
+                return;
+            }
+
+            editor.focus();
+            if (!restoreSignatureEditorSelection()) {
+                moveSignatureCaretToEnd();
+            }
+        }
+
+        function setSignatureEditorMode(mode) {
+            initializeSignatureEditor();
+
+            var editor = getSignatureVisualEditor();
+            var htmlEditor = getSignatureHtmlEditor();
+            var visualBtn = document.getElementById('sigVisualModeBtn');
+            var htmlBtn = document.getElementById('sigHtmlModeBtn');
+            if (!editor || !htmlEditor || !visualBtn || !htmlBtn) {
+                return;
+            }
+
+            var isHtmlMode = mode === 'html';
+            if (isHtmlMode) {
+                syncSignatureHtmlFromVisual();
+            } else {
+                syncSignatureVisualFromHtml(htmlEditor.value);
+            }
+
+            editor.classList.toggle('d-none', isHtmlMode);
+            htmlEditor.classList.toggle('d-none', !isHtmlMode);
+            visualBtn.classList.toggle('active', !isHtmlMode);
+            htmlBtn.classList.toggle('active', isHtmlMode);
+
+            document.querySelectorAll('.signature-editor-visual-only').forEach(function (element) {
+                if (element.tagName === 'BUTTON' || element.tagName === 'SELECT' || element.tagName === 'INPUT') {
+                    element.disabled = isHtmlMode;
+                }
+            });
+
+            if (!isHtmlMode) {
+                focusSignatureEditor();
+            } else {
+                htmlEditor.focus();
+            }
+        }
+
+        function syncSignatureHtmlFromVisual() {
+            var editor = getSignatureVisualEditor();
+            var htmlEditor = getSignatureHtmlEditor();
+            if (!editor || !htmlEditor) {
+                return '';
+            }
+
+            htmlEditor.value = normalizeTemplateBodyHtml(editor.innerHTML);
+            return htmlEditor.value;
+        }
+
+        function syncSignatureVisualFromHtml(html) {
+            var editor = getSignatureVisualEditor();
+            if (!editor) {
+                return;
+            }
+
+            editor.innerHTML = html && html.trim().length > 0 ? html : '<p></p>';
+            saveSignatureEditorSelection();
+        }
+
+        function setSignatureBodyValue(html) {
+            initializeSignatureEditor();
+
+            var htmlEditor = getSignatureHtmlEditor();
+            if (!htmlEditor) {
+                return;
+            }
+
+            htmlEditor.value = html || '';
+            syncSignatureVisualFromHtml(htmlEditor.value);
+            setSignatureEditorMode('visual');
+        }
+
+        function getSignatureBodyValue() {
+            var htmlEditor = getSignatureHtmlEditor();
+            if (!htmlEditor) {
+                return '';
+            }
+
+            if (htmlEditor.classList.contains('d-none')) {
+                return syncSignatureHtmlFromVisual();
+            }
+
+            return normalizeTemplateBodyHtml(htmlEditor.value);
+        }
+
+        function runSignatureEditorCommand(command, value) {
+            var editor = getSignatureVisualEditor();
+            if (!editor || editor.classList.contains('d-none')) {
+                return;
+            }
+
+            focusSignatureEditor();
+            document.execCommand(command, false, value || null);
+            syncSignatureHtmlFromVisual();
+            saveSignatureEditorSelection();
+        }
+
+        function applySignatureBlockFormat(value) {
+            if (!value) {
+                return;
+            }
+
+            runSignatureEditorCommand('formatBlock', value);
+        }
+
+        function applySignatureFontName(value) {
+            if (!value) {
+                return;
+            }
+
+            runSignatureEditorCommand('fontName', value);
+        }
+
+        function applySignatureFontSize(value) {
+            if (!value) {
+                return;
+            }
+
+            runSignatureEditorCommand('fontSize', value);
+        }
+
+        function applySignatureTextColor(value) {
+            if (!value) {
+                return;
+            }
+
+            runSignatureEditorCommand('foreColor', value);
+        }
+
+        function applySignatureHighlightColor(value) {
+            if (!value) {
+                return;
+            }
+
+            runSignatureEditorCommand('hiliteColor', value);
+        }
+
+        function insertIntoSignatureHtmlTextarea(text) {
+            var htmlEditor = getSignatureHtmlEditor();
+            if (!htmlEditor) {
+                return;
+            }
+
+            var start = htmlEditor.selectionStart || 0;
+            var end = htmlEditor.selectionEnd || 0;
+            var currentValue = htmlEditor.value || '';
+            htmlEditor.value = currentValue.substring(0, start) + text + currentValue.substring(end);
+            htmlEditor.selectionStart = htmlEditor.selectionEnd = start + text.length;
+            htmlEditor.focus();
+            syncSignatureVisualFromHtml(htmlEditor.value);
+        }
+
+        function insertSignatureHtmlAtCursor(html) {
+            var editor = getSignatureVisualEditor();
+            if (!editor || editor.classList.contains('d-none')) {
+                insertIntoSignatureHtmlTextarea(html);
+                return;
+            }
+
+            focusSignatureEditor();
+            document.execCommand('insertHTML', false, html);
+            syncSignatureHtmlFromVisual();
+            saveSignatureEditorSelection();
+        }
+
+        function insertSignatureToken(token) {
+            var htmlEditor = getSignatureHtmlEditor();
+            if (htmlEditor && !htmlEditor.classList.contains('d-none')) {
+                insertIntoSignatureHtmlTextarea(token);
+                return;
+            }
+
+            focusSignatureEditor();
+            if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
+                document.execCommand('insertText', false, token);
+            } else {
+                insertSignatureHtmlAtCursor(escapeHtml(token));
+            }
+
+            syncSignatureHtmlFromVisual();
+            saveSignatureEditorSelection();
+        }
+
+        function insertSignatureLink() {
+            var url = prompt('Nhap duong dan link');
+            if (!url) {
+                return;
+            }
+
+            var htmlEditor = getSignatureHtmlEditor();
+            if (htmlEditor && !htmlEditor.classList.contains('d-none')) {
+                var linkText = prompt('Noi dung hien thi', url) || url;
+                insertIntoSignatureHtmlTextarea('<a href="' + escapeHtml(url) + '" target="_blank">' + escapeHtml(linkText) + '</a>');
+                return;
+            }
+
+            focusSignatureEditor();
+            var selection = window.getSelection();
+            var selectedText = selection && selection.toString ? selection.toString().trim() : '';
+            if (!selectedText) {
+                selectedText = prompt('Noi dung hien thi', url) || url;
+                document.execCommand('insertText', false, selectedText);
+                saveSignatureEditorSelection();
+                focusSignatureEditor();
+            }
+
+            document.execCommand('createLink', false, url);
+            syncSignatureHtmlFromVisual();
+        }
+
+        function insertSignatureImage() {
+            pickEditorImageFile()
+                .then(function (file) {
+                    if (!file) {
+                        return null;
+                    }
+
+                    return uploadEditorImage(file).then(function (location) {
+                        insertSignatureHtmlAtCursor(buildEditorImageHtml(location, file.name || 'Signature image'));
+                    });
+                })
+                .catch(function (error) {
+                    alert(error);
+                });
+        }
+
+        function insertSignatureTable() {
+            var rows = parseInt(prompt('So dong trong bang', '2') || '0', 10);
+            var columns = parseInt(prompt('So cot trong bang', '2') || '0', 10);
+
+            if (rows <= 0 || columns <= 0 || rows > 10 || columns > 10) {
+                alert('Chi ho tro bang tu 1 den 10 dong/cot.');
+                return;
+            }
+
+            var bodyRows = '';
+            for (var rowIndex = 0; rowIndex < rows; rowIndex++) {
+                var cells = '';
+                for (var columnIndex = 0; columnIndex < columns; columnIndex++) {
+                    cells += '<td style="border:1px solid #cbd5e1;padding:8px;">&nbsp;</td>';
+                }
+                bodyRows += '<tr>' + cells + '</tr>';
+            }
+
+            insertSignatureHtmlAtCursor('<table style="width:100%;border-collapse:collapse;"><tbody>' + bodyRows + '</tbody></table><p></p>');
+        }
+
+        function clearSignatureFormatting() {
+            runSignatureEditorCommand('removeFormat');
+            runSignatureEditorCommand('unlink');
+        }
+
+        function handleSignatureEditorPaste(event) {
+            var editor = getSignatureVisualEditor();
+            if (!editor || editor.classList.contains('d-none')) {
+                return;
+            }
+
+            var clipboard = event.clipboardData || window.clipboardData;
+            if (!clipboard) {
+                return;
+            }
+
+            var html = clipboard.getData('text/html');
+            var text = clipboard.getData('text/plain');
+            if (!html && !text) {
+                return;
+            }
+
+            event.preventDefault();
+            if (html && html.trim().length > 0) {
+                insertSignatureHtmlAtCursor(cleanupPastedHtml(html));
+            } else {
+                insertSignatureHtmlAtCursor(escapeHtml(text).replace(/\r?\n/g, '<br>'));
+            }
+        }
+
+        function renderSignaturePreview(targetType) {
+            var storageField = getSignatureStorageField(targetType);
+            var previewField = getSignaturePreviewField(targetType);
+            if (!storageField || !previewField) {
+                return;
+            }
+
+            var html = storageField.value || '';
+            if (html.trim().length === 0) {
+                previewField.innerHTML = 'Chua co chu ky.';
+                previewField.classList.add('is-empty');
+                return;
+            }
+
+            previewField.innerHTML = html;
+            previewField.classList.remove('is-empty');
+        }
+
+        function openSignatureEditor(targetType) {
+            initializeSignatureEditor();
+
+            var storageField = getSignatureStorageField(targetType);
+            document.getElementById('signatureTargetType').value = targetType;
+            document.getElementById('signatureModalTitle').innerText = targetType === 'employee' ? 'Edit chu ky mail nhan vien' : 'Edit chu ky mail nhan su';
+            setSignatureBodyValue(storageField ? storageField.value : '');
+
+            var modal = new bootstrap.Modal(document.getElementById('signatureModal'));
+            modal.show();
+        }
+
+        function saveSignatureEditor() {
+            var targetType = document.getElementById('signatureTargetType').value || 'hr';
+            var storageField = getSignatureStorageField(targetType);
+            if (!storageField) {
+                return;
+            }
+
+            storageField.value = getSignatureBodyValue();
+            renderSignaturePreview(targetType);
+
+            var modalElement = document.getElementById('signatureModal');
+            var modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+        }
+
+        function clearSignature(targetType) {
+            if (!confirm('Ban co chac chan muon xoa chu ky nay khong?')) {
+                return;
+            }
+
+            var storageField = getSignatureStorageField(targetType);
+            if (!storageField) {
+                return;
+            }
+
+            storageField.value = '';
+            renderSignaturePreview(targetType);
+        }
+
         function openTemplate(id) {
+            initializeTemplateEditor();
+
             var row = document.querySelector("tr[data-id='" + id + "']");
             if (!row) return;
 
@@ -210,13 +1589,14 @@
             document.getElementById('tplCode').value = row.dataset.code || '';
             document.getElementById('tplName').value = row.dataset.name || '';
             document.getElementById('tplSubject').value = row.dataset.subject || '';
+            document.getElementById('tplSenderType').value = row.dataset.sendertype || 'HR';
             document.getElementById('tplCcManager').checked = (row.dataset.ccmanager === 'True' || row.dataset.ccmanager === 'true');
             document.getElementById('tplCcEmails').value = row.dataset.ccemails || '';
             document.getElementById('tplBccEmails').value = row.dataset.bccemails || '';
             document.getElementById('tplIsActive').checked = (row.dataset.active === '1' || row.dataset.active === 'True' || row.dataset.active === 'true');
 
             var bodyNode = document.getElementById('tpl-body-' + id);
-            document.getElementById('tplBody').value = bodyNode ? bodyNode.value : '';
+            setTemplateBodyValue(bodyNode ? bodyNode.value : '');
 
             var modal = new bootstrap.Modal(document.getElementById('templateModal'));
             modal.show();
@@ -229,8 +1609,14 @@
                 SmtpPort: parseInt(document.getElementById('smtpPort').value || '0'),
                 SmtpUser: document.getElementById('smtpUser').value,
                 SmtpPassword: document.getElementById('smtpPassword').value,
-                FromEmail: document.getElementById('fromEmail').value,
-                FromName: document.getElementById('fromName').value,
+                FromEmail: document.getElementById('hrFromEmail').value,
+                FromName: document.getElementById('hrFromName').value,
+                HrFromEmail: document.getElementById('hrFromEmail').value,
+                HrFromName: document.getElementById('hrFromName').value,
+                HrSignature: document.getElementById('hrSignature').value,
+                EmployeeFromEmail: document.getElementById('employeeFromEmail').value,
+                EmployeeFromName: document.getElementById('employeeFromName').value,
+                EmployeeSignature: document.getElementById('employeeSignature').value,
                 EnableSsl: document.getElementById('enableSsl').checked,
                 IsActive: document.getElementById('settingActive').checked ? 1 : 0
             };
@@ -239,7 +1625,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.getElementsByName('__RequestVerificationToken')[0].value
+                    'RequestVerificationToken': getRequestVerificationToken()
                 },
                 body: JSON.stringify(payload)
             })
@@ -255,7 +1641,8 @@
                 Code: document.getElementById('tplCode').value,
                 Name: document.getElementById('tplName').value,
                 Subject: document.getElementById('tplSubject').value,
-                Body: document.getElementById('tplBody').value,
+                Body: getTemplateBodyValue(),
+                SenderType: document.getElementById('tplSenderType').value,
                 CcManager: document.getElementById('tplCcManager').checked,
                 CcEmails: document.getElementById('tplCcEmails').value,
                 BccEmails: document.getElementById('tplBccEmails').value,
@@ -266,7 +1653,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.getElementsByName('__RequestVerificationToken')[0].value
+                    'RequestVerificationToken': getRequestVerificationToken()
                 },
                 body: JSON.stringify(payload)
             })
@@ -290,7 +1677,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.getElementsByName('__RequestVerificationToken')[0].value
+                    'RequestVerificationToken': getRequestVerificationToken()
                 },
                 body: JSON.stringify(payload)
             })

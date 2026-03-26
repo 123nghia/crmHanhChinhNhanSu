@@ -675,6 +675,7 @@ function openSignContract(id) {
         success: function (data) {
             $("#contentModal").empty();
             $("#contentModal").append(data);
+            initializeContractSignaturePad();
             $('#formModal').modal('show');
         },
         error: function (jqXHR, exception) {
@@ -691,15 +692,137 @@ function openSignContract(id) {
     });
 }
 
+let contractSignaturePadState = null;
+
+function initializeContractSignaturePad() {
+    const canvas = document.getElementById("contractSignatureCanvas");
+    if (!canvas) {
+        contractSignaturePadState = null;
+        return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(Math.floor(rect.width || 520), 320);
+    const height = Math.max(Math.floor(rect.height || 180), 160);
+    const ratio = window.devicePixelRatio || 1;
+
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#111";
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    contractSignaturePadState = {
+        canvas: canvas,
+        ctx: ctx,
+        drawing: false,
+        hasStroke: false,
+        width: width,
+        height: height
+    };
+
+    const getPoint = function (event) {
+        const bounds = canvas.getBoundingClientRect();
+        const source = event.touches && event.touches.length > 0 ? event.touches[0] : event;
+        return {
+            x: source.clientX - bounds.left,
+            y: source.clientY - bounds.top
+        };
+    };
+
+    const startDraw = function (event) {
+        event.preventDefault();
+        const point = getPoint(event);
+        contractSignaturePadState.drawing = true;
+        contractSignaturePadState.hasStroke = true;
+        ctx.beginPath();
+        ctx.moveTo(point.x, point.y);
+    };
+
+    const draw = function (event) {
+        if (!contractSignaturePadState || !contractSignaturePadState.drawing) {
+            return;
+        }
+        event.preventDefault();
+        const point = getPoint(event);
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+    };
+
+    const endDraw = function (event) {
+        if (!contractSignaturePadState) {
+            return;
+        }
+        if (event) {
+            event.preventDefault();
+        }
+        contractSignaturePadState.drawing = false;
+        ctx.closePath();
+    };
+
+    canvas.onmousedown = startDraw;
+    canvas.onmousemove = draw;
+    canvas.onmouseup = endDraw;
+    canvas.onmouseleave = endDraw;
+    canvas.ontouchstart = startDraw;
+    canvas.ontouchmove = draw;
+    canvas.ontouchend = endDraw;
+    canvas.ontouchcancel = endDraw;
+}
+
+function clearContractSignaturePad() {
+    if (!contractSignaturePadState) {
+        return;
+    }
+
+    const state = contractSignaturePadState;
+    state.ctx.clearRect(0, 0, state.width, state.height);
+    state.ctx.fillStyle = "#ffffff";
+    state.ctx.fillRect(0, 0, state.width, state.height);
+    state.hasStroke = false;
+}
+
+function getContractSignatureDataUrl() {
+    if (!contractSignaturePadState || !contractSignaturePadState.hasStroke) {
+        return "";
+    }
+
+    return contractSignaturePadState.canvas.toDataURL("image/png");
+}
+
 function signContract(id) {
     removeAllEror("signContractForm");
 
     var passwordConfirm = getValueControl("txtSignPassword");
     var signatureCode = getValueControl("txtSignatureCode");
     var signNote = getValueControl("txtSignNote");
+    var acceptTermsCheckbox = document.getElementById("cbContractAcceptTerms");
+    var isEmployeeInternalSign = acceptTermsCheckbox != null || document.getElementById("contractSignatureCanvas") != null;
+    var acceptTerms = acceptTermsCheckbox?.checked === true;
+    var signatureDataUrl = getContractSignatureDataUrl();
 
     if (passwordConfirm == "") {
         addError("txtSignPassword", "Nhap mat khau xac nhan");
+        return;
+    }
+
+    if (isEmployeeInternalSign && !acceptTerms) {
+        addError("cbContractAcceptTerms", "Ban can chap nhan dieu khoan truoc khi ky");
+        return;
+    }
+
+    if (isEmployeeInternalSign && signatureDataUrl == "") {
+        addError("contractSignatureCanvas", "Nhan vien can ve chu ky truoc khi ky hop dong");
         return;
     }
 
@@ -714,7 +837,9 @@ function signContract(id) {
             Id: id,
             PasswordConfirm: passwordConfirm,
             SignatureCode: signatureCode,
-            SignNote: signNote
+            SignNote: signNote,
+            AcceptTerms: acceptTerms,
+            SignatureDataUrl: signatureDataUrl
         },
         success: function (data) {
             Swal.fire({
@@ -3405,6 +3530,9 @@ function saveSchedule(idEmp, handlerUrl) {
     var interviewerInput = getValueControl("scheduleInterviewer");
     var modeInput = getValueControl("scheduleMode");
     var resultInput = getValueControl("scheduleResult");
+    var candidateEmail = getValueControl("scheduleCandidateEmail");
+    var sendEmailCheckbox = document.getElementById("scheduleSendEmail");
+    var shouldSendEmail = !sendEmailCheckbox || sendEmailCheckbox.checked;
 
     if (candidateId == null || candidateId == "" || candidateId <= 0) {
         addError("scheduleCandidateId", "Chon ung vien");
@@ -3421,6 +3549,14 @@ function saveSchedule(idEmp, handlerUrl) {
             icon: "error",
             title: "Loi",
             text: "Vui long chon ngay va gio phong van"
+        });
+        return;
+    }
+    if (shouldSendEmail && (candidateEmail == null || candidateEmail.trim() == "")) {
+        Swal.fire({
+            icon: "warning",
+            title: "Ung vien chua co email",
+            text: "Vui long cap nhat email trong ho so ung vien hoac bo chon muc gui mail truoc khi luu lich"
         });
         return;
     }
@@ -3451,7 +3587,8 @@ function saveSchedule(idEmp, handlerUrl) {
             Noted: noteInput,
             InterviewerId: interviewerInput,
             InterviewMode: modeInput,
-            InterviewResult: resultInput
+            InterviewResult: resultInput,
+            SendEmail: shouldSendEmail
         },
         success: function (data) {
             if (data && data.success === true) {
@@ -3489,19 +3626,54 @@ function saveSchedule(idEmp, handlerUrl) {
     });
 }
 
+function updateScheduleEmailUi() {
+    var candidateSelect = document.getElementById("scheduleCandidateId");
+    var emailInput = document.getElementById("scheduleCandidateEmail");
+    var emailWarning = document.getElementById("scheduleEmailWarning");
+    var sendEmailCheckbox = document.getElementById("scheduleSendEmail");
+    if (!emailWarning) {
+        return;
+    }
+
+    var hasEmail = emailInput && emailInput.value != null && emailInput.value.trim() !== "";
+    var shouldSendEmail = !sendEmailCheckbox || sendEmailCheckbox.checked;
+    var hasCandidateSelected = !candidateSelect
+        || candidateSelect.tagName !== "SELECT"
+        || (candidateSelect.value != null && candidateSelect.value !== "");
+    emailWarning.classList.toggle("d-none", !shouldSendEmail || hasEmail || !hasCandidateSelected);
+}
+
 function updateScheduleCandidateInfo() {
     var candidateSelect = document.getElementById("scheduleCandidateId");
     var positionInput = document.getElementById("schedulePositionText");
+    var emailInput = document.getElementById("scheduleCandidateEmail");
+
+    if ((!candidateSelect || candidateSelect.tagName !== "SELECT") && emailInput) {
+        updateScheduleEmailUi();
+        return;
+    }
+
     if (!candidateSelect || !positionInput) {
         return;
     }
+
     var selectedOption = candidateSelect.options[candidateSelect.selectedIndex];
     if (!selectedOption) {
         positionInput.value = "";
+        if (emailInput) {
+            emailInput.value = "";
+        }
+        updateScheduleEmailUi();
         return;
     }
+
     var positionText = selectedOption.getAttribute("data-position") || "";
+    var emailText = selectedOption.getAttribute("data-email") || "";
     positionInput.value = positionText;
+    if (emailInput) {
+        emailInput.value = emailText;
+    }
+    updateScheduleEmailUi();
 }
 
 

@@ -14,6 +14,7 @@ namespace VS.Human.Rep.Model
     {
         public int Id { get; set; }
         public int RoomId { get; set; }
+        public int? ScheduleInterviewId { get; set; }
         public string RoomName { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string? Note { get; set; }
@@ -28,6 +29,7 @@ namespace VS.Human.Rep.Model
     {
         public int Id { get; set; }
         public int RoomId { get; set; }
+        public int? ScheduleInterviewId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string? Note { get; set; }
         public DateTime StartTime { get; set; }

@@ -1,4 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Dapper;
+using System.Data;
+using System.Linq;
 using VS.Human.Item;
 using VS.Human.Rep.Model;
 
@@ -131,24 +134,109 @@ namespace VS.Human.Rep
 
         public async Task<BaseList> GetAll(CandidateRequest request)
         {
-            var sqlText = "sp_candidate_getAll";
+            var page = request.Page;
+            var limit = request.Limit;
+            ProcessInputPaging(ref page, ref limit, out var offset);
 
-            var result = await GetBaseAll<CandidateIndexModel>(request,
-            new
+            if (request.LoadAll == 1)
             {
-                request.Token,
-                request.UserId,
-                request.Limit,
-                request.LoadAll,
-                request.GroupId,
-                request.MemberId,
-                request.ManagerId,
-                request.DocumentStatus,
-                request.CandidateStatus,
-                request.Page
+                page = 1;
+                limit = 10000;
+                offset = 0;
+            }
 
-            }, sqlText);
-            return result;
+            const string sql = @"
+DECLARE @EffectiveRoleCode varchar(20) = NULLIF(LTRIM(RTRIM(@RoleCodeInput)), '');
+IF ((@EffectiveRoleCode IS NULL OR @EffectiveRoleCode = '') AND ISNULL(@UserId, 0) > 0)
+BEGIN
+    SELECT TOP 1 @EffectiveRoleCode = RoleCode
+    FROM Employees
+    WHERE Id = @UserId AND ISNULL(Deleted, 0) = 0;
+END
+IF ((@EffectiveRoleCode IS NULL OR @EffectiveRoleCode = '') AND ISNULL(@UserId, 0) > 0
+    AND EXISTS (SELECT 1 FROM Candidate WHERE Id = @UserId AND ISNULL(Deleted, 0) = 0))
+BEGIN
+    SET @EffectiveRoleCode = 'CANDIDATE';
+END
+SET @EffectiveRoleCode = ISNULL(@EffectiveRoleCode, '');
+
+;WITH CandidateSource AS
+(
+    SELECT
+        COUNT(1) OVER() AS TotalRecord,
+        dbo.getUserName(d.CreatedBy) AS AuthorName,
+        dbo.getFullNameSorce(d.CreatedBy) AS SourceName,
+        dbo.getDisplayMasterdata(d.Position) AS PostionName,
+        dbo.getDisplayMasterdata(d.Status) AS StatusName,
+        dbo.getFullName(d.ManagerId) AS ManagerName,
+        dbo.getDisplayMasterdata(d.DepartmentId) AS DepartmentName,
+        d.*
+    FROM Candidate d
+    WHERE ISNULL(d.Deleted, 0) = 0
+      AND (@Token = '' OR ISNULL(d.Code, '') LIKE N'%' + @Token + '%'
+           OR ISNULL(d.Name, '') LIKE N'%' + @Token + '%'
+           OR ISNULL(d.Email, '') LIKE N'%' + @Token + '%'
+           OR ISNULL(d.Phone, '') LIKE N'%' + @Token + '%'
+           OR ISNULL(d.UserName, '') LIKE N'%' + @Token + '%')
+      AND (@CandidateStatus <= 0 OR ISNULL(d.Status, 0) = @CandidateStatus)
+      AND (@DocumentStatus <= 0 OR ISNULL(d.StatusHuman, 0) = @DocumentStatus)
+      AND (@ManagerId <= 0 OR ISNULL(d.ManagerId, 0) = @ManagerId)
+      AND (@IsEmployee = 0 OR ISNULL(d.IsEmployee, 0) = 1)
+      AND (@FromDate IS NULL OR d.CreateAt >= @FromDate)
+      AND (@ToDate IS NULL OR d.CreateAt <= @ToDate)
+      AND (
+            ISNULL(@UserId, 0) <= 0
+            OR @EffectiveRoleCode IN ('1', '8', '9')
+            OR (@EffectiveRoleCode = 'CANDIDATE' AND d.Id = @UserId)
+            OR (@EffectiveRoleCode IN ('3', '6') AND (
+                    ISNULL(d.CreatedBy, 0) = @UserId
+                    OR ISNULL(d.CreatedBy, 0) IN (SELECT Id FROM dbo.getAllUserByUserId(@UserId))
+                    OR EXISTS (
+                        SELECT 1
+                        FROM ScheduleInterview si
+                        WHERE ISNULL(si.Deleted, 0) = 0
+                          AND si.RelId = d.Id
+                          AND ISNULL(si.InterviewerId, 0) = @UserId
+                    )
+                ))
+            OR (@EffectiveRoleCode NOT IN ('1', '8', '9', '3', '6', 'CANDIDATE') AND (
+                    ISNULL(d.CreatedBy, 0) = @UserId
+                    OR EXISTS (
+                        SELECT 1
+                        FROM ScheduleInterview si
+                        WHERE ISNULL(si.Deleted, 0) = 0
+                          AND si.RelId = d.Id
+                          AND ISNULL(si.InterviewerId, 0) = @UserId
+                    )
+                ))
+          )
+)
+SELECT *
+FROM CandidateSource
+ORDER BY UpdateAt DESC
+OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;";
+
+            using var con = GetConnection();
+            var data = (await con.QueryAsync<CandidateIndexModel>(sql, new
+            {
+                Token = (request.Token ?? string.Empty).Trim(),
+                UserId = request.UserId,
+                RoleCodeInput = request.RoleCode,
+                CandidateStatus = request.CandidateStatus,
+                DocumentStatus = request.DocumentStatus,
+                ManagerId = request.ManagerId,
+                IsEmployee = request.IsEmployee ? 1 : 0,
+                FromDate = request.From,
+                ToDate = request.To,
+                offset,
+                limit
+            }, commandType: CommandType.Text)).ToList();
+
+            return new BaseList
+            {
+                Total = data.FirstOrDefault()?.TotalRecord ?? 0,
+                Data = data
+            };
         }
 
         public async Task<BaseList> GetAlLCandidateOfMember(CandidateRequest request)
@@ -217,6 +305,102 @@ namespace VS.Human.Rep
         public async Task<bool> Delete(int id, bool reactive)
         {
             return await this.DeleteBase(id, tableDelete: "", delete: reactive ? 0 : 1);
+        }
+
+        public async Task<bool> HasViewAccess(int candidateId, int userId, string? roleCode)
+        {
+            const string sql = @"
+DECLARE @EffectiveRoleCode varchar(20) = NULLIF(LTRIM(RTRIM(@RoleCodeInput)), '');
+IF ((@EffectiveRoleCode IS NULL OR @EffectiveRoleCode = '') AND @UserId > 0)
+BEGIN
+    SELECT TOP 1 @EffectiveRoleCode = RoleCode
+    FROM Employees
+    WHERE Id = @UserId AND ISNULL(Deleted, 0) = 0;
+END
+IF ((@EffectiveRoleCode IS NULL OR @EffectiveRoleCode = '') AND @UserId > 0
+    AND EXISTS (SELECT 1 FROM Candidate WHERE Id = @UserId AND ISNULL(Deleted, 0) = 0))
+BEGIN
+    SET @EffectiveRoleCode = 'CANDIDATE';
+END
+SET @EffectiveRoleCode = ISNULL(@EffectiveRoleCode, '');
+
+SELECT CAST(CASE WHEN EXISTS
+(
+    SELECT 1
+    FROM Candidate d
+    WHERE d.Id = @CandidateId
+      AND ISNULL(d.Deleted, 0) = 0
+      AND @UserId > 0
+      AND (
+            @EffectiveRoleCode IN ('1', '8', '9')
+            OR (@EffectiveRoleCode = 'CANDIDATE' AND d.Id = @UserId)
+            OR (@EffectiveRoleCode IN ('3', '6') AND (
+                    ISNULL(d.CreatedBy, 0) = @UserId
+                    OR ISNULL(d.CreatedBy, 0) IN (SELECT Id FROM dbo.getAllUserByUserId(@UserId))
+                    OR EXISTS (
+                        SELECT 1
+                        FROM ScheduleInterview si
+                        WHERE ISNULL(si.Deleted, 0) = 0
+                          AND si.RelId = d.Id
+                          AND ISNULL(si.InterviewerId, 0) = @UserId
+                    )
+                ))
+            OR (@EffectiveRoleCode NOT IN ('1', '8', '9', '3', '6', 'CANDIDATE') AND (
+                    ISNULL(d.CreatedBy, 0) = @UserId
+                    OR EXISTS (
+                        SELECT 1
+                        FROM ScheduleInterview si
+                        WHERE ISNULL(si.Deleted, 0) = 0
+                          AND si.RelId = d.Id
+                          AND ISNULL(si.InterviewerId, 0) = @UserId
+                    )
+                ))
+          )
+) THEN 1 ELSE 0 END AS bit);";
+
+            return await ExecuteSQLScalar<bool>(sql, new
+            {
+                CandidateId = candidateId,
+                UserId = userId,
+                RoleCodeInput = roleCode
+            });
+        }
+
+        public async Task<bool> HasManageAccess(int candidateId, int userId, string? roleCode)
+        {
+            const string sql = @"
+DECLARE @EffectiveRoleCode varchar(20) = NULLIF(LTRIM(RTRIM(@RoleCodeInput)), '');
+IF ((@EffectiveRoleCode IS NULL OR @EffectiveRoleCode = '') AND @UserId > 0)
+BEGIN
+    SELECT TOP 1 @EffectiveRoleCode = RoleCode
+    FROM Employees
+    WHERE Id = @UserId AND ISNULL(Deleted, 0) = 0;
+END
+SET @EffectiveRoleCode = ISNULL(@EffectiveRoleCode, '');
+
+SELECT CAST(CASE WHEN EXISTS
+(
+    SELECT 1
+    FROM Candidate d
+    WHERE d.Id = @CandidateId
+      AND ISNULL(d.Deleted, 0) = 0
+      AND @UserId > 0
+      AND (
+            @EffectiveRoleCode IN ('1', '8', '9')
+            OR (@EffectiveRoleCode IN ('3', '6') AND (
+                    ISNULL(d.CreatedBy, 0) = @UserId
+                    OR ISNULL(d.CreatedBy, 0) IN (SELECT Id FROM dbo.getAllUserByUserId(@UserId))
+                ))
+            OR (@EffectiveRoleCode NOT IN ('1', '8', '9', '3', '6', 'CANDIDATE') AND ISNULL(d.CreatedBy, 0) = @UserId)
+          )
+) THEN 1 ELSE 0 END AS bit);";
+
+            return await ExecuteSQLScalar<bool>(sql, new
+            {
+                CandidateId = candidateId,
+                UserId = userId,
+                RoleCodeInput = roleCode
+            });
         }
 
     }

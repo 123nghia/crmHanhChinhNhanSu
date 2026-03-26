@@ -226,6 +226,8 @@ namespace VS.Human.Item
 
         public string FullName { get; set; }
 
+        public string? RoleLabel { get; set; }
+
         public int Id { get; set; }
     }
 

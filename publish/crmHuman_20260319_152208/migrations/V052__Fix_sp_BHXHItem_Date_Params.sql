@@ -1,0 +1,81 @@
+-- -- Migration: V052__Fix_sp_BHXHItem_Date_Params
+-- -- Author: Assistant
+-- -- Date: 2026-01-17
+-- -- Description: Update sp_BHXHItem_insert and sp_BHXHItem_update to use DATETIME2 for date parameters.
+
+-- IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_BHXHItem_insert]') AND type IN (N'P', N'PC'))
+--     DROP PROCEDURE [dbo].[sp_BHXHItem_insert];
+-- GO
+
+-- CREATE PROCEDURE [dbo].[sp_BHXHItem_insert]
+--     @UserName NVARCHAR(100),
+--     @NumberCode NVARCHAR(50) = NULL,
+--     @Relid NVARCHAR(50) = NULL,
+--     @PITDate DATETIME2 = NULL,
+--     @EffectedFrom DATETIME2 = NULL,
+--     @StartMonth DATETIME2 = NULL,
+--     @RegBHYT NVARCHAR(150) = NULL,
+--     @Number INT = NULL,
+--     @RegPageNumber NVARCHAR(50) = NULL,
+--     @CreatedBy INT = NULL
+-- AS
+-- BEGIN
+--     SET NOCOUNT ON;
+--     INSERT INTO [dbo].[BHXHItem] (
+--         [UserName],
+--         [NumberCode],
+--         [Relid],
+--         [PITDate],
+--         [EffectedFrom],
+--         [StartMonth],
+--         [RegBHYT],
+--         [Number],
+--         [RegPageNumber],
+--         [CreatedBy]
+--     )
+--     VALUES (
+--         @UserName,
+--         @NumberCode,
+--         @Relid,
+--         @PITDate,
+--         @EffectedFrom,
+--         @StartMonth,
+--         @RegBHYT,
+--         @Number,
+--         @RegPageNumber,
+--         @CreatedBy
+--     );
+-- END
+-- GO
+
+-- IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[sp_BHXHItem_update]') AND type IN (N'P', N'PC'))
+--     DROP PROCEDURE [dbo].[sp_BHXHItem_update];
+-- GO
+
+-- CREATE PROCEDURE [dbo].[sp_BHXHItem_update]
+--     @Id INT,
+--     @NumberCode NVARCHAR(50) = NULL,
+--     @Relid NVARCHAR(50) = NULL,
+--     @PITDate DATETIME2 = NULL,
+--     @EffectedFrom DATETIME2 = NULL,
+--     @StartMonth DATETIME2 = NULL,
+--     @RegBHYT NVARCHAR(150) = NULL,
+--     @Number INT = NULL,
+--     @RegPageNumber NVARCHAR(50) = NULL,
+--     @UpdatedBy INT = NULL
+-- AS
+-- BEGIN
+--     SET NOCOUNT ON;
+--     UPDATE [dbo].[BHXHItem]
+--     SET [NumberCode] = @NumberCode,
+--         [Relid] = @Relid,
+--         [PITDate] = @PITDate,
+--         [EffectedFrom] = @EffectedFrom,
+--         [StartMonth] = @StartMonth,
+--         [RegBHYT] = @RegBHYT,
+--         [Number] = @Number,
+--         [RegPageNumber] = @RegPageNumber,
+--         [UpdatedBy] = @UpdatedBy
+--     WHERE [Id] = @Id;
+-- END
+-- GO

@@ -8,16 +8,15 @@
     var showLeaveSummary = Model.HasViewPermission("LeaveRequest") || Model.HasViewPermission("LeaveBalance") || Model.HasViewPermission("LeaveApproval");
     var showLeaveApproval = Model.HasApprovePermission("LeaveApproval");
     var showLeaveCompany = Model.HasViewPermission("LeaveApproval") || Model.HasViewPermission("LeaveBalance");
-    var isEmployeeLeaveView = Model.UserData?.RoleCode == "2";
-    var leaveMonthTitle = isEmployeeLeaveView ? "Nghỉ phép tháng này của bạn" : "Nghỉ phép tháng này";
-    var leaveMonthSub = isEmployeeLeaveView ? "bản thân" : "toàn công ty";
+    var leaveMonthTitle = Model.LeaveMonthTitle;
+    var leaveMonthSub = Model.LeaveMonthSubtitle;
     var showRecruitmentStats = Model.HasViewPermission("Candidate") || Model.HasViewPermission("Job");
     var showOrderOverview = Model.HasViewPermission("Candidate");
     var showActivity = Model.UserData?.RoleCode != "4" && showOrderOverview;
     var showExport = Model.HasViewPermission("Report");
     var showMyLeave = Model.UserData?.RoleCode == "4" && Model.HasViewPermission("LeaveRequest");
-    var showExtendedStats = Model.UserData?.RoleCode != "2";
-    var showOnlineCount = Model.UserData?.RoleCode != "2";
+    var showExtendedStats = Model.ShowExtendedStats;
+    var showOnlineCount = Model.ShowOnlineCount;
     var extendedStats = Model.ExtendedStats;
     var leftColumnClass = showActivity ? "col-lg-8" : "col-12";
 

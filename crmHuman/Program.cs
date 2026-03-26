@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using Quartz;
 using Quartz.Impl;
 using System.Globalization;
+using crmHuman.Helpers;
+using crmHuman.Model;
 using VS.Human.Business;
 using crmHuman.Services;
 using crmHuman.ImpJob;
@@ -37,6 +40,45 @@ namespace crmHuman
                 options.SlidingExpiration = true;
                 options.AccessDeniedPath = "/Home/Forbidden";
                 options.LoginPath = "/Login";
+                options.Events = new CookieAuthenticationEvents
+                {
+                    OnValidatePrincipal = async context =>
+                    {
+                        var roleCode = context.Principal?.FindFirst("RoleCode")?.Value;
+                        if (string.IsNullOrWhiteSpace(roleCode) || string.Equals(roleCode, "CANDIDATE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return;
+                        }
+
+                        var userIdText = context.Principal?.FindFirst("userId")?.Value;
+                        if (!int.TryParse(userIdText, out var userId) || userId <= 0)
+                        {
+                            context.RejectPrincipal();
+                            await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                            return;
+                        }
+
+                        var empBusiness = context.HttpContext.RequestServices.GetRequiredService<IEmpBusiness>();
+                        var employee = await empBusiness.GetById(userId);
+                        if (EmployeeSystemAccessPolicy.HasSystemAccess(employee))
+                        {
+                            return;
+                        }
+
+                        var userName = context.Principal?.FindFirst("UserName")?.Value;
+                        var fullName = context.Principal?.FindFirst("FullName")?.Value;
+                        UserActive.DataActiveOnline.MarkLogout(userId.ToString(), userName, fullName);
+
+                        var logHistoryBusiness = context.HttpContext.RequestServices.GetService<ILogHistoryBusiness>();
+                        if (logHistoryBusiness != null)
+                        {
+                            await logHistoryBusiness.LogLogout(userId, roleCode);
+                        }
+
+                        context.RejectPrincipal();
+                        await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    }
+                };
             });
             builder.Services.AddHttpContextAccessor();
             

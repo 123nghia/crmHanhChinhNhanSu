@@ -10,8 +10,9 @@ namespace VS.Human.Business
         Task<bool> Add(Contract item, int userId);
         Task<bool> Update(Contract item, int userId);
         Task<bool> Delete(int id, int userId);
-        Task<bool> SignInternalHr(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod);
-        Task<bool> SignInternal(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod);
+        Task<bool> SignInternalHr(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod, string? hrSignedByUserNameSnapshot, string? hrSignedByFullNameSnapshot, string? hrSignedIpAddress, string? hrSignedUserAgent);
+        Task<bool> SignInternal(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod, string? signedByUserNameSnapshot, string? signedByFullNameSnapshot, string? signedIpAddress, string? signedUserAgent, string? signedFileArchivePath, string? signatureImagePath, string? signatureIntentText, DateTime? termsAcceptedAt);
+        Task<bool> SetOriginalFileHash(int contractId, string hash);
         Task<List<ContractHistory>> GetHistory(int contractId);
         Task<List<Contract>> GetExpiring(int days);
         Task<List<ContractStatusCount>> GetStatusCounts();

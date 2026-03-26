@@ -5,6 +5,7 @@
 
         public int? GroupId { get; set; }
         public int? MemberId { get; set; }
+        public string? RoleCode { get; set; }
 
         public int? Status { get; set; }
         public string? DocumentStatus { get; set; }

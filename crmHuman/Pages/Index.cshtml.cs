@@ -53,6 +53,20 @@ namespace crmHuman.Pages
         public List<CommonIndexModel> InterviewRoundOptions { get; set; } = new List<CommonIndexModel>();
         public List<CommonIndexModel> InterviewModeOptions { get; set; } = new List<CommonIndexModel>();
         public DashboardExtendedStats ExtendedStats { get; set; } = new DashboardExtendedStats();
+        public bool ShowExtendedStats => CanViewExtendedStats();
+        public bool ShowOnlineCount => CanViewOnlineCount();
+        public string LeaveMonthTitle => ResolveLeaveMonthScope() switch
+        {
+            LeaveMonthScope.Company => "Nghỉ phép tháng này",
+            LeaveMonthScope.Team => "Nghỉ phép tháng này của nhóm bạn",
+            _ => "Nghỉ phép tháng này của bạn"
+        };
+        public string LeaveMonthSubtitle => ResolveLeaveMonthScope() switch
+        {
+            LeaveMonthScope.Company => "toàn công ty",
+            LeaveMonthScope.Team => "phạm vi nhóm",
+            _ => "bản thân"
+        };
 
         public IndexModel(ILogger<IndexModel> logger, IDashboardBusinness dashboardBusinness, ImasterDataBussiness imasterDataBussiness,
         IJobItemBusiness jobItemBusiness, IEmpBusiness empBusiness, ILeaveBusiness leaveBusiness, IScheduleInterviewBussiness scheduleInterviewBussiness,
@@ -248,28 +262,28 @@ namespace crmHuman.Pages
             });
             OrderList = ParamDashboard;
             LeaveSummary = await dashboardBusinness.GetLeaveSummary(UserData.UserId, UserData.RoleCode);
-            if (UserData.RoleCode != "2")
+            if (CanViewExtendedStats())
             {
                 ExtendedStats = await BuildExtendedStats(orderRequest, allOrder);
             }
 
             var interviewRequest = new ScheduleInterviewRquest
             {
+                UserId = UserData.UserId,
                 Status = -1,
                 Limit = 10
             };
-            var isAdmin = UserData?.RoleCode == "1";
-            if (!isAdmin)
-            {
-                interviewRequest.InterviewerId = UserData.UserId;
-            }
             UpcomingInterviews = await _scheduleInterviewBussiness.GetAll(interviewRequest);
             var rounds = await _masterDataBusinness.GetAll(new CommonRequest { Type = 5 });
             InterviewRoundOptions = rounds?.Data?.Cast<CommonIndexModel>().ToList() ?? new List<CommonIndexModel>();
             var modes = await _masterDataBusinness.GetAll(new CommonRequest { Type = 6 });
             InterviewModeOptions = modes?.Data?.Cast<CommonIndexModel>().ToList() ?? new List<CommonIndexModel>();
-            Notifications = await _notificationBusiness.GetByReceiverId(UserData.UserId, 10);
-            UnreadNotificationCount = await _notificationBusiness.GetUnreadCount(UserData.UserId);
+            var notifications = await _notificationBusiness.GetByReceiverId(UserData.UserId, 20);
+            Notifications = notifications
+                .Where(CanViewNotification)
+                .Take(10)
+                .ToList();
+            UnreadNotificationCount = Notifications.Count(x => !x.IsRead);
 
             return Page();
         }
@@ -463,28 +477,108 @@ namespace crmHuman.Pages
             var monthStart = new DateTime(today.Year, today.Month, 1);
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
-            var leaveList = await _leaveBusiness.GetLeaveList(null, null, monthStart, monthEnd, 1, 10000);
+            var leaveList = await _leaveBusiness.GetLeaveList(null, null, monthStart, monthEnd, 1, 10000, UserData.UserId);
             var leaves = leaveList?.Data?.OfType<LeaveIndexModel>().ToList() ?? new List<LeaveIndexModel>();
             var validLeaves = leaves.Where(l => l.Status != 6).ToList();
             var totalDays = validLeaves.Sum(l => l.NumDays ?? 0m);
             var approvedDays = validLeaves.Where(l => l.Status == 3 || l.Status == 4).Sum(l => l.NumDays ?? 0m);
+            var canOpenEmployeeProfile = HasViewPermission("Employee");
             var details = validLeaves.Select(l => new DashboardDetailItem
             {
                 Id = l.EmployeeId,
                 Name = l.EmployeeName ?? "--",
-                Url = l.EmployeeId > 0 ? $"/EmployeeInfo?id={l.EmployeeId}" : null,
+                Url = canOpenEmployeeProfile && l.EmployeeId > 0 ? $"/EmployeeInfo?id={l.EmployeeId}" : null,
                 SubText = $"{(l.NumDays ?? 0m):0.#} ngày ({l.FromDate:dd/MM} - {l.ToDate:dd/MM}) - {GetLeaveStatusText(l.Status)}"
             }).ToList();
 
             return new DashboardStat
             {
                 Key = "leave-month",
-                Title = "Ngày phép tháng này",
+                Title = LeaveMonthTitle,
                 Value = totalDays,
                 Unit = "ngày",
                 Percent = CalcPercent(approvedDays, totalDays),
                 Details = details
             };
+        }
+
+        private bool CanViewExtendedStats()
+        {
+            return UserData?.RoleCode == "1"
+                || UserData?.RoleCode == "3"
+                || UserData?.RoleCode == "8"
+                || UserData?.RoleCode == "9";
+        }
+
+        private bool CanViewOnlineCount()
+        {
+            return UserData?.RoleCode == "1"
+                || UserData?.RoleCode == "8"
+                || UserData?.RoleCode == "9";
+        }
+
+        private LeaveMonthScope ResolveLeaveMonthScope()
+        {
+            return UserData?.RoleCode switch
+            {
+                "1" => LeaveMonthScope.Company,
+                "8" => LeaveMonthScope.Company,
+                "9" => LeaveMonthScope.Company,
+                "3" => LeaveMonthScope.Team,
+                _ => LeaveMonthScope.Self
+            };
+        }
+
+        private bool CanViewNotification(AppNotification notification)
+        {
+            if (notification == null)
+            {
+                return false;
+            }
+
+            var link = notification.Link?.Trim();
+            if (string.IsNullOrWhiteSpace(link))
+            {
+                return true;
+            }
+
+            if (link.StartsWith("/Leave/LeaveApproval", StringComparison.OrdinalIgnoreCase))
+            {
+                return IsLeaveApprovalRole(UserData?.RoleCode)
+                    && (HasViewPermission("LeaveApproval") || HasApprovePermission("LeaveApproval"));
+            }
+
+            if (link.StartsWith("/Leave/LeaveRequest", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("LeaveRequest");
+            }
+
+            if (link.StartsWith("/EmployeeInfo", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("Employee") || HasViewPermission("LeaveBalance");
+            }
+
+            if (link.StartsWith("/CandidateDetail", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("Candidate");
+            }
+
+            if (link.StartsWith("/ScheduleInterview", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("ScheduleInterview");
+            }
+
+            if (link.StartsWith("/Contract", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("Contract");
+            }
+
+            return true;
+        }
+
+        private static bool IsLeaveApprovalRole(string? roleCode)
+        {
+            return roleCode == "1" || roleCode == "3" || roleCode == "8" || roleCode == "9";
         }
 
         private static List<DashboardDetailItem> BuildEmployeeDetails(IEnumerable<EmployeeExtendedModel> employees, Func<EmployeeExtendedModel, string?> subTextSelector)
@@ -598,6 +692,13 @@ namespace crmHuman.Pages
             public string Name { get; set; } = string.Empty;
             public string? Url { get; set; }
             public string? SubText { get; set; }
+        }
+
+        public enum LeaveMonthScope
+        {
+            Self = 0,
+            Team = 1,
+            Company = 2
         }
 
     }

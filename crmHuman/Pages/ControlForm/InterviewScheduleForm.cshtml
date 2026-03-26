@@ -20,6 +20,8 @@
 
     var candidateName = getValue("CandidateName")?.ToString() ?? "";
     var candidatePositionText = getValue("CandidatePositionText")?.ToString() ?? "";
+    var candidateEmail = getValue("CandidateEmail")?.ToString() ?? "";
+    var hasCandidateEmail = !string.IsNullOrWhiteSpace(candidateEmail);
 
     var showCandidateSelect = true;
     var showCandidateSelectObj = getValue("ShowCandidateSelect");
@@ -71,7 +73,7 @@
 
     @if (showCandidateSelect)
     {
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label class="form-label">Ung vien</label>
             <select class="form-select" id="scheduleCandidateId" onchange="updateScheduleCandidateInfo()">
                 <option value="">-- Chon ung vien --</option>
@@ -85,28 +87,53 @@
                         {
                             positionText = itemInfo.PostionName;
                         }
-                        <option value="@itemInfo.Id" data-position="@positionText">@itemInfo.Name</option>
+                        var emailText = itemInfo?.Email != null ? itemInfo.Email.ToString() : "";
+                        <option value="@itemInfo.Id" data-position="@positionText" data-email="@emailText">@itemInfo.Name</option>
                     }
                 }
             </select>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label class="form-label">Vi tri</label>
             <input type="text" id="schedulePositionText" class="form-control" readonly />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Email nhan thu moi</label>
+            <input type="text" id="scheduleCandidateEmail" class="form-control" readonly />
         </div>
     }
     else
     {
         <input type="hidden" id="scheduleCandidateId" value="@candidateId" />
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label class="form-label">Ung vien</label>
             <input type="text" class="form-control" value="@candidateName" readonly />
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label class="form-label">Vi tri</label>
             <input type="text" id="schedulePositionText" class="form-control" value="@candidatePositionText" readonly />
         </div>
+        <div class="col-md-4">
+            <label class="form-label">Email nhan thu moi</label>
+            <input type="text" id="scheduleCandidateEmail" class="form-control" value="@candidateEmail" readonly />
+        </div>
     }
+
+    <div class="col-12">
+        <div id="scheduleEmailWarning" class="alert alert-warning py-2 mb-0 @(showCandidateSelect || hasCandidateEmail ? "d-none" : "")">
+            Ung vien chua co email. Neu muon gui thu moi, vui long cap nhat email trong ho so ung vien hoac bo chon muc gui mail.
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="scheduleSendEmail" checked onchange="updateScheduleEmailUi()" />
+            <label class="form-check-label" for="scheduleSendEmail">
+                Gui mail moi ung vien sau khi luu lich
+            </label>
+        </div>
+        <small class="text-muted">Bo chon neu chi muon luu lich phong van ma khong gui email.</small>
+    </div>
 
     <div class="col-md-3">
         <label class="form-label">Vong phong van</label>

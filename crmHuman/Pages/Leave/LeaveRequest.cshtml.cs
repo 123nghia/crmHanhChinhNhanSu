@@ -80,21 +80,27 @@ namespace crmHuman.Pages.Leave
             var managers = await _employeeBusiness.GetAllManager();
             var handoverEmployees = managers.Data?.Cast<ManagerLeadIndex>().ToList() ?? new List<ManagerLeadIndex>();
 
-            var allEmployees = await _employeeBusiness.GetAll(new EmployeeRequest
-            {
-                Page = 1,
-                Limit = 1000,
-                Status = 1
-            });
+            var hcnsSource = await _employeeBusiness.GetByRoleCodes(new[] { RoleHcns });
+            var hcnsLookup = hcnsSource
+                .Where(x => x.Id > 0)
+                .GroupBy(x => x.Id)
+                .ToDictionary(g => g.Key, g => g.First(), EqualityComparer<int>.Default);
 
-            var hcnsEmployees = allEmployees.Data?
-                .Cast<EmployeeIndexModel>()
-                .Where(x => string.Equals(x.RoleCode, RoleHcns, StringComparison.OrdinalIgnoreCase))
+            foreach (var employee in handoverEmployees)
+            {
+                if (hcnsLookup.ContainsKey(employee.Id))
+                {
+                    employee.RoleLabel = "HCNS";
+                }
+            }
+
+            var hcnsEmployees = hcnsLookup.Values
                 .Select(x => new ManagerLeadIndex
                 {
                     Id = x.Id,
                     FullName = x.FullName ?? string.Empty,
-                    UserName = x.UserName ?? string.Empty
+                    UserName = x.UserName ?? string.Empty,
+                    RoleLabel = "HCNS"
                 })
                 .ToList()
                 ?? new List<ManagerLeadIndex>();
@@ -103,7 +109,10 @@ namespace crmHuman.Pages.Leave
                 .Concat(hcnsEmployees)
                 .Where(x => x.Id > 0 && x.Id != UserData.UserId)
                 .GroupBy(x => x.Id)
-                .Select(g => g.First())
+                .Select(g => g
+                    .OrderByDescending(x => !string.IsNullOrWhiteSpace(x.RoleLabel))
+                    .ThenBy(x => x.FullName)
+                    .First())
                 .OrderBy(x => x.FullName)
                 .ToList();
         }

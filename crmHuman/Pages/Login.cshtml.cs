@@ -1,4 +1,5 @@
 ﻿using crmHuman.Model;
+using crmHuman.Helpers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -57,6 +58,18 @@ namespace crmHuman.Pages
             var userProfile = await _empBusiness.Login(userName, pass);
             if (userProfile != null && userProfile.Id > 0)
             {
+                var employeeAccessProfile = await _empBusiness.GetById(userProfile.Id);
+                if (!EmployeeSystemAccessPolicy.HasSystemAccess(employeeAccessProfile))
+                {
+                    ModelState.AddModelError("UserName", "Tai khoan da nghi viec hoac bi khoa, khong the dang nhap he thong");
+                    return Page();
+                }
+
+                if (employeeAccessProfile != null && employeeAccessProfile.Id > 0)
+                {
+                    userProfile = employeeAccessProfile;
+                }
+
                 var lineCode = userProfile.LineCode;
                 if (string.IsNullOrEmpty(lineCode))
                 {

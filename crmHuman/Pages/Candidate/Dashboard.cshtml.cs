@@ -70,6 +70,7 @@ namespace crmHuman.Pages.Candidate
 
             ScheduleList = await _scheduleInterviewBusiness.GetAll(new ScheduleInterviewRquest
             {
+                UserId = UserData.UserId,
                 RelId = Candidate.Id,
                 Type = -1,
                 Page = 1,

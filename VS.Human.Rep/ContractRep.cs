@@ -96,6 +96,10 @@ namespace VS.Human.Rep
             p.Add("@HrFileHash", history.HrFileHash);
             p.Add("@HrSignNote", history.HrSignNote);
             p.Add("@HrSignMethod", history.HrSignMethod);
+            p.Add("@HrSignedIpAddress", history.HrSignedIpAddress);
+            p.Add("@HrSignedUserAgent", history.HrSignedUserAgent);
+            p.Add("@HrSignedByUserNameSnapshot", history.HrSignedByUserNameSnapshot);
+            p.Add("@HrSignedByFullNameSnapshot", history.HrSignedByFullNameSnapshot);
             p.Add("@IsSignedInternal", history.IsSignedInternal);
             p.Add("@SignedAt", history.SignedAt);
             p.Add("@SignedBy", history.SignedBy);
@@ -103,11 +107,19 @@ namespace VS.Human.Rep
             p.Add("@FileHash", history.FileHash);
             p.Add("@SignNote", history.SignNote);
             p.Add("@SignMethod", history.SignMethod);
+            p.Add("@SignedIpAddress", history.SignedIpAddress);
+            p.Add("@SignedUserAgent", history.SignedUserAgent);
+            p.Add("@SignedFileArchivePath", history.SignedFileArchivePath);
+            p.Add("@SignatureImagePath", history.SignatureImagePath);
+            p.Add("@SignatureIntentText", history.SignatureIntentText);
+            p.Add("@SignedByUserNameSnapshot", history.SignedByUserNameSnapshot);
+            p.Add("@SignedByFullNameSnapshot", history.SignedByFullNameSnapshot);
+            p.Add("@TermsAcceptedAt", history.TermsAcceptedAt);
             p.Add("@CreatedBy", history.CreatedBy);
             return await ExecuteSQL("sp_ContractHistory_insert", p);
         }
 
-        public async Task<bool> SignInternal(int id, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod)
+        public async Task<bool> SignInternal(int id, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod, string? signedByUserNameSnapshot, string? signedByFullNameSnapshot, string? signedIpAddress, string? signedUserAgent, string? signedFileArchivePath, string? signatureImagePath, string? signatureIntentText, DateTime? termsAcceptedAt)
         {
             var p = new DynamicParameters();
             p.Add("@Id", id);
@@ -117,11 +129,19 @@ namespace VS.Human.Rep
             p.Add("@FileHash", fileHash);
             p.Add("@SignNote", signNote);
             p.Add("@SignMethod", signMethod);
+            p.Add("@SignedByUserNameSnapshot", signedByUserNameSnapshot);
+            p.Add("@SignedByFullNameSnapshot", signedByFullNameSnapshot);
+            p.Add("@SignedIpAddress", signedIpAddress);
+            p.Add("@SignedUserAgent", signedUserAgent);
+            p.Add("@SignedFileArchivePath", signedFileArchivePath);
+            p.Add("@SignatureImagePath", signatureImagePath);
+            p.Add("@SignatureIntentText", signatureIntentText);
+            p.Add("@TermsAcceptedAt", termsAcceptedAt);
             var rows = await ExecuteSQLScalar<int>("sp_Contract_signInternal", p);
             return rows > 0;
         }
 
-        public async Task<bool> SignInternalHr(int id, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod)
+        public async Task<bool> SignInternalHr(int id, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod, string? hrSignedByUserNameSnapshot, string? hrSignedByFullNameSnapshot, string? hrSignedIpAddress, string? hrSignedUserAgent)
         {
             var p = new DynamicParameters();
             p.Add("@Id", id);
@@ -131,7 +151,20 @@ namespace VS.Human.Rep
             p.Add("@FileHash", fileHash);
             p.Add("@SignNote", signNote);
             p.Add("@SignMethod", signMethod);
+            p.Add("@HrSignedByUserNameSnapshot", hrSignedByUserNameSnapshot);
+            p.Add("@HrSignedByFullNameSnapshot", hrSignedByFullNameSnapshot);
+            p.Add("@HrSignedIpAddress", hrSignedIpAddress);
+            p.Add("@HrSignedUserAgent", hrSignedUserAgent);
             var rows = await ExecuteSQLScalar<int>("sp_Contract_signInternalHr", p);
+            return rows > 0;
+        }
+
+        public async Task<bool> SetOriginalFileHash(int id, string hash)
+        {
+            var p = new DynamicParameters();
+            p.Add("@Id", id);
+            p.Add("@OriginalFileHash", hash);
+            var rows = await ExecuteSQLScalar<int>("sp_Contract_setOriginalFileHash", p);
             return rows > 0;
         }
 

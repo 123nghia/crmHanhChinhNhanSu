@@ -34,6 +34,7 @@ namespace VS.Human.Rep
                 SELECT 
                     b.Id,
                     b.RoomId,
+                    b.ScheduleInterviewId,
                     r.Name AS RoomName,
                     b.Title,
                     b.Note,
@@ -62,6 +63,7 @@ namespace VS.Human.Rep
                 SELECT 
                     b.Id,
                     b.RoomId,
+                    b.ScheduleInterviewId,
                     r.Name AS RoomName,
                     b.Title,
                     b.Note,
@@ -77,6 +79,31 @@ namespace VS.Human.Rep
 
             using var con = GetConnection();
             return await con.QueryFirstOrDefaultAsync<MeetingBookingView>(sql, new { Id = id });
+        }
+
+        public async Task<MeetingBookingView?> GetBookingByScheduleInterviewId(int scheduleInterviewId)
+        {
+            var sql = @"
+                SELECT
+                    b.Id,
+                    b.RoomId,
+                    b.ScheduleInterviewId,
+                    r.Name AS RoomName,
+                    b.Title,
+                    b.Note,
+                    b.StartTime,
+                    b.EndTime,
+                    b.CreatedBy,
+                    e.FullName AS CreatedByName,
+                    b.CreatedAt
+                FROM MeetingBookings b
+                INNER JOIN MeetingRooms r ON b.RoomId = r.Id
+                LEFT JOIN Employees e ON b.CreatedBy = e.Id
+                WHERE ISNULL(b.Deleted, 0) = 0
+                    AND b.ScheduleInterviewId = @ScheduleInterviewId";
+
+            using var con = GetConnection();
+            return await con.QueryFirstOrDefaultAsync<MeetingBookingView>(sql, new { ScheduleInterviewId = scheduleInterviewId });
         }
 
         public async Task<bool> HasOverlap(int roomId, DateTime startTime, DateTime endTime, int? ignoreId = null)
@@ -101,13 +128,14 @@ namespace VS.Human.Rep
             if (request.Id <= 0)
             {
                 var sql = @"
-                    INSERT INTO MeetingBookings (RoomId, Title, Note, StartTime, EndTime, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Deleted)
-                    VALUES (@RoomId, @Title, @Note, @StartTime, @EndTime, GETDATE(), @UserId, GETDATE(), @UserId, 0);
+                    INSERT INTO MeetingBookings (RoomId, ScheduleInterviewId, Title, Note, StartTime, EndTime, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Deleted)
+                    VALUES (@RoomId, @ScheduleInterviewId, @Title, @Note, @StartTime, @EndTime, GETDATE(), @UserId, GETDATE(), @UserId, 0);
                     SELECT CAST(SCOPE_IDENTITY() as int);";
 
                 return await con.ExecuteScalarAsync<int>(sql, new
                 {
                     request.RoomId,
+                    request.ScheduleInterviewId,
                     request.Title,
                     request.Note,
                     request.StartTime,
@@ -119,6 +147,7 @@ namespace VS.Human.Rep
             var updateSql = @"
                 UPDATE MeetingBookings
                 SET RoomId = @RoomId,
+                    ScheduleInterviewId = @ScheduleInterviewId,
                     Title = @Title,
                     Note = @Note,
                     StartTime = @StartTime,
@@ -131,6 +160,7 @@ namespace VS.Human.Rep
             {
                 request.Id,
                 request.RoomId,
+                request.ScheduleInterviewId,
                 request.Title,
                 request.Note,
                 request.StartTime,

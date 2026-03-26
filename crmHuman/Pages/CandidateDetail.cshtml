@@ -318,6 +318,7 @@
                                     CandidateId = itemResult.Id,
                                     CandidateName = itemResult.Name,
                                     CandidatePositionText = candidatePositionText,
+                                    CandidateEmail = itemResult.Email,
                                     ShowCandidateSelect = false,
                                     InterviewerList = Model.DataInterviewer,
                                     HandlerUrl = "/CandidateDetail?handler=AddSchedule",
@@ -516,6 +517,29 @@
 </script>
 
 <script>
+    function toDateTimeLocalValue(value) {
+        if (!value) {
+            return '';
+        }
+
+        const text = value.toString();
+        if (text.length >= 16 && text.includes('T')) {
+            return text.substring(0, 16);
+        }
+
+        const parsed = new Date(text);
+        if (!Number.isNaN(parsed.getTime())) {
+            const year = parsed.getFullYear();
+            const month = String(parsed.getMonth() + 1).padStart(2, '0');
+            const day = String(parsed.getDate()).padStart(2, '0');
+            const hours = String(parsed.getHours()).padStart(2, '0');
+            const minutes = String(parsed.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        return '';
+    }
+
     // Edit schedule - load data into form
     async function editSchedule(scheduleId) {
         try {
@@ -525,48 +549,43 @@
             if (result.success && result.data) {
                 const data = result.data;
                 
-                // Populate the form fields
-                document.querySelector('[name="Id"]') && (document.querySelector('[name="Id"]').value = data.id);
-                
-                // Set form to edit mode by storing the schedule ID
-                const form = document.getElementById('formScheduleInterview');
-                if (form) {
-                    form.dataset.editId = data.id;
+                const scheduleIdInput = document.getElementById('scheduleId');
+                if (scheduleIdInput) {
+                    scheduleIdInput.value = data.id || '';
                 }
                 
-                // Set form values
-                if (document.getElementById('cbVongPhongVan')) {
-                    document.getElementById('cbVongPhongVan').value = data.type || '';
+                if (document.getElementById('scheduleRound')) {
+                    document.getElementById('scheduleRound').value = data.type || '1';
                 }
-                if (document.getElementById('cbTrangThai')) {
-                    document.getElementById('cbTrangThai').value = data.status || '';
+                if (document.getElementById('scheduleStatus')) {
+                    document.getElementById('scheduleStatus').value = data.status || '1';
                 }
-                if (document.getElementById('cbHinhThuc')) {
-                    document.getElementById('cbHinhThuc').value = data.interviewMode || '';
+                if (document.getElementById('scheduleMode')) {
+                    document.getElementById('scheduleMode').value = data.interviewMode || '1';
                 }
-                if (document.getElementById('cbKetQuaPV')) {
-                    document.getElementById('cbKetQuaPV').value = data.interviewResult || '';
+                if (document.getElementById('scheduleResult')) {
+                    document.getElementById('scheduleResult').value = data.interviewResult || '';
                 }
-                if (document.getElementById('txtNgayGio')) {
-                    // Format date for datetime-local input
-                    if (data.scheduleDate) {
-                        const d = new Date(data.scheduleDate);
-                        const formatted = d.toISOString().slice(0, 16);
-                        document.getElementById('txtNgayGio').value = formatted;
-                    }
+                if (document.getElementById('scheduleDateTime')) {
+                    document.getElementById('scheduleDateTime').value = toDateTimeLocalValue(data.scheduleDate);
                 }
-                if (document.getElementById('cbNguoiPhongVan')) {
-                    document.getElementById('cbNguoiPhongVan').value = data.interviewerId || '';
+                if (document.getElementById('scheduleInterviewer')) {
+                    document.getElementById('scheduleInterviewer').value = data.interviewerId || '';
                 }
-                if (document.getElementById('txtDiaDiem')) {
-                    document.getElementById('txtDiaDiem').value = data.addressInfo || '';
+                if (document.getElementById('scheduleAddressInfo')) {
+                    document.getElementById('scheduleAddressInfo').value = data.addressInfo || '';
                 }
-                if (document.getElementById('txtGhiChu')) {
-                    document.getElementById('txtGhiChu').value = data.noted || '';
+                if (document.getElementById('scheduleNote')) {
+                    document.getElementById('scheduleNote').value = data.noted || '';
+                }
+                if (document.getElementById('scheduleSendEmail')) {
+                    document.getElementById('scheduleSendEmail').checked = false;
+                }
+                if (typeof updateScheduleEmailUi === 'function') {
+                    updateScheduleEmailUi();
                 }
                 
-                // Change button text to indicate edit mode
-                const submitBtn = document.querySelector('#formScheduleInterview button[type="button"]');
+                const submitBtn = document.querySelector('.interview-schedule-form button[type="button"]');
                 if (submitBtn) {
                     submitBtn.innerHTML = 'Cập nhật lịch phỏng vấn';
                 }
@@ -576,7 +595,7 @@
                 
                 showToast('Đã tải thông tin lịch phỏng vấn', 'info');
             } else {
-                showToast('Không thể tải thông tin lịch phỏng vấn', 'error');
+                showToast(result.message || 'Không thể tải thông tin lịch phỏng vấn', 'error');
             }
         } catch (error) {
             console.error('Error loading schedule:', error);
@@ -591,13 +610,14 @@
         }
         
         try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
             const response = await fetch('/CandidateDetail?handler=DeleteSchedule', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'RequestVerificationToken': token
                 },
-                body: JSON.stringify({ scheduleId: scheduleId })
+                body: new URLSearchParams({ scheduleId: scheduleId.toString() })
             });
             
             const result = await response.json();

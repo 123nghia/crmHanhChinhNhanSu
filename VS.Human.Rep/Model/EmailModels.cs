@@ -1,5 +1,28 @@
+using System;
+
 namespace VS.Human.Rep.Model
 {
+    public static class EmailSenderTypes
+    {
+        public const string Hr = "HR";
+        public const string Employee = "EMPLOYEE";
+
+        public static string Normalize(string? senderType)
+        {
+            if (string.Equals(senderType, Employee, StringComparison.OrdinalIgnoreCase))
+            {
+                return Employee;
+            }
+
+            return Hr;
+        }
+
+        public static string GetDisplayText(string? senderType)
+        {
+            return Normalize(senderType) == Employee ? "Mail nhan vien" : "Mail nhan su";
+        }
+    }
+
     public class EmailSetting : BaseModel
     {
         public string? SmtpHost { get; set; }
@@ -9,6 +32,12 @@ namespace VS.Human.Rep.Model
         public string? SmtpPassword { get; set; }
         public string? FromEmail { get; set; }
         public string? FromName { get; set; }
+        public string? HrFromEmail { get; set; }
+        public string? HrFromName { get; set; }
+        public string? HrSignature { get; set; }
+        public string? EmployeeFromEmail { get; set; }
+        public string? EmployeeFromName { get; set; }
+        public string? EmployeeSignature { get; set; }
     }
 
     public class EmailTemplate : BaseModel
@@ -20,5 +49,6 @@ namespace VS.Human.Rep.Model
         public bool CcManager { get; set; }
         public string? CcEmails { get; set; }
         public string? BccEmails { get; set; }
+        public string SenderType { get; set; } = EmailSenderTypes.Hr;
     }
 }

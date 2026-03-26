@@ -96,6 +96,18 @@ namespace VS.Human.Business.Imp
             return await _unitOfWork.EmployeeRep.UpdateAvatar(id, avatarFile.Trim(), updatedBy);
         }
 
+        public async Task<bool> UpdateMailSignature(int id, string? mailSignature, int updatedBy)
+        {
+            if (id <= 0 || updatedBy <= 0)
+            {
+                return false;
+            }
+
+            var sanitizedSignature = EmailSignatureSanitizer.Sanitize(mailSignature);
+            sanitizedSignature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(sanitizedSignature);
+            return await _unitOfWork.EmployeeRep.UpdateMailSignature(id, sanitizedSignature, updatedBy);
+        }
+
         public async Task<bool> Update(EmployeeInfoAdd itemUpdate)
         {
             // Set UpdatedBy và UpdatedAt
@@ -176,6 +188,11 @@ namespace VS.Human.Business.Imp
         public async Task<BaseList> GetAll(EmployeeRequest request)
         {
             return await _unitOfWork.EmployeeRep.GetAll(request);
+        }
+
+        public async Task<List<Employee>> GetByRoleCodes(IEnumerable<string> roleCodes)
+        {
+            return await _unitOfWork.EmployeeRep.GetByRoleCodes(roleCodes);
         }
 
         /// <summary>

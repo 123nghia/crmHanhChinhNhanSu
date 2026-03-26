@@ -498,10 +498,16 @@
         document.getElementById("scheduleInterviewer").value = button.getAttribute("data-interviewer") || "";
         document.getElementById("scheduleAddressInfo").value = button.getAttribute("data-address") || "";
         document.getElementById("scheduleNote").value = button.getAttribute("data-note") || "";
+        if (document.getElementById("scheduleSendEmail")) {
+            document.getElementById("scheduleSendEmail").checked = false;
+        }
         
         // Trigger position info update
         if (typeof updateScheduleCandidateInfo === "function") {
             updateScheduleCandidateInfo();
+        }
+        if (typeof updateScheduleEmailUi === "function") {
+            updateScheduleEmailUi();
         }
         
         // Scroll to form

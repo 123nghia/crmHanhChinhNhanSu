@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using VS.Human.Business;
 using VS.Human.Rep.Model;
@@ -13,11 +16,13 @@ namespace crmHuman.Pages.System
     {
         private readonly IEmailConfigBusiness _emailConfigBusiness;
         private readonly IEmailService _emailService;
+        private readonly IWebHostEnvironment _env;
 
-        public MailSettingModel(IEmailConfigBusiness emailConfigBusiness, IEmailService emailService)
+        public MailSettingModel(IEmailConfigBusiness emailConfigBusiness, IEmailService emailService, IWebHostEnvironment env)
         {
             _emailConfigBusiness = emailConfigBusiness;
             _emailService = emailService;
+            _env = env;
             TitlePage = "Mail setting";
             KeyPage = "MailSetting";
         }
@@ -28,6 +33,7 @@ namespace crmHuman.Pages.System
         public async Task OnGetAsync()
         {
             GetInfoUser();
+            await _emailConfigBusiness.EnsureDefaultTemplates(UserData?.UserId ?? 1);
             Setting = await _emailConfigBusiness.GetActiveSetting() ?? new EmailSetting();
             Templates = await _emailConfigBusiness.GetTemplates();
         }
@@ -56,6 +62,55 @@ namespace crmHuman.Pages.System
             return new JsonResult(new { success = result });
         }
 
+        public async Task<IActionResult> OnPostUploadEditorImageAsync(IFormFile? file)
+        {
+            GetInfoUser();
+            if (!(Permision.Edit ?? false) && !(Permision.Add ?? false))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "No permission" });
+            }
+
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { error = "No file uploaded" });
+            }
+
+            if (file.Length > 5 * 1024 * 1024)
+            {
+                return BadRequest(new { error = "Image size must be 5MB or smaller" });
+            }
+
+            var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
+            var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".gif",
+                ".webp",
+                ".bmp"
+            };
+
+            if (string.IsNullOrWhiteSpace(extension) || !allowedExtensions.Contains(extension))
+            {
+                return BadRequest(new { error = "Unsupported file type" });
+            }
+
+            var uploadRoot = Path.Combine(_env.WebRootPath, "uploads", "mail-editor", (UserData?.UserId ?? 0).ToString());
+            Directory.CreateDirectory(uploadRoot);
+
+            var storedName = $"mail_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
+            var fullPath = Path.Combine(uploadRoot, storedName);
+
+            await using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var location = $"/uploads/mail-editor/{UserData?.UserId ?? 0}/{storedName}";
+            return new JsonResult(new { location });
+        }
+
         public async Task<IActionResult> OnPostSendTestAsync([FromBody] TestEmailRequest model)
         {
             GetInfoUser();
@@ -65,6 +120,7 @@ namespace crmHuman.Pages.System
             }
 
             var templateCode = string.IsNullOrWhiteSpace(model.TemplateCode) ? "LEAVE_CREATE" : model.TemplateCode.Trim();
+            await _emailConfigBusiness.EnsureDefaultTemplates(UserData?.UserId ?? 1);
             var setting = await _emailConfigBusiness.GetActiveSetting();
             if (setting == null || setting.IsActive <= 0 || string.IsNullOrWhiteSpace(setting.SmtpHost))
             {
@@ -104,10 +160,29 @@ namespace crmHuman.Pages.System
                 ["RejectReason"] = "Test email",
                 ["Action"] = "Test",
                 ["CreateAt"] = now.ToString("dd/MM/yyyy HH:mm"),
-                ["HandoverEmployeeName"] = "Test Handover"
+                ["HandoverEmployeeName"] = "Test Handover",
+                ["CandidateName"] = "Test Candidate",
+                ["AppliedPosition"] = "Chuyen vien Kinh doanh",
+                ["CandidatePosition"] = "Chuyen vien Kinh doanh",
+                ["PositionText"] = "Chuyen vien Kinh doanh",
+                ["InterviewAction"] = "da duoc len lich",
+                ["InterviewRound"] = "HR",
+                ["InterviewMode"] = "Offline",
+                ["ScheduleDate"] = now.AddDays(1).ToString("dd/MM/yyyy HH:mm"),
+                ["AddressInfo"] = "Tang 5 - Phong hop A",
+                ["InterviewerName"] = UserData?.FullName ?? "Interviewer",
+                ["RoomName"] = "Phong hop A",
+                ["Noted"] = "Mang theo CV ban in"
             };
 
-            var sendResult = await _emailService.SendTemplateWithErrorAsync(templateCode, new[] { model.ToEmail.Trim() }, tokens);
+            var sendResult = await _emailService.SendTemplateWithErrorAsync(
+                templateCode,
+                new[] { model.ToEmail.Trim() },
+                tokens,
+                null,
+                null,
+                null,
+                UserData?.UserId);
             return new JsonResult(new { success = sendResult.Success, message = sendResult.Success ? "Sent" : (sendResult.Error ?? "Send failed") });
         }
 

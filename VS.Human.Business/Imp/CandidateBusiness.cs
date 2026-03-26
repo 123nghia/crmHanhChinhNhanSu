@@ -179,6 +179,16 @@ namespace VS.Human.Business.Imp
             return await _unitOfWork.CandidateRep.GetAll(request);
         }
 
+        public async Task<bool> HasViewAccess(int candidateId, int userId, string? roleCode)
+        {
+            return await _unitOfWork.CandidateRep.HasViewAccess(candidateId, userId, roleCode);
+        }
+
+        public async Task<bool> HasManageAccess(int candidateId, int userId, string? roleCode)
+        {
+            return await _unitOfWork.CandidateRep.HasManageAccess(candidateId, userId, roleCode);
+        }
+
         public async Task<Candidate> Login(string userName, string password)
         {
             var passwordGen = getMD5(password);

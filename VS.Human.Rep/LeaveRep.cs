@@ -88,36 +88,58 @@ namespace VS.Human.Rep
         {
             using (var con = GetConnection())
             {
-                // Logic based on role:
-                // TL (3): Sees status 0
-                // HCNS (9): Sees status 1
-                // BGĐ/Admin (8/1): Sees status 2
-                int levelStatus = -1;
-                if (roleCode == "3") levelStatus = 0;
-                else if (roleCode == "9") levelStatus = 1;
-                else if (roleCode == "1" || roleCode == "8") levelStatus = 2;
-
-                int? approvedEmployeeId = null;
-                // For regular employees (TC), show their own approved leave this month
-                if (roleCode == "2")
+                var levelStatus = roleCode switch
                 {
-                    approvedEmployeeId = employeeId;
-                }
+                    "3" => 0,
+                    "9" => 1,
+                    "1" => 2,
+                    "8" => 2,
+                    _ => -1
+                };
+
+                var isCompanyWide = roleCode == "1" || roleCode == "8" || roleCode == "9";
+                var isTeamScope = roleCode == "3";
+                var isSelfScope = !isCompanyWide && !isTeamScope;
 
                 var sql = @"
-                    SELECT 
-                        (SELECT COUNT(*) FROM LeaveRequests WHERE Deleted = 0 AND Status = @levelStatus) as PendingApproval,
-                        (SELECT COUNT(*) FROM LeaveRequests 
-                            WHERE Deleted = 0 
-                              AND Status IN (3,4) 
-                              AND MONTH(CreateAt) = MONTH(GETDATE())
-                              AND YEAR(CreateAt) = YEAR(GETDATE())
-                              AND (@ApprovedEmployeeId IS NULL OR EmployeeId = @ApprovedEmployeeId)
+                    SELECT
+                        (SELECT COUNT(*)
+                         FROM LeaveRequests l
+                         WHERE l.Deleted = 0
+                           AND @levelStatus >= 0
+                           AND l.Status = @levelStatus
+                           AND (
+                                @EmployeeId IS NULL
+                                OR @IsCompanyWide = 1
+                                OR (@IsTeamScope = 1 AND l.EmployeeId IN (SELECT id FROM getAllUserByUserId(@EmployeeId)))
+                                OR (@IsSelfScope = 1 AND l.EmployeeId = @EmployeeId)
+                           )
+                        ) as PendingApproval,
+                        (SELECT COUNT(*)
+                         FROM LeaveRequests l
+                         WHERE l.Deleted = 0
+                           AND l.Status IN (3,4)
+                           AND MONTH(l.CreateAt) = MONTH(GETDATE())
+                           AND YEAR(l.CreateAt) = YEAR(GETDATE())
+                           AND (
+                                @EmployeeId IS NULL
+                                OR @IsCompanyWide = 1
+                                OR (@IsTeamScope = 1 AND l.EmployeeId IN (SELECT id FROM getAllUserByUserId(@EmployeeId)))
+                                OR (@IsSelfScope = 1 AND l.EmployeeId = @EmployeeId)
+                           )
                         ) as ApprovedMonth,
                         (SELECT AllowedLeaveDays - ISNULL(UsedLeaveDays, 0) FROM Employees WHERE Id = @empId) as RemainingLeave
                 ";
 
-                return await con.QueryFirstOrDefaultAsync<dynamic>(sql, new { levelStatus, empId = employeeId, ApprovedEmployeeId = approvedEmployeeId });
+                return await con.QueryFirstOrDefaultAsync<dynamic>(sql, new
+                {
+                    levelStatus,
+                    EmployeeId = employeeId,
+                    empId = employeeId,
+                    IsCompanyWide = isCompanyWide,
+                    IsTeamScope = isTeamScope,
+                    IsSelfScope = isSelfScope
+                });
             }
         }
 
@@ -161,7 +183,7 @@ namespace VS.Human.Rep
             }
         }
 
-        public new async Task<bool> Delete(int id, int userId)
+        public async Task<bool> Delete(int id, int userId)
         {
             var p = new DynamicParameters();
             p.Add("@Id", id);
@@ -169,7 +191,6 @@ namespace VS.Human.Rep
             p.Add("@UpdateAt", DateTime.Now);
             p.Add("@UpdatedBy", userId);
 
-            // Simple update for soft delete if generic DeleteBase doesn't cover all fields needed
             var sql = "UPDATE LeaveRequests SET Deleted = 1, UpdateAt = GETDATE(), UpdatedBy = @UpdatedBy WHERE Id = @Id";
             return await ExecuteSQL(sql, new { Id = id, UpdatedBy = userId }, CommandType.Text);
         }

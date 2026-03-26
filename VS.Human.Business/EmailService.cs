@@ -1,7 +1,16 @@
-using System.Net;
-using System.Net.Mail;
 using System.Text;
 using System.Linq;
+using System.IO;
+using System.Net;
+using System.Security.Claims;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
+using MimeKit.Utils;
+using VS.Human.Business.Helpers;
 using VS.Human.Rep;
 using VS.Human.Rep.Model;
 
@@ -9,101 +18,204 @@ namespace VS.Human.Business
 {
     public class EmailService : IEmailService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private static readonly Regex ImageSourceRegex = new(
+            "(<img\\b[^>]*?\\bsrc\\s*=\\s*[\"'])(?<src>[^\"']+)([\"'][^>]*>)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        public EmailService(IUnitOfWork unitOfWork)
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IHostEnvironment _hostEnvironment;
+
+        public EmailService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor, IHostEnvironment hostEnvironment)
         {
             _unitOfWork = unitOfWork;
+            _httpContextAccessor = httpContextAccessor;
+            _hostEnvironment = hostEnvironment;
         }
 
-        public async Task<bool> SendTemplateAsync(string templateCode, string toEmail, IDictionary<string, string> tokens, int? managerId = null)
+        public async Task<bool> SendTemplateAsync(string templateCode, string toEmail, IDictionary<string, string> tokens, int? managerId = null, int? senderEmployeeId = null)
         {
-            if (string.IsNullOrWhiteSpace(templateCode) || string.IsNullOrWhiteSpace(toEmail))
+            if (string.IsNullOrWhiteSpace(toEmail))
             {
                 return false;
+            }
+
+            return await SendTemplateAsync(templateCode, new[] { toEmail }, tokens, null, null, managerId, senderEmployeeId);
+        }
+
+        public async Task<bool> SendTemplateAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null)
+        {
+            var result = await SendTemplateWithErrorAsync(templateCode, toEmails, tokens, ccEmails, bccEmails, managerId, senderEmployeeId);
+            return result.Success;
+        }
+
+        public async Task<(bool Success, string? Error)> SendTemplateWithErrorAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null)
+        {
+            if (string.IsNullOrWhiteSpace(templateCode) || toEmails == null)
+            {
+                return (false, "Template code or recipient is missing");
+            }
+
+            var normalizedTo = NormalizeEmails(toEmails).ToList();
+            if (normalizedTo.Count == 0)
+            {
+                return (false, "Recipient email is missing");
             }
 
             var setting = await _unitOfWork.EmailConfigRep.GetActiveSetting();
             if (setting == null || setting.IsActive <= 0 || string.IsNullOrWhiteSpace(setting.SmtpHost))
             {
-                return false;
+                return (false, "SMTP is not configured or inactive");
             }
+
+            setting.HrSignature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(setting.HrSignature);
+            setting.EmployeeSignature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(setting.EmployeeSignature);
 
             var template = await _unitOfWork.EmailConfigRep.GetTemplateByCode(templateCode);
             if (template == null || template.IsActive <= 0)
             {
-                return false;
+                return (false, "Template not found or inactive");
             }
 
-            var subject = ApplyTokens(template.Subject, tokens);
-            var body = ApplyTokens(template.Body, tokens);
-
-            var fromEmail = ResolveFromEmail(setting);
+            var senderProfile = await ResolveSenderProfileAsync(setting, template, senderEmployeeId);
+            var fromEmail = senderProfile.Email;
             if (string.IsNullOrWhiteSpace(fromEmail))
             {
-                return false;
+                return (false, "From email is missing");
             }
 
-            using var message = new MailMessage
+            var templateTokens = new Dictionary<string, string>(tokens ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase)
             {
-                From = new MailAddress(fromEmail, setting.FromName ?? string.Empty),
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = true,
-                BodyEncoding = Encoding.UTF8,
-                SubjectEncoding = Encoding.UTF8
+                ["SenderType"] = senderProfile.SenderType,
+                ["SenderTypeText"] = EmailSenderTypes.GetDisplayText(senderProfile.SenderType),
+                ["SenderName"] = senderProfile.Name ?? string.Empty,
+                ["SenderEmail"] = fromEmail
             };
 
-            message.To.Add(toEmail);
+            var signatureHtml = ApplyTokens(senderProfile.Signature ?? string.Empty, templateTokens);
+            templateTokens["SenderSignature"] = signatureHtml;
 
-            foreach (var email in ParseEmails(template.CcEmails))
+            var subject = ApplyTokens(template.Subject, templateTokens);
+            var hasSignatureToken = ContainsSenderSignatureToken(template.Body);
+            var body = ApplyTokens(template.Body, templateTokens);
+            if (!hasSignatureToken)
             {
-                if (!IsSameEmail(email, toEmail))
-                {
-                    message.CC.Add(email);
-                }
+                body = AppendSignature(body, signatureHtml);
             }
+
+            body = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(body) ?? string.Empty;
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(senderProfile.Name ?? string.Empty, fromEmail));
+            var envelopeSender = BuildEnvelopeSender(setting, senderProfile);
+            if (!string.Equals(envelopeSender.Address, fromEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                message.ReplyTo.Add(new MailboxAddress(senderProfile.Name ?? string.Empty, fromEmail));
+            }
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder();
+            bodyBuilder.HtmlBody = InlineLocalImages(bodyBuilder, body);
+            message.Body = bodyBuilder.ToMessageBody();
+
+            var usedRecipients = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            AddRecipients(message.To, normalizedTo, usedRecipients);
 
             if (template.CcManager && managerId.HasValue && managerId.Value > 0)
             {
                 var manager = await _unitOfWork.EmployeeRep.GetById(managerId.Value);
                 var managerEmail = GetPreferredEmail(manager);
-                if (!string.IsNullOrWhiteSpace(managerEmail) && !IsSameEmail(managerEmail, toEmail))
-                {
-                    message.CC.Add(managerEmail);
-                }
+                AddRecipients(message.Cc, new[] { managerEmail ?? string.Empty }, usedRecipients);
             }
 
-            foreach (var email in ParseEmails(template.BccEmails))
+            AddRecipients(message.Cc, ParseEmails(template.CcEmails), usedRecipients);
+            AddRecipients(message.Cc, NormalizeEmails(ccEmails), usedRecipients);
+            AddRecipients(message.Bcc, ParseEmails(template.BccEmails), usedRecipients);
+            AddRecipients(message.Bcc, NormalizeEmails(bccEmails), usedRecipients);
+
+            if (message.To.Count == 0)
             {
-                if (!IsSameEmail(email, toEmail))
-                {
-                    message.Bcc.Add(email);
-                }
+                return (false, "Recipient email is missing");
             }
 
             try
             {
-                using var client = new SmtpClient(setting.SmtpHost, setting.SmtpPort > 0 ? setting.SmtpPort : 25);
-                client.EnableSsl = setting.EnableSsl;
+                using var client = new SmtpClient();
+                client.Timeout = 15000;
+
+                var port = setting.SmtpPort > 0 ? setting.SmtpPort : 25;
+                var socketOptions = ResolveSocketOptions(setting);
+                await client.ConnectAsync(setting.SmtpHost, port, socketOptions);
+
                 if (!string.IsNullOrWhiteSpace(setting.SmtpUser))
                 {
-                    client.Credentials = new NetworkCredential(setting.SmtpUser, setting.SmtpPassword);
-                    client.UseDefaultCredentials = false;
-                }
-                else
-                {
-                    client.UseDefaultCredentials = true;
+                    await client.AuthenticateAsync(setting.SmtpUser, setting.SmtpPassword ?? string.Empty);
                 }
 
-                await client.SendMailAsync(message);
+                var recipients = message.To.Mailboxes
+                    .Concat(message.Cc.Mailboxes)
+                    .Concat(message.Bcc.Mailboxes)
+                    .ToList();
+
+                await client.SendAsync(message, envelopeSender, recipients);
+                await client.DisconnectAsync(true);
             }
-            catch
+            catch (MailKit.Security.AuthenticationException ex)
             {
-                return false;
+                return BuildError("SMTP authentication error", ex);
+            }
+            catch (MailKit.Net.Smtp.SmtpCommandException ex)
+            {
+                return BuildError($"SMTP command error ({ex.StatusCode})", ex);
+            }
+            catch (MailKit.Net.Smtp.SmtpProtocolException ex)
+            {
+                return BuildError("SMTP protocol error", ex);
+            }
+            catch (Exception ex)
+            {
+                return BuildError(ex.GetType().Name, ex);
             }
 
-            return true;
+            return (true, null);
+        }
+
+        private static IEnumerable<string> NormalizeEmails(IEnumerable<string>? emails)
+        {
+            if (emails == null)
+            {
+                yield break;
+            }
+
+            foreach (var item in emails)
+            {
+                foreach (var email in ParseEmails(item))
+                {
+                    yield return email;
+                }
+            }
+        }
+
+        private static void AddRecipients(InternetAddressList collection, IEnumerable<string> emails, HashSet<string> usedRecipients)
+        {
+            foreach (var email in emails)
+            {
+                if (string.IsNullOrWhiteSpace(email))
+                {
+                    continue;
+                }
+
+                var trimmed = email.Trim();
+                if (trimmed.Length == 0)
+                {
+                    continue;
+                }
+
+                if (MailboxAddress.TryParse(trimmed, out var mailbox) && usedRecipients.Add(mailbox.Address))
+                {
+                    collection.Add(mailbox);
+                }
+            }
         }
 
         private static string ApplyTokens(string template, IDictionary<string, string> tokens)
@@ -116,8 +228,10 @@ namespace VS.Human.Business
             var result = template;
             foreach (var item in tokens)
             {
-                var key = "{" + item.Key + "}";
-                result = result.Replace(key, item.Value ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+                var value = item.Value ?? string.Empty;
+                result = result.Replace("{{" + item.Key + "}}", value, StringComparison.OrdinalIgnoreCase);
+                result = result.Replace("{{ " + item.Key + " }}", value, StringComparison.OrdinalIgnoreCase);
+                result = result.Replace("{" + item.Key + "}", value, StringComparison.OrdinalIgnoreCase);
             }
             return result;
         }
@@ -136,29 +250,356 @@ namespace VS.Human.Business
                 .Distinct(StringComparer.OrdinalIgnoreCase);
         }
 
-        private static string? ResolveFromEmail(EmailSetting setting)
+        private static bool ContainsSenderSignatureToken(string? templateBody)
         {
-            if (!string.IsNullOrWhiteSpace(setting.FromEmail))
+            if (string.IsNullOrWhiteSpace(templateBody))
             {
-                return setting.FromEmail;
+                return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(setting.SmtpUser) && setting.SmtpUser.Contains("@"))
+            return templateBody.Contains("{{SenderSignature}}", StringComparison.OrdinalIgnoreCase)
+                || templateBody.Contains("{{ SenderSignature }}", StringComparison.OrdinalIgnoreCase)
+                || templateBody.Contains("{SenderSignature}", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string AppendSignature(string body, string? signatureHtml)
+        {
+            if (string.IsNullOrWhiteSpace(signatureHtml))
             {
-                return setting.SmtpUser;
+                return body ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return signatureHtml;
+            }
+
+            return $"{body}<br/><br/>{signatureHtml}";
+        }
+
+        private string InlineLocalImages(BodyBuilder bodyBuilder, string? html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+            {
+                return html ?? string.Empty;
+            }
+
+            var webRootPath = GetWebRootPath();
+            if (string.IsNullOrWhiteSpace(webRootPath))
+            {
+                return html;
+            }
+
+            var normalizedWebRoot = Path.GetFullPath(webRootPath);
+            var contentIdsByPath = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            var rewrittenHtml = ImageSourceRegex.Replace(html, match =>
+            {
+                var originalSource = WebUtility.HtmlDecode(match.Groups["src"].Value ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(originalSource))
+                {
+                    return match.Value;
+                }
+
+                if (originalSource.StartsWith("cid:", StringComparison.OrdinalIgnoreCase))
+                {
+                    return match.Value;
+                }
+
+                if (originalSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!contentIdsByPath.TryGetValue(originalSource, out var inlineContentId))
+                    {
+                        if (!TryAddDataUriLinkedResource(bodyBuilder, originalSource, out inlineContentId))
+                        {
+                            return match.Value;
+                        }
+
+                        contentIdsByPath[originalSource] = inlineContentId;
+                    }
+
+                    return match.Value.Replace(match.Groups["src"].Value, $"cid:{inlineContentId}", StringComparison.Ordinal);
+                }
+
+                if (Uri.TryCreate(originalSource, UriKind.Absolute, out var absoluteUri)
+                    && !absoluteUri.IsFile)
+                {
+                    return match.Value;
+                }
+
+                var imagePath = ResolveImagePath(originalSource, normalizedWebRoot);
+                if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+                {
+                    return match.Value;
+                }
+
+                if (!contentIdsByPath.TryGetValue(imagePath, out var contentId))
+                {
+                    var resource = bodyBuilder.LinkedResources.Add(imagePath);
+                    contentId = MimeUtils.GenerateMessageId();
+                    resource.ContentId = contentId;
+                    resource.ContentDisposition = new ContentDisposition(ContentDisposition.Inline);
+                    contentIdsByPath[imagePath] = contentId;
+                }
+
+                return match.Value.Replace(match.Groups["src"].Value, $"cid:{contentId}", StringComparison.Ordinal);
+            });
+
+            return rewrittenHtml;
+        }
+
+        private static bool TryAddDataUriLinkedResource(BodyBuilder bodyBuilder, string source, out string contentId)
+        {
+            contentId = string.Empty;
+            var separatorIndex = source.IndexOf(',');
+            if (separatorIndex <= 5)
+            {
+                return false;
+            }
+
+            var header = source.Substring(5, separatorIndex - 5);
+            if (!header.Contains(";base64", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var mediaType = header.Split(';', 2)[0].Trim();
+            if (!mediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            byte[] bytes;
+            try
+            {
+                bytes = Convert.FromBase64String(source.Substring(separatorIndex + 1));
+            }
+            catch
+            {
+                return false;
+            }
+
+            var fileName = $"inline_{Guid.NewGuid():N}{GetImageExtension(mediaType)}";
+            var resource = bodyBuilder.LinkedResources.Add(fileName, bytes);
+            contentId = MimeUtils.GenerateMessageId();
+            resource.ContentId = contentId;
+            resource.ContentDisposition = new ContentDisposition(ContentDisposition.Inline);
+            return true;
+        }
+
+        private static string GetImageExtension(string mediaType)
+        {
+            return mediaType.ToLowerInvariant() switch
+            {
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/gif" => ".gif",
+                "image/webp" => ".webp",
+                "image/bmp" => ".bmp",
+                "image/svg+xml" => ".svg",
+                _ => ".bin"
+            };
+        }
+
+        private string? ResolveImagePath(string source, string normalizedWebRoot)
+        {
+            if (Uri.TryCreate(source, UriKind.Absolute, out var absoluteUri))
+            {
+                if (!absoluteUri.IsFile)
+                {
+                    return null;
+                }
+
+                var filePath = absoluteUri.LocalPath;
+                return File.Exists(filePath) ? filePath : null;
+            }
+
+            var normalizedSource = source.Trim();
+            var separatorIndex = normalizedSource.IndexOfAny(new[] { '?', '#' });
+            if (separatorIndex >= 0)
+            {
+                normalizedSource = normalizedSource.Substring(0, separatorIndex);
+            }
+
+            if (normalizedSource.StartsWith("~/", StringComparison.Ordinal))
+            {
+                normalizedSource = normalizedSource.Substring(2);
+            }
+            else if (normalizedSource.StartsWith("/", StringComparison.Ordinal) || normalizedSource.StartsWith("\\", StringComparison.Ordinal))
+            {
+                normalizedSource = normalizedSource.Substring(1);
+            }
+
+            if (string.IsNullOrWhiteSpace(normalizedSource))
+            {
+                return null;
+            }
+
+            var relativePath = normalizedSource
+                .Replace('/', Path.DirectorySeparatorChar)
+                .Replace('\\', Path.DirectorySeparatorChar);
+
+            var fullPath = Path.GetFullPath(Path.Combine(normalizedWebRoot, relativePath));
+            if (!fullPath.StartsWith(normalizedWebRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            return fullPath;
+        }
+
+        private string? GetWebRootPath()
+        {
+            if (string.IsNullOrWhiteSpace(_hostEnvironment.ContentRootPath))
+            {
+                return null;
+            }
+
+            var webRootPath = Path.Combine(_hostEnvironment.ContentRootPath, "wwwroot");
+            return Directory.Exists(webRootPath) ? webRootPath : null;
+        }
+
+        private async Task<EmailSenderProfile> ResolveSenderProfileAsync(EmailSetting setting, EmailTemplate template, int? senderEmployeeId)
+        {
+            var fallbackProfile = ResolveSenderProfile(setting, template);
+            var senderEmployee = await ResolveSenderEmployeeAsync(senderEmployeeId);
+            if (senderEmployee == null || senderEmployee.Id <= 0)
+            {
+                return fallbackProfile;
+            }
+
+            var senderEmail = GetPreferredEmail(senderEmployee);
+            if (string.IsNullOrWhiteSpace(senderEmail))
+            {
+                return fallbackProfile;
+            }
+
+            return new EmailSenderProfile
+            {
+                SenderType = fallbackProfile.SenderType,
+                Email = senderEmail,
+                Name = FirstNonEmpty(senderEmployee.FullName, senderEmployee.UserName, fallbackProfile.Name),
+                Signature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(
+                    FirstNonEmpty(senderEmployee.MailSignature, fallbackProfile.Signature))
+            };
+        }
+
+        private static EmailSenderProfile ResolveSenderProfile(EmailSetting setting, EmailTemplate template)
+        {
+            var hrProfile = new EmailSenderProfile
+            {
+                SenderType = EmailSenderTypes.Hr,
+                Email = FirstValidEmail(setting.HrFromEmail, setting.FromEmail, setting.SmtpUser),
+                Name = FirstNonEmpty(setting.HrFromName, setting.FromName),
+                Signature = FirstNonEmpty(setting.HrSignature)
+            };
+
+            var employeeProfile = new EmailSenderProfile
+            {
+                SenderType = EmailSenderTypes.Employee,
+                Email = FirstValidEmail(setting.EmployeeFromEmail, setting.FromEmail, setting.HrFromEmail, setting.SmtpUser),
+                Name = FirstNonEmpty(setting.EmployeeFromName, setting.FromName, setting.HrFromName),
+                Signature = FirstNonEmpty(setting.EmployeeSignature, setting.HrSignature)
+            };
+
+            var requestedSenderType = EmailSenderTypes.Normalize(template.SenderType);
+            var selectedProfile = requestedSenderType == EmailSenderTypes.Employee ? employeeProfile : hrProfile;
+            var fallbackProfile = requestedSenderType == EmailSenderTypes.Employee ? hrProfile : employeeProfile;
+
+            return new EmailSenderProfile
+            {
+                SenderType = requestedSenderType,
+                Email = FirstValidEmail(selectedProfile.Email, fallbackProfile.Email, setting.FromEmail, setting.SmtpUser),
+                Name = FirstNonEmpty(selectedProfile.Name, fallbackProfile.Name, setting.FromName),
+                Signature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(
+                    FirstNonEmpty(selectedProfile.Signature, fallbackProfile.Signature))
+            };
+        }
+
+        private async Task<Employee?> ResolveSenderEmployeeAsync(int? senderEmployeeId)
+        {
+            var effectiveUserId = senderEmployeeId.GetValueOrDefault();
+            if (effectiveUserId <= 0)
+            {
+                effectiveUserId = ResolveCurrentUserId();
+            }
+
+            if (effectiveUserId <= 0)
+            {
+                return null;
+            }
+
+            var employee = await _unitOfWork.EmployeeRep.GetById(effectiveUserId);
+            return employee != null && employee.Id > 0 ? employee : null;
+        }
+
+        private int ResolveCurrentUserId()
+        {
+            var identity = _httpContextAccessor.HttpContext?.User?.Identity as ClaimsIdentity;
+            var userIdText = identity?.Claims.FirstOrDefault(x => x.Type == "userId")?.Value;
+            return int.TryParse(userIdText, out var userId) ? userId : 0;
+        }
+
+        private static string? FirstNonEmpty(params string?[] values)
+        {
+            foreach (var value in values)
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    return value.Trim();
+                }
             }
 
             return null;
         }
 
-        private static bool IsSameEmail(string? left, string? right)
+        private static string? FirstValidEmail(params string?[] values)
         {
-            if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
+            foreach (var value in values)
             {
-                return false;
+                var normalized = NormalizeEmail(value);
+                if (!string.IsNullOrWhiteSpace(normalized))
+                {
+                    return normalized;
+                }
             }
 
-            return string.Equals(left.Trim(), right.Trim(), StringComparison.OrdinalIgnoreCase);
+            return null;
+        }
+
+        private static MailboxAddress BuildEnvelopeSender(EmailSetting setting, EmailSenderProfile senderProfile)
+        {
+            var envelopeEmail = FirstValidEmail(setting.SmtpUser, setting.FromEmail, setting.HrFromEmail, senderProfile.Email)
+                ?? senderProfile.Email
+                ?? string.Empty;
+
+            return new MailboxAddress(string.Empty, envelopeEmail);
+        }
+
+        private static SecureSocketOptions ResolveSocketOptions(EmailSetting setting)
+        {
+            if (!setting.EnableSsl)
+            {
+                return SecureSocketOptions.None;
+            }
+
+            if (setting.SmtpPort == 465)
+            {
+                return SecureSocketOptions.SslOnConnect;
+            }
+
+            return SecureSocketOptions.StartTls;
+        }
+
+        private static (bool Success, string? Error) BuildError(string prefix, Exception ex)
+        {
+            var errorMessage = $"{prefix}: {ex.Message}";
+            if (!string.IsNullOrWhiteSpace(ex.InnerException?.Message))
+            {
+                errorMessage += $" | Inner: {ex.InnerException.Message}";
+            }
+
+            return (false, errorMessage);
         }
 
         private static string? GetPreferredEmail(Employee employee)
@@ -168,17 +609,38 @@ namespace VS.Human.Business
                 return null;
             }
 
-            if (!string.IsNullOrWhiteSpace(employee.Email))
+            var companyEmail = NormalizeEmail(employee.Email);
+            if (!string.IsNullOrWhiteSpace(companyEmail))
             {
-                return employee.Email;
+                return companyEmail;
             }
 
-            if (!string.IsNullOrWhiteSpace(employee.PersonalEmail))
+            var personalEmail = NormalizeEmail(employee.PersonalEmail);
+            if (!string.IsNullOrWhiteSpace(personalEmail))
             {
-                return employee.PersonalEmail;
+                return personalEmail;
             }
 
             return null;
+        }
+
+        private static string? NormalizeEmail(string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return null;
+            }
+
+            var trimmed = email.Trim();
+            return MailboxAddress.TryParse(trimmed, out var mailbox) ? mailbox.Address : null;
+        }
+
+        private sealed class EmailSenderProfile
+        {
+            public string SenderType { get; set; } = EmailSenderTypes.Hr;
+            public string? Email { get; set; }
+            public string? Name { get; set; }
+            public string? Signature { get; set; }
         }
     }
 }

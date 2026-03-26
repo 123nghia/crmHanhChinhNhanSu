@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
+using System.Linq;
 using VS.Human.Business;
 using VS.Human.Business.Model;
 using VS.Human.Item;
@@ -51,13 +52,35 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.BadRequest(errors);
             }
 
-            var canEdit = (Permision != null && (Permision.Add == true || Permision.Edit == true)) || (UserData?.RoleCode != "CANDIDATE" && UserData?.RoleCode != null);
+            var canEdit = (Permision != null && (Permision.Add == true || Permision.Edit == true)) || CanManageRecruitmentData();
             if (!canEdit)
             {
                 return ApiResponseHelper.Error("Không có quyền thực hiện thao tác này", StatusCodes.Status403Forbidden);
             }
 
             var userId = UserData?.UserId ?? 0;
+            var roleCode = UserData?.RoleCode;
+            if (request.RelId <= 0 || !await _candidateBusiness.HasManageAccess(request.RelId, userId, roleCode))
+            {
+                return ApiResponseHelper.Error("Khong co quyen tao hoac cap nhat lich cho ung vien nay", StatusCodes.Status403Forbidden);
+            }
+
+            if (request.Id > 0)
+            {
+                var existingSchedule = await _scheduleInterviewBussiness.GetById(request.Id);
+                if (existingSchedule == null || existingSchedule.Id <= 0)
+                {
+                    return ApiResponseHelper.Error("Khong tim thay lich phong van", StatusCodes.Status404NotFound);
+                }
+
+                if (!await _candidateBusiness.HasManageAccess(existingSchedule.RelId, userId, roleCode))
+                {
+                    return ApiResponseHelper.Error("Khong co quyen cap nhat lich phong van nay", StatusCodes.Status403Forbidden);
+                }
+
+                request.RelId = existingSchedule.RelId;
+            }
+
             var itemInsert = new ScheduleInterviewAdd()
             {
                 Id = request.Id,
@@ -71,6 +94,7 @@ namespace crmHuman.Pages
                 InterviewerId = request.InterviewerId,
                 InterviewMode = request.InterviewMode,
                 InterviewResult = request.InterviewResult,
+                SendEmail = request.SendEmail,
                 CreatedBy = userId,
                 UpdatedBy = userId
             };
@@ -109,8 +133,8 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.Error("Thiếu thông tin lịch phỏng vấn");
             }
 
-            var isAdmin = UserData?.RoleCode == "1";
-            if (!isAdmin)
+            var userId = UserData?.UserId ?? 0;
+            if (!await _scheduleInterviewBussiness.HasManageAccess(Id, userId, UserData?.RoleCode))
             {
                 return ApiResponseHelper.Error("Không có quyền xóa lịch phỏng vấn", StatusCodes.Status403Forbidden);
             }
@@ -138,14 +162,14 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.Error("Không tìm thấy lịch phỏng vấn");
             }
 
-            var isAdmin = UserData?.RoleCode == "1";
+            var userId = UserData?.UserId ?? 0;
+            var canManage = await _scheduleInterviewBussiness.HasManageAccess(Id, userId, UserData?.RoleCode);
             var isInterviewer = UserData != null && UserData.UserId == scheduleItem.InterviewerId;
-            if (!isAdmin && !isInterviewer)
+            if (!canManage && !isInterviewer)
             {
                 return ApiResponseHelper.Error("Không có quyền cập nhật kết quả", StatusCodes.Status403Forbidden);
             }
 
-            var userId = UserData?.UserId ?? 0;
             var updateItem = new ScheduleInterviewAdd()
             {
                 Id = scheduleItem.Id,
@@ -231,6 +255,8 @@ namespace crmHuman.Pages
 
                 var candidateList = await _candidateBusiness.GetAll(new CandidateRequest()
                 {
+                    UserId = UserData?.UserId,
+                    RoleCode = UserData?.RoleCode,
                     LoadAll = 1,
                     Page = 1,
                     Limit = 1000
@@ -418,37 +444,44 @@ namespace crmHuman.Pages
 
             CandidateList = await _candidateBusiness.GetAll(new CandidateRequest()
             {
+                UserId = UserData?.UserId,
+                RoleCode = UserData?.RoleCode,
                 LoadAll = 1,
                 Page = 1,
                 Limit = 1000
             });
-            InterviewerList = await _empBusiness.GetAll(new EmployeeRequest()
-            {
-                Page = 1,
-                Limit = 1000,
-                Status = 1
-            });
+            InterviewerList = await BuildInterviewerListAsync();
 
             return Page();
         }
 
         private void ApplyInterviewScope(ScheduleInterviewRquest request)
         {
-            var roleCode = UserData?.RoleCode ?? string.Empty;
             var userId = UserData?.UserId ?? 0;
 
             if (userId > 0)
             {
                 request.UserId = userId;
             }
+        }
 
-            var hasFullScope = roleCode == "1" || roleCode == "2" || roleCode == "4" || roleCode == "8";
-            var hasGroupScope = roleCode == "3" || roleCode == "6";
-
-            if (!hasFullScope && !hasGroupScope && userId > 0)
+        private async Task<BaseList> BuildInterviewerListAsync()
+        {
+            var interviewers = await _empBusiness.GetByRoleCodes(new[] { "1", "3", "6", "8", "9" });
+            return new BaseList
             {
-                request.InterviewerId = userId;
-            }
+                Total = interviewers.Count,
+                Data = interviewers
+                    .Where(x => x != null && x.Id > 0 && !string.IsNullOrWhiteSpace(x.FullName))
+                    .OrderBy(x => x.FullName)
+                    .ToList()
+            };
+        }
+
+        private bool CanManageRecruitmentData()
+        {
+            var roleCode = UserData?.RoleCode ?? string.Empty;
+            return roleCode == "1" || roleCode == "3" || roleCode == "6" || roleCode == "8" || roleCode == "9";
         }
     }
 }

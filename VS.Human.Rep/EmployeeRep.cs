@@ -1,6 +1,7 @@
 using Dapper;
 using Microsoft.Extensions.Configuration;
 using System.Data;
+using System.Linq;
 using VS.Human.Item;
 using VS.Human.Rep.Model;
 
@@ -21,7 +22,7 @@ namespace VS.Human.Rep
             using (var con = GetConnection())
             {
                 var sql = @"
-                    SELECT TOP 1 d.*, gm.GroupId
+                    SELECT TOP 1 d.*, dbo.getDisplayMasterData(d.StatusWork) AS StatusWorkText, gm.GroupId
                     FROM Employees d
                     OUTER APPLY (
                         SELECT TOP 1 GroupId
@@ -195,6 +196,27 @@ namespace VS.Human.Rep
             var result = await GetDataList<Employee>(sql);
             return result ?? new List<Employee>();
         }
+
+        public async Task<List<Employee>> GetByRoleCodes(IEnumerable<string> roleCodes)
+        {
+            var codes = roleCodes?
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Select(code => code.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (codes == null || codes.Count == 0)
+            {
+                return new List<Employee>();
+            }
+
+            using (var con = GetConnection())
+            {
+                var sql = "SELECT * FROM Employees WHERE RoleCode IN @roleCodes AND ISNULL(Deleted,0)=0";
+                var result = await con.QueryAsync<Employee>(sql, new { roleCodes = codes });
+                return result?.ToList() ?? new List<Employee>();
+            }
+        }
         public async Task<bool> ChangePassword(string password, int id)
         {
             var parameter = new
@@ -230,6 +252,23 @@ namespace VS.Human.Rep
             {
                 id,
                 avatarFile,
+                updatedBy
+            });
+        }
+
+        public async Task<bool> UpdateMailSignature(int id, string? mailSignature, int updatedBy)
+        {
+            var sql = @"
+                UPDATE Employees
+                SET MailSignature = @mailSignature,
+                    UpdatedBy = @updatedBy,
+                    UpdateAt = GETDATE()
+                WHERE Id = @id AND ISNULL(Deleted, 0) = 0";
+
+            return await ExecuteSQL(sql, new
+            {
+                id,
+                mailSignature,
                 updatedBy
             });
         }
@@ -320,21 +359,92 @@ namespace VS.Human.Rep
         /// </summary>
         public async Task<List<EmployeeExtendedModel>> ExecuteExport(EmployeeRequest request)
         {
-            var dbParams = new
+            return await ExecuteSQL<EmployeeExtendedModel>(
+                BuildEmployeeExtendedSql(includePaging: false),
+                BuildEmployeeExtendedTextParams(request),
+                System.Data.CommandType.Text);
+        }
+
+        public async Task<BaseList> GetAllExtended(EmployeeRequest request)
+        {
+            var page = request.Page;
+            var limit = request.Limit;
+            ProcessInputPaging(ref page, ref limit, out var offset);
+
+            if (!await EmployeeExtendedProcedureSupportsRoleCodeAsync())
+            {
+                var fallbackData = await ExecuteSQL<EmployeeExtendedModel>(
+                    BuildEmployeeExtendedSql(includePaging: true),
+                    BuildEmployeeExtendedTextParams(request, offset, limit),
+                    System.Data.CommandType.Text);
+
+                return new BaseList
+                {
+                    Total = fallbackData.FirstOrDefault()?.TotalRecord ?? 0,
+                    Data = fallbackData
+                };
+            }
+
+            var result = await this.GetBaseAll<EmployeeExtendedModel>(request,
+            new
+            {
+                offset,
+                limit,
+                fromDate = request.From,
+                toDate = request.To,
+                request.Status,
+                request.StatusWork,
+                request.DocumentStatus,
+                request.Token,
+                request.GroupId,
+                request.MemberId,
+                request.RoleCode,
+                IsDeleted = request.IsDeleted ?? false,
+                UserId = request.UserId,
+                OrderBy = request.OrderBy
+            }, sqlPro: "sp_Employee_getAll_Extended");
+            return result;
+        }
+
+        private async Task<bool> EmployeeExtendedProcedureSupportsRoleCodeAsync()
+        {
+            using var con = GetConnection();
+            const string sql = @"
+SELECT COUNT(1)
+FROM sys.parameters
+WHERE object_id = OBJECT_ID('dbo.sp_Employee_getAll_Extended')
+  AND name = '@RoleCode';";
+
+            var count = await con.ExecuteScalarAsync<int>(sql);
+            return count > 0;
+        }
+
+        private static object BuildEmployeeExtendedTextParams(EmployeeRequest request, int? offset = null, int? limit = null)
+        {
+            return new
             {
                 Token = (request.Token ?? string.Empty).Trim(),
                 UserId = request.UserId ?? -1,
+                RoleCode = (request.RoleCode ?? string.Empty).Trim(),
                 GroupId = request.GroupId ?? -1,
                 Status = request.Status ?? -1,
                 StatusWork = request.StatusWork,
                 DocumentStatus = request.DocumentStatus,
                 fromDate = request.From,
-                toDate = request.To
+                toDate = request.To,
+                offset = offset ?? 0,
+                limit = limit ?? (request.Limit > 0 ? request.Limit : 10)
             };
+        }
 
-            var sql = @"
+        private static string BuildEmployeeExtendedSql(bool includePaging)
+        {
+            var selectPrefix = includePaging ? "COUNT(d.Id) OVER() AS TotalRecord,\n        " : string.Empty;
+            var pagingClause = includePaging ? "\n    OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY" : string.Empty;
+
+            return $@"
     SELECT 
-        d.*, 
+        {selectPrefix}d.*, 
         dbo.getDisplayMasterData(d.Status) AS StatusText,
         dbo.getDisplayMasterData(d.StatusWork) AS StatusWorkText,
         dbo.getDisplayMasterData(d.DocumentStatus) AS DocumentStatusText,
@@ -368,24 +478,20 @@ namespace VS.Human.Rep
         gm.GroupId,
         g.Name AS GroupName,
         
-        -- HDLD (Join by Id because UserId in HDLD is 1079, not 001079)
         (SELECT TOP 1 NoAgree FROM hdldItem h WHERE h.UserId = CAST(d.Id AS NVARCHAR(50)) AND ISNULL(h.Deleted,0)=0 ORDER BY h.Start DESC, h.Id DESC) as HD_SoHD,
         (SELECT TOP 1 Start FROM hdldItem h WHERE h.UserId = CAST(d.Id AS NVARCHAR(50)) AND ISNULL(h.Deleted,0)=0 ORDER BY h.Start DESC, h.Id DESC) as HD_NgayBatDau,
         (SELECT TOP 1 [End] FROM hdldItem h WHERE h.UserId = CAST(d.Id AS NVARCHAR(50)) AND ISNULL(h.Deleted,0)=0 ORDER BY h.Start DESC, h.Id DESC) as HD_NgayKetThuc,
         (SELECT TOP 1 dbo.getDisplayMasterData(CodeId) FROM hdldItem h WHERE h.UserId = CAST(d.Id AS NVARCHAR(50)) AND ISNULL(h.Deleted,0)=0 ORDER BY h.Start DESC, h.Id DESC) as HD_LoaiHD,
 
-        -- Tax (Trim spaces just in case)
         (SELECT TOP 1 Number FROM TaxItem t WHERE t.UserName = d.UserName AND ISNULL(t.Deleted,0)=0 ORDER BY t.Id DESC) as Tax_MST,
         (SELECT TOP 1 PITDate FROM TaxItem t WHERE t.UserName = d.UserName AND ISNULL(t.Deleted,0)=0 ORDER BY t.Id DESC) as Tax_NgayCap,
         (SELECT TOP 1 EffectedFrom FROM TaxItem t WHERE t.UserName = d.UserName AND ISNULL(t.Deleted,0)=0 ORDER BY t.Id DESC) as Tax_NgayHieuLuc,
         (SELECT TOP 1 Dependent FROM TaxItem t WHERE t.UserName = d.UserName AND ISNULL(t.Deleted,0)=0 ORDER BY t.Id DESC) as Tax_NguoiPhuThuoc,
 
-        -- BHXH
         (SELECT TOP 1 NumberCode FROM BHXHItem b WHERE b.UserName = d.UserName AND ISNULL(b.Deleted,0)=0 ORDER BY b.Id DESC) as BHXH_SoSo,
         (SELECT TOP 1 RegBHYT FROM BHXHItem b WHERE b.UserName = d.UserName AND ISNULL(b.Deleted,0)=0 ORDER BY b.Id DESC) as BHXH_NoiDangKy,
         (SELECT TOP 1 StartMonth FROM BHXHItem b WHERE b.UserName = d.UserName AND ISNULL(b.Deleted,0)=0 ORDER BY b.Id DESC) as BHXH_ThangBatDau,
 
-        -- Relation
         (SELECT TOP 1 Name FROM RelationItem r WHERE r.UserName = d.UserName AND ISNULL(r.Deleted,0)=0 ORDER BY r.Id DESC) as RelationName,
         (SELECT TOP 1 Relationcode FROM RelationItem r WHERE r.UserName = d.UserName AND ISNULL(r.Deleted,0)=0 ORDER BY r.Id DESC) as RelationCode,
         (SELECT TOP 1 dbo.getDisplayMasterData(Relationcode) FROM RelationItem r WHERE r.UserName = d.UserName AND ISNULL(r.Deleted,0)=0 ORDER BY r.Id DESC) as RelationText,
@@ -403,38 +509,15 @@ namespace VS.Human.Rep
       AND (@DocumentStatus IS NULL OR @DocumentStatus = '' OR @DocumentStatus = '-1' OR d.DocumentStatus = @DocumentStatus)
       AND (@fromDate IS NULL OR d.CreateAt >= @fromDate)
       AND (@toDate IS NULL OR d.CreateAt <= @toDate)
-      AND (@UserId <= 0 OR d.Id IN (SELECT Id FROM getAllUserByUserId(@UserId)))
-      AND (@UserId <= 0 OR d.Id <> @UserId)
-    ORDER BY d.UpdateAt DESC
-            ";
-            
-            return await ExecuteSQL<EmployeeExtendedModel>(sql, dbParams, System.Data.CommandType.Text);
-        }
-
-        public async Task<BaseList> GetAllExtended(EmployeeRequest request)
-        {
-            var page = request.Page;
-            var limit = request.Limit;
-            ProcessInputPaging(ref page, ref limit, out var offset);
-
-            var result = await this.GetBaseAll<EmployeeExtendedModel>(request,
-            new
-            {
-                offset,
-                limit,
-                fromDate = request.From,
-                toDate = request.To,
-                request.Status,
-                request.StatusWork,
-                request.DocumentStatus,
-                request.Token,
-                request.GroupId,
-                request.MemberId,
-                IsDeleted = request.IsDeleted ?? false,
-                UserId = request.UserId,
-                OrderBy = request.OrderBy
-            }, sqlPro: "sp_Employee_getAll_Extended");
-            return result;
+      AND (
+            @UserId <= 0
+            OR @RoleCode IN ('1', '8', '9')
+            OR (
+                d.Id IN (SELECT Id FROM getAllUserByUserId(@UserId))
+                AND d.Id <> @UserId
+            )
+          )
+    ORDER BY d.UpdateAt DESC{pagingClause}";
         }
 
         public async Task<BaseList> GetAllManager(int leadGroup = -1)

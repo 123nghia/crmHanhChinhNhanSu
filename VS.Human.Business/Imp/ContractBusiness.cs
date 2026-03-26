@@ -91,7 +91,7 @@ namespace VS.Human.Business.Imp
             return true;
         }
 
-        public async Task<bool> SignInternal(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod)
+        public async Task<bool> SignInternal(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod, string? signedByUserNameSnapshot, string? signedByFullNameSnapshot, string? signedIpAddress, string? signedUserAgent, string? signedFileArchivePath, string? signatureImagePath, string? signatureIntentText, DateTime? termsAcceptedAt)
         {
             var current = await _unitOfWork.ContractRep.GetById(contractId);
             if (current == null || current.Id <= 0)
@@ -109,7 +109,7 @@ namespace VS.Human.Business.Imp
                 return false;
             }
 
-            var signed = await _unitOfWork.ContractRep.SignInternal(contractId, signedBy, signedAt, signatureHash, fileHash, signNote, signMethod);
+            var signed = await _unitOfWork.ContractRep.SignInternal(contractId, signedBy, signedAt, signatureHash, fileHash, signNote, signMethod, signedByUserNameSnapshot, signedByFullNameSnapshot, signedIpAddress, signedUserAgent, signedFileArchivePath, signatureImagePath, signatureIntentText, termsAcceptedAt);
             if (!signed)
             {
                 return false;
@@ -122,6 +122,14 @@ namespace VS.Human.Business.Imp
             current.FileHash = fileHash;
             current.SignNote = signNote;
             current.SignMethod = signMethod;
+            current.SignedByUserNameSnapshot = signedByUserNameSnapshot;
+            current.SignedByFullNameSnapshot = signedByFullNameSnapshot;
+            current.SignedIpAddress = signedIpAddress;
+            current.SignedUserAgent = signedUserAgent;
+            current.SignedFileArchivePath = signedFileArchivePath;
+            current.SignatureImagePath = signatureImagePath;
+            current.SignatureIntentText = signatureIntentText;
+            current.TermsAcceptedAt = termsAcceptedAt;
             current.UpdatedBy = signedBy;
 
             var history = BuildHistory(current, "SIGN_INTERNAL", signedBy);
@@ -129,7 +137,7 @@ namespace VS.Human.Business.Imp
             return true;
         }
 
-        public async Task<bool> SignInternalHr(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod)
+        public async Task<bool> SignInternalHr(int contractId, int signedBy, DateTime signedAt, string signatureHash, string fileHash, string? signNote, string signMethod, string? hrSignedByUserNameSnapshot, string? hrSignedByFullNameSnapshot, string? hrSignedIpAddress, string? hrSignedUserAgent)
         {
             var current = await _unitOfWork.ContractRep.GetById(contractId);
             if (current == null || current.Id <= 0)
@@ -142,7 +150,7 @@ namespace VS.Human.Business.Imp
                 return false;
             }
 
-            var signed = await _unitOfWork.ContractRep.SignInternalHr(contractId, signedBy, signedAt, signatureHash, fileHash, signNote, signMethod);
+            var signed = await _unitOfWork.ContractRep.SignInternalHr(contractId, signedBy, signedAt, signatureHash, fileHash, signNote, signMethod, hrSignedByUserNameSnapshot, hrSignedByFullNameSnapshot, hrSignedIpAddress, hrSignedUserAgent);
             if (!signed)
             {
                 return false;
@@ -155,11 +163,20 @@ namespace VS.Human.Business.Imp
             current.HrFileHash = fileHash;
             current.HrSignNote = signNote;
             current.HrSignMethod = signMethod;
+            current.HrSignedByUserNameSnapshot = hrSignedByUserNameSnapshot;
+            current.HrSignedByFullNameSnapshot = hrSignedByFullNameSnapshot;
+            current.HrSignedIpAddress = hrSignedIpAddress;
+            current.HrSignedUserAgent = hrSignedUserAgent;
             current.UpdatedBy = signedBy;
 
             var history = BuildHistory(current, "SIGN_INTERNAL_HR", signedBy);
             await _unitOfWork.ContractRep.AddHistory(history);
             return true;
+        }
+
+        public async Task<bool> SetOriginalFileHash(int contractId, string hash)
+        {
+            return await _unitOfWork.ContractRep.SetOriginalFileHash(contractId, hash);
         }
 
         public async Task<List<ContractHistory>> GetHistory(int contractId)
@@ -197,6 +214,10 @@ namespace VS.Human.Business.Imp
                 HrFileHash = contract.HrFileHash,
                 HrSignNote = contract.HrSignNote,
                 HrSignMethod = contract.HrSignMethod,
+                HrSignedIpAddress = contract.HrSignedIpAddress,
+                HrSignedUserAgent = contract.HrSignedUserAgent,
+                HrSignedByUserNameSnapshot = contract.HrSignedByUserNameSnapshot,
+                HrSignedByFullNameSnapshot = contract.HrSignedByFullNameSnapshot,
                 IsSignedInternal = contract.IsSignedInternal,
                 SignedAt = contract.SignedAt,
                 SignedBy = contract.SignedBy,
@@ -204,6 +225,14 @@ namespace VS.Human.Business.Imp
                 FileHash = contract.FileHash,
                 SignNote = contract.SignNote,
                 SignMethod = contract.SignMethod,
+                SignedIpAddress = contract.SignedIpAddress,
+                SignedUserAgent = contract.SignedUserAgent,
+                SignedFileArchivePath = contract.SignedFileArchivePath,
+                SignatureImagePath = contract.SignatureImagePath,
+                SignatureIntentText = contract.SignatureIntentText,
+                SignedByUserNameSnapshot = contract.SignedByUserNameSnapshot,
+                SignedByFullNameSnapshot = contract.SignedByFullNameSnapshot,
+                TermsAcceptedAt = contract.TermsAcceptedAt,
                 CreatedBy = userId
             };
         }

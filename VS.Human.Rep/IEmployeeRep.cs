@@ -10,6 +10,7 @@ namespace VS.Human.Rep
         Task<bool> ChangePassword(string password, int id);
         Task<bool> UpdateCredentials(int id, string userName, string password);
         Task<bool> UpdateAvatar(int id, string avatarFile, int updatedBy);
+        Task<bool> UpdateMailSignature(int id, string? mailSignature, int updatedBy);
 
         Task<bool> Delete(int id, bool reactive = false);
         Task<Employee> GetById(int id);
@@ -18,6 +19,7 @@ namespace VS.Human.Rep
         Task<Employee?> GetByFingerprintCode(string fingerprintCode);
         Task<Employee> GetLastByEmailOrPhone(string email, string phone);
         Task<List<Employee>> GetDuplicateSeeds();
+        Task<List<Employee>> GetByRoleCodes(IEnumerable<string> roleCodes);
         Task<BaseList> GetAll(EmployeeRequest id);
         Task<BaseList> GetAllExtended(EmployeeRequest request);
         Task<List<EmployeeExtendedModel>> ExecuteExport(EmployeeRequest request);

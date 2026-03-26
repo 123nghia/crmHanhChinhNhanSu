@@ -3,35 +3,72 @@
     var canSignHr = Model.CanSignHr != null && (bool)Model.CanSignHr;
     var canSignEmployee = Model.CanSignEmployee != null && (bool)Model.CanSignEmployee;
     var isHrSigned = contract != null && contract.IsHrSigned == true;
-    var canShowForm = (canSignHr && !isHrSigned) || (canSignEmployee && isHrSigned);
-    var signedAtText = "";
+    var isSignedInternal = contract != null && contract.IsSignedInternal == true;
+    var canShowForm = (canSignHr && !isHrSigned) || (canSignEmployee && isHrSigned && !isSignedInternal);
+
+    var signedAtText = string.Empty;
     if (contract != null && contract.SignedAt != null)
     {
         signedAtText = contract.SignedAt.ToString("dd/MM/yyyy HH:mm");
     }
-    var signerDisplay = "";
-    if (contract != null && !string.IsNullOrWhiteSpace(contract.SignedByUserName))
+
+    var signerDisplay = string.Empty;
+    if (contract != null)
     {
-        signerDisplay = contract.SignedByUserName;
-        if (!string.IsNullOrWhiteSpace(contract.SignedByFullName))
+        if (!string.IsNullOrWhiteSpace((string?)contract.SignedByUserNameSnapshot))
         {
-            signerDisplay += " - " + contract.SignedByFullName;
+            signerDisplay = contract.SignedByUserNameSnapshot;
+            if (!string.IsNullOrWhiteSpace((string?)contract.SignedByFullNameSnapshot))
+            {
+                signerDisplay += " - " + contract.SignedByFullNameSnapshot;
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace((string?)contract.SignedByUserName))
+        {
+            signerDisplay = contract.SignedByUserName;
+            if (!string.IsNullOrWhiteSpace((string?)contract.SignedByFullName))
+            {
+                signerDisplay += " - " + contract.SignedByFullName;
+            }
         }
     }
-    var hrSignedAtText = "";
+
+    var hrSignedAtText = string.Empty;
     if (contract != null && contract.HrSignedAt != null)
     {
         hrSignedAtText = contract.HrSignedAt.ToString("dd/MM/yyyy HH:mm");
     }
-    var hrSignerDisplay = "";
-    if (contract != null && !string.IsNullOrWhiteSpace(contract.HrSignedByUserName))
+
+    var hrSignerDisplay = string.Empty;
+    if (contract != null)
     {
-        hrSignerDisplay = contract.HrSignedByUserName;
-        if (!string.IsNullOrWhiteSpace(contract.HrSignedByFullName))
+        if (!string.IsNullOrWhiteSpace((string?)contract.HrSignedByUserNameSnapshot))
         {
-            hrSignerDisplay += " - " + contract.HrSignedByFullName;
+            hrSignerDisplay = contract.HrSignedByUserNameSnapshot;
+            if (!string.IsNullOrWhiteSpace((string?)contract.HrSignedByFullNameSnapshot))
+            {
+                hrSignerDisplay += " - " + contract.HrSignedByFullNameSnapshot;
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace((string?)contract.HrSignedByUserName))
+        {
+            hrSignerDisplay = contract.HrSignedByUserName;
+            if (!string.IsNullOrWhiteSpace((string?)contract.HrSignedByFullName))
+            {
+                hrSignerDisplay += " - " + contract.HrSignedByFullName;
+            }
         }
     }
+
+    var signedIpAddress = contract?.SignedIpAddress?.ToString() ?? string.Empty;
+    var signedUserAgent = contract?.SignedUserAgent?.ToString() ?? string.Empty;
+    var signedFileArchivePath = contract?.SignedFileArchivePath?.ToString() ?? string.Empty;
+    var signatureImagePath = contract?.SignatureImagePath?.ToString() ?? string.Empty;
+    var signatureIntentText = contract?.SignatureIntentText?.ToString() ?? string.Empty;
+
+    var hrSignedIpAddress = contract?.HrSignedIpAddress?.ToString() ?? string.Empty;
+    var hrSignedUserAgent = contract?.HrSignedUserAgent?.ToString() ?? string.Empty;
+
     var dialogTitle = "Thong tin ky hop dong";
     if (canSignHr && !isHrSigned)
     {
@@ -51,12 +88,12 @@
 <div class="modal-body">
     @if (contract == null || contract.Id < 1)
     {
-        <div class="alert alert-danger mb-0">Không tìm thấy hợp đồng.</div>
+        <div class="alert alert-danger mb-0">Khong tim thay hop dong.</div>
     }
-        else if (contract.IsSignedInternal == true)
+    else if (isSignedInternal)
     {
         <div class="alert alert-success">
-            Hop dong da duoc nhan vien ky.
+            Hop dong da duoc nhan vien ky noi bo.
             @if (!string.IsNullOrWhiteSpace(signedAtText))
             {
                 <div class="mt-2">Thoi gian ky: <strong>@signedAtText</strong></div>
@@ -65,7 +102,28 @@
             {
                 <div>Nguoi ky: <strong>@signerDisplay</strong></div>
             }
+            @if (!string.IsNullOrWhiteSpace(signatureIntentText))
+            {
+                <div class="mt-2">Y chi dong y: <strong>@signatureIntentText</strong></div>
+            }
+            @if (!string.IsNullOrWhiteSpace(signedIpAddress))
+            {
+                <div>IP luc ky: <strong>@signedIpAddress</strong></div>
+            }
+            @if (!string.IsNullOrWhiteSpace(signedUserAgent))
+            {
+                <div class="text-break">User-Agent: <strong>@signedUserAgent</strong></div>
+            }
+            @if (!string.IsNullOrWhiteSpace(signedFileArchivePath))
+            {
+                <div class="text-break">Ban sao da ky: <a href="@signedFileArchivePath" target="_blank">Mo file da ky</a></div>
+            }
+            @if (!string.IsNullOrWhiteSpace(signatureImagePath))
+            {
+                <div class="text-break">Anh chu ky: <a href="@signatureImagePath" target="_blank">Mo anh chu ky</a></div>
+            }
         </div>
+
         @if (isHrSigned)
         {
             <div class="alert alert-success mt-2">
@@ -77,6 +135,14 @@
                 @if (!string.IsNullOrWhiteSpace(hrSignerDisplay))
                 {
                     <div>Nguoi ky HR: <strong>@hrSignerDisplay</strong></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(hrSignedIpAddress))
+                {
+                    <div>IP HR luc ky: <strong>@hrSignedIpAddress</strong></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(hrSignedUserAgent))
+                {
+                    <div class="text-break">User-Agent HR: <strong>@hrSignedUserAgent</strong></div>
                 }
             </div>
         }
@@ -95,6 +161,14 @@
                 {
                     <div>Nguoi ky HR: <strong>@hrSignerDisplay</strong></div>
                 }
+                @if (!string.IsNullOrWhiteSpace(hrSignedIpAddress))
+                {
+                    <div>IP HR luc ky: <strong>@hrSignedIpAddress</strong></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(hrSignedUserAgent))
+                {
+                    <div class="text-break">User-Agent HR: <strong>@hrSignedUserAgent</strong></div>
+                }
             </div>
         }
         else
@@ -103,6 +177,7 @@
                 Hop dong chua duoc HR ky.
             </div>
         }
+
         @if (!canShowForm)
         {
             if (!isHrSigned)
@@ -122,9 +197,9 @@
                     <input type="text" class="form-control" value="@($"{contract.UserName} - {contract.FullName}")" readonly />
                 </div>
 
-                <div class="col-12 form-group">
+                <div class="col-12 form-group mt-2">
                     <label class="form-label">File hop dong</label>
-                    @if (!string.IsNullOrWhiteSpace(contract.FileUrl))
+                    @if (!string.IsNullOrWhiteSpace((string?)contract.FileUrl))
                     {
                         <div>
                             <a href="@contract.FileUrl" target="_blank">Mo file hop dong</a>
@@ -136,7 +211,44 @@
                     }
                 </div>
 
-                <div class="col-12 form-group mt-2">
+                @if (canSignEmployee && isHrSigned)
+                {
+                    <div class="alert alert-warning mt-3">
+                        <div class="fw-bold mb-2">Dieu khoan ky hop dong noi bo</div>
+                        <div>Toi xac nhan chinh toi la nguoi ky, da doc, hieu, dong y voi noi dung hop dong va dong y ky dien tu noi bo cho hop dong nay.</div>
+                        <div class="mt-2 small">
+                            He thong se dong dau chu ky len ban archive cua file da ky doi voi PDF va file anh. Cac dinh dang khac se luu kem anh chu ky de truy vet.
+                        </div>
+                    </div>
+
+                    <div class="col-12 form-group mt-3">
+                        <label class="form-label">Chu ky nhan vien <span class="text-danger">*</span></label>
+                        <div class="border rounded bg-white p-2">
+                            <canvas id="contractSignatureCanvas" width="520" height="180" style="width:100%;max-width:100%;border:1px dashed #ced4da;border-radius:8px;touch-action:none;"></canvas>
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearContractSignaturePad()">Xoa chu ky</button>
+                        </div>
+                        <div class="small text-muted mt-1">Nhan vien ky truc tiep tren o ben tren bang chuot, but cam ung hoac ngon tay.</div>
+                        <div class="invalid-feedback-cs"></div>
+                    </div>
+
+                    <div class="form-group form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="cbContractAcceptTerms" />
+                        <label class="form-check-label" for="cbContractAcceptTerms">
+                            Toi da doc, hieu va dong y voi dieu khoan ky noi bo doi voi hop dong nay.
+                        </label>
+                        <div class="invalid-feedback-cs"></div>
+                    </div>
+                }
+                else if (canSignHr && !isHrSigned)
+                {
+                    <div class="alert alert-info mt-3">
+                        HR xac nhan ky noi bo cho hop dong nay bang tai khoan va mat khau dang nhap hien tai.
+                    </div>
+                }
+
+                <div class="col-12 form-group mt-3">
                     <label class="form-label">Ma ky noi bo (tuy chon)</label>
                     <input type="text" id="txtSignatureCode" class="form-control" maxlength="100" placeholder="VD: TOI_DONG_Y_KY_HOP_DONG" />
                 </div>
@@ -170,5 +282,3 @@
         }
     }
 </div>
-
-

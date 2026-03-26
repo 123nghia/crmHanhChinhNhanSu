@@ -1,4 +1,5 @@
 ﻿using crmHuman.DisplayModel;
+using crmHuman.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VS.Human.Business;
@@ -67,6 +68,13 @@ namespace crmHuman.Pages
         public async Task<IActionResult> OnPostAdd
             (CandidateAdd request)
         {
+            GetInfoUser();
+            var canEdit = (Permision != null && (Permision.Add == true || Permision.Edit == true)) || CanManageRecruitmentData();
+            if (!canEdit)
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
             var listEror = new List<object>();
             if (string.IsNullOrEmpty(request.Name))
             {
@@ -102,7 +110,14 @@ namespace crmHuman.Pages
                 if (result)
                 {
                     // Get the newly created candidate to find their ID
-                    var candidates = await _empBusiness.GetAll(new CandidateRequest { Token = request.Phone, Page = 1, Limit = 1 });
+                    var candidates = await _empBusiness.GetAll(new CandidateRequest
+                    {
+                        Token = request.Phone,
+                        UserId = UserData.UserId,
+                        RoleCode = UserData.RoleCode,
+                        Page = 1,
+                        Limit = 1
+                    });
                     if (candidates?.Data != null)
                     {
                         foreach (var c in candidates.Data)
@@ -181,6 +196,7 @@ namespace crmHuman.Pages
         {
             RequestSearch = request2;
             request2.UserId = UserData.UserId;
+            request2.RoleCode = UserData.RoleCode;
             if (UserData.RoleCode == "1")
             {
                 request2.IsDeleted = true;
@@ -286,8 +302,11 @@ namespace crmHuman.Pages
         public virtual async Task<PartialViewResult> OnGetFormImportCandidate()
 
         {
+            GetInfoUser();
             var dataCandidate = await _empBusiness.GetAll(new CandidateRequest()
             {
+                UserId = UserData.UserId,
+                RoleCode = UserData.RoleCode,
                 IsEmployee = true
             });
             var resultView = new
@@ -300,6 +319,7 @@ namespace crmHuman.Pages
         public async Task<IActionResult> OnPostDelete
       (int Id = -1)
         {
+            GetInfoUser();
 
             var listEror = new List<object>();
 
@@ -319,6 +339,11 @@ namespace crmHuman.Pages
                 {
                     StatusCode = StatusCodes.Status400BadRequest
                 };
+            }
+
+            if (!await _empBusiness.HasManageAccess(Id, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
 
             var result = true;
@@ -340,6 +365,7 @@ namespace crmHuman.Pages
         public async Task<IActionResult> OnPostReactive
      (int Id = -1)
         {
+            GetInfoUser();
 
             var listEror = new List<object>();
 
@@ -359,6 +385,11 @@ namespace crmHuman.Pages
                 {
                     StatusCode = StatusCodes.Status400BadRequest
                 };
+            }
+
+            if (!await _empBusiness.HasManageAccess(Id, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
 
             var result = true;
@@ -381,6 +412,11 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostApprovePass(int Id)
         {
+            GetInfoUser();
+            if (!await _empBusiness.HasManageAccess(Id, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
             if (Id < 0) return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
             var result = await _empBusiness.ApprovePassInterview(Id);
             return new JsonResult(new { success = result }) { StatusCode = StatusCodes.Status200OK };
@@ -388,6 +424,11 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostApprovePending(int Id)
         {
+            GetInfoUser();
+            if (!await _empBusiness.HasManageAccess(Id, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
             if (Id < 0) return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
             var result = await _empBusiness.ApprovePendingEmployee(Id);
             return new JsonResult(new { success = result }) { StatusCode = StatusCodes.Status200OK };
@@ -395,10 +436,21 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostOnboard(int Id)
         {
+            GetInfoUser();
+            if (!await _empBusiness.HasManageAccess(Id, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
             if (Id < 0) return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
             var emp = await _empBusiness.Onboard(Id);
             var result = emp != null;
             return new JsonResult(new { success = result }) { StatusCode = StatusCodes.Status200OK };
+        }
+
+        private bool CanManageRecruitmentData()
+        {
+            var roleCode = UserData?.RoleCode ?? string.Empty;
+            return roleCode == "1" || roleCode == "3" || roleCode == "6" || roleCode == "8" || roleCode == "9";
         }
 
     }

@@ -67,6 +67,16 @@ namespace crmHuman.Services
                         continue;
                     }
                 }
+                else if (!string.IsNullOrWhiteSpace(options.DbSourceError))
+                {
+                    LogRuntimeStateOnce(
+                        "mdb-source-error:" + options.DbSourceError,
+                        LogLevel.Warning,
+                        "Attendance realtime sync skipped because the MDB source could not be prepared. {Message}",
+                        options.DbSourceError);
+                    await Task.Delay(interval, stoppingToken);
+                    continue;
+                }
                 else if (string.IsNullOrWhiteSpace(options.DbPath))
                 {
                     LogRuntimeStateOnce(
@@ -80,10 +90,10 @@ namespace crmHuman.Services
                 if (!options.UseDirectSqlRealtime && !File.Exists(options.DbPath))
                 {
                     LogRuntimeStateOnce(
-                        "missing-db-file:" + options.DbPath,
+                        "missing-db-file:" + (options.DbConfiguredSource ?? options.DbPath),
                         LogLevel.Warning,
                         "Attendance realtime sync skipped because the MDB file was not found: {DbPath}",
-                        options.DbPath);
+                        options.DbConfiguredSource ?? options.DbPath);
                     await Task.Delay(interval, stoppingToken);
                     continue;
                 }
@@ -138,7 +148,7 @@ namespace crmHuman.Services
                         "Attendance realtime sync is running from Access. Device {DeviceIp}:{DevicePort}, MDB {DbPath}, interval {IntervalSeconds}s, lookback {LookbackDays} day(s).",
                         options.DeviceIp ?? "n/a",
                         options.DevicePort,
-                        options.DbPath,
+                        options.DbConfiguredSource ?? options.DbSourceName ?? options.DbPath,
                         options.RealtimeSyncIntervalSeconds,
                         lookbackDays);
                 }
@@ -218,7 +228,25 @@ namespace crmHuman.Services
         {
             var options = new AttendanceMachineOptions();
             _configuration.GetSection("AttendanceMachine").Bind(options);
-            options.DbPath = AttendanceMachinePathResolver.ResolveDbPath(options.DbPath);
+            try
+            {
+                var resolvedSource = AttendanceMachinePathResolver.Resolve(options.DbUrl, options.DbPath);
+                options.DbConfiguredSource = resolvedSource?.ConfiguredSource;
+                options.DbSourceName = resolvedSource?.DisplayName;
+                options.DbPath = resolvedSource?.LocalPath;
+            }
+            catch (Exception ex)
+            {
+                options.DbConfiguredSource = AttendanceMachinePathResolver.ResolveConfiguredSource(
+                    options.DbUrl,
+                    options.DbPath);
+                options.DbSourceError = ex.Message;
+                options.DbPath = null;
+            }
+
+            options.DbUrl = string.IsNullOrWhiteSpace(options.DbUrl)
+                ? null
+                : options.DbUrl.Trim();
             options.DeviceIp = string.IsNullOrWhiteSpace(options.DeviceIp)
                 ? null
                 : options.DeviceIp.Trim();

@@ -171,6 +171,7 @@ namespace crmHuman.Pages
                 InterviewerId = request.InterviewerId,
                 InterviewMode = request.InterviewMode,
                 InterviewResult = request.InterviewResult,
+                SendEmail = request.SendEmail,
                 CreatedBy = userId,
                 UpdatedBy = userId
             };
@@ -814,6 +815,7 @@ namespace crmHuman.Pages
             ResultModel = resultView;
             var dataAllHistory = await _scheduleInterviewBussiness.GetAll(new ScheduleInterviewRquest()
             {
+                UserId = UserData.UserId,
                 RelId = idInput,
                 Type = -1,
                 From = null,

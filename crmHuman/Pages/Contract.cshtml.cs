@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PdfSharpCore.Drawing;
+using PdfSharpCore.Pdf.IO;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,7 +18,8 @@ namespace crmHuman.Pages
     [Authorize]
     public class ContractModel : BaseModel2
     {
-        private const string InternalSignMethod = "INTERNAL_SHA256";
+        private const string HrInternalSignMethod = "HR_CONTRACT_INTERNAL_SHA256";
+        private const string EmployeeInternalSignMethod = "EMPLOYEE_CONTRACT_INTERNAL_SHA256";
         private readonly ILogger<ContractModel> _logger;
         private readonly IContractBusiness _contractBusiness;
         private readonly IEmpBusiness _empBusiness;
@@ -318,6 +323,22 @@ namespace crmHuman.Pages
                 };
             }
 
+            if (!IsPrivilegedSigner())
+            {
+                if (!request.AcceptTerms)
+                {
+                    listError.Add(new { name = "cbContractAcceptTerms", Content = "Ban can chap nhan dieu khoan truoc khi ky" });
+                }
+                if (string.IsNullOrWhiteSpace(request.SignatureDataUrl))
+                {
+                    listError.Add(new { name = "contractSignatureCanvas", Content = "Nhan vien can ve chu ky truoc khi ky hop dong" });
+                }
+                if (listError.Count > 0)
+                {
+                    return new JsonResult(listError) { StatusCode = StatusCodes.Status400BadRequest };
+                }
+            }
+
             var contractFilePath = ResolveContractFilePath(contract.FileUrl);
             if (string.IsNullOrWhiteSpace(contractFilePath) || !global::System.IO.File.Exists(contractFilePath))
             {
@@ -329,8 +350,8 @@ namespace crmHuman.Pages
 
             var fileHash = await ComputeFileSha256Async(contractFilePath);
             var signedAt = DateTime.Now;
-            var signatureHash = ComputeSignatureHash(contract, UserData.UserId, signedAt, fileHash, request.SignatureCode, request.SignNote);
-            var signNote = BuildSignNote(request.SignatureCode, request.SignNote);
+            var signedIpAddress = GetRequestIpAddress();
+            var signedUserAgent = GetRequestUserAgent();
 
             if (IsPrivilegedSigner())
             {
@@ -351,6 +372,22 @@ namespace crmHuman.Pages
                     };
                 }
 
+                var signatureHash = ComputeSignatureHash(
+                    contract,
+                    UserData.UserId,
+                    UserData.UserName,
+                    UserData.FullName,
+                    signedIpAddress,
+                    signedUserAgent,
+                    null,
+                    null,
+                    signedAt,
+                    fileHash,
+                    null,
+                    request.SignatureCode,
+                    request.SignNote);
+                var signNote = BuildSignNote(null, request.SignatureCode, request.SignNote);
+
                 var signed = await _contractBusiness.SignInternalHr(
                     contract.Id,
                     UserData.UserId,
@@ -358,7 +395,11 @@ namespace crmHuman.Pages
                     signatureHash,
                     fileHash,
                     signNote,
-                    InternalSignMethod);
+                    HrInternalSignMethod,
+                    UserData.UserName,
+                    UserData.FullName,
+                    signedIpAddress,
+                    signedUserAgent);
 
                 if (!signed)
                 {
@@ -394,17 +435,56 @@ namespace crmHuman.Pages
                 };
             }
 
+            var signatureImageBytes = DecodeSignatureDataUrl(request.SignatureDataUrl);
+            if (signatureImageBytes == null || signatureImageBytes.Length == 0)
+            {
+                return new JsonResult(new[] { new { name = "contractSignatureCanvas", Content = "Chu ky ve tay khong hop le" } })
+                {
+                    StatusCode = StatusCodes.Status400BadRequest
+                };
+            }
+
+            var signatureImagePath = await SaveSignatureImageAsync(contract, signatureImageBytes, signedAt, fileHash);
+            var signatureImageHash = ComputeSha256(signatureImageBytes);
+            var signedFileArchivePath = await ArchiveSignedContractAsync(contract, contractFilePath, signatureImageBytes, signedAt, fileHash);
+            var signatureIntentText = BuildContractSignatureIntentText();
+            var employeeSignatureHash = ComputeSignatureHash(
+                contract,
+                UserData.UserId,
+                UserData.UserName,
+                UserData.FullName,
+                signedIpAddress,
+                signedUserAgent,
+                signedFileArchivePath,
+                signatureImageHash,
+                signedAt,
+                fileHash,
+                signatureIntentText,
+                request.SignatureCode,
+                request.SignNote);
+            var employeeSignNote = BuildSignNote(signatureIntentText, request.SignatureCode, request.SignNote);
+
             var signedEmployee = await _contractBusiness.SignInternal(
                 contract.Id,
                 UserData.UserId,
                 signedAt,
-                signatureHash,
+                employeeSignatureHash,
                 fileHash,
-                signNote,
-                InternalSignMethod);
+                employeeSignNote,
+                EmployeeInternalSignMethod,
+                UserData.UserName,
+                UserData.FullName,
+                signedIpAddress,
+                signedUserAgent,
+                signedFileArchivePath,
+                signatureImagePath,
+                signatureIntentText,
+                signedAt);
 
             if (!signedEmployee)
             {
+                DeleteArchivedFileIfExists(signedFileArchivePath);
+                DeleteArchivedFileIfExists(signatureImagePath);
                 return new JsonResult(new { success = false, message = "Khong the ky hop dong. Hop dong co the da duoc ky boi nguoi khac." })
                 {
                     StatusCode = StatusCodes.Status409Conflict
@@ -553,15 +633,22 @@ namespace crmHuman.Pages
             return Convert.ToHexString(hashBytes);
         }
 
-        private static string ComputeSignatureHash(ContractEntity contract, int signedBy, DateTime signedAt, string fileHash, string? signatureCode, string? signNote)
+        private static string ComputeSignatureHash(ContractEntity contract, int signedBy, string? signedByUserName, string? signedByFullName, string? signedIpAddress, string? signedUserAgent, string? signedFileArchivePath, string? signatureImageHash, DateTime signedAt, string fileHash, string? signatureIntentText, string? signatureCode, string? signNote)
         {
             var payload = string.Join("|", new[]
             {
                 contract.Id.ToString(),
                 contract.EmployeeId.ToString(),
                 signedBy.ToString(),
+                (signedByUserName ?? string.Empty).Trim(),
+                (signedByFullName ?? string.Empty).Trim(),
+                (signedIpAddress ?? string.Empty).Trim(),
+                (signedUserAgent ?? string.Empty).Trim(),
+                (signedFileArchivePath ?? string.Empty).Trim(),
+                (signatureImageHash ?? string.Empty).Trim(),
                 signedAt.ToString("O"),
                 fileHash,
+                (signatureIntentText ?? string.Empty).Trim(),
                 (signatureCode ?? string.Empty).Trim(),
                 (signNote ?? string.Empty).Trim()
             });
@@ -571,15 +658,26 @@ namespace crmHuman.Pages
             return Convert.ToHexString(hashBytes);
         }
 
-        private static string? BuildSignNote(string? signatureCode, string? signNote)
+        private static string BuildContractSignatureIntentText()
+        {
+            return "Toi xac nhan chinh toi la nguoi ky, da doc, hieu, dong y voi noi dung hop dong va dong y ky dien tu noi bo cho hop dong nay.";
+        }
+
+        private static string? BuildSignNote(string? signatureIntentText, string? signatureCode, string? signNote)
         {
             var code = (signatureCode ?? string.Empty).Trim();
             var note = (signNote ?? string.Empty).Trim();
 
             var normalized = string.Empty;
+            if (!string.IsNullOrWhiteSpace(signatureIntentText))
+            {
+                normalized = $"INTENT:{signatureIntentText.Trim()}";
+            }
             if (!string.IsNullOrWhiteSpace(code))
             {
-                normalized = $"CODE:{code}";
+                normalized = string.IsNullOrEmpty(normalized)
+                    ? $"CODE:{code}"
+                    : $"{normalized}; CODE:{code}";
             }
             if (!string.IsNullOrWhiteSpace(note))
             {
@@ -599,6 +697,177 @@ namespace crmHuman.Pages
             }
 
             return normalized;
+        }
+
+        private static byte[]? DecodeSignatureDataUrl(string? signatureDataUrl)
+        {
+            if (string.IsNullOrWhiteSpace(signatureDataUrl))
+            {
+                return null;
+            }
+
+            var commaIndex = signatureDataUrl.IndexOf(',');
+            if (commaIndex < 0 || commaIndex >= signatureDataUrl.Length - 1)
+            {
+                return null;
+            }
+
+            try
+            {
+                return Convert.FromBase64String(signatureDataUrl.Substring(commaIndex + 1));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string ComputeSha256(byte[] bytes)
+        {
+            using var sha = SHA256.Create();
+            return Convert.ToHexString(sha.ComputeHash(bytes));
+        }
+
+        private async Task<string?> SaveSignatureImageAsync(ContractEntity contract, byte[] signatureImageBytes, DateTime signedAt, string fileHash)
+        {
+            var relativePath = $"/signed-archive/contract-signatures/{signedAt:yyyy}/{signedAt:MM}/sign-{contract.Id}-emp-{contract.EmployeeId}-{signedAt:yyyyMMddHHmmss}-{fileHash.Substring(0, Math.Min(12, fileHash.Length))}.png";
+            var fullPath = ResolveArchiveAbsolutePath(relativePath);
+            var directory = global::System.IO.Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            await global::System.IO.File.WriteAllBytesAsync(fullPath, signatureImageBytes);
+            var fileInfo = new global::System.IO.FileInfo(fullPath);
+            fileInfo.IsReadOnly = true;
+            return relativePath;
+        }
+
+        private async Task<string?> ArchiveSignedContractAsync(ContractEntity contract, string sourceFilePath, byte[] signatureImageBytes, DateTime signedAt, string fileHash)
+        {
+            if (string.IsNullOrWhiteSpace(sourceFilePath) || !global::System.IO.File.Exists(sourceFilePath))
+            {
+                return null;
+            }
+
+            var extension = global::System.IO.Path.GetExtension(sourceFilePath);
+            var archiveRelativePath = $"/signed-archive/contracts/{signedAt:yyyy}/{signedAt:MM}/contract-{contract.Id}-emp-{contract.EmployeeId}-{signedAt:yyyyMMddHHmmss}-{fileHash.Substring(0, Math.Min(12, fileHash.Length))}{extension}";
+            var archiveFullPath = ResolveArchiveAbsolutePath(archiveRelativePath);
+            var archiveDirectory = global::System.IO.Path.GetDirectoryName(archiveFullPath);
+            if (!string.IsNullOrWhiteSpace(archiveDirectory))
+            {
+                Directory.CreateDirectory(archiveDirectory);
+            }
+
+            var normalizedExtension = extension.ToLowerInvariant();
+            if (normalizedExtension == ".pdf")
+            {
+                await StampPdfAsync(sourceFilePath, archiveFullPath, signatureImageBytes);
+            }
+            else if (normalizedExtension == ".png" || normalizedExtension == ".jpg" || normalizedExtension == ".jpeg" || normalizedExtension == ".bmp" || normalizedExtension == ".gif" || normalizedExtension == ".webp")
+            {
+                await StampImageAsync(sourceFilePath, archiveFullPath, signatureImageBytes);
+            }
+            else
+            {
+                await using (var sourceStream = new global::System.IO.FileStream(sourceFilePath, global::System.IO.FileMode.Open, global::System.IO.FileAccess.Read, global::System.IO.FileShare.Read))
+                await using (var destinationStream = new global::System.IO.FileStream(archiveFullPath, global::System.IO.FileMode.CreateNew, global::System.IO.FileAccess.Write, global::System.IO.FileShare.None))
+                {
+                    await sourceStream.CopyToAsync(destinationStream);
+                }
+            }
+
+            var fileInfo = new global::System.IO.FileInfo(archiveFullPath);
+            fileInfo.IsReadOnly = true;
+            return archiveRelativePath;
+        }
+
+        private async Task StampImageAsync(string sourceFilePath, string destinationFilePath, byte[] signatureImageBytes)
+        {
+            using var baseImage = await Image.LoadAsync(sourceFilePath);
+            await using var signatureImageStream = new MemoryStream(signatureImageBytes);
+            using var signatureImage = await Image.LoadAsync(signatureImageStream);
+
+            var targetWidth = Math.Max(140, baseImage.Width / 4);
+            signatureImage.Mutate(ctx => ctx.Resize(new ResizeOptions
+            {
+                Mode = ResizeMode.Max,
+                Size = new SixLabors.ImageSharp.Size(targetWidth, 0)
+            }));
+
+            var padding = 24;
+            var posX = Math.Max(padding, baseImage.Width - signatureImage.Width - padding);
+            var posY = Math.Max(padding, baseImage.Height - signatureImage.Height - padding);
+            baseImage.Mutate(ctx => ctx.DrawImage(signatureImage, new SixLabors.ImageSharp.Point(posX, posY), 1f));
+            await baseImage.SaveAsync(destinationFilePath);
+        }
+
+        private Task StampPdfAsync(string sourceFilePath, string destinationFilePath, byte[] signatureImageBytes)
+        {
+            using var sourceStream = new global::System.IO.FileStream(sourceFilePath, global::System.IO.FileMode.Open, global::System.IO.FileAccess.Read, global::System.IO.FileShare.Read);
+            using var document = PdfReader.Open(sourceStream, PdfDocumentOpenMode.Modify);
+            var page = document.Pages[document.PageCount - 1];
+            using var graphics = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Append);
+            using var signatureImage = XImage.FromStream(() => new MemoryStream(signatureImageBytes));
+
+            var maxWidth = Math.Min(180, page.Width / 3);
+            var scale = signatureImage.PixelWidth > 0 ? maxWidth / signatureImage.PixelWidth : 1;
+            var width = signatureImage.PixelWidth * scale;
+            var height = signatureImage.PixelHeight * scale;
+            var x = page.Width - width - 30;
+            var y = page.Height - height - 40;
+            graphics.DrawImage(signatureImage, x, y, width, height);
+            document.Save(destinationFilePath);
+            return Task.CompletedTask;
+        }
+
+        private string ResolveArchiveAbsolutePath(string archiveRelativePath)
+        {
+            var normalized = archiveRelativePath.TrimStart('/').Replace('/', global::System.IO.Path.DirectorySeparatorChar);
+            return global::System.IO.Path.Combine(_hostingEnvironment.WebRootPath, normalized);
+        }
+
+        private void DeleteArchivedFileIfExists(string? archiveRelativePath)
+        {
+            if (string.IsNullOrWhiteSpace(archiveRelativePath))
+            {
+                return;
+            }
+
+            try
+            {
+                var fullPath = ResolveArchiveAbsolutePath(archiveRelativePath);
+                if (global::System.IO.File.Exists(fullPath))
+                {
+                    var fileInfo = new global::System.IO.FileInfo(fullPath);
+                    if (fileInfo.IsReadOnly)
+                    {
+                        fileInfo.IsReadOnly = false;
+                    }
+
+                    global::System.IO.File.Delete(fullPath);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private string? GetRequestIpAddress()
+        {
+            return HttpContext?.Connection?.RemoteIpAddress?.ToString();
+        }
+
+        private string? GetRequestUserAgent()
+        {
+            var value = HttpContext?.Request?.Headers["User-Agent"].ToString();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            return value.Length > 500 ? value.Substring(0, 500) : value;
         }
     }
 }

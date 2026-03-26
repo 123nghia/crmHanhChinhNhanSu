@@ -189,7 +189,7 @@
                             <option value="">-- Chọn người bàn giao --</option>
                             @foreach (var emp in Model.EmployeeList)
                             {
-                                <option value="@emp.Id">@emp.FullName (@emp.UserName)</option>
+                                <option value="@emp.Id">@emp.FullName (@emp.UserName)@(string.IsNullOrWhiteSpace(emp.RoleLabel) ? string.Empty : $" - {emp.RoleLabel}")</option>
                             }
                         </select>
                     </div>

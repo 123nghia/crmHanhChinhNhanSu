@@ -12,6 +12,7 @@ namespace VS.Human.Business
         Task<Employee?> Add(EmployeeInfoAdd item);
         Task<bool> Update(EmployeeInfoAdd item);
         Task<bool> UpdateAvatar(int id, string avatarFile, int updatedBy);
+        Task<bool> UpdateMailSignature(int id, string? mailSignature, int updatedBy);
         Task<bool> ChangePassword(string password, int id);
         Task<bool> Delete(int id, bool reactive = false);
         Task<BaseList> GetAllManager();
@@ -20,6 +21,7 @@ namespace VS.Human.Business
 
 
         Task<BaseList> GetAll(EmployeeRequest request);
+        Task<List<Employee>> GetByRoleCodes(IEnumerable<string> roleCodes);
         
         /// <summary>
         /// Lấy danh sách nhân viên với đầy đủ thông tin cho chế độ chỉnh sửa mở rộng

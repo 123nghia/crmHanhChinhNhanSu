@@ -1,258 +1,238 @@
 @page
 @model InfomationModel
 @{
-    ViewData["Title"] = "Thông tin";
+    ViewData["Title"] = "Thong tin";
 
     var userCurrent = Model.UserProfile;
     var avatarPath = string.IsNullOrWhiteSpace(userCurrent.AvatarFile) ? "/assets/img/profile-img.jpg" : userCurrent.AvatarFile;
-    var dateText = "";
-    var onboardText = "";
-    if (userCurrent.Dob != null)
-    {
-        dateText = userCurrent.Dob.Value.ToString("dd/MM/yyyy");
-    }
-    if (userCurrent.Onboard != null)
-    {
-        onboardText = userCurrent.Onboard.Value.ToString("dd/MM/yyyy");
-    }
+    var dobText = userCurrent.Dob?.ToString("dd/MM/yyyy") ?? string.Empty;
+    var onboardText = userCurrent.Onboard?.ToString("dd/MM/yyyy") ?? string.Empty;
 
-    var arrayRol = new List<crmHuman.Model.SelectDisplay>()
-        {
-            new Model.SelectDisplay()
-            {
-                Code ="1", Name ="Admin"
-            },
-            new Model.SelectDisplay()
-            {
-            Code ="2", Name ="TC"
-            },
-            new Model.SelectDisplay()
-            {
-            Code ="9", Name ="HCNS"
-            },
-            new Model.SelectDisplay()
-            {
-            Code ="3", Name ="TL"
-            }
-            , new Model.SelectDisplay()
-            {
-              Code ="4", Name ="Marketting"
-            },
-            new Model.SelectDisplay()
-            {
-            Code ="6", Name ="Trưởng CTV"
-            }
-        };
-
-
-    string getNameArrol(string roleCode)
-    {
-        if( roleCode =="1")
-        {
-            return "Admin";
-        }
-        if (roleCode == "2")
-        {
-            return "TC";
-        }
-        if (roleCode == "9")
-        {
-            return "HCNS";
-        }
-        if (roleCode == "3")
-        {
-            return "Trưởng nhóm";
-        }
-        return "";
-    }
+    var activeTab = (Request.Query["tab"].ToString() ?? string.Empty).Trim().ToLowerInvariant();
+    var isMailSignatureTab = activeTab == "mail-signature";
+    var isProfileSettingsTab = activeTab == "profile-settings";
+    var isChangePasswordTab = activeTab == "change-password";
+    var isOverviewTab = !isMailSignatureTab && !isProfileSettingsTab && !isChangePasswordTab;
 }
- 
- <div class="pagetitle">
+
+<div class="pagetitle">
     <h1>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
-            <li class="breadcrumb-item"><a href="javascript:void(0)">Thông tin</a></li>
+            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
+            <li class="breadcrumb-item"><a href="javascript:void(0)">Thong tin</a></li>
             <li class="breadcrumb-item active">@userCurrent.FullName</li>
         </ol>
     </nav>
-</div><!-- End Page Title -->
+</div>
 
 <section class="section profile">
     <div class="row">
-       
+        <div class="card">
+            <div class="card-body pt-3">
+                <ul class="nav nav-tabs nav-tabs-bordered">
+                    <li class="nav-item">
+                        <button class="nav-link @(isOverviewTab ? "active" : string.Empty)" data-bs-toggle="tab" data-bs-target="#profile-overview" type="button">Thong tin</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(isProfileSettingsTab ? "active" : string.Empty)" data-bs-toggle="tab" data-bs-target="#profile-settings" type="button">Ca nhan hoa</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(isMailSignatureTab ? "active" : string.Empty)" data-bs-toggle="tab" data-bs-target="#profile-mail-signature" type="button">Chu ky mail</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(isChangePasswordTab ? "active" : string.Empty)" data-bs-toggle="tab" data-bs-target="#profile-change-password" type="button">Doi mat khau</button>
+                    </li>
+                </ul>
 
-      
+                <div class="tab-content pt-2">
+                    <div class="tab-pane fade profile-overview @(isOverviewTab ? "show active" : string.Empty)" id="profile-overview">
+                        <h5 class="card-title">Thong tin ca nhan</h5>
 
-            <div class="card">
-                <div class="card-body pt-3">
-                    <!-- Bordered Tabs -->
-                    <ul class="nav nav-tabs nav-tabs-bordered">
-
-                        <li class="nav-item">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profile-overview">Thông tin</button>
-                        </li>
-
-                                                <li class="nav-item">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-settings">Ca nhan hoa</button>
-                        </li>
-
-<li class="nav-item">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-change-password">Thay đổi mật khẩu</button>
-                        </li>
-
-                    </ul>
-                    <div class="tab-content pt-2">
-
-                        <div class="tab-pane fade show active profile-overview" id="profile-overview">
-                            <h5 class="card-title">Thông tin cá nhân</h5>
-
-                            @if (TempData["AvatarSaved"] != null)
+                        @if (TempData["AvatarSaved"] != null)
+                        {
+                            var saved = TempData["AvatarSaved"]?.ToString();
+                            if (saved == "1")
                             {
-                                var saved = TempData["AvatarSaved"]?.ToString();
-                                if (saved == "1")
-                                {
-                                    <div class="alert alert-success">Đã cập nhật ảnh đại diện.</div>
-                                }
-                                else
-                                {
-                                    <div class="alert alert-danger">Không thể cập nhật ảnh đại diện.</div>
-                                }
+                                <div class="alert alert-success">Da cap nhat anh dai dien.</div>
                             }
-
-                            @if (TempData["AvatarError"] != null)
+                            else
                             {
-                                var err = TempData["AvatarError"]?.ToString();
-                                if (err == "missing")
-                                {
-                                    <div class="alert alert-danger">Vui lòng chọn ảnh đại diện.</div>
-                                }
-                                else if (err == "size")
-                                {
-                                    <div class="alert alert-danger">Ảnh đại diện quá lớn (tối đa 2MB).</div>
-                                }
-                                else if (err == "type")
-                                {
-                                    <div class="alert alert-danger">Chỉ hỗ trợ PNG, JPG, JPEG, GIF hoặc WEBP.</div>
-                                }
-                                else
-                                {
-                                    <div class="alert alert-danger">Không thể cập nhật ảnh đại diện.</div>
-                                }
+                                <div class="alert alert-danger">Khong the cap nhat anh dai dien.</div>
                             }
+                        }
 
-                            <div class="row align-items-start g-4 mb-4">
-                                <div class="col-lg-3 col-md-4 text-center">
-                                    <img src="@avatarPath" alt="Ảnh đại diện" class="rounded-circle border shadow-sm" style="width: 140px; height: 140px; object-fit: cover;" asp-append-version="true">
-                                </div>
-                                <div class="col-lg-9 col-md-8">
-                                    <form method="post" asp-page-handler="UpdateAvatar" enctype="multipart/form-data" class="row g-3">
-                                        <div class="col-12 form-group">
-                                            <label class="form-label" for="AvatarFileUpload">Ảnh đại diện</label>
-                                            <input type="file" asp-for="AvatarFileUpload" class="form-control" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp">
-                                            <small class="text-muted">Bạn có thể tự tải ảnh lên. Hỗ trợ PNG/JPG/JPEG/GIF/WEBP, tối đa 2MB.</small>
-                                        </div>
-                                        <div class="col-12">
-                                            <button class="btn btn-primary" type="submit">Cập nhật ảnh đại diện</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-lg-3 col-md-4 label">Họ và tên</div>
-                                <div class="col-lg-9 col-md-8">@userCurrent.FullName</div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-3 col-md-4 label">Ngày sinh</div>
-                                <div class="col-lg-9 col-md-8">@dateText</div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-3 col-md-4 label">Số điện thoại</div>
-                                <div class="col-lg-9 col-md-8">@userCurrent.Phone</div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-3 col-md-4 label">Email công ty</div>
-                                <div class="col-lg-9 col-md-8">@userCurrent.Email</div>
-                            </div>
-
-                            <h5 class="card-title pt-3">Thông tin công việc</h5>
-                            <div class="row">
-                                <div class="col-lg-3 col-md-4 label">Mã nhân viên</div>
-                                <div class="col-lg-9 col-md-8">@userCurrent.UserName</div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-3 col-md-4 label">Ngày onboard</div>
-                                <div class="col-lg-9 col-md-8">@onboardText</div>
-                            </div>
-
-                        </div>
-
-                        <div class="tab-pane fade pt-3" id="profile-settings">
-                            <h5 class="card-title">Ca nhan hoa giao dien</h5>
-
-                            @if (TempData["ThemeSaved"] != null)
+                        @if (TempData["AvatarError"] != null)
+                        {
+                            var err = TempData["AvatarError"]?.ToString();
+                            if (err == "missing")
                             {
-                                var saved = TempData["ThemeSaved"]?.ToString();
-                                if (saved == "1")
-                                {
-                                    <div class="alert alert-success">Da luu cai dat giao dien.</div>
-                                }
-                                else
-                                {
-                                    <div class="alert alert-danger">Khong the luu cai dat giao dien.</div>
-                                }
+                                <div class="alert alert-danger">Vui long chon anh dai dien.</div>
                             }
+                            else if (err == "size")
+                            {
+                                <div class="alert alert-danger">Anh dai dien qua lon (toi da 2MB).</div>
+                            }
+                            else if (err == "type")
+                            {
+                                <div class="alert alert-danger">Chi ho tro PNG, JPG, JPEG, GIF hoac WEBP.</div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-danger">Khong the cap nhat anh dai dien.</div>
+                            }
+                        }
 
-                            <form method="post" asp-page-handler="SaveTheme" class="row g-3">
-                                <div class="col-md-4 form-group">
-                                    <label class="form-label" for="ThemeForm_PrimaryColor">Mau chu dao</label>
-                                    <input type="color" class="form-control form-control-color" asp-for="ThemeForm.PrimaryColor">
-                                </div>
-                                <div class="col-md-4 form-group">
-                                    <label class="form-label" for="ThemeForm_ButtonColor">Mau nut</label>
-                                    <input type="color" class="form-control form-control-color" asp-for="ThemeForm.ButtonColor">
-                                </div>
-                                <div class="col-md-4 form-group">
-                                    <label class="form-label" for="ThemeForm_BackgroundColor">Mau nen</label>
-                                    <input type="color" class="form-control form-control-color" asp-for="ThemeForm.BackgroundColor">
-                                </div>
-                                <div class="col-12">
-                                    <button class="btn btn-primary" type="submit">Luu cai dat</button>
-                                </div>
-                            </form>
-                        </div>
-
-                        <div class="tab-pane fade pt-3" id="profile-change-password">
-                            <!-- Change Password Form -->
-                            <form id="updateChangePassword">
-                                <div class="row mb-3 form-group">
-                                    <label for="newPassword" class="col-md-4 col-lg-3 col-form-label">Mật khẩu mới</label>
-                                    <div class="col-md-8 col-lg-9">
-                                        <input name="newpassword" type="password" class="form-control" id="txtnewPassword">
+                        <div class="row align-items-start g-4 mb-4">
+                            <div class="col-lg-3 col-md-4 text-center">
+                                <img src="@avatarPath" alt="Anh dai dien" class="rounded-circle border shadow-sm" style="width: 140px; height: 140px; object-fit: cover;" asp-append-version="true">
+                            </div>
+                            <div class="col-lg-9 col-md-8">
+                                <form method="post" asp-page-handler="UpdateAvatar" enctype="multipart/form-data" class="row g-3">
+                                    <div class="col-12 form-group">
+                                        <label class="form-label" for="AvatarFileUpload">Anh dai dien</label>
+                                        <input type="file" asp-for="AvatarFileUpload" class="form-control" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp">
+                                        <small class="text-muted">Ban co the tu tai anh len. Ho tro PNG/JPG/JPEG/GIF/WEBP, toi da 2MB.</small>
                                     </div>
+                                    <div class="col-12">
+                                        <button class="btn btn-primary" type="submit">Cap nhat anh dai dien</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-lg-3 col-md-4 label">Ho va ten</div>
+                            <div class="col-lg-9 col-md-8">@userCurrent.FullName</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-3 col-md-4 label">Ngay sinh</div>
+                            <div class="col-lg-9 col-md-8">@dobText</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-3 col-md-4 label">So dien thoai</div>
+                            <div class="col-lg-9 col-md-8">@userCurrent.Phone</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-3 col-md-4 label">Email cong ty</div>
+                            <div class="col-lg-9 col-md-8">@userCurrent.Email</div>
+                        </div>
+
+                        <h5 class="card-title pt-3">Thong tin cong viec</h5>
+                        <div class="row">
+                            <div class="col-lg-3 col-md-4 label">Ma nhan vien</div>
+                            <div class="col-lg-9 col-md-8">@userCurrent.UserName</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-3 col-md-4 label">Ngay onboard</div>
+                            <div class="col-lg-9 col-md-8">@onboardText</div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade pt-3 @(isProfileSettingsTab ? "show active" : string.Empty)" id="profile-settings">
+                        <h5 class="card-title">Ca nhan hoa giao dien</h5>
+
+                        @if (TempData["ThemeSaved"] != null)
+                        {
+                            var saved = TempData["ThemeSaved"]?.ToString();
+                            if (saved == "1")
+                            {
+                                <div class="alert alert-success">Da luu cai dat giao dien.</div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-danger">Khong the luu cai dat giao dien.</div>
+                            }
+                        }
+
+                        <form method="post" asp-page-handler="SaveTheme" class="row g-3">
+                            <div class="col-md-4 form-group">
+                                <label class="form-label" for="ThemeForm_PrimaryColor">Mau chu dao</label>
+                                <input type="color" class="form-control form-control-color" asp-for="ThemeForm.PrimaryColor">
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="form-label" for="ThemeForm_ButtonColor">Mau nut</label>
+                                <input type="color" class="form-control form-control-color" asp-for="ThemeForm.ButtonColor">
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="form-label" for="ThemeForm_BackgroundColor">Mau nen</label>
+                                <input type="color" class="form-control form-control-color" asp-for="ThemeForm.BackgroundColor">
+                            </div>
+                            <div class="col-12">
+                                <button class="btn btn-primary" type="submit">Luu cai dat</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="tab-pane fade pt-3 @(isMailSignatureTab ? "show active" : string.Empty)" id="profile-mail-signature">
+                        <h5 class="card-title">Chu ky mail ca nhan</h5>
+
+                        @if (TempData["MailSignatureSaved"] != null)
+                        {
+                            var saved = TempData["MailSignatureSaved"]?.ToString();
+                            if (saved == "1")
+                            {
+                                <div class="alert alert-success">Da luu chu ky mail cua ban.</div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-danger">Khong the luu chu ky mail.</div>
+                            }
+                        }
+
+                        <div class="alert alert-info">
+                            Khi ban gui mail tu he thong, SMTP van dung cau hinh admin. Tuy nhien sender hien thi va chu ky se uu tien theo tai khoan dang dang nhap.
+                        </div>
+
+                        <form method="post" asp-page-handler="SaveMailSignature" class="row g-3" id="mailSignatureForm">
+                            <div class="col-12 form-group">
+                                <label class="form-label" for="mailSignature">Noi dung chu ky</label>
+                                <textarea id="mailSignature" name="mailSignature" class="form-control" rows="14">@userCurrent.MailSignature</textarea>
+                                <small class="text-muted">Ban co the soan truc tiep bang thanh cong cu nhu Word, ho tro dinh dang co ban, chen link, bang va xem HTML khi can.</small>
+                            </div>
+                            <div class="col-12">
+                                <button class="btn btn-primary" type="submit">Luu chu ky mail</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="tab-pane fade pt-3 @(isChangePasswordTab ? "show active" : string.Empty)" id="profile-change-password">
+                        <form id="updateChangePassword">
+                            <div class="row mb-3 form-group">
+                                <label for="newPassword" class="col-md-4 col-lg-3 col-form-label">Mat khau moi</label>
+                                <div class="col-md-8 col-lg-9">
+                                    <input name="newpassword" type="password" class="form-control" id="txtnewPassword">
                                 </div>
+                            </div>
 
                             <div class="row mb-3 form-group">
-                                    <label for="renewPassword" class="col-md-4 col-lg-3 col-form-label">Nhập lại mật khẩu</label>
-                                    <div class="col-md-8 col-lg-9">
-                                        <input name="renewpassword" type="password" class="form-control" id="txtrenewPassword">
-                                    </div>
+                                <label for="renewPassword" class="col-md-4 col-lg-3 col-form-label">Nhap lai mat khau</label>
+                                <div class="col-md-8 col-lg-9">
+                                    <input name="renewpassword" type="password" class="form-control" id="txtrenewPassword">
                                 </div>
+                            </div>
 
-                                <div class="text-center">
-                                    <button  class="btn btn-primary"onclick="changePassword()" >Thay đổi mật khẩu</button>
-                                </div>
-                            </form><!-- End Change Password Form -->
-
-                        </div>
-
-                    </div><!-- End Bordered Tabs -->
-
+                            <div class="text-center">
+                                <button class="btn btn-primary" onclick="changePassword()">Thay doi mat khau</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
-
-      
+        </div>
     </div>
 </section>
 
+@section Scripts {
+    <script src="~/assets/vendor/tinymce/tinymce.min.js" asp-append-version="true"></script>
+    <script>
+        window.mailSignatureEditorOptions = {
+            selector: '#mailSignature',
+            formSelector: '#mailSignatureForm',
+            tabSelector: 'button[data-bs-target="#profile-mail-signature"]',
+            baseUrl: '@Url.Content("~/assets/vendor/tinymce")',
+            uploadUrl: '@Url.Page("/Infomation", "UploadMailSignatureImage")'
+        };
+    </script>
+    <script src="~/js/pages/infomation.js" asp-append-version="true"></script>
+}

@@ -14,5 +14,7 @@ namespace VS.Human.Business.Model
         public string? PasswordConfirm { get; set; }
         public string? SignatureCode { get; set; }
         public string? SignNote { get; set; }
+        public bool AcceptTerms { get; set; }
+        public string? SignatureDataUrl { get; set; }
     }
 }

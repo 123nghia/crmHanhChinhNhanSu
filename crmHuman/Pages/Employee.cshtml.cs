@@ -196,6 +196,7 @@ namespace crmHuman.Pages
         {
             RequestSearch = request2;
             request2.UserId = UserData.UserId;
+            request2.RoleCode = UserData.RoleCode;
             if (UserData.RoleCode == "1")
             {
                 request2.IsDeleted = true;
@@ -729,10 +730,12 @@ namespace crmHuman.Pages
             {
                 GetInfoUser();
                 RequestSearch.UserId = UserData.UserId;
+                RequestSearch.RoleCode = UserData.RoleCode;
                 await ApplyDefaultStatusWork(RequestSearch);
                 
                 // Debug Log
                 Console.WriteLine($"[Export Debug] UserId: {RequestSearch.UserId}");
+                Console.WriteLine($"[Export Debug] RoleCode: '{RequestSearch.RoleCode}'");
                 Console.WriteLine($"[Export Debug] Token: '{RequestSearch.Token}'");
                 Console.WriteLine($"[Export Debug] GroupId: {RequestSearch.GroupId}");
                 Console.WriteLine($"[Export Debug] Status: {RequestSearch.Status}");
