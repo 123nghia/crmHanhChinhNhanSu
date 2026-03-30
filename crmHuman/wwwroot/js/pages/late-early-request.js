@@ -1,7 +1,26 @@
-﻿function openAddLateEarly() {
+let isSavingLateEarly = false;
+
+function setLateEarlySaveState(isSaving) {
+    isSavingLateEarly = isSaving;
+
+    const saveButton = $('#lateEarlySaveButton');
+    if (saveButton.length === 0) {
+        return;
+    }
+
+    saveButton.prop('disabled', isSaving);
+    saveButton.text(isSaving ? 'Đang lưu...' : 'Lưu');
+}
+
+function resetLateEarlySaveState() {
+    setLateEarlySaveState(false);
+}
+
+function openAddLateEarly() {
     $('#lateEarlyId').val(0);
     $('#lateEarlyForm')[0].reset();
     $('#lateEarlyModalTitle').text('Tạo yêu cầu');
+    resetLateEarlySaveState();
     $('#lateEarlyModal').modal('show');
 }
 
@@ -13,16 +32,21 @@ async function openEditLateEarly(id) {
             alert('Không tìm thấy dữ liệu');
             return;
         }
+
         $('#lateEarlyId').val(data.id || data.Id);
         $('#requestType').val(data.requestType || data.RequestType || 'LATE');
+
         const dateText = (data.requestDate || data.RequestDate) ? new Date(data.requestDate || data.RequestDate) : null;
         const startText = (data.startTime || data.StartTime) ? new Date(data.startTime || data.StartTime) : null;
         const endText = (data.endTime || data.EndTime) ? new Date(data.endTime || data.EndTime) : null;
+
         if (dateText) $('#requestDate').val(dateText.toISOString().slice(0, 10));
         if (startText) $('#startTime').val(formatTime(startText));
         if (endText) $('#endTime').val(formatTime(endText));
+
         $('#reason').val(data.reason || data.Reason || '');
         $('#lateEarlyModalTitle').text('Chỉnh sửa yêu cầu');
+        resetLateEarlySaveState();
         $('#lateEarlyModal').modal('show');
     } catch (error) {
         console.error(error);
@@ -39,6 +63,10 @@ function buildDateTime(dateValue, timeValue) {
 }
 
 async function saveLateEarly() {
+    if (isSavingLateEarly) {
+        return;
+    }
+
     const id = parseInt($('#lateEarlyId').val()) || 0;
     const requestType = $('#requestType').val();
     const requestDate = $('#requestDate').val();
@@ -60,6 +88,8 @@ async function saveLateEarly() {
         Reason: reason
     };
 
+    setLateEarlySaveState(true);
+
     try {
         const response = await fetch('?handler=Save', {
             method: 'POST',
@@ -69,6 +99,7 @@ async function saveLateEarly() {
             },
             body: JSON.stringify(data)
         });
+
         const result = await response.json();
         if (result.success) {
             alert('Lưu thành công');
@@ -79,6 +110,8 @@ async function saveLateEarly() {
     } catch (error) {
         console.error(error);
         alert('Lỗi hệ thống');
+    } finally {
+        resetLateEarlySaveState();
     }
 }
 
@@ -92,6 +125,7 @@ async function deleteLateEarly(id) {
                 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
             }
         });
+
         const result = await response.json();
         if (result.success) {
             alert('Xóa thành công');
@@ -124,9 +158,14 @@ async function viewLateEarlyHistory(id) {
             });
             $('#historyContent').html(html);
         }
+
         $('#historyModal').modal('show');
     } catch (error) {
         console.error(error);
         alert('Lỗi hệ thống');
     }
 }
+
+$(document).ready(function () {
+    $('#lateEarlyModal').on('hidden.bs.modal', resetLateEarlySaveState);
+});

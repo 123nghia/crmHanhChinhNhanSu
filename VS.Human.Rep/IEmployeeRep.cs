@@ -26,7 +26,7 @@ namespace VS.Human.Rep
         Task<BaseList> GetAllManager(int leadgroup = -1);
         Task<Account> GetByLineCode(string lineCode);
         Task<BaseList> GetLeaveBalances(LeaveBalanceRequest request);
-        Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? usedLeaveDays, decimal? expiredLeaveDays, int userId);
+        Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? expiredLeaveDays, int userId);
 
     }
 }

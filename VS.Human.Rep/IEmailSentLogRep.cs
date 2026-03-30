@@ -8,5 +8,6 @@ namespace VS.Human.Rep
         Task<int> InsertAsync(EmailSentLog log);
         Task<BaseList> GetLogsAsync(EmailSentLogRequest request);
         Task<EmailSentLog?> GetByIdAsync(int id, int userId, string? roleCode);
+        Task<EmailSentLog?> GetLatestSuccessfulByRelatedEntityAsync(string relatedEntityType, int relatedEntityId);
     }
 }

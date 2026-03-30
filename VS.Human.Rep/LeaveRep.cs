@@ -16,6 +16,18 @@ namespace VS.Human.Rep
         {
         }
 
+        private static int? ResolveApprovalStatus(string? roleCode)
+        {
+            return roleCode switch
+            {
+                "3" => 0,
+                "9" => 1,
+                "8" => 2,
+                "1" => null,
+                _ => -999
+            };
+        }
+
         public async Task<BaseList> GetAll(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit, int? userId = null)
         {
             var p = new DynamicParameters();
@@ -86,35 +98,24 @@ namespace VS.Human.Rep
 
         public async Task<dynamic> GetLeaveSummary(int? employeeId, string roleCode)
         {
+            var pendingStatus = ResolveApprovalStatus(roleCode);
+            var pendingApproval = 0;
+
+            if (employeeId.HasValue && employeeId.Value > 0 && pendingStatus != -999)
+            {
+                var pendingList = await GetAll(null, pendingStatus, null, null, 1, 1, employeeId);
+                pendingApproval = pendingList?.Total ?? 0;
+            }
+
             using (var con = GetConnection())
             {
-                var levelStatus = roleCode switch
-                {
-                    "3" => 0,
-                    "9" => 1,
-                    "1" => 2,
-                    "8" => 2,
-                    _ => -1
-                };
-
                 var isCompanyWide = roleCode == "1" || roleCode == "8" || roleCode == "9";
                 var isTeamScope = roleCode == "3";
                 var isSelfScope = !isCompanyWide && !isTeamScope;
 
                 var sql = @"
                     SELECT
-                        (SELECT COUNT(*)
-                         FROM LeaveRequests l
-                         WHERE l.Deleted = 0
-                           AND @levelStatus >= 0
-                           AND l.Status = @levelStatus
-                           AND (
-                                @EmployeeId IS NULL
-                                OR @IsCompanyWide = 1
-                                OR (@IsTeamScope = 1 AND l.EmployeeId IN (SELECT id FROM getAllUserByUserId(@EmployeeId)))
-                                OR (@IsSelfScope = 1 AND l.EmployeeId = @EmployeeId)
-                           )
-                        ) as PendingApproval,
+                        @PendingApproval as PendingApproval,
                         (SELECT COUNT(*)
                          FROM LeaveRequests l
                          WHERE l.Deleted = 0
@@ -128,12 +129,18 @@ namespace VS.Human.Rep
                                 OR (@IsSelfScope = 1 AND l.EmployeeId = @EmployeeId)
                            )
                         ) as ApprovedMonth,
-                        (SELECT AllowedLeaveDays - ISNULL(UsedLeaveDays, 0) FROM Employees WHERE Id = @empId) as RemainingLeave
+                        (SELECT
+                            ISNULL(AllowedLeaveDays, 0)
+                            + ISNULL(CarryOverLeaveDays, 0)
+                            - ISNULL(ExpiredLeaveDays, 0)
+                            - ISNULL(UsedLeaveDays, 0)
+                         FROM Employees
+                         WHERE Id = @empId) as RemainingLeave
                 ";
 
                 return await con.QueryFirstOrDefaultAsync<dynamic>(sql, new
                 {
-                    levelStatus,
+                    PendingApproval = pendingApproval,
                     EmployeeId = employeeId,
                     empId = employeeId,
                     IsCompanyWide = isCompanyWide,
@@ -154,8 +161,12 @@ namespace VS.Human.Rep
                         e.FullName,
                         e.AllowedLeaveDays,
                         e.CarryOverLeaveDays,
+                        e.ExpiredLeaveDays,
                         e.UsedLeaveDays,
-                        ISNULL(e.AllowedLeaveDays, 0) - ISNULL(e.UsedLeaveDays, 0) AS RemainingLeaveDays,
+                        ISNULL(e.AllowedLeaveDays, 0)
+                            + ISNULL(e.CarryOverLeaveDays, 0)
+                            - ISNULL(e.ExpiredLeaveDays, 0)
+                            - ISNULL(e.UsedLeaveDays, 0) AS RemainingLeaveDays,
                         ISNULL(la.UsedAnnualLeaveDays, 0) AS UsedAnnualLeaveDays,
                         ISNULL(la.UsedSickLeaveDays, 0) AS UsedSickLeaveDays,
                         ISNULL(la.UsedPersonalLeaveDays, 0) AS UsedPersonalLeaveDays,
@@ -187,12 +198,10 @@ namespace VS.Human.Rep
         {
             var p = new DynamicParameters();
             p.Add("@Id", id);
-            p.Add("@del", 1);
-            p.Add("@UpdateAt", DateTime.Now);
             p.Add("@UpdatedBy", userId);
 
-            var sql = "UPDATE LeaveRequests SET Deleted = 1, UpdateAt = GETDATE(), UpdatedBy = @UpdatedBy WHERE Id = @Id";
-            return await ExecuteSQL(sql, new { Id = id, UpdatedBy = userId }, CommandType.Text);
+            var affected = await ExecuteSQLScalar<int>("sp_Leave_Delete", p);
+            return affected > 0;
         }
     }
 }

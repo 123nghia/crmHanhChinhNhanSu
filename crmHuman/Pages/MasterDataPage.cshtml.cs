@@ -27,7 +27,7 @@ namespace crmHuman.Pages
                     case 3:
                         return "quan-he-nguoi-than";
                     case 5:
-                        return "bo-phan";
+                        return "phong-ban";
 
                     case 7:
                         return "Loai-chung-tu";
@@ -156,6 +156,7 @@ namespace crmHuman.Pages
                 case "quan-he-nguoi-than":
                     inputRequest.Type = 3;
                     break;
+                case "phong-ban":
                 case "bo-phan":
                     inputRequest.Type = 5;
                     break;

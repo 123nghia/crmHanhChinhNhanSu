@@ -23,6 +23,8 @@
     var bookingNoteInput = document.getElementById('bookingNote');
     var outsideToggle = document.getElementById('outsideHoursToggle');
     var toast = document.getElementById('meetingToast');
+    var meetingSaveButton = document.getElementById('meetingSaveButton');
+    var isSavingMeetingBooking = false;
 
     function init() {
         bindToggle();
@@ -218,6 +220,13 @@
         }, 4000);
     }
 
+    function setMeetingSaveState(isSaving) {
+        isSavingMeetingBooking = isSaving;
+        if (!meetingSaveButton) return;
+        meetingSaveButton.disabled = isSaving;
+        meetingSaveButton.textContent = isSaving ? 'Đang lưu...' : 'Lưu lịch';
+    }
+
     function escapeHtml(value) {
         return (value || '').toString()
             .replace(/&/g, '&amp;')
@@ -251,6 +260,10 @@
     };
 
     window.saveMeetingBooking = function () {
+        if (isSavingMeetingBooking) {
+            return;
+        }
+
         var title = bookingTitleInput.value.trim();
         var roomId = parseInt(bookingRoomInput.value, 10) || 0;
         var date = bookingDateInput.value;
@@ -286,6 +299,8 @@
             EndTime: toLocalIsoString(end)
         };
 
+        setMeetingSaveState(true);
+
         fetch('?handler=Save', {
             method: 'POST',
             headers: {
@@ -306,10 +321,14 @@
             })
             .catch(function () {
                 showToast('Không thể lưu lịch', false);
+            })
+            .finally(function () {
+                setMeetingSaveState(false);
             });
     };
 
     window.resetMeetingForm = function () {
+        setMeetingSaveState(false);
         bookingIdInput.value = '0';
         bookingTitleInput.value = '';
         bookingNoteInput.value = '';

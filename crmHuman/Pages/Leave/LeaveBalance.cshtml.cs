@@ -162,11 +162,6 @@ namespace crmHuman.Pages.Leave
                 errors.Add(new { name = "carryOverLeaveDays", Content = "So ngay phep ton nam cu khong duoc nho hon 0" });
             }
 
-            if (request.UsedLeaveDays.HasValue && request.UsedLeaveDays.Value < 0)
-            {
-                errors.Add(new { name = "usedLeaveDays", Content = "So ngay phep da dung khong duoc nho hon 0" });
-            }
-
             if (request.ExpiredLeaveDays.HasValue && request.ExpiredLeaveDays.Value < 0)
             {
                 errors.Add(new { name = "expiredLeaveDays", Content = "So ngay phep het han khong duoc nho hon 0" });
@@ -181,7 +176,6 @@ namespace crmHuman.Pages.Leave
                 request.EmployeeId,
                 request.AllowedLeaveDays,
                 request.CarryOverLeaveDays,
-                request.UsedLeaveDays,
                 request.ExpiredLeaveDays,
                 UserData.UserId);
 

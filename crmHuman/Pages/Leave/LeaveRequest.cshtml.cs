@@ -163,6 +163,14 @@ namespace crmHuman.Pages.Leave
             {
                 message = "Nghi phep nam phai dang ky truoc it nhat 1 ngay.";
             }
+            else if (result == -3)
+            {
+                message = "Don nghi phep nay da ton tai tren he thong. Vui long kiem tra lai danh sach truoc khi luu.";
+            }
+            else if (result == -4)
+            {
+                message = "He thong dang xu ly mot yeu cau trung lap. Vui long thu lai sau it giay.";
+            }
 
             return new JsonResult(new { success = false, message });
         }

@@ -72,10 +72,13 @@ namespace VS.Human.Business
             setting.HrFromName = NormalizeOptionalText(setting.HrFromName) ?? NormalizeOptionalText(setting.FromName);
             setting.EmployeeFromEmail = NormalizeOptionalText(setting.EmployeeFromEmail);
             setting.EmployeeFromName = NormalizeOptionalText(setting.EmployeeFromName);
+            setting.CandidateFromEmail = NormalizeOptionalText(setting.CandidateFromEmail) ?? setting.HrFromEmail ?? NormalizeOptionalText(setting.FromEmail);
+            setting.CandidateFromName = NormalizeOptionalText(setting.CandidateFromName) ?? setting.HrFromName ?? NormalizeOptionalText(setting.FromName);
             setting.HrSignature = NormalizeSignature(setting.HrSignature);
             setting.EmployeeSignature = NormalizeSignature(setting.EmployeeSignature);
-            setting.FromEmail = setting.HrFromEmail ?? setting.EmployeeFromEmail;
-            setting.FromName = setting.HrFromName ?? setting.EmployeeFromName;
+            setting.CandidateSignature = NormalizeSignature(setting.CandidateSignature) ?? setting.HrSignature;
+            setting.FromEmail = setting.HrFromEmail ?? setting.CandidateFromEmail ?? setting.EmployeeFromEmail;
+            setting.FromName = setting.HrFromName ?? setting.CandidateFromName ?? setting.EmployeeFromName;
             setting.UpdatedBy = userId;
             if (setting.Id <= 0)
             {
@@ -108,7 +111,7 @@ namespace VS.Human.Business
                 "INTERVIEW_SCHEDULE",
                 "Thu moi phong van",
                 "Thu moi phong van - {{CandidateName}}",
-                EmailSenderTypes.Hr,
+                EmailSenderTypes.Candidate,
                 @"
 <p>Xin chao {{CandidateName}},</p>
 <p>Lich phong van cua ban {{InterviewAction}}.</p>
@@ -146,7 +149,7 @@ namespace VS.Human.Business
                 "LEAVE_APPROVE",
                 "Don nghi phep duoc phe duyet",
                 "Don nghi phep cua ban da duoc phe duyet",
-                EmailSenderTypes.Hr,
+                EmailSenderTypes.Employee,
                 @"
 <p>Xin chao {{EmployeeName}},</p>
 <p>Don xin nghi phep cua ban da duoc phe duyet.</p>
@@ -164,7 +167,7 @@ namespace VS.Human.Business
                 "LEAVE_REJECT",
                 "Don nghi phep bi tu choi",
                 "Don nghi phep cua ban da bi tu choi",
-                EmailSenderTypes.Hr,
+                EmailSenderTypes.Employee,
                 @"
 <p>Xin chao {{EmployeeName}},</p>
 <p>Rat tiec, don xin nghi phep cua ban da bi tu choi.</p>
@@ -182,7 +185,7 @@ namespace VS.Human.Business
                 "LEAVE_PENDING_HCNS",
                 "Don nghi phep cho HCNS xu ly",
                 "Don nghi phep cua {{EmployeeName}} cho HCNS xu ly",
-                EmailSenderTypes.Hr,
+                EmailSenderTypes.Employee,
                 @"
 <p>Kinh gui Phong HCNS,</p>
 <p>Don nghi phep cua {{EmployeeName}} da duoc Team Lead duyet va dang cho HCNS xu ly.</p>
@@ -200,7 +203,7 @@ namespace VS.Human.Business
                 "LEAVE_PENDING_BGD",
                 "Don nghi phep cho BGD phe duyet",
                 "Don nghi phep cua {{EmployeeName}} cho BGD phe duyet",
-                EmailSenderTypes.Hr,
+                EmailSenderTypes.Employee,
                 @"
 <p>Kinh gui Ban Giam doc,</p>
 <p>Don nghi phep cua {{EmployeeName}} da duoc HCNS kiem tra va dang cho BGD phe duyet.</p>
@@ -254,6 +257,7 @@ namespace VS.Human.Business
 
             setting.HrSignature = NormalizeSignature(setting.HrSignature);
             setting.EmployeeSignature = NormalizeSignature(setting.EmployeeSignature);
+            setting.CandidateSignature = NormalizeSignature(setting.CandidateSignature);
             return setting;
         }
     }

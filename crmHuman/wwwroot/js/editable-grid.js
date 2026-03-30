@@ -171,6 +171,7 @@ var EditableGrid = (function () {
                 { Code: '2', Name: 'TC' },
                 { Code: '9', Name: 'HCNS' },
                 { Code: '3', Name: 'TL' },
+                { Code: '8', Name: 'BGD' },
                 { Code: '4', Name: 'Marketting' },
                 { Code: '6', Name: 'Trưởng CTV' },
                 { Code: '7', Name: 'CTV' }
@@ -410,7 +411,10 @@ var EditableGrid = (function () {
         var dataType = config.masterDataTypes[field];
         var options = config.masterData[dataType] || [];
 
-        select.innerHTML = '<option value="">-- Chọn --</option>';
+        var emptyOptionText = field === 'DepartmentCode'
+            ? '-- Khong thuoc phong ban --'
+            : '-- Chon --';
+        select.innerHTML = '<option value="">' + emptyOptionText + '</option>';
         options.forEach(function (opt) {
             var value;
             if (field === 'GroupId') {
@@ -560,7 +564,13 @@ var EditableGrid = (function () {
                     var dataType = config.masterDataTypes[field];
                     var options = config.masterData[dataType] || [];
                     var matched = options.find(o => (o.Code || o.Id) == cell.dataset.value);
-                    cell.textContent = matched ? (matched.Name || matched.FullName) : '--';
+                    if (matched) {
+                        cell.textContent = matched.Name || matched.FullName;
+                    } else if (field === 'DepartmentCode' && !cell.dataset.value) {
+                        cell.textContent = '-- Khong thuoc phong ban --';
+                    } else {
+                        cell.textContent = '--';
+                    }
                 } else if (fieldType === 'date') {
                     // Reformat date
                     if (cell.dataset.value) {
@@ -653,6 +663,10 @@ var EditableGrid = (function () {
 
                 showToast('Đã lưu thành công', 'success');
 
+                if (employeeId === '-1') {
+                    applyServerDefaultsToRow(row, result);
+                }
+
                 // Update row ID if new
                 if (employeeId === '-1' && (result.id || result.Id)) {
                     row.dataset.id = result.id || result.Id;
@@ -700,6 +714,42 @@ var EditableGrid = (function () {
             showToast('Lỗi kết nối server', 'error');
             btns.forEach(b => b.disabled = false);
         }
+    }
+
+    function applyServerDefaultsToRow(row, result) {
+        if (!row || !result) {
+            return;
+        }
+
+        var userName = result.userName || result.UserName;
+        if (userName) {
+            var userNameCell = row.children[1];
+            if (userNameCell) {
+                userNameCell.textContent = userName;
+            }
+        }
+
+        var departmentCode = result.departmentCode || result.DepartmentCode;
+        if (!departmentCode) {
+            return;
+        }
+
+        var departmentCell = row.querySelector('.editable-cell[data-field="DepartmentCode"]');
+        if (!departmentCell || departmentCell.dataset.value) {
+            return;
+        }
+
+        departmentCell.dataset.value = departmentCode;
+
+        var departmentOptions = config.masterData[config.masterDataTypes.DepartmentCode] || [];
+        var matchedDepartment = departmentOptions.find(function (opt) {
+            var value = opt.Code || opt.Id || opt.code || opt.id;
+            return value == departmentCode;
+        });
+
+        departmentCell.textContent = matchedDepartment
+            ? (matchedDepartment.Name || matchedDepartment.FullName)
+            : departmentCode;
     }
 
     /**

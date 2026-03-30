@@ -310,6 +310,17 @@
                                     var itemInfo = item as dynamic;
                                     index++;
                                     var scheduleDate = "";
+                                    var candidateName = itemInfo?.CandidateFullName as string;
+                                    if (string.IsNullOrWhiteSpace(candidateName))
+                                    {
+                                        candidateName = getCandidateName(itemInfo?.RelId);
+                                    }
+
+                                    var candidatePosition = itemInfo?.PositionText as string;
+                                    if (string.IsNullOrWhiteSpace(candidatePosition))
+                                    {
+                                        candidatePosition = getCandidatePosition(itemInfo?.RelId);
+                                    }
                                     if (itemInfo?.ScheduleDate != null)
                                     {
                                         scheduleDate = ((DateTime)itemInfo.ScheduleDate).ToString("dd/MM/yyyy HH:mm");
@@ -317,9 +328,9 @@
                                     <tr>
                                         <th scope="row">@index</th>
                                         <td>
-                                            <a href="/CandidateDetail?id=@itemInfo.RelId">@getCandidateName(itemInfo.RelId)</a>
+                                            <a href="/CandidateDetail?id=@itemInfo.RelId">@candidateName</a>
                                         </td>
-                                        <td>@getCandidatePosition(itemInfo.RelId)</td>
+                                        <td>@candidatePosition</td>
                                         <td>@getRoundText(itemInfo.Type)</td>
                                         <td>@scheduleDate</td>
                                         <td>@getInterviewerName(itemInfo.InterviewerId)</td>
@@ -373,7 +384,7 @@
                                                             data-interviewer="@itemInfo.InterviewerId"
                                                             data-address="@itemInfo.AddressInfo"
                                                             data-note="@itemInfo.Noted"
-                                                            data-position="@getCandidatePosition(itemInfo.RelId)"
+                                                            data-position="@candidatePosition"
                                                             onclick="openInterviewResultModal(this, @itemInfo.Id)">
                                                         Cập nhật
                                                     </button>

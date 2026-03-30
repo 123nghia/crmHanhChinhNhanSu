@@ -48,7 +48,7 @@ namespace crmHuman.Pages
             _iempl = empBusiness1;
             TableColumnText = new List<string>()
             {
-                "STT","UserName","Họ tên", "Vị trí", "Bộ phận",
+                "STT","UserName","Họ tên", "Vị trí", "Phòng ban",
                 "Người quản lý",
                 "Trạng thái",
                 "Trạng thái chứng từ"
@@ -57,7 +57,7 @@ namespace crmHuman.Pages
 
             TableColumnTextAdmin = new List<string>()
             {
-                "STT","UserName","Họ tên", "Vị trí", "Bộ phận",
+                "STT","UserName","Họ tên", "Vị trí", "Phòng ban",
                  "Người quản lý","Trạng thái", "Trạng thái chứng từ",
                 "Cập nhật gần nhất","Người tạo","Thao tác"
             };
@@ -175,10 +175,6 @@ namespace crmHuman.Pages
             if (UserData.RoleCode == "CANDIDATE")
             {
                 return Redirect("/Candidate/Dashboard");
-            }
-            if (UserData.RoleCode == "2")
-            {
-                return Redirect("/");
             }
             var temp = await _masterDataBussiness.GetAll(new CommonRequest()
             {

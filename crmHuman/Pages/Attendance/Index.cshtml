@@ -105,6 +105,7 @@
                 <div class="col-md-3">
                     <label class="form-label">Thang</label>
                     <input type="hidden" id="attendanceMonthInput" name="month" value="@monthValue" />
+                    <input type="hidden" id="attendanceFingerprintInput" name="fingerprintCode" value="@Model.RequestSearch.FingerprintCode" />
                     <input type="text" class="form-control" id="attendanceMonthDisplay" placeholder="MM/YYYY" autocomplete="off" />
                 </div>
                 <div class="col-md-4">
@@ -120,14 +121,12 @@
                             <option value="">-- Tat ca --</option>
                             @foreach (var item in Model.SummaryItems)
                             {
-                                if (item.EmployeeId == Model.SelectedEmployeeId)
-                                {
-                                    <option value="@item.EmployeeId" selected>@item.FullName (@item.FingerprintCode)</option>
-                                }
-                                else
-                                {
-                                    <option value="@item.EmployeeId">@item.FullName (@item.FingerprintCode)</option>
-                                }
+                                var isSelected = item.EmployeeId > 0
+                                    ? item.EmployeeId == Model.SelectedEmployeeId
+                                    : Model.SelectedEmployeeId <= 0
+                                        && !string.IsNullOrWhiteSpace(Model.SelectedFingerprintCode)
+                                        && string.Equals(item.FingerprintCode, Model.SelectedFingerprintCode, StringComparison.OrdinalIgnoreCase);
+                                <option value="@item.EmployeeId" data-fingerprint="@item.FingerprintCode" selected="@(isSelected ? "selected" : null)">@item.FullName (@item.FingerprintCode)</option>
                             }
                         </select>
                     }
@@ -147,6 +146,7 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="Month" id="exportMonth" />
                 <input type="hidden" name="EmployeeId" id="exportEmployeeId" />
+                <input type="hidden" name="FingerprintCode" id="exportFingerprintCode" />
                 <input type="hidden" name="Token" id="exportToken" />
             </form>
 
@@ -225,7 +225,11 @@
                         @foreach (var item in Model.SummaryItems)
                         {
                             index++;
-                            var isActive = item.EmployeeId == Model.SelectedEmployeeId ? "active" : string.Empty;
+                            var isActive = item.EmployeeId > 0
+                                ? item.EmployeeId == Model.SelectedEmployeeId
+                                : Model.SelectedEmployeeId <= 0
+                                    && !string.IsNullOrWhiteSpace(Model.SelectedFingerprintCode)
+                                    && string.Equals(item.FingerprintCode, Model.SelectedFingerprintCode, StringComparison.OrdinalIgnoreCase);
                             <tr class="attendance-summary-row @isActive"
                                 data-employee-id="@item.EmployeeId"
                                 data-fingerprint="@item.FingerprintCode"

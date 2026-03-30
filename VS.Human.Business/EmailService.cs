@@ -3,6 +3,7 @@ using System.Linq;
 using System.IO;
 using System.Net;
 using System.Security.Claims;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
@@ -33,28 +34,29 @@ namespace VS.Human.Business
             _hostEnvironment = hostEnvironment;
         }
 
-        public async Task<bool> SendTemplateAsync(string templateCode, string toEmail, IDictionary<string, string> tokens, int? managerId = null, int? senderEmployeeId = null)
+        public async Task<bool> SendTemplateAsync(string templateCode, string toEmail, IDictionary<string, string> tokens, int? managerId = null, int? senderEmployeeId = null, EmailSendContext? sendContext = null)
         {
             if (string.IsNullOrWhiteSpace(toEmail))
             {
                 return false;
             }
 
-            return await SendTemplateAsync(templateCode, new[] { toEmail }, tokens, null, null, managerId, senderEmployeeId);
+            return await SendTemplateAsync(templateCode, new[] { toEmail }, tokens, null, null, managerId, senderEmployeeId, sendContext);
         }
 
-        public async Task<bool> SendTemplateAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null)
+        public async Task<bool> SendTemplateAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null, EmailSendContext? sendContext = null)
         {
-            var result = await SendTemplateWithErrorAsync(templateCode, toEmails, tokens, ccEmails, bccEmails, managerId, senderEmployeeId);
+            var result = await SendTemplateWithErrorAsync(templateCode, toEmails, tokens, ccEmails, bccEmails, managerId, senderEmployeeId, sendContext);
             return result.Success;
         }
 
-        public async Task<(bool Success, string? Error)> SendTemplateWithErrorAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null)
+        public async Task<(bool Success, string? Error)> SendTemplateWithErrorAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null, EmailSendContext? sendContext = null)
         {
             var normalizedTo = NormalizeEmails(toEmails).ToList();
             var normalizedCcInput = NormalizeEmails(ccEmails).ToList();
             var normalizedBccInput = NormalizeEmails(bccEmails).ToList();
             var log = CreateEmailSentLog(templateCode, normalizedTo, normalizedCcInput, normalizedBccInput, managerId, senderEmployeeId);
+            ApplySendContext(log, sendContext);
 
             if (string.IsNullOrWhiteSpace(templateCode) || toEmails == null)
             {
@@ -74,6 +76,7 @@ namespace VS.Human.Business
 
             setting.HrSignature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(setting.HrSignature);
             setting.EmployeeSignature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(setting.EmployeeSignature);
+            setting.CandidateSignature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(setting.CandidateSignature);
 
             var template = await _unitOfWork.EmailConfigRep.GetTemplateByCode(templateCode);
             if (template == null || template.IsActive <= 0)
@@ -116,10 +119,30 @@ namespace VS.Human.Business
 
             var signatureHtml = ApplyTokens(senderProfile.Signature ?? string.Empty, templateTokens);
             templateTokens["SenderSignature"] = signatureHtml;
+            var previousEmail = await ResolvePreviousEmailAsync(sendContext);
+            if (previousEmail != null)
+            {
+                log.ParentEmailSentLogId = previousEmail.Id > 0 ? previousEmail.Id : null;
+                log.ParentMessageId = TrimToLength(previousEmail.MessageId, 255);
+            }
+
+            var mailHistoryHtml = templateTokens.TryGetValue("MailHistoryHtml", out var historyHtml)
+                ? historyHtml ?? string.Empty
+                : string.Empty;
+            if (string.IsNullOrWhiteSpace(mailHistoryHtml))
+            {
+                mailHistoryHtml = BuildQuotedPreviousEmailHtml(previousEmail);
+            }
+            templateTokens["MailHistoryHtml"] = mailHistoryHtml;
 
             var subject = ApplyTokens(template.Subject, templateTokens);
-            var hasSignatureToken = ContainsSenderSignatureToken(template.Body);
+            var hasSignatureToken = ContainsToken(template.Body, "SenderSignature");
+            var hasMailHistoryToken = ContainsToken(template.Body, "MailHistoryHtml");
             var body = ApplyTokens(template.Body, templateTokens);
+            if (!hasMailHistoryToken)
+            {
+                body = AppendMailHistory(body, mailHistoryHtml);
+            }
             if (!hasSignatureToken)
             {
                 body = AppendSignature(body, signatureHtml);
@@ -139,6 +162,11 @@ namespace VS.Human.Business
             message.Subject = subject;
             message.MessageId = MimeUtils.GenerateMessageId();
             log.MessageId = TrimToLength(message.MessageId, 255);
+            if (!string.IsNullOrWhiteSpace(previousEmail?.MessageId))
+            {
+                message.InReplyTo = previousEmail.MessageId;
+                message.References.Add(previousEmail.MessageId);
+            }
 
             var bodyBuilder = new BodyBuilder();
             bodyBuilder.HtmlBody = InlineLocalImages(bodyBuilder, body);
@@ -284,16 +312,16 @@ namespace VS.Human.Business
                 .Distinct(StringComparer.OrdinalIgnoreCase);
         }
 
-        private static bool ContainsSenderSignatureToken(string? templateBody)
+        private static bool ContainsToken(string? templateBody, string tokenName)
         {
-            if (string.IsNullOrWhiteSpace(templateBody))
+            if (string.IsNullOrWhiteSpace(templateBody) || string.IsNullOrWhiteSpace(tokenName))
             {
                 return false;
             }
 
-            return templateBody.Contains("{{SenderSignature}}", StringComparison.OrdinalIgnoreCase)
-                || templateBody.Contains("{{ SenderSignature }}", StringComparison.OrdinalIgnoreCase)
-                || templateBody.Contains("{SenderSignature}", StringComparison.OrdinalIgnoreCase);
+            return templateBody.Contains("{{" + tokenName + "}}", StringComparison.OrdinalIgnoreCase)
+                || templateBody.Contains("{{ " + tokenName + " }}", StringComparison.OrdinalIgnoreCase)
+                || templateBody.Contains("{" + tokenName + "}", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string AppendSignature(string body, string? signatureHtml)
@@ -309,6 +337,114 @@ namespace VS.Human.Business
             }
 
             return $"{body}<br/><br/>{signatureHtml}";
+        }
+
+        private static string AppendMailHistory(string body, string? mailHistoryHtml)
+        {
+            if (string.IsNullOrWhiteSpace(mailHistoryHtml))
+            {
+                return body ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return mailHistoryHtml;
+            }
+
+            return $"{body}<br/><br/>{mailHistoryHtml}";
+        }
+
+        private async Task<EmailSentLog?> ResolvePreviousEmailAsync(EmailSendContext? sendContext)
+        {
+            var relatedEntityType = NormalizeRelatedEntityType(sendContext?.RelatedEntityType);
+            var relatedEntityId = sendContext?.RelatedEntityId.GetValueOrDefault() ?? 0;
+            if (string.IsNullOrWhiteSpace(relatedEntityType) || relatedEntityId <= 0)
+            {
+                return null;
+            }
+
+            return await _unitOfWork.EmailSentLogRep.GetLatestSuccessfulByRelatedEntityAsync(relatedEntityType, relatedEntityId);
+        }
+
+        private static void ApplySendContext(EmailSentLog log, EmailSendContext? sendContext)
+        {
+            if (log == null || sendContext == null)
+            {
+                return;
+            }
+
+            log.RelatedEntityType = TrimToLength(NormalizeRelatedEntityType(sendContext.RelatedEntityType), 50);
+            log.RelatedEntityId = sendContext.RelatedEntityId.GetValueOrDefault() > 0
+                ? sendContext.RelatedEntityId
+                : null;
+        }
+
+        private static string? NormalizeRelatedEntityType(string? relatedEntityType)
+        {
+            if (string.IsNullOrWhiteSpace(relatedEntityType))
+            {
+                return null;
+            }
+
+            return relatedEntityType.Trim().ToUpperInvariant();
+        }
+
+        private static string BuildQuotedPreviousEmailHtml(EmailSentLog? previousEmail)
+        {
+            if (previousEmail == null || string.IsNullOrWhiteSpace(previousEmail.BodyHtml))
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder();
+            builder.Append("<div style=\"margin-top:16px;padding-top:12px;border-top:1px solid #d9dee7;\">");
+            builder.Append("<div style=\"margin:0 0 12px;color:#4b5563;font-size:12px;line-height:1.6;\">");
+            AppendQuotedHeaderLine(builder, "From", FormatAddress(previousEmail.FromName, previousEmail.FromEmail));
+            AppendQuotedHeaderLine(builder, "Date", previousEmail.CreateAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture));
+            AppendQuotedHeaderLine(builder, "Subject", previousEmail.Subject);
+            AppendQuotedHeaderLine(builder, "To", previousEmail.ToEmails);
+
+            if (!string.IsNullOrWhiteSpace(previousEmail.CcEmails))
+            {
+                AppendQuotedHeaderLine(builder, "Cc", previousEmail.CcEmails);
+            }
+
+            builder.Append("</div>");
+            builder.Append("<blockquote style=\"margin:0 0 0 12px;padding:0 0 0 12px;border-left:3px solid #d9dee7;\">");
+            builder.Append(previousEmail.BodyHtml);
+            builder.Append("</blockquote>");
+            builder.Append("</div>");
+            return builder.ToString();
+        }
+
+        private static void AppendQuotedHeaderLine(StringBuilder builder, string label, string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            builder.Append("<div><strong>")
+                .Append(WebUtility.HtmlEncode(label))
+                .Append(":</strong> ")
+                .Append(WebUtility.HtmlEncode(value))
+                .Append("</div>");
+        }
+
+        private static string? FormatAddress(string? name, string? email)
+        {
+            var normalizedEmail = NormalizeEmail(email);
+            if (string.IsNullOrWhiteSpace(normalizedEmail))
+            {
+                return name;
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return normalizedEmail;
+            }
+
+            return $"{name} <{normalizedEmail}>";
         }
 
         private string InlineLocalImages(BodyBuilder bodyBuilder, string? html)
@@ -496,6 +632,11 @@ namespace VS.Human.Business
         private static EmailSenderProfile ResolveSenderProfile(EmailSetting setting, EmailTemplate template, Employee? senderEmployee)
         {
             var fallbackProfile = ResolveSenderProfile(setting, template);
+            if (fallbackProfile.SenderType != EmailSenderTypes.Employee)
+            {
+                return fallbackProfile;
+            }
+
             if (senderEmployee == null || senderEmployee.Id <= 0)
             {
                 return fallbackProfile;
@@ -511,7 +652,7 @@ namespace VS.Human.Business
             {
                 SenderType = fallbackProfile.SenderType,
                 Email = senderEmail,
-                Name = FirstNonEmpty(fallbackProfile.Name, senderEmployee.FullName, senderEmployee.UserName),
+                Name = FirstNonEmpty(senderEmployee.FullName, senderEmployee.UserName, fallbackProfile.Name),
                 Signature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(
                     FirstNonEmpty(senderEmployee.MailSignature, fallbackProfile.Signature))
             };
@@ -535,17 +676,41 @@ namespace VS.Human.Business
                 Signature = FirstNonEmpty(setting.EmployeeSignature, setting.HrSignature)
             };
 
-            var requestedSenderType = EmailSenderTypes.Normalize(template.SenderType);
-            var selectedProfile = requestedSenderType == EmailSenderTypes.Employee ? employeeProfile : hrProfile;
-            var fallbackProfile = requestedSenderType == EmailSenderTypes.Employee ? hrProfile : employeeProfile;
-
-            return new EmailSenderProfile
+            var candidateProfile = new EmailSenderProfile
             {
-                SenderType = requestedSenderType,
-                Email = FirstValidEmail(selectedProfile.Email, fallbackProfile.Email, setting.FromEmail, setting.SmtpUser),
-                Name = FirstNonEmpty(selectedProfile.Name, fallbackProfile.Name, setting.FromName),
-                Signature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(
-                    FirstNonEmpty(selectedProfile.Signature, fallbackProfile.Signature))
+                SenderType = EmailSenderTypes.Candidate,
+                Email = FirstValidEmail(setting.CandidateFromEmail, setting.HrFromEmail, setting.FromEmail, setting.SmtpUser),
+                Name = FirstNonEmpty(setting.CandidateFromName, setting.HrFromName, setting.FromName),
+                Signature = FirstNonEmpty(setting.CandidateSignature, setting.HrSignature, setting.EmployeeSignature)
+            };
+
+            var requestedSenderType = EmailSenderTypes.Normalize(template.SenderType);
+            return requestedSenderType switch
+            {
+                EmailSenderTypes.Employee => new EmailSenderProfile
+                {
+                    SenderType = requestedSenderType,
+                    Email = FirstValidEmail(employeeProfile.Email, hrProfile.Email, candidateProfile.Email, setting.FromEmail, setting.SmtpUser),
+                    Name = FirstNonEmpty(employeeProfile.Name, hrProfile.Name, candidateProfile.Name, setting.FromName),
+                    Signature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(
+                        FirstNonEmpty(employeeProfile.Signature, hrProfile.Signature, candidateProfile.Signature))
+                },
+                EmailSenderTypes.Candidate => new EmailSenderProfile
+                {
+                    SenderType = requestedSenderType,
+                    Email = FirstValidEmail(candidateProfile.Email, hrProfile.Email, employeeProfile.Email, setting.FromEmail, setting.SmtpUser),
+                    Name = FirstNonEmpty(candidateProfile.Name, hrProfile.Name, employeeProfile.Name, setting.FromName),
+                    Signature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(
+                        FirstNonEmpty(candidateProfile.Signature, hrProfile.Signature, employeeProfile.Signature))
+                },
+                _ => new EmailSenderProfile
+                {
+                    SenderType = requestedSenderType,
+                    Email = FirstValidEmail(hrProfile.Email, candidateProfile.Email, employeeProfile.Email, setting.FromEmail, setting.SmtpUser),
+                    Name = FirstNonEmpty(hrProfile.Name, candidateProfile.Name, employeeProfile.Name, setting.FromName),
+                    Signature = EmailSignatureHtmlNormalizer.NormalizeSignatureHtml(
+                        FirstNonEmpty(hrProfile.Signature, candidateProfile.Signature, employeeProfile.Signature))
+                }
             };
         }
 
@@ -602,7 +767,7 @@ namespace VS.Human.Business
 
         private static MailboxAddress BuildEnvelopeSender(EmailSetting setting, EmailSenderProfile senderProfile)
         {
-            var envelopeEmail = FirstValidEmail(setting.SmtpUser, setting.FromEmail, setting.HrFromEmail, senderProfile.Email)
+            var envelopeEmail = FirstValidEmail(setting.SmtpUser, setting.FromEmail, setting.HrFromEmail, setting.CandidateFromEmail, senderProfile.Email)
                 ?? senderProfile.Email
                 ?? string.Empty;
 

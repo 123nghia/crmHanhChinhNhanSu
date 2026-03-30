@@ -19,6 +19,8 @@ namespace VS.Human.Business.Imp
         private const string DefaultIssuedPlace = "Cục quản lý hành chính về trật tự xã hội";
         private const string DefaultEthnicity = "Kinh";
         private const string DefaultReligion = "Không";
+        private const string DefaultDepartmentName = "Tuyển dụng";
+        private string? _defaultDepartmentCode;
 
         public EmployeeImportBusiness(
             IUnitOfWork unitOfWork,
@@ -138,6 +140,7 @@ namespace VS.Human.Business.Imp
                 var insuranceData = CreateInsuranceData(values, headerMap);
                 var positionCode = await EnsureMasterDataAsync(rawPosition, 2, userId);    // TypeData 2 = Position
                 var departmentCode = await EnsureMasterDataAsync(rawDepartment, 5, userId); // TypeData 5 = Department
+                departmentCode = await ResolveDepartmentCodeAsync(departmentCode, userId);
                 var educationCode = await EnsureMasterDataAsync(rawEducation, 14, userId);  // TypeData 14 = Education level
                 var maritalCode = await EnsureMasterDataAsync(rawMarital, 13, userId);      // TypeData 13 = Marital status
                 var religionCode = await EnsureMasterDataAsync(rawReligion, 20, userId);    // TypeData 20 = Religion
@@ -570,7 +573,22 @@ namespace VS.Human.Business.Imp
             return employee;
         }
 
-       
+        private async Task<string?> ResolveDepartmentCodeAsync(string? departmentCode, int userId)
+        {
+            if (!string.IsNullOrWhiteSpace(departmentCode))
+            {
+                return departmentCode.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(_defaultDepartmentCode))
+            {
+                return _defaultDepartmentCode;
+            }
+
+            _defaultDepartmentCode = await EnsureMasterDataAsync(DefaultDepartmentName, 5, userId);
+            return _defaultDepartmentCode;
+        }
+
         private async Task<string?> EnsureMasterDataAsync(string rawValue, int typeData, int userId)
         {
             var trimmed = rawValue?.Trim() ?? string.Empty;

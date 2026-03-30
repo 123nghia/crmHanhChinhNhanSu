@@ -127,12 +127,10 @@ async function saveLeaveBalance() {
     var employeeId = parseInt($('#leaveBalanceEmployeeId').val(), 10);
     var allowedRaw = $('#allowedLeaveDays').val();
     var carryOverRaw = $('#carryOverLeaveDays').val();
-    var usedRaw = $('#usedLeaveDays').val();
     var expiredRaw = $('#expiredLeaveDays').val();
 
     var allowedLeaveDays = allowedRaw === '' ? null : parseFloat(allowedRaw);
     var carryOverLeaveDays = carryOverRaw === '' ? null : parseFloat(carryOverRaw);
-    var usedLeaveDays = usedRaw === '' ? null : parseFloat(usedRaw);
     var expiredLeaveDays = expiredRaw === '' ? null : parseFloat(expiredRaw);
 
     if (!employeeId || employeeId <= 0) {
@@ -150,11 +148,6 @@ async function saveLeaveBalance() {
         return;
     }
 
-    if (usedLeaveDays !== null && Number.isNaN(usedLeaveDays)) {
-        alert('So ngay da dung khong hop le');
-        return;
-    }
-
     if (expiredLeaveDays !== null && Number.isNaN(expiredLeaveDays)) {
         alert('So ngay phep het han khong hop le');
         return;
@@ -164,7 +157,6 @@ async function saveLeaveBalance() {
         EmployeeId: employeeId,
         AllowedLeaveDays: allowedLeaveDays,
         CarryOverLeaveDays: carryOverLeaveDays,
-        UsedLeaveDays: usedLeaveDays,
         ExpiredLeaveDays: expiredLeaveDays
     };
 

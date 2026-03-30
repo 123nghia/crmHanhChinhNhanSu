@@ -6,6 +6,7 @@ namespace VS.Human.Rep.Model
     {
         public const string Hr = "HR";
         public const string Employee = "EMPLOYEE";
+        public const string Candidate = "CANDIDATE";
 
         public static string Normalize(string? senderType)
         {
@@ -14,12 +15,22 @@ namespace VS.Human.Rep.Model
                 return Employee;
             }
 
+            if (string.Equals(senderType, Candidate, StringComparison.OrdinalIgnoreCase))
+            {
+                return Candidate;
+            }
+
             return Hr;
         }
 
         public static string GetDisplayText(string? senderType)
         {
-            return Normalize(senderType) == Employee ? "Mail nhan vien" : "Mail nhan su";
+            return Normalize(senderType) switch
+            {
+                Employee => "Mail nhan vien",
+                Candidate => "Mail ung vien",
+                _ => "Mail nhan su"
+            };
         }
     }
 
@@ -38,6 +49,9 @@ namespace VS.Human.Rep.Model
         public string? EmployeeFromEmail { get; set; }
         public string? EmployeeFromName { get; set; }
         public string? EmployeeSignature { get; set; }
+        public string? CandidateFromEmail { get; set; }
+        public string? CandidateFromName { get; set; }
+        public string? CandidateSignature { get; set; }
     }
 
     public class EmailTemplate : BaseModel
@@ -74,5 +88,9 @@ namespace VS.Human.Rep.Model
         public int? SenderEmployeeId { get; set; }
         public int? ManagerId { get; set; }
         public string? MessageId { get; set; }
+        public string? RelatedEntityType { get; set; }
+        public int? RelatedEntityId { get; set; }
+        public int? ParentEmailSentLogId { get; set; }
+        public string? ParentMessageId { get; set; }
     }
 }

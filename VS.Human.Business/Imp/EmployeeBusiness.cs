@@ -9,6 +9,8 @@ namespace VS.Human.Business.Imp
 {
     public class EmployeeBusiness : BaseBusiness, IEmpBusiness
     {
+        private const int DepartmentMasterType = 5;
+        private const string DefaultDepartmentName = "Tuyển dụng";
 
 
 
@@ -43,7 +45,7 @@ namespace VS.Human.Business.Imp
             item.NationalDate = itemAdd.NationalDate;
             item.NationalPlace = itemAdd.NationalPlace;
             item.Email = itemAdd.Email;
-            item.DepartmentCode = itemAdd.DepartmentCode;
+            item.DepartmentCode = await ResolveDepartmentCodeAsync(itemAdd.DepartmentCode, applyDefaultWhenBlank: true);
             item.PositionCode = itemAdd.PositionCode;
             item.ManagerId = itemAdd.ManagerId;
             item.StatusWork = itemAdd.StatusWork;
@@ -136,6 +138,8 @@ namespace VS.Human.Business.Imp
                 itemUpdate.CreateAt = DateTime.Now;
             }
 
+            itemUpdate.DepartmentCode = await ResolveDepartmentCodeAsync(itemUpdate.DepartmentCode, itemUpdate.Id < 0);
+
             // Map to Employee entity
             var item = EmployeeMapper.MapToEmployee(itemUpdate, existingEmployee);
 
@@ -147,6 +151,39 @@ namespace VS.Human.Business.Imp
             }
 
             return await _unitOfWork.EmployeeRep.AddOrUpdate(item);
+        }
+
+        private async Task<string> ResolveDepartmentCodeAsync(string? departmentCode, bool applyDefaultWhenBlank)
+        {
+            var normalizedDepartmentCode = departmentCode?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(normalizedDepartmentCode))
+            {
+                return normalizedDepartmentCode;
+            }
+
+            if (!applyDefaultWhenBlank)
+            {
+                return string.Empty;
+            }
+
+            var defaultDepartment = await _unitOfWork.MasterDataRep.GetByName(DefaultDepartmentName, DepartmentMasterType);
+            if (defaultDepartment != null && defaultDepartment.Id > 0)
+            {
+                return defaultDepartment.Code ?? string.Empty;
+            }
+
+            var createdBy = GetUserId();
+            await _unitOfWork.MasterDataRep.AddOrUpdate(new MasterDataAdd
+            {
+                Name = DefaultDepartmentName,
+                TypeData = DepartmentMasterType,
+                ApplyFor = 2,
+                IsActive = 1,
+                CreatedBy = createdBy > 0 ? createdBy : 1
+            });
+
+            defaultDepartment = await _unitOfWork.MasterDataRep.GetByName(DefaultDepartmentName, DepartmentMasterType);
+            return defaultDepartment?.Code ?? string.Empty;
         }
 
         private async Task<string> BuildUniqueUserName(string? userName, string? email, string? phone, string? fullName)

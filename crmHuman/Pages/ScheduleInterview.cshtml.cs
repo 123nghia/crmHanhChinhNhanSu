@@ -346,6 +346,9 @@ namespace crmHuman.Pages
                                 candidateInfo = candidateFound;
                             }
 
+                            var candidateName = candidateInfo?.Name ?? scheduleItem.CandidateFullName ?? string.Empty;
+                            var candidatePosition = candidateInfo?.PostionName ?? scheduleItem.PositionText ?? string.Empty;
+
                             var scheduleText = scheduleItem.ScheduleDate.HasValue
                                 ? scheduleItem.ScheduleDate.Value.ToString("HH'h' ngày dd/MM/yyyy")
                                 : string.Empty;
@@ -370,8 +373,8 @@ namespace crmHuman.Pages
 
                             int col = 1;
                             worksheet.Cells[row, col++].Value = stt++;
-                            worksheet.Cells[row, col++].Value = candidateInfo?.Name ?? string.Empty;
-                            worksheet.Cells[row, col++].Value = candidateInfo?.PostionName ?? string.Empty;
+                            worksheet.Cells[row, col++].Value = candidateName;
+                            worksheet.Cells[row, col++].Value = candidatePosition;
                             worksheet.Cells[row, col++].Value = candidateInfo?.ManagerName ?? string.Empty;
                             worksheet.Cells[row, col++].Value = candidateInfo?.Dob?.ToString("dd/MM/yyyy") ?? string.Empty;
                             worksheet.Cells[row, col++].Value = candidateInfo?.NationalId ?? string.Empty;

@@ -3,6 +3,8 @@ function selectAttendanceEmployee(button) {
     if (!row) return;
     var employeeId = parseInt(row.getAttribute('data-employee-id'), 10);
     var fingerprint = row.getAttribute('data-fingerprint') || '';
+    syncAttendanceEmployeeSelect(employeeId, fingerprint);
+    setAttendanceFingerprint(fingerprint);
     updateSummaryFromRow(row);
     highlightSummaryRow(row);
     loadAttendanceDetails(employeeId, fingerprint);
@@ -41,17 +43,81 @@ function submitAttendanceExport() {
 
     var monthInput = document.querySelector('input[name="month"]');
     var employeeInput = document.querySelector('[name="employeeId"]');
+    var fingerprintInput = document.getElementById('attendanceFingerprintInput');
     var tokenInput = document.querySelector('input[name="token"]');
 
     var exportMonth = document.getElementById('exportMonth');
     var exportEmployee = document.getElementById('exportEmployeeId');
+    var exportFingerprint = document.getElementById('exportFingerprintCode');
     var exportToken = document.getElementById('exportToken');
 
     if (exportMonth) exportMonth.value = monthInput ? monthInput.value : '';
     if (exportEmployee) exportEmployee.value = employeeInput ? employeeInput.value : '';
+    if (exportFingerprint) exportFingerprint.value = fingerprintInput ? fingerprintInput.value : '';
     if (exportToken) exportToken.value = tokenInput ? tokenInput.value : '';
 
     exportForm.submit();
+}
+
+function setAttendanceFingerprint(fingerprint) {
+    var fingerprintInput = document.getElementById('attendanceFingerprintInput');
+    if (!fingerprintInput) return;
+    fingerprintInput.value = fingerprint || '';
+}
+
+function findAttendanceRow(employeeId, fingerprint) {
+    var rows = Array.prototype.slice.call(document.querySelectorAll('.attendance-summary-row'));
+    var normalizedEmployeeId = Number.isNaN(employeeId) ? 0 : employeeId;
+    var normalizedFingerprint = (fingerprint || '').trim().toLowerCase();
+
+    return rows.find(function (row) {
+        var rowEmployeeId = parseInt(row.getAttribute('data-employee-id'), 10);
+        rowEmployeeId = Number.isNaN(rowEmployeeId) ? 0 : rowEmployeeId;
+        var rowFingerprint = (row.getAttribute('data-fingerprint') || '').trim().toLowerCase();
+
+        if (normalizedEmployeeId > 0 && rowEmployeeId !== normalizedEmployeeId) {
+            return false;
+        }
+
+        if (normalizedFingerprint) {
+            return rowFingerprint === normalizedFingerprint;
+        }
+
+        return normalizedEmployeeId > 0 ? rowEmployeeId === normalizedEmployeeId : rowEmployeeId === 0;
+    }) || null;
+}
+
+function syncAttendanceEmployeeSelect(employeeId, fingerprint) {
+    var employeeSelect = document.getElementById('attendanceEmployeeSelect');
+    if (!employeeSelect) return;
+
+    var normalizedEmployeeId = Number.isNaN(employeeId) ? 0 : employeeId;
+    var normalizedFingerprint = (fingerprint || '').trim().toLowerCase();
+    var matchedOption = Array.prototype.slice.call(employeeSelect.options).find(function (option) {
+        var optionEmployeeId = parseInt(option.value, 10);
+        optionEmployeeId = Number.isNaN(optionEmployeeId) ? 0 : optionEmployeeId;
+        var optionFingerprint = (option.getAttribute('data-fingerprint') || '').trim().toLowerCase();
+
+        if (normalizedEmployeeId > 0 && optionEmployeeId !== normalizedEmployeeId) {
+            return false;
+        }
+
+        if (normalizedFingerprint) {
+            return optionFingerprint === normalizedFingerprint;
+        }
+
+        return normalizedEmployeeId > 0 ? optionEmployeeId === normalizedEmployeeId : option.value === '';
+    });
+
+    Array.prototype.forEach.call(employeeSelect.options, function (option) {
+        option.selected = false;
+    });
+
+    if (matchedOption) {
+        matchedOption.selected = true;
+    } else if (employeeSelect.options.length > 0) {
+        employeeSelect.options[0].selected = true;
+    }
 }
 
 function initMonthPicker() {
@@ -381,8 +447,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var fingerprint = meta.getAttribute('data-selected-fingerprint') || '';
 
     if (selectedId > 0 || fingerprint) {
-        var row = document.querySelector('.attendance-summary-row[data-employee-id="' + selectedId + '"]');
+        var row = findAttendanceRow(selectedId, fingerprint);
         if (row) {
+            syncAttendanceEmployeeSelect(selectedId, fingerprint);
+            setAttendanceFingerprint(fingerprint);
             updateSummaryFromRow(row);
             highlightSummaryRow(row);
         }
@@ -393,13 +461,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (employeeSelect) {
         employeeSelect.addEventListener('change', function (event) {
             var value = parseInt(event.target.value, 10);
-            var row = document.querySelector('.attendance-summary-row[data-employee-id="' + value + '"]');
+            var selectedOption = event.target.options[event.target.selectedIndex];
+            var fingerprint = selectedOption ? (selectedOption.getAttribute('data-fingerprint') || '') : '';
+            setAttendanceFingerprint(fingerprint);
+            var row = findAttendanceRow(value, fingerprint);
             if (row) {
                 updateSummaryFromRow(row);
                 highlightSummaryRow(row);
-                loadAttendanceDetails(value, row.getAttribute('data-fingerprint') || '');
+                loadAttendanceDetails(value, row.getAttribute('data-fingerprint') || fingerprint);
             } else {
-                loadAttendanceDetails(value, '');
+                loadAttendanceDetails(value, fingerprint);
             }
         });
     }

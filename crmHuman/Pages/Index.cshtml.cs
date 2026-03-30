@@ -25,6 +25,7 @@ namespace crmHuman.Pages
         private readonly ImasterDataBussiness _masterDataBusinness;
         private readonly IJobItemBusiness _jobItemBusiness;
         private readonly IEmpBusiness _empBusiness;
+        private readonly ICandidateBusiness _candidateBusiness;
         private readonly ILeaveBusiness _leaveBusiness;
         private readonly IScheduleInterviewBussiness _scheduleInterviewBussiness;
         private readonly ILogHistoryBusiness _logHistoryBusiness;
@@ -69,7 +70,7 @@ namespace crmHuman.Pages
         };
 
         public IndexModel(ILogger<IndexModel> logger, IDashboardBusinness dashboardBusinness, ImasterDataBussiness imasterDataBussiness,
-        IJobItemBusiness jobItemBusiness, IEmpBusiness empBusiness, ILeaveBusiness leaveBusiness, IScheduleInterviewBussiness scheduleInterviewBussiness,
+        IJobItemBusiness jobItemBusiness, IEmpBusiness empBusiness, ICandidateBusiness candidateBusiness, ILeaveBusiness leaveBusiness, IScheduleInterviewBussiness scheduleInterviewBussiness,
         ILogHistoryBusiness logHistoryBusiness, INotificationBusiness notificationBusiness)
         {
             _logger = logger;
@@ -81,6 +82,7 @@ namespace crmHuman.Pages
             _masterDataBusinness = imasterDataBussiness;
             _jobItemBusiness = jobItemBusiness;
             _empBusiness = empBusiness;
+            _candidateBusiness = candidateBusiness;
             _leaveBusiness = leaveBusiness;
             _scheduleInterviewBussiness = scheduleInterviewBussiness;
             _logHistoryBusiness = logHistoryBusiness;
@@ -208,8 +210,17 @@ namespace crmHuman.Pages
             double cvDone = 0;
             double totalCVNew = 0;
             double totalDone = 0;
-            var allCV = await dashboardBusinness.GetAllCV(orderRequest);
-            var totalCVInput = allCV.Total;
+            var candidateRequest = new CandidateRequest
+            {
+                UserId = UserData.UserId,
+                RoleCode = UserData.RoleCode,
+                From = request.From,
+                To = request.To,
+                Page = 1,
+                Limit = 1
+            };
+            var visibleCandidates = await _candidateBusiness.GetAll(candidateRequest);
+            var totalCVInput = visibleCandidates.Total;
             if (allOrder.Data != null)
                 foreach (var item in allOrder.Data)
                 {

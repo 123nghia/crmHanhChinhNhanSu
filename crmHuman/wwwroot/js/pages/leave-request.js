@@ -1,7 +1,26 @@
+let isSavingLeave = false;
+
+function setLeaveSaveState(isSaving) {
+    isSavingLeave = isSaving;
+
+    const saveButton = $('#leaveSaveButton');
+    if (saveButton.length === 0) {
+        return;
+    }
+
+    saveButton.prop('disabled', isSaving);
+    saveButton.text(isSaving ? 'Đang lưu...' : 'Lưu lại');
+}
+
+function resetLeaveSaveState() {
+    setLeaveSaveState(false);
+}
+
 function openAddLeave() {
     $('#leaveId').val(0);
     $('#leaveForm')[0].reset();
     $('#leaveModalTitle').text('Đăng ký nghỉ phép');
+    resetLeaveSaveState();
     $('#leaveModal').modal('show');
 }
 
@@ -22,6 +41,10 @@ function calculateDays() {
 }
 
 async function saveLeave() {
+    if (isSavingLeave) {
+        return;
+    }
+
     const data = {
         Id: parseInt($('#leaveId').val()),
         LeaveTypeCode: $('#leaveType').val(),
@@ -36,6 +59,7 @@ async function saveLeave() {
         alert('Vui lòng điền đầy đủ thông tin hợp lệ');
         return;
     }
+
     if (data.LeaveTypeCode === 'NP' && data.FromDate) {
         const startDate = new Date(`${data.FromDate}T00:00:00`);
         const today = new Date();
@@ -47,6 +71,8 @@ async function saveLeave() {
             return;
         }
     }
+
+    setLeaveSaveState(true);
 
     try {
         const response = await fetch('?handler=Save', {
@@ -68,6 +94,8 @@ async function saveLeave() {
     } catch (error) {
         console.error('Error:', error);
         alert('Lỗi hệ thống');
+    } finally {
+        resetLeaveSaveState();
     }
 }
 
@@ -96,11 +124,10 @@ async function deleteLeave(id) {
 }
 
 function openEditLeave(id) {
-    // In a real app, you might fetch data from the server or use data from the row
-    // For now, I'll fetch by Id for accuracy
     fetch(`?handler=LeaveById&id=${id}`)
         .then(res => res.json())
         .then(data => {
+            resetLeaveSaveState();
             $('#leaveId').val(data.id);
             $('#leaveType').val(data.leaveTypeCode);
             $('#fromDate').val(data.fromDate.split('T')[0]);
@@ -145,3 +172,6 @@ function getActionBadge(action) {
     }
 }
 
+$(document).ready(function () {
+    $('#leaveModal').on('hidden.bs.modal', resetLeaveSaveState);
+});

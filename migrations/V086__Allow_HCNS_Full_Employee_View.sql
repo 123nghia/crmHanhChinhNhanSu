@@ -104,7 +104,7 @@ BEGIN
         SET @where += ' AND d.CreateAt <= @toDate ';
     END
 
-    IF (@UserId > 0 AND ISNULL(@RoleCode, '''') NOT IN (''1'', ''8'', ''9''))
+    IF (@UserId > 0 AND ISNULL(@RoleCode, '') NOT IN ('1', '8', '9'))
     BEGIN
         SET @where += ' AND d.Id IN (SELECT Id FROM getAllUserByUserId(@UserId)) ';
         SET @where += ' AND d.Id <> @UserId ';

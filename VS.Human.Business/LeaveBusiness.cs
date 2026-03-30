@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using VS.Human.Business.Imp;
 using VS.Human.Item;
@@ -15,7 +17,6 @@ namespace VS.Human.Business
 {
     public class LeaveBusiness : BaseBusiness, ILeaveBusiness
     {
-        private const string RoleEmployee = "2";
         private const string RoleHcns = "9";
         private const string RoleBgd = "8";
         private const string RoleAdmin = "1";
@@ -24,6 +25,7 @@ namespace VS.Human.Business
         private const string LeaveRejectTemplateCode = "LEAVE_REJECT";
         private const string LeavePendingHcnsTemplateCode = "LEAVE_PENDING_HCNS";
         private const string LeavePendingBgdTemplateCode = "LEAVE_PENDING_BGD";
+        private const string LeaveEmailEntityType = "LEAVE";
 
         private readonly IEmailConfigBusiness _emailConfigBusiness;
         private readonly IEmailService _emailService;
@@ -151,15 +153,7 @@ namespace VS.Human.Business
                     return;
                 }
 
-                Employee? manager = null;
-                if (employee.ManagerId.HasValue && employee.ManagerId.Value > 0)
-                {
-                    var managerData = await _unitOfWork.EmployeeRep.GetById(employee.ManagerId.Value);
-                    if (managerData != null && managerData.Id > 0)
-                    {
-                        manager = managerData;
-                    }
-                }
+                var manager = await ResolveLeaveManagerAsync(employee);
 
                 Employee? approver = null;
                 if (approverId > 0)
@@ -196,7 +190,12 @@ namespace VS.Human.Business
                     emailPlan.CcEmails,
                     null,
                     emailPlan.ManagerId,
-                    approverId > 0 ? approverId : employee.Id);
+                    approverId > 0 ? approverId : employee.Id,
+                    new EmailSendContext
+                    {
+                        RelatedEntityType = LeaveEmailEntityType,
+                        RelatedEntityId = leaveId
+                    });
                 if (!sendResult.Success)
                 {
                     _logger.LogWarning(
@@ -221,55 +220,88 @@ namespace VS.Human.Business
             var plan = new LeaveEmailPlan
             {
                 Tokens = tokens,
-                ManagerId = manager?.Id
+                ManagerId = null
             };
 
             if (action.Equals("Create", StringComparison.OrdinalIgnoreCase))
             {
                 plan.TemplateCode = LeaveCreateTemplateCode;
                 var hcnsEmails = await GetRoleEmailsAsync(RoleHcns);
+                var activeEmailSetting = await _emailConfigBusiness.GetActiveSetting();
+                AddAllEmployeeEmails(plan.CcEmails, employee);
 
-                if (IsEmployeeRole(employee.RoleCode))
+                if (leave.Status == 0)
                 {
-                    AddEmailIfPresent(plan.ToEmails, GetPreferredEmail(manager));
+                    var sendsDirectlyToHcns = IsHcnsMailboxApprover(manager, activeEmailSetting);
+                    if (sendsDirectlyToHcns)
+                    {
+                        tokens["ManagerName"] = GetHcnsRecipientDisplayName(activeEmailSetting);
+                        plan.ManagerId = null;
+                        AddHcnsMailboxRecipients(plan.ToEmails, manager, activeEmailSetting, hcnsEmails);
+                    }
+                    else
+                    {
+                        AddEmailIfPresent(plan.ToEmails, GetPreferredEmail(manager));
+                    }
+
                     AddDistinctEmails(plan.CcEmails, hcnsEmails);
 
                     if (plan.ToEmails.Count == 0)
                     {
                         AddDistinctEmails(plan.ToEmails, hcnsEmails);
-                        tokens["ManagerName"] = "Phong HCNS";
+                        tokens["ManagerName"] = GetHcnsRecipientDisplayName(activeEmailSetting);
                         plan.ManagerId = null;
                     }
-                    else
+                    else if (!sendsDirectlyToHcns)
                     {
                         tokens["ManagerName"] = manager?.FullName ?? "Anh/Chi phu trach";
                     }
+
+                    return plan;
                 }
-                else
+
+                if (leave.Status == 1)
+                {
+                    tokens["ManagerName"] = GetHcnsRecipientDisplayName(activeEmailSetting);
+                    plan.ManagerId = null;
+                    AddHcnsMailboxRecipients(plan.ToEmails, manager, activeEmailSetting, hcnsEmails);
+
+                    if (plan.ToEmails.Count == 0)
+                    {
+                        AddDistinctEmails(plan.ToEmails, hcnsEmails);
+                    }
+
+                    return plan;
+                }
+
+                if (leave.Status == 2)
                 {
                     var bgdEmails = await GetRoleEmailsAsync(RoleBgd);
-                    var directRecipients = bgdEmails.Count > 0 ? bgdEmails : hcnsEmails;
-                    AddDistinctEmails(plan.ToEmails, directRecipients);
-
                     if (bgdEmails.Count > 0)
                     {
+                        AddDistinctEmails(plan.ToEmails, bgdEmails);
                         AddDistinctEmails(plan.CcEmails, hcnsEmails);
                         tokens["ManagerName"] = "Ban Giam doc";
                     }
                     else
                     {
+                        AddDistinctEmails(plan.ToEmails, hcnsEmails);
                         tokens["ManagerName"] = "Phong HCNS";
-                        plan.ManagerId = null;
                     }
+
+                    plan.ManagerId = null;
+                    return plan;
                 }
 
-                return plan;
+                return null;
             }
 
             if (action.Equals("Reject", StringComparison.OrdinalIgnoreCase))
             {
                 plan.TemplateCode = LeaveRejectTemplateCode;
                 AddEmailIfPresent(plan.ToEmails, GetPreferredEmail(employee));
+                plan.ManagerId = null;
+                await AddFinalDecisionCcRecipientsAsync(plan.CcEmails, leave, employee, manager, approver, roleCode, includeEmployee: true);
                 return plan;
             }
 
@@ -277,6 +309,8 @@ namespace VS.Human.Business
             {
                 plan.TemplateCode = LeaveApproveTemplateCode;
                 AddEmailIfPresent(plan.ToEmails, GetPreferredEmail(employee));
+                plan.ManagerId = null;
+                await AddFinalDecisionCcRecipientsAsync(plan.CcEmails, leave, employee, manager, approver, roleCode, includeEmployee: true);
                 return plan;
             }
 
@@ -285,17 +319,18 @@ namespace VS.Human.Business
                 return null;
             }
 
-            if (leave.Status == 1 && IsEmployeeRole(employee.RoleCode))
+            if (leave.Status == 1)
             {
                 plan.TemplateCode = LeavePendingHcnsTemplateCode;
                 AddDistinctEmails(plan.ToEmails, await GetRoleEmailsAsync(RoleHcns));
+                AddLeaveFlowCcRecipients(plan.CcEmails, employee, includeEmployee: true);
                 tokens["ApproverQueueName"] = "Phong HCNS";
                 tokens["ApproverQueueRole"] = "HCNS";
                 plan.ManagerId = null;
                 return plan;
             }
 
-            if (leave.Status == 2 && IsEmployeeRole(employee.RoleCode))
+            if (leave.Status == 2)
             {
                 var bgdEmails = await GetRoleEmailsAsync(RoleBgd);
                 if (bgdEmails.Count == 0)
@@ -305,6 +340,7 @@ namespace VS.Human.Business
 
                 plan.TemplateCode = LeavePendingBgdTemplateCode;
                 AddDistinctEmails(plan.ToEmails, bgdEmails);
+                AddLeaveFlowCcRecipients(plan.CcEmails, employee, includeEmployee: true);
                 tokens["ApproverQueueName"] = "Ban Giam doc";
                 tokens["ApproverQueueRole"] = "BGD";
                 plan.ManagerId = null;
@@ -315,6 +351,8 @@ namespace VS.Human.Business
             {
                 plan.TemplateCode = LeaveApproveTemplateCode;
                 AddEmailIfPresent(plan.ToEmails, GetPreferredEmail(employee));
+                plan.ManagerId = null;
+                await AddFinalDecisionCcRecipientsAsync(plan.CcEmails, leave, employee, manager, approver, roleCode, includeEmployee: true);
                 return plan;
             }
 
@@ -337,15 +375,7 @@ namespace VS.Human.Business
                     return;
                 }
 
-                Employee? manager = null;
-                if (employee.ManagerId.HasValue && employee.ManagerId.Value > 0)
-                {
-                    var managerData = await _unitOfWork.EmployeeRep.GetById(employee.ManagerId.Value);
-                    if (managerData != null && managerData.Id > 0)
-                    {
-                        manager = managerData;
-                    }
-                }
+                var manager = await ResolveLeaveManagerAsync(employee);
 
                 Employee? actor = null;
                 if (actorId > 0)
@@ -395,7 +425,7 @@ namespace VS.Human.Business
                     return;
                 }
 
-                if (leave.Status == 1 && IsEmployeeRole(employee.RoleCode))
+                if (leave.Status == 1)
                 {
                     var hcnsIds = await GetRoleUserIdsAsync(RoleHcns);
                     await NotifyUsersAsync(
@@ -406,7 +436,7 @@ namespace VS.Human.Business
                     return;
                 }
 
-                if (leave.Status == 2 && IsEmployeeRole(employee.RoleCode))
+                if (leave.Status == 2)
                 {
                     var bgdIds = await GetRoleUserIdsAsync(RoleBgd);
                     if (bgdIds.Count == 0)
@@ -447,8 +477,7 @@ namespace VS.Human.Business
         {
             var requesterId = employee.Id;
             var hcnsIds = await GetRoleUserIdsAsync(RoleHcns);
-
-            if (IsEmployeeRole(employee.RoleCode))
+            if (leave.Status == 0)
             {
                 await NotifyUsersAsync(
                     new[] { requesterId },
@@ -472,6 +501,24 @@ namespace VS.Human.Business
                     senderId,
                     requesterId,
                     manager?.Id);
+
+                return;
+            }
+
+            if (leave.Status == 1)
+            {
+                await NotifyUsersAsync(
+                    new[] { requesterId },
+                    "Don xin nghi phep cua ban da duoc tao va gui toi Phong HCNS.",
+                    "/Leave/LeaveRequest",
+                    senderId);
+
+                await NotifyUsersAsync(
+                    hcnsIds,
+                    $"Co don nghi phep cua {employeeName} cho phong HCNS xu ly.",
+                    "/Leave/LeaveApproval",
+                    senderId,
+                    requesterId);
 
                 return;
             }
@@ -566,6 +613,27 @@ namespace VS.Human.Business
             return tokens;
         }
 
+        private static void AddLeaveFlowCcRecipients(List<string> ccEmails, Employee employee, bool includeEmployee)
+        {
+            if (includeEmployee)
+            {
+                AddAllEmployeeEmails(ccEmails, employee);
+            }
+        }
+
+        private async Task AddFinalDecisionCcRecipientsAsync(List<string> ccEmails, LeaveIndexModel leave, Employee employee, Employee? manager, Employee? approver, string? roleCode, bool includeEmployee)
+        {
+            if (includeEmployee)
+            {
+                AddAllEmployeeEmails(ccEmails, employee);
+            }
+
+            if (IsAdminOrBgdRole(roleCode) || leave.IsActingApproval || !string.IsNullOrWhiteSpace(leave.HCNSApproverName))
+            {
+                AddDistinctEmails(ccEmails, await GetRoleEmailsAsync(RoleHcns));
+            }
+        }
+
         private static string FormatDate(DateTime date)
         {
             return date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
@@ -643,6 +711,17 @@ namespace VS.Human.Business
             }
         }
 
+        private static void AddAllEmployeeEmails(List<string> target, Employee? employee)
+        {
+            if (employee == null || employee.Id <= 0)
+            {
+                return;
+            }
+
+            AddEmailIfPresent(target, employee.Email);
+            AddEmailIfPresent(target, employee.PersonalEmail);
+        }
+
         private static string? NormalizeEmail(string? email)
         {
             if (string.IsNullOrWhiteSpace(email))
@@ -661,11 +740,6 @@ namespace VS.Human.Business
             ccEmails.RemoveAll(email => !seen.Add(email));
         }
 
-        private static bool IsEmployeeRole(string? roleCode)
-        {
-            return string.Equals(roleCode, RoleEmployee, StringComparison.OrdinalIgnoreCase);
-        }
-
         private static bool IsHcnsRole(string? roleCode)
         {
             return string.Equals(roleCode, RoleHcns, StringComparison.OrdinalIgnoreCase)
@@ -677,6 +751,98 @@ namespace VS.Human.Business
             return string.Equals(roleCode, RoleAdmin, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(roleCode, RoleBgd, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(roleCode, "BGD", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsHcnsMailboxApprover(Employee? manager, EmailSetting? activeEmailSetting)
+        {
+            if (manager == null || manager.Id <= 0)
+            {
+                return false;
+            }
+
+            if (IsHcnsRole(manager.RoleCode))
+            {
+                return true;
+            }
+
+            var managerEmail = GetPreferredEmail(manager);
+            if (string.IsNullOrWhiteSpace(managerEmail))
+            {
+                return false;
+            }
+
+            var configuredHrEmails = new[]
+            {
+                NormalizeEmail(activeEmailSetting?.EmployeeFromEmail),
+                NormalizeEmail(activeEmailSetting?.HrFromEmail)
+            };
+
+            return configuredHrEmails.Any(email =>
+                !string.IsNullOrWhiteSpace(email)
+                && string.Equals(email, managerEmail, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string GetHcnsRecipientDisplayName(EmailSetting? activeEmailSetting)
+        {
+            return activeEmailSetting?.EmployeeFromName
+                ?? activeEmailSetting?.HrFromName
+                ?? "Phong HCNS";
+        }
+
+        private static void AddHcnsMailboxRecipients(List<string> target, Employee? manager, EmailSetting? activeEmailSetting, IEnumerable<string> fallbackEmails)
+        {
+            var configuredMailbox = NormalizeEmail(activeEmailSetting?.EmployeeFromEmail)
+                ?? NormalizeEmail(activeEmailSetting?.HrFromEmail);
+
+            AddEmailIfPresent(target, configuredMailbox);
+
+            if (target.Count == 0)
+            {
+                AddEmailIfPresent(target, GetPreferredEmail(manager));
+            }
+
+            if (target.Count == 0)
+            {
+                AddDistinctEmails(target, fallbackEmails);
+            }
+        }
+
+        private async Task<Employee?> ResolveLeaveManagerAsync(Employee employee)
+        {
+            if (employee == null || employee.Id <= 0)
+            {
+                return null;
+            }
+
+            if (employee.GroupId.HasValue && employee.GroupId.Value > 0)
+            {
+                var group = await _unitOfWork.GroupRep.GetById(employee.GroupId.Value);
+                if (group != null
+                    && !string.IsNullOrWhiteSpace(group.ManagerId)
+                    && int.TryParse(group.ManagerId, out var groupManagerId)
+                    && groupManagerId > 0
+                    && groupManagerId != employee.Id)
+                {
+                    var groupManager = await _unitOfWork.EmployeeRep.GetById(groupManagerId);
+                    if (groupManager != null && groupManager.Id > 0)
+                    {
+                        return groupManager;
+                    }
+                }
+            }
+
+            if (employee.ManagerId.HasValue
+                && employee.ManagerId.Value > 0
+                && employee.ManagerId.Value != employee.Id)
+            {
+                var directManager = await _unitOfWork.EmployeeRep.GetById(employee.ManagerId.Value);
+                if (directManager != null && directManager.Id > 0)
+                {
+                    return directManager;
+                }
+            }
+
+            return null;
         }
 
         private async Task<List<string>> GetRoleEmailsAsync(params string[] roleCodes)

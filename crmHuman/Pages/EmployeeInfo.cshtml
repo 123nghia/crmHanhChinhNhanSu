@@ -252,8 +252,16 @@
 
 
                              <div class="form-group">
-                                <label class="form-label">Bộ phận</label>
+                                <label class="form-label">Phòng ban</label>
                                 <select name="DepartmentId" class="form-select" id="cbDepartmentId" aria-label="">
+                                    @if (string.IsNullOrWhiteSpace(itemResult.DepartmentCode))
+                                    {
+                                        <option selected value="">Không thuộc phòng ban</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="">Không thuộc phòng ban</option>
+                                    }
                                     @foreach (var item in dataDepartments)
                                     {
 

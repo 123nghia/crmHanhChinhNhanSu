@@ -54,6 +54,9 @@ namespace VS.Human.Rep
                             EmployeeFromEmail = @EmployeeFromEmail,
                             EmployeeFromName = @EmployeeFromName,
                             EmployeeSignature = @EmployeeSignature,
+                            CandidateFromEmail = @CandidateFromEmail,
+                            CandidateFromName = @CandidateFromName,
+                            CandidateSignature = @CandidateSignature,
                             IsActive = @IsActive,
                             UpdatedBy = @UpdatedBy,
                             UpdateAt = GETDATE()
@@ -73,9 +76,9 @@ namespace VS.Human.Rep
                 {
                     var sql = @"
                         INSERT INTO EmailSettings
-                        (SmtpHost, SmtpPort, EnableSsl, SmtpUser, SmtpPassword, FromEmail, FromName, HrFromEmail, HrFromName, HrSignature, EmployeeFromEmail, EmployeeFromName, EmployeeSignature, IsActive, Deleted, CreatedBy, UpdatedBy, CreateAt, UpdateAt)
+                        (SmtpHost, SmtpPort, EnableSsl, SmtpUser, SmtpPassword, FromEmail, FromName, HrFromEmail, HrFromName, HrSignature, EmployeeFromEmail, EmployeeFromName, EmployeeSignature, CandidateFromEmail, CandidateFromName, CandidateSignature, IsActive, Deleted, CreatedBy, UpdatedBy, CreateAt, UpdateAt)
                         VALUES
-                        (@SmtpHost, @SmtpPort, @EnableSsl, @SmtpUser, @SmtpPassword, @FromEmail, @FromName, @HrFromEmail, @HrFromName, @HrSignature, @EmployeeFromEmail, @EmployeeFromName, @EmployeeSignature, @IsActive, 0, @CreatedBy, @UpdatedBy, GETDATE(), GETDATE());
+                        (@SmtpHost, @SmtpPort, @EnableSsl, @SmtpUser, @SmtpPassword, @FromEmail, @FromName, @HrFromEmail, @HrFromName, @HrSignature, @EmployeeFromEmail, @EmployeeFromName, @EmployeeSignature, @CandidateFromEmail, @CandidateFromName, @CandidateSignature, @IsActive, 0, @CreatedBy, @UpdatedBy, GETDATE(), GETDATE());
                         SELECT CAST(SCOPE_IDENTITY() as int);";
                     var newId = await con.ExecuteScalarAsync<int>(sql, setting);
                     if (setting.IsActive > 0 && newId > 0)

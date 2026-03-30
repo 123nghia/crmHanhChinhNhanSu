@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using VS.Human.Business.Model;
 using VS.Human.Item;
 using VS.Human.Rep;
@@ -9,13 +11,11 @@ namespace VS.Human.Business.Imp
 {
     public class GroupBusiness : BaseBusiness, IGroupBusiness
     {
-
-
+        private const string RoleHcns = "9";
 
         public GroupBusiness(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor)
             : base(unitOfWork, httpContextAccessor)
         {
-
         }
 
         public async Task<bool> Add(EmployeeAdd itemAdd)
@@ -35,6 +35,7 @@ namespace VS.Human.Business.Imp
             item.CreatedBy = GetUserId();
             return await _unitOfWork.EmployeeRep.AddOrUpdate(item);
         }
+
         public async Task<bool> Update(EmployeeAdd itemUpdate)
         {
             var item = new Employee();
@@ -49,16 +50,15 @@ namespace VS.Human.Business.Imp
             item.UpdatedBy = GetUserId();
             return await _unitOfWork.EmployeeRep.AddOrUpdate(item);
         }
+
         public Task<bool> Delete(int id)
         {
             return _unitOfWork.GroupRep.Delete(id);
         }
+
         public async Task<GroupItem> GetById(int id)
         {
-
             return await _unitOfWork.GroupRep.GetById(id);
-
-
         }
 
         public async Task<bool> AddOrUpdate(GroupItem item)
@@ -76,19 +76,15 @@ namespace VS.Human.Business.Imp
             return await _unitOfWork.GroupRep.DeleteMember(id);
         }
 
-
-
         public async Task<BaseList> GetAllMember(int groupId)
         {
             return await _unitOfWork.GroupRep.GetAllMember(groupId);
-
         }
+
         public async Task<BaseList> GetAllMemberNotGroup()
         {
             return await _unitOfWork.GroupRep.GetAllMemberNotGroup();
-
         }
-
 
         public async Task<BaseList> GetAll(GroupRequest request)
         {
@@ -97,9 +93,31 @@ namespace VS.Human.Business.Imp
 
         public async Task<BaseList> GetAllManager(int leadGroupId = -1)
         {
-            return await _unitOfWork.EmployeeRep.GetAllManager(leadGroupId);
+            var baseList = await _unitOfWork.EmployeeRep.GetAllManager(leadGroupId);
+            var managers = baseList.Data?.Cast<ManagerLeadIndex>().ToList() ?? new List<ManagerLeadIndex>();
+
+            var hcnsEmployees = await _unitOfWork.EmployeeRep.GetByRoleCodes(new[] { RoleHcns });
+            managers.AddRange(hcnsEmployees
+                .Where(x => x.Id > 0)
+                .Select(x => new ManagerLeadIndex
+                {
+                    Id = x.Id,
+                    UserName = x.UserName ?? string.Empty,
+                    FullName = x.FullName ?? string.Empty,
+                    RoleLabel = "HCNS"
+                }));
+
+            var mergedManagers = managers
+                .Where(x => x.Id > 0)
+                .GroupBy(x => x.Id)
+                .Select(g => g.First())
+                .OrderBy(x => x.FullName)
+                .ThenBy(x => x.UserName)
+                .ToList();
+
+            baseList.Data = mergedManagers;
+            baseList.Total = mergedManagers.Count;
+            return baseList;
         }
-
-
     }
 }

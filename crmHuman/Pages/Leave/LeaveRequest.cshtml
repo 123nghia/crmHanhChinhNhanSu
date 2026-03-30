@@ -18,26 +18,39 @@
     @if (Model.UserData?.RoleCode == "4" && Model.LeaveBalance != null)
     {
         var allowedLeave = Model.LeaveBalance.AllowedLeaveDays ?? 0m;
+        var carryOverLeave = Model.LeaveBalance.CarryOverLeaveDays ?? 0m;
+        var expiredLeave = Model.LeaveBalance.ExpiredLeaveDays ?? 0m;
         var usedLeave = Model.LeaveBalance.UsedLeaveDays ?? 0m;
-        var remainingLeave = Model.LeaveBalance.RemainingLeaveDays ?? (allowedLeave - usedLeave);
+        var remainingLeave = Model.LeaveBalance.RemainingLeaveDays ?? (allowedLeave + carryOverLeave - expiredLeave - usedLeave);
         <div class="row mb-3">
             <div class="col-lg-12">
                 <div class="card leave-balance-card">
                     <div class="card-body">
                         <h5 class="card-title">Thong tin phep cua ban</h5>
                         <div class="row text-center">
-                            <div class="col-md-4">
-                                <div class="leave-balance-label">So ngay phep</div>
+                            <div class="col-md col-6">
+                                <div class="leave-balance-label">Phep nam 2026</div>
                                 <div class="leave-balance-value">@($"{allowedLeave:0.#}")</div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md col-6">
+                                <div class="leave-balance-label">Phep ton nam cu</div>
+                                <div class="leave-balance-value">@($"{carryOverLeave:0.#}")</div>
+                            </div>
+                            <div class="col-md col-6">
+                                <div class="leave-balance-label">Phep het han</div>
+                                <div class="leave-balance-value">@($"{expiredLeave:0.#}")</div>
+                            </div>
+                            <div class="col-md col-6">
                                 <div class="leave-balance-label">Da su dung</div>
                                 <div class="leave-balance-value">@($"{usedLeave:0.#}")</div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md col-12">
                                 <div class="leave-balance-label">Con lai</div>
                                 <div class="leave-balance-value">@($"{remainingLeave:0.#}")</div>
                             </div>
+                        </div>
+                        <div class="text-muted small mt-2">
+                            Cong thuc: Phep nam + Phep ton nam cu - Phep het han - Da su dung.
                         </div>
                     </div>
                 </div>
@@ -201,7 +214,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                <button type="button" class="btn btn-primary" onclick="saveLeave()">Lưu lại</button>
+                <button type="button" class="btn btn-primary" id="leaveSaveButton" onclick="saveLeave()">Lưu lại</button>
             </div>
         </div>
     </div>

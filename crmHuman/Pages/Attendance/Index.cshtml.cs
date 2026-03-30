@@ -57,6 +57,9 @@ namespace crmHuman.Pages.Attendance
 
             RequestSearch = request ?? new AttendanceRequest();
             RequestSearch.Token ??= string.Empty;
+            RequestSearch.FingerprintCode = string.IsNullOrWhiteSpace(RequestSearch.FingerprintCode)
+                ? null
+                : RequestSearch.FingerprintCode.Trim();
 
             var monthText = RequestSearch.Month;
             var (fromDate, toDate, normalizedMonth) = ResolveMonth(monthText);
@@ -81,14 +84,22 @@ namespace crmHuman.Pages.Attendance
             AttendanceSummary = await _attendanceBusiness.GetSummary(RequestSearch);
             SummaryItems = AttendanceSummary.Data?.OfType<AttendanceSummaryIndexModel>().ToList() ?? new List<AttendanceSummaryIndexModel>();
 
-            SelectedEmployeeId = RequestSearch.EmployeeId ?? 0;
-            if (SelectedEmployeeId <= 0 && SummaryItems.Any())
+            if (!string.IsNullOrWhiteSpace(RequestSearch.FingerprintCode))
             {
-                SelectedEmployeeId = SummaryItems[0].EmployeeId;
+                SummaryItems = SummaryItems
+                    .Where(x => string.Equals(x.FingerprintCode, RequestSearch.FingerprintCode, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                AttendanceSummary.Total = SummaryItems.Count;
+                AttendanceSummary.Data = SummaryItems;
             }
 
-            SelectedSummary = SummaryItems.FirstOrDefault(x => x.EmployeeId == SelectedEmployeeId) ?? SummaryItems.FirstOrDefault();
-            SelectedFingerprintCode = SelectedSummary?.FingerprintCode ?? string.Empty;
+            SelectedEmployeeId = RequestSearch.EmployeeId ?? 0;
+            SelectedFingerprintCode = RequestSearch.FingerprintCode ?? string.Empty;
+
+            SelectedSummary = FindSelectedSummary(SummaryItems, SelectedEmployeeId, SelectedFingerprintCode)
+                ?? SummaryItems.FirstOrDefault();
+            SelectedEmployeeId = SelectedSummary?.EmployeeId ?? SelectedEmployeeId;
+            SelectedFingerprintCode = SelectedSummary?.FingerprintCode ?? SelectedFingerprintCode;
             SelectedMonth = normalizedMonth;
 
             return Page();
@@ -402,6 +413,36 @@ namespace crmHuman.Pages.Attendance
 
             var toDate = fromDate.AddMonths(1).AddDays(-1);
             return (fromDate, toDate, monthText);
+        }
+
+        private static AttendanceSummaryIndexModel? FindSelectedSummary(
+            IEnumerable<AttendanceSummaryIndexModel> items,
+            int selectedEmployeeId,
+            string? selectedFingerprintCode)
+        {
+            var normalizedFingerprint = string.IsNullOrWhiteSpace(selectedFingerprintCode)
+                ? null
+                : selectedFingerprintCode.Trim();
+
+            if (selectedEmployeeId > 0 && normalizedFingerprint != null)
+            {
+                return items.FirstOrDefault(x =>
+                    x.EmployeeId == selectedEmployeeId &&
+                    string.Equals(x.FingerprintCode, normalizedFingerprint, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (selectedEmployeeId > 0)
+            {
+                return items.FirstOrDefault(x => x.EmployeeId == selectedEmployeeId);
+            }
+
+            if (normalizedFingerprint != null)
+            {
+                return items.FirstOrDefault(x =>
+                    string.Equals(x.FingerprintCode, normalizedFingerprint, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return items.FirstOrDefault();
         }
     }
 }

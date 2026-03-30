@@ -59,7 +59,7 @@ namespace crmHuman.Pages
 
             TableColumnText = new List<string>()
             {
-                "STT","UserName","Họ tên","Vai trò", "Vị trí", "Bộ phận","Nhóm", "Trạng thái",
+                "STT","UserName","Họ tên","Vai trò", "Vị trí", "Phòng ban","Nhóm", "Trạng thái",
                 "Trạng thái làm việc", "Trạng thái chứng từ",
                 "Ngày Onboard","Cập nhật gần nhất","Thao tác"
             };
@@ -67,7 +67,7 @@ namespace crmHuman.Pages
             TableColumnTextAdmin = new List<string>()
             {
                 "STT","UserName","Họ tên"
-                ,"Vai trò", "Vị trí", "Bộ phận","Nhóm","Trạng thái", "Trạng thái làm việc", "Trạng thái chứng từ", "Ngày Onboard","Cập nhật gần nhất","Thao tác"
+                ,"Vai trò", "Vị trí", "Phòng ban","Nhóm","Trạng thái", "Trạng thái làm việc", "Trạng thái chứng từ", "Ngày Onboard","Cập nhật gần nhất","Thao tác"
             };
             _candidateBusiness = candidateBusiness;
             _masterDataBussiness = masterDataBussiness;
@@ -538,6 +538,8 @@ namespace crmHuman.Pages
                     return ApiResponseHelper.BadRequest(errors);
                 }
 
+                var hasDepartmentCodeField = Request.Form.ContainsKey(nameof(EmployeeQuickUpdate.DepartmentCode));
+
                 var itemUpdate = new EmployeeInfoAdd
                 {
                     Id = employee.Id,
@@ -546,7 +548,7 @@ namespace crmHuman.Pages
                     FullName = !string.IsNullOrEmpty(request.FullName) ? request.FullName : employee.FullName,
                     RoleCode = !string.IsNullOrEmpty(request.RoleCode) ? request.RoleCode : employee.RoleCode,
                     PositionCode = !string.IsNullOrEmpty(request.PositionCode) ? request.PositionCode : employee.PositionCode,
-                    DepartmentCode = !string.IsNullOrEmpty(request.DepartmentCode) ? request.DepartmentCode : employee.DepartmentCode,
+                    DepartmentCode = hasDepartmentCodeField ? (request.DepartmentCode ?? string.Empty) : employee.DepartmentCode,
                     GroupId = request.GroupId ?? employee.GroupId,
                     Status = request.Status ?? employee.Status,
                     StatusWork = !string.IsNullOrEmpty(request.StatusWork) ? request.StatusWork : employee.StatusWork,
@@ -648,7 +650,13 @@ namespace crmHuman.Pages
                 var result = await _empBusiness.Add(newEmployee);
                 if (result != null && result.Id > 0)
                 {
-                    return ApiResponseHelper.SuccessResponse(new { success = true, id = result.Id, userName = result.UserName });
+                    return ApiResponseHelper.SuccessResponse(new
+                    {
+                        success = true,
+                        id = result.Id,
+                        userName = result.UserName,
+                        departmentCode = result.DepartmentCode
+                    });
                 }
                 
                 return ApiResponseHelper.Error("Không thể tạo nhân viên mới");
