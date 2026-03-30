@@ -1,0 +1,180 @@
+@page
+@model crmHuman.Pages.SupportRequest.ProcessingModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+    var tooltipIcon = "ms-1 bi bi-info-circle text-muted";
+}
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
+            <li class="breadcrumb-item active">Xu ly yeu cau ho tro</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Danh sach can xu ly</h5>
+
+            @if (!string.IsNullOrWhiteSpace(TempData["ErrorMessage"] as string))
+            {
+                <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(TempData["SuccessMessage"] as string))
+            {
+                <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+            }
+
+            <form method="get" class="row g-3 mb-3">
+                <div class="col-md-5">
+                    <label class="form-label">Tu khoa</label>
+                    <input type="text" name="token" value="@Model.Token" class="form-control" placeholder="Tim theo tieu de, noi dung, nguoi gui" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Bo phan</label>
+                    <select name="targetDepartmentCode" class="form-select">
+                        <option value="">-- Tat ca --</option>
+                        @foreach (var dept in Model.Departments)
+                        {
+                            if (Model.TargetDepartmentCode == dept.Code)
+                            {
+                                <option value="@dept.Code" selected>@dept.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@dept.Code">@dept.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Trang thai</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tat ca</option>
+                        @for (var status = 0; status <= 3; status++)
+                        {
+                            if (Model.Status == status)
+                            {
+                                <option value="@status" selected>@crmHuman.Pages.SupportRequest.ProcessingModel.GetStatusText(status)</option>
+                            }
+                            else
+                            {
+                                <option value="@status">@crmHuman.Pages.SupportRequest.ProcessingModel.GetStatusText(status)</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">Tim</button>
+                </div>
+            </form>
+
+            @foreach (var row in Model.RequestList.Data)
+            {
+                var item = row as VS.Human.Rep.Model.SupportRequestIndexModel;
+                if (item == null)
+                {
+                    continue;
+                }
+
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                        <div>
+                            <div class="fw-semibold fs-5">@item.Title</div>
+                            <div class="text-muted small">Nguoi gui: @item.RequesterName | Bo phan gui: @item.RequesterDepartmentText</div>
+                            <div class="text-muted small">Bo phan xu ly: @item.TargetDepartmentText | Nguoi duoc giao: @item.AssignedToName</div>
+                        </div>
+                        <div>
+                            <span class="badge @crmHuman.Pages.SupportRequest.ProcessingModel.GetStatusClass(item.Status)"
+                                  data-bs-toggle="tooltip"
+                                  title="@crmHuman.Pages.SupportRequest.ProcessingModel.GetStatusTooltip(item.Status)">
+                                @crmHuman.Pages.SupportRequest.ProcessingModel.GetStatusText(item.Status)
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label mb-1">
+                            Noi dung su co
+                            <span data-bs-toggle="tooltip" title="Mo ta goc do nhan vien gui len, dung de tham chieu khi tiep nhan va cap nhat ket qua.">
+                                <i class="@tooltipIcon"></i>
+                            </span>
+                        </label>
+                        <div class="p-3 bg-light rounded">@item.Content</div>
+                    </div>
+
+                    @if ((item.Attachments?.Count ?? 0) > 0)
+                    {
+                        <div class="mt-3">
+                            <label class="form-label mb-1">Tep dinh kem</label>
+                            <div>
+                                @foreach (var file in item.Attachments)
+                                {
+                                    <a class="me-3" href="@file.FilePath" target="_blank">@file.FileName</a>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(item.ProcessorComment))
+                    {
+                        <div class="mt-3">
+                            <label class="form-label mb-1">Ghi chu xu ly hien tai</label>
+                            <div class="p-3 bg-light rounded">@item.ProcessorComment</div>
+                        </div>
+                    }
+
+                    @if (item.CanProcess && item.Status != 2 && item.Status != 3)
+                    {
+                        <form method="post" asp-page-handler="UpdateStatus" class="row g-3 mt-2">
+                            <input type="hidden" name="UpdateModel.Id" value="@item.Id" />
+                            <div class="col-md-3">
+                                <label class="form-label">
+                                    Trang thai moi
+                                    <span data-bs-toggle="tooltip" title="Dang xu ly: da tiep nhan. Hoan thanh: da xu ly xong. Da huy: tam dung/khong tiep tuc xu ly.">
+                                        <i class="@tooltipIcon"></i>
+                                    </span>
+                                </label>
+                                <select name="UpdateModel.Status" class="form-select" required>
+                                    <option value="1">Dang xu ly</option>
+                                    <option value="2">Hoan thanh</option>
+                                    <option value="3">Da huy</option>
+                                </select>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label">
+                                    Ghi chu cap nhat
+                                    <span data-bs-toggle="tooltip" title="Noi ro cach xu ly, ket qua, ly do huy hoac thong tin phan hoi cho nhan vien.">
+                                        <i class="@tooltipIcon"></i>
+                                    </span>
+                                </label>
+                                <textarea name="UpdateModel.Comment" class="form-control" rows="2" placeholder="Nhap noi dung phan hoi"></textarea>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">Cap nhat</button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            }
+
+            @if (Model.RequestList.Total <= 0)
+            {
+                <div class="text-center text-muted py-4">Khong co yeu cau nao can xu ly.</div>
+            }
+        </div>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>

@@ -167,12 +167,22 @@ namespace VS.Human.Rep
                             + ISNULL(e.CarryOverLeaveDays, 0)
                             - ISNULL(e.ExpiredLeaveDays, 0)
                             - ISNULL(e.UsedLeaveDays, 0) AS RemainingLeaveDays,
-                        ISNULL(la.UsedAnnualLeaveDays, 0) AS UsedAnnualLeaveDays,
+                        CASE
+                            WHEN ISNULL(e.UsedLeaveDays, 0) > ISNULL(la.UsedAnnualLeaveDays, 0) THEN ISNULL(e.UsedLeaveDays, 0)
+                            ELSE ISNULL(la.UsedAnnualLeaveDays, 0)
+                        END AS UsedAnnualLeaveDays,
                         ISNULL(la.UsedSickLeaveDays, 0) AS UsedSickLeaveDays,
                         ISNULL(la.UsedPersonalLeaveDays, 0) AS UsedPersonalLeaveDays,
                         ISNULL(la.UsedMaternityLeaveDays, 0) AS UsedMaternityLeaveDays,
                         ISNULL(la.UsedUnpaidLeaveDays, 0) AS UsedUnpaidLeaveDays,
-                        ISNULL(la.TotalApprovedLeaveDays, 0) AS TotalApprovedLeaveDays
+                        CASE
+                            WHEN ISNULL(e.UsedLeaveDays, 0) > ISNULL(la.UsedAnnualLeaveDays, 0) THEN ISNULL(e.UsedLeaveDays, 0)
+                            ELSE ISNULL(la.UsedAnnualLeaveDays, 0)
+                        END
+                        + ISNULL(la.UsedSickLeaveDays, 0)
+                        + ISNULL(la.UsedPersonalLeaveDays, 0)
+                        + ISNULL(la.UsedMaternityLeaveDays, 0)
+                        + ISNULL(la.UsedUnpaidLeaveDays, 0) AS TotalApprovedLeaveDays
                     FROM Employees e
                     LEFT JOIN (
                         SELECT
@@ -181,8 +191,7 @@ namespace VS.Human.Rep
                             SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NB' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedSickLeaveDays,
                             SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NVR' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedPersonalLeaveDays,
                             SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NTS' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedMaternityLeaveDays,
-                            SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NKL' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedUnpaidLeaveDays,
-                            SUM(CASE WHEN l.Status IN (3,4) THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS TotalApprovedLeaveDays
+                            SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NKL' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedUnpaidLeaveDays
                         FROM LeaveRequests l
                         WHERE l.Deleted = 0 AND l.EmployeeId = @EmployeeId
                         GROUP BY l.EmployeeId

@@ -123,6 +123,16 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function initLeaveBalanceTooltips() {
+    if (typeof bootstrap === 'undefined' || !bootstrap.Tooltip) {
+        return;
+    }
+
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+        bootstrap.Tooltip.getOrCreateInstance(element);
+    });
+}
+
 async function saveLeaveBalance() {
     var employeeId = parseInt($('#leaveBalanceEmployeeId').val(), 10);
     var allowedRaw = $('#allowedLeaveDays').val();
@@ -188,3 +198,5 @@ async function saveLeaveBalance() {
         alert('Loi he thong');
     }
 }
+
+document.addEventListener('DOMContentLoaded', initLeaveBalanceTooltips);

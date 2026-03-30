@@ -42,6 +42,7 @@ namespace VS.Human.Rep
             services.AddSingleton<IEmailSentLogRep, EmailSentLogRep>();
             services.AddSingleton<IMeetingRoomRep, MeetingRoomRep>();
             services.AddSingleton<ILateEarlyRep, LateEarlyRep>();
+            services.AddSingleton<ISupportRequestRep, SupportRequestRep>();
             services.AddSingleton<ILogHistoryRep, LogHistoryRep>();
             services.AddSingleton<IAuditLogRep, AuditLogRep>();
             services.AddSingleton<IUserThemeSettingRep, UserThemeSettingRep>();

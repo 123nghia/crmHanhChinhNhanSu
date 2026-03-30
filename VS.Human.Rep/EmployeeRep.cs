@@ -217,6 +217,57 @@ namespace VS.Human.Rep
                 return result?.ToList() ?? new List<Employee>();
             }
         }
+
+        public async Task<Employee?> GetTeamLeadByDepartmentCode(string departmentCode)
+        {
+            if (string.IsNullOrWhiteSpace(departmentCode))
+            {
+                return null;
+            }
+
+            using (var con = GetConnection())
+            {
+                var sql = @"
+                    SELECT TOP 1 *
+                    FROM Employees
+                    WHERE ISNULL(Deleted, 0) = 0
+                      AND ISNULL(IsActive, 0) = 1
+                      AND DepartmentCode = @DepartmentCode
+                      AND RoleCode IN ('3', 'TL')
+                    ORDER BY UpdateAt DESC, Id DESC";
+
+                return await con.QueryFirstOrDefaultAsync<Employee>(sql, new
+                {
+                    DepartmentCode = departmentCode.Trim()
+                });
+            }
+        }
+
+        public async Task<List<Employee>> GetActiveByDepartmentCode(string departmentCode)
+        {
+            if (string.IsNullOrWhiteSpace(departmentCode))
+            {
+                return new List<Employee>();
+            }
+
+            using (var con = GetConnection())
+            {
+                var sql = @"
+                    SELECT *
+                    FROM Employees
+                    WHERE ISNULL(Deleted, 0) = 0
+                      AND ISNULL(IsActive, 0) = 1
+                      AND DepartmentCode = @DepartmentCode
+                    ORDER BY NEWID()";
+
+                var result = await con.QueryAsync<Employee>(sql, new
+                {
+                    DepartmentCode = departmentCode.Trim()
+                });
+
+                return result?.ToList() ?? new List<Employee>();
+            }
+        }
         public async Task<bool> ChangePassword(string password, int id)
         {
             var parameter = new
@@ -549,17 +600,96 @@ WHERE object_id = OBJECT_ID('dbo.sp_Employee_getAll_Extended')
             request.Page = page;
             request.Limit = limit;
 
-            var parameters = new
+            var sql = @"
+                ;WITH EmployeeBase AS
+                (
+                    SELECT
+                        d.Id,
+                        d.UserName,
+                        d.FullName,
+                        d.DepartmentCode,
+                        dbo.getDisplayMasterdata(d.DepartmentCode) AS DepartmentText,
+                        d.PositionCode,
+                        dbo.getDisplayMasterdata(d.PositionCode) AS PositionText,
+                        d.StatusWork,
+                        dbo.getDisplayMasterdata(d.StatusWork) AS StatusWorkText,
+                        ISNULL(d.AllowedLeaveDays, 0) AS AllowedLeaveDays,
+                        ISNULL(d.CarryOverLeaveDays, 0) AS CarryOverLeaveDays,
+                        ISNULL(d.ExpiredLeaveDays, 0) AS ExpiredLeaveDays,
+                        ISNULL(d.UsedLeaveDays, 0) AS UsedLeaveDays
+                    FROM Employees d
+                    WHERE ISNULL(d.Deleted, 0) = 0
+                      AND (@Token = '' OR d.UserName LIKE N'%' + @Token + '%' OR d.FullName LIKE N'%' + @Token + '%' OR d.Phone LIKE N'%' + @Token + '%')
+                      AND (@StatusWork IS NULL OR @StatusWork = '' OR @StatusWork = '-1' OR d.StatusWork = @StatusWork)
+                      AND (@DepartmentCode IS NULL OR @DepartmentCode = '' OR @DepartmentCode = '-1' OR d.DepartmentCode = @DepartmentCode)
+                      AND (@PositionCode IS NULL OR @PositionCode = '' OR @PositionCode = '-1' OR d.PositionCode = @PositionCode)
+                ),
+                LeaveAgg AS
+                (
+                    SELECT
+                        l.EmployeeId,
+                        SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NP' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedAnnualLeaveDays,
+                        SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NB' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedSickLeaveDays,
+                        SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NVR' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedPersonalLeaveDays,
+                        SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NTS' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedMaternityLeaveDays,
+                        SUM(CASE WHEN l.Status IN (3,4) AND l.LeaveTypeCode = 'NKL' THEN ISNULL(l.NumDays, 0) ELSE 0 END) AS UsedUnpaidLeaveDays
+                    FROM LeaveRequests l
+                    WHERE ISNULL(l.Deleted, 0) = 0
+                    GROUP BY l.EmployeeId
+                )
+                SELECT
+                    COUNT(1) OVER() AS TotalRecord,
+                    e.Id,
+                    e.UserName,
+                    e.FullName,
+                    e.DepartmentCode,
+                    e.DepartmentText,
+                    e.PositionCode,
+                    e.PositionText,
+                    e.StatusWork,
+                    e.StatusWorkText,
+                    e.AllowedLeaveDays,
+                    e.CarryOverLeaveDays,
+                    e.ExpiredLeaveDays,
+                    e.UsedLeaveDays,
+                    e.AllowedLeaveDays + e.CarryOverLeaveDays - e.ExpiredLeaveDays - e.UsedLeaveDays AS RemainingLeaveDays,
+                    CASE
+                        WHEN e.UsedLeaveDays > ISNULL(la.UsedAnnualLeaveDays, 0) THEN e.UsedLeaveDays
+                        ELSE ISNULL(la.UsedAnnualLeaveDays, 0)
+                    END AS UsedAnnualLeaveDays,
+                    ISNULL(la.UsedSickLeaveDays, 0) AS UsedSickLeaveDays,
+                    ISNULL(la.UsedPersonalLeaveDays, 0) AS UsedPersonalLeaveDays,
+                    ISNULL(la.UsedMaternityLeaveDays, 0) AS UsedMaternityLeaveDays,
+                    ISNULL(la.UsedUnpaidLeaveDays, 0) AS UsedUnpaidLeaveDays,
+                    CASE
+                        WHEN e.UsedLeaveDays > ISNULL(la.UsedAnnualLeaveDays, 0) THEN e.UsedLeaveDays
+                        ELSE ISNULL(la.UsedAnnualLeaveDays, 0)
+                    END
+                    + ISNULL(la.UsedSickLeaveDays, 0)
+                    + ISNULL(la.UsedPersonalLeaveDays, 0)
+                    + ISNULL(la.UsedMaternityLeaveDays, 0)
+                    + ISNULL(la.UsedUnpaidLeaveDays, 0) AS TotalApprovedLeaveDays
+                FROM EmployeeBase e
+                LEFT JOIN LeaveAgg la ON e.Id = la.EmployeeId
+                ORDER BY e.FullName
+                OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY;";
+
+            using var con = GetConnection();
+            var data = (await con.QueryAsync<LeaveBalanceIndexModel>(sql, new
             {
-                offset,
-                limit,
+                Offset = offset,
+                Limit = limit,
                 Token = request.Token ?? string.Empty,
                 StatusWork = request.StatusWork,
                 DepartmentCode = request.DepartmentCode,
                 PositionCode = request.PositionCode
-            };
+            })).ToList();
 
-            return await GetBaseAll<LeaveBalanceIndexModel>(request, parameters, sqlPro: "sp_Employee_GetLeaveBalances");
+            return new BaseList
+            {
+                Total = data.FirstOrDefault()?.TotalRecord ?? 0,
+                Data = data
+            };
         }
 
         public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? expiredLeaveDays, int userId)

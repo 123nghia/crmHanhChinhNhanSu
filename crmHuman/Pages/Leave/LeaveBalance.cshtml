@@ -5,14 +5,15 @@
     ViewData["Title"] = Model.TitlePage;
     var isTcRole = Model.UserData?.RoleCode == "2";
     var myBalance = Model.MyBalance;
+    var tooltipClass = "ms-1 bi bi-info-circle text-muted";
 }
 
 <div class="pagetitle">
     <h1>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
-            <li class="breadcrumb-item active">Quan ly ngay phep</li>
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Quản lý ngày phép</li>
         </ol>
     </nav>
 </div>
@@ -35,25 +36,41 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-3">
                                 <div class="border rounded p-3 h-100 bg-light">
-                                    <div class="text-muted small">Phép năm 2026</div>
+                                    <div class="text-muted small">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep duoc cap cho nam hien tai, chua bao gom phep ton nam cu.">
+                                            Phép năm 2026<i class="@tooltipClass"></i>
+                                        </span>
+                                    </div>
                                     <div class="fs-5 fw-semibold">@allowedValue.ToString("0.##", CultureInfo.InvariantCulture)</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="border rounded p-3 h-100 bg-light">
-                                    <div class="text-muted small">Phép tồn năm cũ</div>
+                                    <div class="text-muted small">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep duoc chuyen tu nam truoc sang va chi duoc su dung den het 31/03.">
+                                            Phép tồn năm cũ<i class="@tooltipClass"></i>
+                                        </span>
+                                    </div>
                                     <div class="fs-5 fw-semibold">@carryOverValue.ToString("0.##", CultureInfo.InvariantCulture)</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="border rounded p-3 h-100 bg-light">
-                                    <div class="text-muted small">Da dung</div>
+                                    <div class="text-muted small">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep nam da tru vao quy phep, thuong la cac don nghi phep nam da duyet.">
+                                            Đã dùng<i class="@tooltipClass"></i>
+                                        </span>
+                                    </div>
                                     <div class="fs-5 fw-semibold">@usedValue.ToString("0.##", CultureInfo.InvariantCulture)</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="border rounded p-3 h-100 bg-light">
-                                    <div class="text-muted small">Con lai</div>
+                                    <div class="text-muted small">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep con lai = Phep nam + Phep ton nam cu - Phep het han - Da dung.">
+                                            Còn lại<i class="@tooltipClass"></i>
+                                        </span>
+                                    </div>
                                     <div class="fs-5 fw-semibold">@remainingValue.ToString("0.##", CultureInfo.InvariantCulture)</div>
                                 </div>
                             </div>
@@ -146,13 +163,41 @@
                                         <th>Bo phan</th>
                                         <th>Vi tri</th>
                                     }
-                                    <th class="text-end">Phép năm 2026</th>
-                                    <th class="text-end">Phép tồn năm cũ</th>
-                                    <th class="text-end">Phép hết hạn</th>
-                                    <th class="text-end">Đã dùng</th>
-                                    <th class="text-end">Còn lại</th>
-                                    <th class="text-end">Nghi khong luong</th>
-                                    <th class="text-end">Tong nghi</th>
+                                    <th class="text-end">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep duoc cap cho nam hien tai.">
+                                            Phép năm 2026<i class="@tooltipClass"></i>
+                                        </span>
+                                    </th>
+                                    <th class="text-end">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep ton tu nam truoc, duoc dung den het 31/03.">
+                                            Phép tồn năm cũ<i class="@tooltipClass"></i>
+                                        </span>
+                                    </th>
+                                    <th class="text-end">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Phan phep ton nam cu khong con duoc su dung sau han 31/03.">
+                                            Phép hết hạn<i class="@tooltipClass"></i>
+                                        </span>
+                                    </th>
+                                    <th class="text-end">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep nam da tru vao quy phep cua nhan vien.">
+                                            Đã dùng<i class="@tooltipClass"></i>
+                                        </span>
+                                    </th>
+                                    <th class="text-end">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep con lai = Phep nam + Phep ton nam cu - Phep het han - Da dung.">
+                                            Còn lại<i class="@tooltipClass"></i>
+                                        </span>
+                                    </th>
+                                    <th class="text-end">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Tong so ngay nghi khong luong da duyet. Cot nay khong tru vao quy phep nam.">
+                                            Nghỉ không lương<i class="@tooltipClass"></i>
+                                        </span>
+                                    </th>
+                                    <th class="text-end">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Tong so ngay nghi da duyet, gom nghi phep nam, nghi benh, nghi viec rieng, thai san va nghi khong luong.">
+                                            Tổng nghỉ<i class="@tooltipClass"></i>
+                                        </span>
+                                    </th>
                                     <th class="text-center">Thao tac</th>
                                 </tr>
                             </thead>
@@ -216,7 +261,7 @@
                                 @if (index == 0)
                                 {
                                     <tr>
-                                        <td colspan="@columnCount" class="text-center">Khong co du lieu</td>
+                                        <td colspan="@columnCount" class="text-center">Không có dữ liệu</td>
                                     </tr>
                                 }
                             </tbody>
@@ -237,38 +282,54 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Cap nhat ngay phep</h5>
+                <h5 class="modal-title">Cập nhật ngày phép</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="leaveBalanceEmployeeId" />
                 <div class="mb-3">
-                    <label class="form-label">Nhan vien</label>
+                    <label class="form-label">Nhân viên</label>
                     <input type="text" class="form-control" id="leaveBalanceEmployeeName" readonly disabled />
                 </div>
                 <div class="row">
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">So ngay duoc huong</label>
+                        <label class="form-label">
+                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="Chi tieu phep nam duoc cap cho nhan vien trong nam hien tai.">
+                                Số ngày được hưởng<i class="@tooltipClass"></i>
+                            </span>
+                        </label>
                         <input type="number" step="0.5" min="0" class="form-control" id="allowedLeaveDays" />
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">Phép tồn năm cũ</label>
+                        <label class="form-label">
+                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep duoc chuyen tu nam truoc sang.">
+                                Phép tồn năm cũ<i class="@tooltipClass"></i>
+                            </span>
+                        </label>
                         <input type="number" step="0.5" min="0" class="form-control" id="carryOverLeaveDays" />
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">So ngay da dung</label>
+                        <label class="form-label">
+                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="Gia tri nay duoc he thong tu dong tinh tu cac don nghi da duyet, khong sua tay tai day.">
+                                Số ngày đã dùng<i class="@tooltipClass"></i>
+                            </span>
+                        </label>
                         <input type="number" step="0.5" min="0" class="form-control" id="usedLeaveDays" readonly disabled />
                         <div class="form-text">Tu dong tinh tu don nghi phep da duyet.</div>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">Phep het han</label>
+                        <label class="form-label">
+                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep ton nam cu da het han, khong con duoc su dung.">
+                                Phép hết hạn<i class="@tooltipClass"></i>
+                            </span>
+                        </label>
                         <input type="number" step="0.5" min="0" class="form-control" id="expiredLeaveDays" />
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
-                <button type="button" class="btn btn-primary" onclick="saveLeaveBalance()">Luu</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="saveLeaveBalance()">Lưu</button>
             </div>
         </div>
     </div>
@@ -278,26 +339,26 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Chi tiet ngay nghi</h5>
+                <h5 class="modal-title">Chi tiết ngày nghỉ</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label">Nhan vien</label>
+                    <label class="form-label">Nhân viên</label>
                     <input type="text" class="form-control" id="leaveDetailEmployeeName" readonly disabled />
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead>
                             <tr>
-                                <th>Loai nghi</th>
-                                <th>Tu ngay</th>
-                                <th>Den ngay</th>
-                                <th class="text-end">So ngay</th>
-                                <th>Ly do</th>
-                                <th>Nguoi duyet hien tai</th>
-                                <th>Ngay tao</th>
-                                <th class="text-center">Trang thai</th>
+                                <th>Loại nghỉ</th>
+                                <th>Từ ngày</th>
+                                <th>Đến ngày</th>
+                                <th class="text-end">Số ngày</th>
+                                <th>Lý do</th>
+                                <th>Người duyệt hiện tại</th>
+                                <th>Ngày tạo</th>
+                                <th class="text-center">Trạng thái</th>
                             </tr>
                         </thead>
                         <tbody id="leaveDetailContent">

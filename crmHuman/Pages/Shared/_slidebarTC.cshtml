@@ -238,6 +238,24 @@
                 </a>
             </li>
         }
+        @if (Model.HasViewPermission("SupportRequest"))
+        {
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="/SupportRequest/Request">
+                    <i class="bi bi-tools"></i>
+                    <span>Yeu cau ho tro</span>
+                </a>
+            </li>
+        }
+        @if (Model.HasViewPermission("SupportRequestProcessing"))
+        {
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="/SupportRequest/Processing">
+                    <i class="bi bi-list-check"></i>
+                    <span>Xu ly yeu cau</span>
+                </a>
+            </li>
+        }
         
         <li class="nav-item">
             <a class="nav-link collapsed" onclick ="logout()"  data-bs-toggle="collapse" href="#">

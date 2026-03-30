@@ -42,6 +42,7 @@
         public IEmailSentLogRep EmailSentLogRep { get; set; }
         public IMeetingRoomRep MeetingRoomRep { get; set; }
         public ILateEarlyRep LateEarlyRep { get; set; }
+        public ISupportRequestRep SupportRequestRep { get; set; }
         public ILogHistoryRep LogHistoryRep { get; set; }
         public IAuditLogRep AuditLogRep { get; set; }
         public IUserThemeSettingRep UserThemeSettingRep { get; set; }
