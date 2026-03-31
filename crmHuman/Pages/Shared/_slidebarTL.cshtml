@@ -1,16 +1,16 @@
-﻿        <aside id="sidebar" class="sidebar">
+        <aside id="sidebar" class="sidebar">
 
         <ul class="sidebar-nav" id="sidebar-nav">
 
             <li class="nav-item">
                 <a class="nav-link " href="/indexAdmin">
-                    <i class="bi bi-grid"></i>
+                    <i class="bi bi-bar-chart"></i>
                     <span>Static</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link " href="/">
-                    <i class="bi bi-grid"></i>
+                    <i class="bi bi-pie-chart-fill"></i>
                     <span>Dashboard</span>
                 </a>
             </li><!-- End Dashboard Nav -->
@@ -19,7 +19,7 @@
             <li class="nav-item">
                
                  <a class="nav-link" href="/OrderStatus">
-                    <i class="bi bi-grid"></i>
+                    <i class="bi bi-bar-chart-line"></i>
                     <span>Theo trạng thái</span>
                 </a>
                
@@ -28,7 +28,7 @@
              <li class="nav-item">
                
                  <a class="nav-link"  href="/historyImpact">
-                    <i class="bi bi-grid"></i>
+                    <i class="bi bi-graph-up-arrow"></i>
                     <span> Báo cáo Tác động</span>
                 </a>
                
@@ -37,7 +37,7 @@
               <li class="nav-item">
                
                  <a class="nav-link" href="/OrderOnboard">
-                    <i class="bi bi-grid"></i>
+                    <i class="bi bi-person-workspace"></i>
                     <span>Danh sách onboard</span>
                 </a>
                
@@ -45,13 +45,13 @@
 
            <li class="nav-item">
                     <a class="nav-link"  href="/OrderAssignee">
-                <i class="bi bi-circle"></i><span>Nguồn Marketing<span class="badgeIcon">@Model.GlobalData.TotalCaseSource</span></span>
+                <i class="bi bi-funnel-fill"></i><span>Nguồn Marketing<span class="badgeIcon">@Model.GlobalData.TotalCaseSource</span></span>
                 </a>
             </li>
 
             <li class="nav-item">
                     <a class="nav-link"  href="/OrderSourceCTV">
-                <i class="bi bi-circle"></i><span>Nguồn CTV<span class="badgeIcon">@Model.GlobalData.TotalCaseSourceCTV</span></span>
+                <i class="bi bi-person-hearts"></i><span>Nguồn CTV<span class="badgeIcon">@Model.GlobalData.TotalCaseSourceCTV</span></span>
                 </a>
             </li>
             <li class="nav-heading">Ứng viên</li>
@@ -59,19 +59,19 @@
              <li class="nav-item">
 
             <a class="nav-link" href="/checkDuplicate">
-            <i class="bi bi-grid"></i>
+            <i class="bi bi-person-badge"></i>
             <span>Kiểm tra trùng</span>
             </a>
 
             </li>
             <li class="nav-item">
                 <a class="nav-link " data-bs-target="#components-nav" data-bs-toggle="collapse" href="javascript:void(0)" aria-expanded="true">
-                    <i class="bi bi-menu-button-wide"></i><span>Quản lý ứng viên</span><i class="bi bi-chevron-down ms-auto"></i>
+                    <i class="bi bi-people"></i><span>Quản lý ứng viên</span><i class="bi bi-chevron-down ms-auto"></i>
                 </a>
                 <ul id="components-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
                       <li>
                         <a href="/OrderNew">
-                            <i class="bi bi-circle"></i><span>Danh sách ứng viên </span>
+                            <i class="bi bi-person-lines-fill"></i><span>Danh sách ứng viên </span>
                            
                         </a>
                     </li>
@@ -80,7 +80,7 @@
 
                     <li>
                         <a href="/OrderReturn">
-                            <i class="bi bi-circle"></i><span>Danh sách khai thác lại</span>
+                            <i class="bi bi-person-plus"></i><span>Danh sách khai thác lại</span>
                         </a>
                     </li>
                    
@@ -94,18 +94,18 @@
             <li class="nav-heading">Ứng tuyển</li>
             <li class="nav-item">
                 <a class="nav-link " data-bs-target="#forms-nav" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-journal-text"></i><span>Quản lý ứng tuyển</span><i class="bi bi-chevron-down ms-auto"></i>
+                    <i class="bi bi-file-person"></i><span>Quản lý ứng tuyển</span><i class="bi bi-chevron-down ms-auto"></i>
                 </a>
                 <ul id="forms-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
                     <li>
                         <a href="/OrderApply">
-                            <i class="bi bi-circle"></i><span>Danh sách đang process</span>
+                            <i class="bi bi-hourglass-split"></i><span>Danh sách đang process</span>
                            
                         </a>
                     </li>
                     <li>
                         <a href="/OrderClose">
-                            <i class="bi bi-circle"></i><span>Danh sách kết thúc</span>
+                            <i class="bi bi-file-earmark-check-fill"></i><span>Danh sách kết thúc</span>
                            
                         </a>
                     </li>
@@ -126,12 +126,12 @@
             <li class="nav-heading">Nhân sự</li>
             <li class="nav-item">
                 <a class="nav-link collapsed" data-bs-target="#tables-nav" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-layout-text-window-reverse"></i><span>Quản lý nhân viên</span><i class="bi bi-chevron-down ms-auto"></i>
+                    <i class="bi bi-person-vcard"></i><span>Quản lý nhân viên</span><i class="bi bi-chevron-down ms-auto"></i>
                 </a>
                 <ul id="tables-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
                     <li>
                         <a href="/Employee">
-                            <i class="bi bi-circle"></i><span>Danh sách nhân viên</span>
+                            <i class="bi bi-person-lines-fill"></i><span>Danh sách nhân viên</span>
                         </a>
                     </li>
 
@@ -146,7 +146,7 @@
 
             <li class="nav-item">
             <a class="nav-link collapsed" href="/Infomation">
-                    <i class="bi bi-person"></i>
+                    <i class="bi bi-person-badge"></i>
                     <span>Thông tin tài khoản</span>
                 </a>
             </li><!-- End Profile Page Nav -->
@@ -155,7 +155,7 @@
             
              <li class="nav-item">
                 <a class="nav-link collapsed"  onclick ="logout()" data-bs-toggle="collapse" href="javascript:void(0)">
-                    <i class="bi bi-bar-chart"></i><span>Đăng xuất tài khoản</span>
+                    <i class="bi bi-box-arrow-right"></i><span>Đăng xuất tài khoản</span>
                     
                 </a>
                 

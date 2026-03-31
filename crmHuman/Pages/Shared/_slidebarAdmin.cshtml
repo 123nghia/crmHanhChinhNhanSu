@@ -7,7 +7,7 @@
         {
             <li class="nav-item">
                 <a class="nav-link " href="/">
-                    <i class="bi bi-grid"></i>
+                    <i class="bi bi-pie-chart-fill"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
@@ -18,12 +18,12 @@
             <li class="nav-heading">Ứng viên</li>
             <li class="nav-item">
                 <a class="nav-link collapsed" data-bs-target="#tables-nav-candidate" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-layout-text-window-reverse"></i><span>Quản lý ứng viên</span><i class="bi bi-chevron-down ms-auto"></i>
+                    <i class="bi bi-people"></i><span>Quản lý ứng viên</span><i class="bi bi-chevron-down ms-auto"></i>
                 </a>
                 <ul id="tables-nav-candidate" class="nav-content collapse " data-bs-parent="#sidebar-nav">
                     <li>
                         <a href="/candidate">
-                            <i class="bi bi-circle"></i><span>Danh sách ứng viên</span>
+                            <i class="bi bi-person-lines-fill"></i><span>Danh sách ứng viên</span>
                         </a>
                     </li>
                 </ul>
@@ -35,7 +35,7 @@
             <li class="nav-heading">Phỏng vấn</li>
             <li class="nav-item">
                 <a class="nav-link collapsed" href="/ScheduleInterview">
-                    <i class="bi bi-calendar-event"></i><span>Danh sách phỏng vấn</span>
+                    <i class="bi bi-calendar2-check"></i><span>Danh sách phỏng vấn</span>
                 </a>
             </li>
         }
@@ -45,14 +45,14 @@
             <li class="nav-heading">Nhân sự</li>
             <li class="nav-item">
                 <a class="nav-link collapsed" data-bs-target="#tables-nav-emp" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-layout-text-window-reverse"></i><span>Quản lý nhân viên</span><i class="bi bi-chevron-down ms-auto"></i>
+                    <i class="bi bi-person-vcard"></i><span>Quản lý nhân viên</span><i class="bi bi-chevron-down ms-auto"></i>
                 </a>
                 <ul id="tables-nav-emp" class="nav-content collapse " data-bs-parent="#sidebar-nav">
                     @if (Model.HasViewPermission("Employee"))
                     {
                         <li>
                             <a href="/Employee">
-                                <i class="bi bi-circle"></i><span>Danh sách nhân viên</span>
+                                <i class="bi bi-person-lines-fill"></i><span>Danh sách nhân viên</span>
                             </a>
                         </li>
                     }
@@ -60,7 +60,7 @@
                     {
                         <li>
                             <a href="/groupPage">
-                                <i class="bi bi-circle"></i><span>Danh sách nhóm</span>
+                                <i class="bi bi-diagram-3"></i><span>Danh sách nhóm</span>
                             </a>
                         </li>
                     }
@@ -68,7 +68,7 @@
                     {
                         <li>
                             <a href="/Contract">
-                                <i class="bi bi-circle"></i><span>Hợp đồng lao động</span>
+                                <i class="bi bi-file-earmark-person"></i><span>Hợp đồng lao động</span>
                             </a>
                         </li>
                     }
@@ -80,34 +80,34 @@
         {
             <li class="nav-item">
                 <a class="nav-link collapsed" data-bs-target="#attendance-nav" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-clock-history"></i><span>Chấm công</span><i class="bi bi-chevron-down ms-auto"></i>
+                    <i class="bi bi-calendar-check-fill"></i><span>Chấm công</span><i class="bi bi-chevron-down ms-auto"></i>
                 </a>
                 <ul id="attendance-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
                     @if (Model.HasViewPermission("Attendance"))
                     {
                         <li>
                             <a href="/Attendance">
-                                <i class="bi bi-circle"></i><span>Tổng hợp chấm công</span>
+                                <i class="bi bi-calendar3"></i><span>Tổng hợp chấm công</span>
                             </a>
                         </li>
                         <li>
                             <a href="/Attendance/CheckInOut">
-                                <i class="bi bi-circle"></i><span>Lịch sử quẹt thẻ/điểm danh</span>
+                                <i class="bi bi-fingerprint"></i><span>Lịch sử quẹt thẻ/điểm danh</span>
                             </a>
                         </li>
                         <li>
                             <a href="/Attendance/Schedule">
-                                <i class="bi bi-circle"></i><span>Ca kíp / lịch làm việc</span>
+                                <i class="bi bi-calendar-week"></i><span>Ca kíp / lịch làm việc</span>
                             </a>
                         </li>
                         <li>
                             <a href="/Attendance/Rules">
-                                <i class="bi bi-circle"></i><span>Quy tắc đi muộn / về sớm / OT</span>
+                                <i class="bi bi-journal-check"></i><span>Quy tắc đi muộn / về sớm / OT</span>
                             </a>
                         </li>
                         <li>
                             <a href="/Attendance/Absent">
-                                <i class="bi bi-circle"></i><span>Nghỉ phép / ký hiệu công / ngày lễ</span>
+                                <i class="bi bi-calendar-event"></i><span>Nghỉ phép / ký hiệu công / ngày lễ</span>
                             </a>
                         </li>
                     }
@@ -115,7 +115,7 @@
                     {
                         <li>
                             <a href="/LateEarly/Request">
-                                <i class="bi bi-circle"></i><span>Xin phép đi trễ
+                                <i class="bi bi-clock"></i><span>Xin phép đi trễ
 /về sớm</span>
                             </a>
                         </li>
@@ -124,7 +124,7 @@
                     {
                         <li>
                             <a href="/LateEarly/Approval">
-                                <i class="bi bi-circle"></i><span>Duyệt đi trễ
+                                <i class="bi bi-check2-square"></i><span>Duyệt đi trễ
 /về sớm</span>
                             </a>
                         </li>
@@ -137,14 +137,14 @@
         {
             <li class="nav-item">
                 <a class="nav-link collapsed" data-bs-target="#leave-nav" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-calendar-check"></i><span>Nghỉ phép</span><i class="bi bi-chevron-down ms-auto"></i>
+                    <i class="bi bi-umbrella"></i><span>Nghỉ phép</span><i class="bi bi-chevron-down ms-auto"></i>
                 </a>
                 <ul id="leave-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
                     @if (Model.HasViewPermission("LeaveRequest"))
                     {
                         <li>
                             <a href="/Leave/LeaveRequest">
-                                <i class="bi bi-circle"></i><span>Đăng ký nghỉ phép</span>
+                                <i class="bi bi-pencil-square"></i><span>Đăng ký nghỉ phép</span>
                             </a>
                         </li>
                     }
@@ -152,7 +152,7 @@
                     {
                         <li>
                             <a href="/Leave/LeaveApproval">
-                                <i class="bi bi-circle"></i><span>Duyệt nghỉ phép</span>
+                                <i class="bi bi-check2-circle"></i><span>Duyệt nghỉ phép</span>
                             </a>
                         </li>
                     }
@@ -160,7 +160,7 @@
                     {
                         <li>
                             <a href="/Leave/LeaveBalance">
-                                <i class="bi bi-circle"></i><span>Quản lý ngày phép</span>
+                                <i class="bi bi-calculator"></i><span>Quản lý ngày phép</span>
                             </a>
                         </li>
                     }
@@ -181,7 +181,7 @@
         {
             <li class="nav-item">
                 <a class="nav-link collapsed" href="/InternalNews">
-                    <i class="bi bi-megaphone"></i>
+                    <i class="bi bi-newspaper"></i>
                     <span>Tin nội bộ</span>
                 </a>
             </li>
@@ -200,7 +200,7 @@
         {
             <li class="nav-item">
                 <a class="nav-link collapsed" href="/SupportRequest/Request">
-                    <i class="bi bi-tools"></i>
+                    <i class="bi bi-headset"></i>
                     <span>Yêu cầu hỗ trợ</span>
                 </a>
             </li>
@@ -248,7 +248,7 @@
         {
             <li class="nav-item">
                 <a class="nav-link collapsed" href="/Cloud/Storage">
-                    <i class="bi bi-cloud"></i>
+                    <i class="bi bi-cloud-check"></i>
                     <span>Kho tài liệu</span>
                 </a>
             </li>
@@ -259,40 +259,40 @@
             <li class="nav-heading">Dữ liệu MasterData</li>
             <li class="nav-item">
                 <a class="nav-link collapsed" data-bs-target="#master-nav" data-bs-toggle="collapse" href="#">
-                    <i class="bi bi-bar-chart"></i><span>MasterData</span><i class="bi bi-chevron-down ms-auto"></i>
+                    <i class="bi bi-database"></i><span>MasterData</span><i class="bi bi-chevron-down ms-auto"></i>
                 </a>
                 <ul id="master-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-                    <li><a href="/MasterDataPage?Type=loai-hdld"><i class="bi bi-circle"></i><span>Loại HĐLĐ</span></a></li>
-                    <li><a href="/MasterDataPage?Type=vi-tri-viec-lam"><i class="bi bi-circle"></i><span>Vị trí việc làm</span></a></li>
-                    <li><a href="/MasterDataPage?Type=phong-ban"><i class="bi bi-circle"></i><span>Phòng ban</span></a></li>
-                    <li><a href="/MasterDataPage?Type=quan-he-nguoi-than"><i class="bi bi-circle"></i><span>Quan hệ người thân</span></a></li>
-                    <li><a href="/MasterDataPage?Type=trang-thai-ho-so"><i class="bi bi-circle"></i><span>Trạng thái Hồ sơ</span></a></li>
-                    <li><a href="/MasterDataPage?Type=trang-thai-lam-viec"><i class="bi bi-circle"></i><span>Trạng thái làm việc</span></a></li>
-                    <li><a href="/MasterDataPage?Type=trang-thai-hon-nhan"><i class="bi bi-circle"></i><span>Trạng thái hôn nhân</span></a></li>
-                    <li><a href="/MasterDataPage?Type=trinh-do-hoc-van"><i class="bi bi-circle"></i><span>Trình độ học vấn</span></a></li>
-                    <li><a href="/MasterDataPage?Type=dan-toc"><i class="bi bi-circle"></i><span>Dân tộc</span></a></li>
-                    <li><a href="/MasterDataPage?Type=trang-thai-chung-tu"><i class="bi bi-circle"></i><span>Trạng thái chứng từ</span></a></li>
-                    <li><a href="/MasterDataPage?Type=Loai-chung-tu"><i class="bi bi-circle"></i><span>Loại chứng từ</span></a></li>
-                    <li><a href="/StatusPage"><i class="bi bi-circle"></i><span>Danh sách trạng thái</span></a></li>
+                    <li><a href="/MasterDataPage?Type=loai-hdld"><i class="bi bi-folder2-open"></i><span>Loại HĐLĐ</span></a></li>
+                    <li><a href="/MasterDataPage?Type=vi-tri-viec-lam"><i class="bi bi-person-badge"></i><span>Vị trí việc làm</span></a></li>
+                    <li><a href="/MasterDataPage?Type=phong-ban"><i class="bi bi-building"></i><span>Phòng ban</span></a></li>
+                    <li><a href="/MasterDataPage?Type=quan-he-nguoi-than"><i class="bi bi-people"></i><span>Quan hệ người thân</span></a></li>
+                    <li><a href="/MasterDataPage?Type=trang-thai-ho-so"><i class="bi bi-file-earmark-bar-graph"></i><span>Trạng thái Hồ sơ</span></a></li>
+                    <li><a href="/MasterDataPage?Type=trang-thai-lam-viec"><i class="bi bi-briefcase"></i><span>Trạng thái làm việc</span></a></li>
+                    <li><a href="/MasterDataPage?Type=trang-thai-hon-nhan"><i class="bi bi-suit-heart"></i><span>Trạng thái hôn nhân</span></a></li>
+                    <li><a href="/MasterDataPage?Type=trinh-do-hoc-van"><i class="bi bi-mortarboard"></i><span>Trình độ học vấn</span></a></li>
+                    <li><a href="/MasterDataPage?Type=dan-toc"><i class="bi bi-globe Asia Australia"></i><span>Dân tộc</span></a></li>
+                    <li><a href="/MasterDataPage?Type=trang-thai-chung-tu"><i class="bi bi-file-earmark-check"></i><span>Trạng thái chứng từ</span></a></li>
+                    <li><a href="/MasterDataPage?Type=Loai-chung-tu"><i class="bi bi-files"></i><span>Loại chứng từ</span></a></li>
+                    <li><a href="/StatusPage"><i class="bi bi-card-list"></i><span>Danh sách trạng thái</span></a></li>
                 </ul>
             </li>
 
             <li class="nav-heading">Hệ thống</li>
             <li class="nav-item">
                 <a class="nav-link collapsed" href="/setting">
-                    <i class="bi bi-gear"></i><span>Cài đặt</span>
+                    <i class="bi bi-gear-wide-connected"></i><span>Cài đặt</span>
                 </a>
             </li>
             @if (Model.HasViewPermission("MailSetting"))
             {
                 <li class="nav-item">
                     <a class="nav-link collapsed" href="/System/MailSetting">
-                        <i class="bi bi-envelope"></i><span>Cấu hình mail</span>
+                        <i class="bi bi-envelope-at"></i><span>Cấu hình mail</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link collapsed" href="/System/MailHistory">
-                        <i class="bi bi-envelope-paper"></i><span>Mail đã gửi</span>
+                        <i class="bi bi-envelope-check"></i><span>Mail đã gửi</span>
                     </a>
                 </li>
             }

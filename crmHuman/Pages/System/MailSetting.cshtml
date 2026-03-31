@@ -49,9 +49,9 @@
                     <label class="col-sm-2 col-form-label">SMTP ghi chú</label>
                     <div class="col-sm-10">
                         <div class="form-text mt-2">
-                            SMTP server dung chung cho toan he thong. Ben duoi la cau hinh mac dinh/fallback cho template.
-                            Neu nguoi dang gui co email va chu ky rieng trong ho so ca nhan, he thong se uu tien dung thong tin nguoi do lam sender hien thi.
-                            Neu mail server chi cho phep gui tu dung dia chi/xac thuc, can cau hinh send-as/alias phu hop cho tai khoan SMTP admin.
+                            SMTP server dùng chung cho toàn hệ thống. Bên dưới là cấu hình mặc định/fallback cho template.
+                            Nếu người đang gửi có email và chữ ký riêng trong hồ sơ cá nhân, hệ thống sẽ ưu tiên dùng thông tin người đó làm sender hiển thị.
+                            Nếu mail server chỉ cho phép gửi từ đúng địa chỉ/xác thực, cần cấu hình send-as/alias phù hợp cho tài khoản SMTP admin.
                         </div>
                     </div>
                 </div>
@@ -355,7 +355,7 @@
                         </div>
                         <div class="form-text">
                             Hỗ trợ soạn nội dung kiểu Word, dán từ Word/Google Docs, đổi font chữ và chuyển qua HTML khi cần.
-                            Nền uu tien font email-safe: Arial, Tahoma, Verdana, Times New Roman, Georgia, Courier New.
+                            Nên ưu tiên font email-safe: Arial, Tahoma, Verdana, Times New Roman, Georgia, Courier New.
                         </div>
                     </div>
                 </div>
@@ -616,7 +616,7 @@
         function uploadSửaorImage(file) {
             return new Promise(function (resolve, reject) {
                 if (!file) {
-                    reject('Chữa chon anh.');
+                    reject('Chưa chọn ảnh.');
                     return;
                 }
 
@@ -1034,11 +1034,11 @@
         }
 
         function insertTemplateTable() {
-            var rows = parseInt(prompt('So dong trong bang', '2') || '0', 10);
-            var columns = parseInt(prompt('So cot trong bang', '2') || '0', 10);
+            var rows = parseInt(prompt('Số dòng trong bảng', '2') || '0', 10);
+            var columns = parseInt(prompt('Số cột trong bảng', '2') || '0', 10);
 
             if (rows <= 0 || columns <= 0 || rows > 10 || columns > 10) {
-                alert('Chi ho tro bang tu 1 den 10 dong/cot.');
+                alert('Chỉ hỗ trợ bảng từ 1 đến 10 dòng/cột.');
                 return;
             }
 
@@ -1513,11 +1513,11 @@
         }
 
         function insertSignatureTable() {
-            var rows = parseInt(prompt('So dong trong bang', '2') || '0', 10);
-            var columns = parseInt(prompt('So cot trong bang', '2') || '0', 10);
+            var rows = parseInt(prompt('Số dòng trong bảng', '2') || '0', 10);
+            var columns = parseInt(prompt('Số cột trong bảng', '2') || '0', 10);
 
             if (rows <= 0 || columns <= 0 || rows > 10 || columns > 10) {
-                alert('Chi ho tro bang tu 1 den 10 dong/cot.');
+                alert('Chỉ hỗ trợ bảng từ 1 đến 10 dòng/cột.');
                 return;
             }
 
@@ -1588,8 +1588,8 @@
             document.getElementById('signatureTargetType').value = targetType;
             document.getElementById('signatureModalTitle').innerText =
                 targetType === 'employee'
-                    ? 'Sửa chữ ký mail nhan vien'
-                    : (targetType === 'candidate' ? 'Sửa chữ ký mail ung vien' : 'Sửa chữ ký mail nhan su');
+                    ? 'Sửa chữ ký mail nhân viên'
+                    : (targetType === 'candidate' ? 'Sửa chữ ký mail ứng viên' : 'Sửa chữ ký mail nhân sự');
             setSignatureBodyValue(storageField ? storageField.value : '');
 
             var modal = new bootstrap.Modal(document.getElementById('signatureModal'));

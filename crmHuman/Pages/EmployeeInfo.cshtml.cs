@@ -469,7 +469,7 @@ namespace crmHuman.Pages
             var result = await _documentDataBussiness.AddOrUpdate(request);
             if (!result)
             {
-                return ApiResponseHelper.Error("Tai lieu dang cho ky hoac da ky, khong the cap nhat.", StatusCodes.Status409Conflict);
+                return ApiResponseHelper.Error("Tài liệu đang chờ ký hoặc đã ký, không thể cập nhật.", StatusCodes.Status409Conflict);
             }
 
             return ApiResponseHelper.SuccessResponse(new { success = result });
@@ -485,7 +485,7 @@ namespace crmHuman.Pages
 
             if (id < 1)
             {
-                return ApiResponseHelper.BadRequest("txtDocumentSignPassword", "Thieu tai lieu can yeu cau ky");
+                return ApiResponseHelper.BadRequest("txtDocumentSignPassword", "Thiếu tài liệu cần yêu cầu ký");
             }
 
             var document = await _documentDataBussiness.GetById(id);
@@ -496,17 +496,17 @@ namespace crmHuman.Pages
 
             if (string.IsNullOrWhiteSpace(document.ValueFile))
             {
-                return ApiResponseHelper.Error("Tai lieu chua co file de yeu cau ky", StatusCodes.Status400BadRequest);
+                return ApiResponseHelper.Error("Tài liệu chưa có file để yêu cầu ký", StatusCodes.Status400BadRequest);
             }
 
             if (document.IsSignedInternal)
             {
-                return ApiResponseHelper.Error("Tai lieu da duoc ky noi bo", StatusCodes.Status409Conflict);
+                return ApiResponseHelper.Error("Tài liệu đã được ký nội bộ", StatusCodes.Status409Conflict);
             }
 
             if (document.IsSignatureRequested)
             {
-                return ApiResponseHelper.Error("Tai lieu da duoc yeu cau ky", StatusCodes.Status409Conflict);
+                return ApiResponseHelper.Error("Tài liệu đã được yêu cầu ký", StatusCodes.Status409Conflict);
             }
 
             var requestedAt = DateTime.Now;
@@ -529,7 +529,7 @@ namespace crmHuman.Pages
             GetInfoUser();
             if (!IsEmployeeSelfView())
             {
-                return new JsonResult(new { success = false, message = "Ban khong co quyen ky tai lieu nay" })
+                return new JsonResult(new { success = false, message = "Bạn không có quyền ký tài liệu này" })
                 {
                     StatusCode = StatusCodes.Status403Forbidden
                 };
@@ -546,7 +546,7 @@ namespace crmHuman.Pages
 
             if (!CanEmployeeAccessDocument(document))
             {
-                return new JsonResult(new { success = false, message = "Ban khong co quyen ky tai lieu nay" })
+                return new JsonResult(new { success = false, message = "Bạn không có quyền ký tài liệu này" })
                 {
                     StatusCode = StatusCodes.Status403Forbidden
                 };
@@ -556,8 +556,8 @@ namespace crmHuman.Pages
             {
                 Document = document,
                 CanSign = document.IsSignatureRequested && !document.IsSignedInternal,
-                TermsTitle = "Dieu khoan ky tai lieu noi bo",
-                TermsContent = "Toi xac nhan da doc ky noi dung tai lieu, dong y ky noi bo cho tai lieu nay va hieu rang tai lieu sau khi ky se duoc khoa chinh sua, luu dau vet hash va thoi gian ky tren he thong."
+                TermsTitle = "Điều khoản ký tài liệu nội bộ",
+                TermsContent = "Tôi xác nhận đã đọc kỹ nội dung tài liệu, đồng ý ký nội bộ cho tài liệu này và hiểu rằng tài liệu sau khi ký sẽ được khóa chỉnh sửa, lưu dấu vết hash và thời gian ký trên hệ thống."
             };
 
             return Partial("ControlForm/SignEmployeeDocument", viewModel);
@@ -570,7 +570,7 @@ namespace crmHuman.Pages
             var listError = new List<object>();
             if (!IsEmployeeSelfView())
             {
-                return new JsonResult(new { success = false, message = "Ban khong co quyen ky tai lieu nay" })
+                return new JsonResult(new { success = false, message = "Bạn không có quyền ký tài liệu này" })
                 {
                     StatusCode = StatusCodes.Status403Forbidden
                 };
@@ -578,19 +578,19 @@ namespace crmHuman.Pages
 
             if (request.Id < 1)
             {
-                listError.Add(new { name = "txtDocumentSignPassword", Content = "Thieu tai lieu can ky" });
+                listError.Add(new { name = "txtDocumentSignPassword", Content = "Thiếu tài liệu cần ký" });
             }
             if (string.IsNullOrWhiteSpace(request.PasswordConfirm))
             {
-                listError.Add(new { name = "txtDocumentSignPassword", Content = "Nhap mat khau xac nhan" });
+                listError.Add(new { name = "txtDocumentSignPassword", Content = "Nhập mật khẩu xác nhận" });
             }
             if (!request.AcceptTerms)
             {
-                listError.Add(new { name = "cbDocumentAcceptTerms", Content = "Ban can chap nhan dieu khoan truoc khi ky" });
+                listError.Add(new { name = "cbDocumentAcceptTerms", Content = "Bạn cần chấp nhận điều khoản trước khi ký" });
             }
             if (string.IsNullOrWhiteSpace(request.SignatureDataUrl))
             {
-                listError.Add(new { name = "employeeSignatureCanvas", Content = "Nhan vien can ve chu ky truoc khi ky tai lieu" });
+                listError.Add(new { name = "employeeSignatureCanvas", Content = "Nhân viên cần vẽ chữ ký trước khi ký tài liệu" });
             }
             if (listError.Count > 0)
             {
@@ -608,7 +608,7 @@ namespace crmHuman.Pages
 
             if (!CanEmployeeAccessDocument(document))
             {
-                return new JsonResult(new { success = false, message = "Ban khong co quyen ky tai lieu nay" })
+                return new JsonResult(new { success = false, message = "Bạn không có quyền ký tài liệu này" })
                 {
                     StatusCode = StatusCodes.Status403Forbidden
                 };
@@ -616,7 +616,7 @@ namespace crmHuman.Pages
 
             if (document.IsSignedInternal)
             {
-                return new JsonResult(new { success = false, message = "Tai lieu da duoc ky noi bo" })
+                return new JsonResult(new { success = false, message = "Tài liệu đã được ký nội bộ" })
                 {
                     StatusCode = StatusCodes.Status409Conflict
                 };
@@ -624,7 +624,7 @@ namespace crmHuman.Pages
 
             if (!document.IsSignatureRequested)
             {
-                return new JsonResult(new { success = false, message = "Tai lieu nay chua duoc yeu cau ky" })
+                return new JsonResult(new { success = false, message = "Tài liệu này chưa được yêu cầu ký" })
                 {
                     StatusCode = StatusCodes.Status403Forbidden
                 };
@@ -642,7 +642,7 @@ namespace crmHuman.Pages
             var authEmployee = await _empBusiness.Login(UserData.UserName, request.PasswordConfirm ?? string.Empty);
             if (authEmployee == null || authEmployee.Id != UserData.UserId)
             {
-                return new JsonResult(new[] { new { name = "txtDocumentSignPassword", Content = "Mat khau xac nhan khong dung" } })
+                return new JsonResult(new[] { new { name = "txtDocumentSignPassword", Content = "Mật khẩu xác nhận không đúng" } })
                 {
                     StatusCode = StatusCodes.Status400BadRequest
                 };
@@ -653,7 +653,7 @@ namespace crmHuman.Pages
             var signatureImageBytes = DecodeSignatureDataUrl(request.SignatureDataUrl);
             if (signatureImageBytes == null || signatureImageBytes.Length == 0)
             {
-                return new JsonResult(new[] { new { name = "employeeSignatureCanvas", Content = "Chu ky ve tay khong hop le" } })
+                return new JsonResult(new[] { new { name = "employeeSignatureCanvas", Content = "Chữ ký vẽ tay không hợp lệ" } })
                 {
                     StatusCode = StatusCodes.Status400BadRequest
                 };

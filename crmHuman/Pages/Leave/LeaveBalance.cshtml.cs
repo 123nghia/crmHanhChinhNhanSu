@@ -150,21 +150,21 @@ namespace crmHuman.Pages.Leave
             }
 
             var errors = new List<object>();
-            ValidationHelper.ValidateId(request.EmployeeId, "employeeId", "nhan vien", errors);
+            ValidationHelper.ValidateId(request.EmployeeId, "employeeId", "nhân viên", errors);
 
             if (request.AllowedLeaveDays.HasValue && request.AllowedLeaveDays.Value < 0)
             {
-                errors.Add(new { name = "allowedLeaveDays", Content = "So ngay phep khong duoc nho hon 0" });
+                errors.Add(new { name = "allowedLeaveDays", Content = "Số ngày phép không được nhỏ hơn 0" });
             }
 
             if (request.CarryOverLeaveDays.HasValue && request.CarryOverLeaveDays.Value < 0)
             {
-                errors.Add(new { name = "carryOverLeaveDays", Content = "So ngay phep ton nam cu khong duoc nho hon 0" });
+                errors.Add(new { name = "carryOverLeaveDays", Content = "Số ngày phép tồn năm cũ không được nhỏ hơn 0" });
             }
 
             if (request.ExpiredLeaveDays.HasValue && request.ExpiredLeaveDays.Value < 0)
             {
-                errors.Add(new { name = "expiredLeaveDays", Content = "So ngay phep het han khong duoc nho hon 0" });
+                errors.Add(new { name = "expiredLeaveDays", Content = "Số ngày phép hết hạn không được nhỏ hơn 0" });
             }
 
             if (ValidationHelper.HasErrors(errors))

@@ -37,7 +37,7 @@
                             <div class="col-md-3">
                                 <div class="border rounded p-3 h-100 bg-light">
                                     <div class="text-muted small">
-                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep duoc cap cho nam hien tai, chua bao gom phep ton nam cu.">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Số ngày phép được cấp cho năm hiện tại, chưa bao gồm phép tồn năm cũ.">
                                             Phép năm 2026<i class="@tooltipClass"></i>
                                         </span>
                                     </div>
@@ -47,7 +47,7 @@
                             <div class="col-md-3">
                                 <div class="border rounded p-3 h-100 bg-light">
                                     <div class="text-muted small">
-                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep duoc chuyen tu nam truoc sang va chi duoc su dung den het 31/03.">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Số ngày phép được chuyển từ năm trước sang và chỉ được sử dụng đến hết 31/03.">
                                             Phép tồn năm cũ<i class="@tooltipClass"></i>
                                         </span>
                                     </div>
@@ -57,7 +57,7 @@
                             <div class="col-md-3">
                                 <div class="border rounded p-3 h-100 bg-light">
                                     <div class="text-muted small">
-                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep nam da tru vao quy phep, thuong la cac don nghi phep nam da duyet.">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Số ngày phép năm đã trừ vào quỹ phép, thường là các đơn nghỉ phép năm đã duyệt.">
                                             Đã dùng<i class="@tooltipClass"></i>
                                         </span>
                                     </div>
@@ -158,28 +158,28 @@
                                     <th>#</th>
                                     @if (!isTcRole)
                                     {
-                                        <th>Ma NV</th>
-                                        <th>Ho ten</th>
+                                        <th>Mã NV</th>
+                                        <th>Họ tên</th>
                                         <th>Bộ phận</th>
-                                        <th>Vi tri</th>
+                                        <th>Vị trí</th>
                                     }
                                     <th class="text-end">
-                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep duoc cap cho nam hien tai.">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Số ngày phép được cấp cho năm hiện tại.">
                                             Phép năm 2026<i class="@tooltipClass"></i>
                                         </span>
                                     </th>
                                     <th class="text-end">
-                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep ton tu nam truoc, duoc dung den het 31/03.">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Số ngày phép tồn từ năm trước, được dùng đến hết 31/03.">
                                             Phép tồn năm cũ<i class="@tooltipClass"></i>
                                         </span>
                                     </th>
                                     <th class="text-end">
-                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Phan phep ton nam cu khong con duoc su dung sau han 31/03.">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Phần phép tồn năm cũ không còn được sử dụng sau hạn 31/03.">
                                             Phép hết hạn<i class="@tooltipClass"></i>
                                         </span>
                                     </th>
                                     <th class="text-end">
-                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep nam da tru vao quy phep cua nhan vien.">
+                                        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Số ngày phép năm đã trừ vào quỹ phép của nhân viên.">
                                             Đã dùng<i class="@tooltipClass"></i>
                                         </span>
                                     </th>
@@ -198,7 +198,7 @@
                                             Tổng nghỉ<i class="@tooltipClass"></i>
                                         </span>
                                     </th>
-                                    <th class="text-center">Thao tac</th>
+                                    <th class="text-center">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -244,7 +244,7 @@
                                         <td class="text-center">
                                             @if (Model.Permision.Edit ?? false)
                                             {
-                                                <button type="button" class="btn btn-sm btn-primary" onclick="openLeaveBalanceModal(this)" title="Cap nhat" aria-label="Cap nhat">
+                                                <button type="button" class="btn btn-sm btn-primary" onclick="openLeaveBalanceModal(this)" title="Cập nhật" aria-label="Cập nhật">
                                                     <i class="bi bi-pencil-square" aria-hidden="true"></i>
                                                 </button>
                                             }
@@ -252,7 +252,7 @@
                                             {
                                                 <span class="text-muted">--</span>
                                             }
-                                            <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="openLeaveDetailsModal(this)" title="Chi tiet" aria-label="Chi tiet">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="openLeaveDetailsModal(this)" title="Chi tiết" aria-label="Chi tiết">
                                                 <i class="bi bi-eye" aria-hidden="true"></i>
                                             </button>
                                         </td>
@@ -294,7 +294,7 @@
                 <div class="row">
                     <div class="col-md-3 mb-3">
                         <label class="form-label">
-                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="Chi tieu phep nam duoc cap cho nhan vien trong nam hien tai.">
+                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="Chỉ tiêu phép năm được cấp cho nhân viên trong năm hiện tại.">
                                 Số ngày được hưởng<i class="@tooltipClass"></i>
                             </span>
                         </label>
@@ -302,7 +302,7 @@
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">
-                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep duoc chuyen tu nam truoc sang.">
+                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="Số ngày phép được chuyển từ năm trước sang.">
                                 Phép tồn năm cũ<i class="@tooltipClass"></i>
                             </span>
                         </label>
@@ -310,16 +310,16 @@
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">
-                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="Gia tri nay duoc he thong tu dong tinh tu cac don nghi da duyet, khong sua tay tai day.">
+                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="Giá trị này được hệ thống tự động tính từ các đơn nghỉ đã duyệt, không sửa tay tại đây.">
                                 Số ngày đã dùng<i class="@tooltipClass"></i>
                             </span>
                         </label>
                         <input type="number" step="0.5" min="0" class="form-control" id="usedLeaveDays" readonly disabled />
-                        <div class="form-text">Tu dong tinh tu don nghi phep da duyet.</div>
+                        <div class="form-text">Tự động tính từ đơn nghỉ phép đã duyệt.</div>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">
-                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="So ngay phep ton nam cu da het han, khong con duoc su dung.">
+                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="Số ngày phép tồn năm cũ đã hết hạn, không còn được sử dụng.">
                                 Phép hết hạn<i class="@tooltipClass"></i>
                             </span>
                         </label>

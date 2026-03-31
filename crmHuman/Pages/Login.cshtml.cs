@@ -1,4 +1,4 @@
-﻿using crmHuman.Model;
+using crmHuman.Model;
 using crmHuman.Helpers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -61,7 +61,7 @@ namespace crmHuman.Pages
                 var employeeAccessProfile = await _empBusiness.GetById(userProfile.Id);
                 if (!EmployeeSystemAccessPolicy.HasSystemAccess(employeeAccessProfile))
                 {
-                    ModelState.AddModelError("UserName", "Tai khoan da nghi viec hoac bi khoa, khong the dang nhap he thong");
+                    ModelState.AddModelError("UserName", "Tài khoản đã nghỉ việc hoặc bị khóa, không thể đăng nhập hệ thống");
                     return Page();
                 }
 

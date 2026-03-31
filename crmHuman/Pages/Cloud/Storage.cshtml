@@ -8,8 +8,8 @@
     <h1><i class="bi bi-cloud-arrow-up-fill me-2"></i>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
-            <li class="breadcrumb-item"><a asp-page="/Cloud/Storage">Kho tai lieu</a></li>
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Cloud/Storage">Kho tài liệu</a></li>
             @foreach (var bread in Model.Breadcrumbs)
             {
                 <li class="breadcrumb-item"><a asp-page="/Cloud/Storage" asp-route-parentId="@bread.Id">@bread.DisplayText</a></li>
@@ -23,13 +23,13 @@
         <div class="col-lg-12">
             <div class="card shadow-sm border-0 rounded-3">
                 <div class="card-header bg-white border-bottom-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                    <h5 class="card-title m-0">@(Model.Breadcrumbs.LastOrDefault()?.DisplayText ?? "Thu muc goc")</h5>
+                    <h5 class="card-title m-0">@(Model.Breadcrumbs.LastOrDefault()?.DisplayText ?? "Thư mục gốc")</h5>
                     <div class="actions">
                         <button class="btn btn-primary rounded-pill px-4 shadow-sm me-2" onclick="showUploadModal()">
-                            <i class="bi bi-upload me-2"></i> Tai len
+                            <i class="bi bi-upload me-2"></i> Tải lên
                         </button>
                         <button class="btn btn-outline-primary rounded-pill px-4" onclick="showFolderModal()">
-                            <i class="bi bi-folder-plus me-2"></i> Thu muc moi
+                            <i class="bi bi-folder-plus me-2"></i> Thư mục mới
                         </button>
                     </div>
                 </div>
@@ -38,11 +38,11 @@
                         <table class="table table-hover align-middle">
                             <thead class="bg-light">
                                 <tr>
-                                    <th style="width: 30%;">Ten</th>
+                                    <th style="width: 30%;">Tên</th>
                                     <th>Người tạo</th>
-                                    <th>Cap nhat</th>
-                                    <th>Quyen truy cap</th>
-                                    <th class="text-end">Thao tac</th>
+                                    <th>Cập nhật</th>
+                                    <th>Quyền truy cập</th>
+                                    <th class="text-end">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -52,7 +52,7 @@
                                         <td colspan="5" class="text-center py-5">
                                             <div class="text-muted">
                                                 <i class="bi bi-inbox display-1 d-block mb-3 opacity-25"></i>
-                                                Chua co tai lieu nao trong thu muc nay
+                                                Chưa có tài liệu nào trong thư mục này
                                             </div>
                                         </td>
                                     </tr>
@@ -83,9 +83,9 @@
                                             <td>
                                                 @switch (doc.AccessLevel)
                                                 {
-                                                    case 0: <span class="badge bg-secondary rounded-pill"><i class="bi bi-lock-fill me-1"></i> Rieng tu</span> break;
-                                                    case 1: <span class="badge bg-info text-dark rounded-pill"><i class="bi bi-building me-1"></i> Noi bo</span> break;
-                                                    case 2: <span class="badge bg-primary rounded-pill"><i class="bi bi-person-check-fill me-1"></i> Gioi han</span> break;
+                                                    case 0: <span class="badge bg-secondary rounded-pill"><i class="bi bi-lock-fill me-1"></i> Riêng tư</span> break;
+                                                    case 1: <span class="badge bg-info text-dark rounded-pill"><i class="bi bi-building me-1"></i> Nội bộ</span> break;
+                                                    case 2: <span class="badge bg-primary rounded-pill"><i class="bi bi-person-check-fill me-1"></i> Giới hạn</span> break;
                                                 }
                                             </td>
                                             <td class="text-end">
@@ -94,7 +94,7 @@
                                                         <i class="bi bi-three-dots-vertical"></i>
                                                     </button>
                                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                                                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="showShareModal(@doc.Id, @doc.AccessLevel)"><i class="bi bi-share me-2"></i> Chia se</a></li>
+                                                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="showShareModal(@doc.Id, @doc.AccessLevel)"><i class="bi bi-share me-2"></i> Chia sẻ</a></li>
                                                         <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="confirmDelete(@doc.Id)"><i class="bi bi-trash me-2"></i> Xóa</a></li>
                                                     </ul>
                                                 </div>
@@ -115,17 +115,17 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Tao thu muc moi</h5>
+                <h5 class="modal-title">Tạo thư mục mới</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Ten thu muc</label>
-                    <input type="text" id="folderName" class="form-control" placeholder="Nhap ten thu muc...">
+                    <label class="form-label fw-bold">Tên thư mục</label>
+                    <input type="text" id="folderName" class="form-control" placeholder="Nhập tên thư mục...">
                 </div>
             </div>
             <div class="modal-footer border-top-0">
-                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Huy</button>
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
                 <button type="button" class="btn btn-primary rounded-pill px-4" onclick="createFolder()">Lưu lại</button>
             </div>
         </div>
@@ -136,20 +136,20 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Tai len tai lieu</h5>
+                <h5 class="modal-title">Tải lên tài liệu</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4 text-center">
                 <div class="upload-area border-2 border-dashed rounded-3 p-5 mb-3 cursor-pointer" onclick="document.getElementById('fileInput').click()">
                     <i class="bi bi-cloud-upload display-3 text-primary opacity-50 mb-3"></i>
-                    <p class="m-0">Keo tha file hoac click de chon file</p>
+                    <p class="m-0">Kéo thả file hoặc click để chọn file</p>
                     <input type="file" id="fileInput" class="d-none" onchange="handleFileSelect(this)">
                 </div>
                 <div id="selectedFileName" class="fw-bold text-primary"></div>
             </div>
             <div class="modal-footer border-top-0">
-                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Huy</button>
-                <button type="button" class="btn btn-primary rounded-pill px-4" id="btnDoUpload" onclick="uploadFile()" disabled>Bat dau tai</button>
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4" id="btnDoUpload" onclick="uploadFile()" disabled>Bắt đầu tải</button>
             </div>
         </div>
     </div>
@@ -159,56 +159,56 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Cai dat chia se</h5>
+                <h5 class="modal-title">Cài đặt chia sẻ</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 <input type="hidden" id="shareDocId">
                 <div class="mb-4">
-                    <label class="form-label fw-bold mb-3">Che do truy cap</label>
+                    <label class="form-label fw-bold mb-3">Chế độ truy cập</label>
                     <div class="row g-3">
                         <div class="col-md-4">
                             <div class="access-option text-center p-3 border rounded-3 cursor-pointer" onclick="selectAccess(0)">
                                 <i class="bi bi-lock-fill fs-2 d-block mb-2 text-secondary"></i>
-                                <span class="fw-bold">Rieng tu</span>
-                                <small class="d-block text-muted">Chi minh ban</small>
+                                <span class="fw-bold">Riêng tư</span>
+                                <small class="d-block text-muted">Chỉ mình bạn</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="access-option text-center p-3 border rounded-3 cursor-pointer" onclick="selectAccess(1)">
                                 <i class="bi bi-building fs-2 d-block mb-2 text-info"></i>
-                                <span class="fw-bold">Noi bo</span>
+                                <span class="fw-bold">Nội bộ</span>
                                 <small class="d-block text-muted">Tất cả nhân viên</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="access-option text-center p-3 border rounded-3 cursor-pointer" onclick="selectAccess(2)">
                                 <i class="bi bi-person-check-fill fs-2 d-block mb-2 text-primary"></i>
-                                <span class="fw-bold">Gioi han</span>
-                                <small class="d-block text-muted">Nhung nguoi duoc chon</small>
+                                <span class="fw-bold">Giới hạn</span>
+                                <small class="d-block text-muted">Những người được chọn</small>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div id="restrictedSection" class="d-none">
-                    <label class="form-label fw-bold mb-2">Them nguoi duoc quyen xem</label>
+                    <label class="form-label fw-bold mb-2">Thêm người được quyền xem</label>
                     <div class="input-group mb-3">
                         <select id="userSelect" class="form-select select2">
-                            <option value="">Chon nhan vien...</option>
+                            <option value="">Chọn nhân viên...</option>
                             @foreach (var emp in Model.AllEmployees.Data)
                             {
                                 var e = emp as VS.Human.Item.EmployeeIndexModel;
                                 <option value="@e.Id">@e.FullName (@e.UserName)</option>
                             }
                         </select>
-                        <button class="btn btn-outline-primary" onclick="addShareUser()">Them</button>
+                        <button class="btn btn-outline-primary" onclick="addShareUser()">Thêm</button>
                     </div>
                     <div id="shareList" class="d-flex flex-wrap gap-2"></div>
                 </div>
 
                 <div class="mt-4 pt-4 border-top">
-                    <label class="form-label fw-bold">Link chia se</label>
+                    <label class="form-label fw-bold">Link chia sẻ</label>
                     <div class="input-group">
                         <input type="text" id="shareLinkInput" class="form-control bg-light" readonly>
                         <button class="btn btn-outline-primary" onclick="copyShareLink()"><i class="bi bi-file-earmark-spreadsheet me-1"></i> Copy link</button>
