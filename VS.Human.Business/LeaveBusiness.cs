@@ -281,12 +281,12 @@ namespace VS.Human.Business
                     {
                         AddDistinctEmails(plan.ToEmails, bgdEmails);
                         AddDistinctEmails(plan.CcEmails, hcnsEmails);
-                        tokens["ManagerName"] = "Ban Giam doc";
+                        tokens["ManagerName"] = "Ban Giám đốc";
                     }
                     else
                     {
                         AddDistinctEmails(plan.ToEmails, hcnsEmails);
-                        tokens["ManagerName"] = "Phong HCNS";
+                        tokens["ManagerName"] = "Phòng HCNS";
                     }
 
                     plan.ManagerId = null;
@@ -324,7 +324,7 @@ namespace VS.Human.Business
                 plan.TemplateCode = LeavePendingHcnsTemplateCode;
                 AddDistinctEmails(plan.ToEmails, await GetRoleEmailsAsync(RoleHcns));
                 AddLeaveFlowCcRecipients(plan.CcEmails, employee, includeEmployee: true);
-                tokens["ApproverQueueName"] = "Phong HCNS";
+                tokens["ApproverQueueName"] = "Phòng HCNS";
                 tokens["ApproverQueueRole"] = "HCNS";
                 plan.ManagerId = null;
                 return plan;
@@ -404,7 +404,7 @@ namespace VS.Human.Business
                 {
                     await NotifyUsersAsync(
                         new[] { employee.Id },
-                        $"Don xin nghi phep cua ban da bi tu choi boi {actorName}. Ly do: {comment ?? leave.Comment ?? string.Empty}",
+                        $"Đơn nghỉ phép của bạn đã bị từ chối bởi {actorName}. Lý do: {comment ?? leave.Comment ?? string.Empty}",
                         "/Leave/LeaveRequest",
                         actorId);
                     return;
@@ -414,7 +414,7 @@ namespace VS.Human.Business
                 {
                     await NotifyUsersAsync(
                         new[] { employee.Id },
-                        "Don xin nghi phep cua ban da duoc HCNS duyet thay Ban Giam doc.",
+                        "Đơn nghỉ phép của bạn đã được HCNS phê duyệt thay Ban Giám đốc.",
                         "/Leave/LeaveRequest",
                         actorId);
                     return;
@@ -430,7 +430,7 @@ namespace VS.Human.Business
                     var hcnsIds = await GetRoleUserIdsAsync(RoleHcns);
                     await NotifyUsersAsync(
                         hcnsIds,
-                        $"Co don nghi phep cua {employeeName} da duoc Team Lead duyet, cho HCNS xu ly.",
+                        $"Có đơn nghỉ phép của {employeeName} đã được quản lý trực tiếp phê duyệt, đang chờ HCNS xử lý.",
                         "/Leave/LeaveApproval",
                         actorId);
                     return;
@@ -446,13 +446,13 @@ namespace VS.Human.Business
 
                     await NotifyUsersAsync(
                         bgdIds,
-                        $"Co don nghi phep cua {employeeName} cho BGD duyet.",
+                        $"Có đơn nghỉ phép của {employeeName} đang chờ BGĐ phê duyệt.",
                         "/Leave/LeaveApproval",
                         actorId);
 
                     await NotifyUsersAsync(
                         new[] { employee.Id },
-                        $"Don xin nghi phep cua ban da duoc HCNS duyet va chuyen BGD phe duyet.",
+                        "Đơn nghỉ phép của bạn đã được HCNS phê duyệt và chuyển BGĐ phê duyệt.",
                         "/Leave/LeaveRequest",
                         actorId);
                     return;
@@ -462,7 +462,7 @@ namespace VS.Human.Business
                 {
                     await NotifyUsersAsync(
                         new[] { employee.Id },
-                        "Don xin nghi phep cua ban da duoc phe duyet.",
+                        "Đơn nghỉ phép của bạn đã được phê duyệt.",
                         "/Leave/LeaveRequest",
                         actorId);
                 }
@@ -481,7 +481,7 @@ namespace VS.Human.Business
             {
                 await NotifyUsersAsync(
                     new[] { requesterId },
-                    "Don xin nghi phep cua ban da duoc tao va gui toi Team Lead.",
+                    "Đơn nghỉ phép của bạn đã được tạo và gửi tới quản lý trực tiếp.",
                     "/Leave/LeaveRequest",
                     senderId);
 
@@ -489,14 +489,14 @@ namespace VS.Human.Business
                 {
                     await NotifyUsersAsync(
                         new[] { manager.Id },
-                        $"Co don nghi phep cua {employeeName} cho ban duyet.",
+                        $"Có đơn nghỉ phép của {employeeName} đang chờ bạn phê duyệt.",
                         "/Leave/LeaveApproval",
                         senderId);
                 }
 
                 await NotifyUsersAsync(
                     hcnsIds,
-                    $"Co don nghi phep cua {employeeName} de theo doi.",
+                    $"Có đơn nghỉ phép của {employeeName} để theo dõi.",
                     "/Leave/LeaveApproval",
                     senderId,
                     requesterId,
@@ -509,13 +509,13 @@ namespace VS.Human.Business
             {
                 await NotifyUsersAsync(
                     new[] { requesterId },
-                    "Don xin nghi phep cua ban da duoc tao va gui toi Phong HCNS.",
+                    "Đơn nghỉ phép của bạn đã được tạo và gửi tới Phòng HCNS.",
                     "/Leave/LeaveRequest",
                     senderId);
 
                 await NotifyUsersAsync(
                     hcnsIds,
-                    $"Co don nghi phep cua {employeeName} cho phong HCNS xu ly.",
+                    $"Có đơn nghỉ phép của {employeeName} đang chờ Phòng HCNS xử lý.",
                     "/Leave/LeaveApproval",
                     senderId,
                     requesterId);
@@ -525,7 +525,7 @@ namespace VS.Human.Business
 
             var bgdIds = await GetRoleUserIdsAsync(RoleBgd);
             var approverIds = bgdIds.Count > 0 ? bgdIds : hcnsIds;
-            var approvalRoleName = bgdIds.Count > 0 ? "BGD" : "HCNS";
+            var approvalRoleName = bgdIds.Count > 0 ? "BGĐ" : "HCNS";
 
             if (approverIds.Count == 0)
             {
@@ -534,13 +534,13 @@ namespace VS.Human.Business
 
             await NotifyUsersAsync(
                 new[] { requesterId },
-                $"Don xin nghi phep cua ban da duoc tao va gui toi {approvalRoleName}.",
+                $"Đơn nghỉ phép của bạn đã được tạo và gửi tới {approvalRoleName}.",
                 "/Leave/LeaveRequest",
                 senderId);
 
             await NotifyUsersAsync(
                 approverIds,
-                $"Co don nghi phep cua {employeeName} cho ban duyet.",
+                $"Có đơn nghỉ phép của {employeeName} đang chờ bạn phê duyệt.",
                 "/Leave/LeaveApproval",
                 senderId,
                 requesterId);
@@ -549,7 +549,7 @@ namespace VS.Human.Business
             {
                 await NotifyUsersAsync(
                     hcnsIds,
-                    $"Co don nghi phep cua {employeeName} de theo doi.",
+                    $"Có đơn nghỉ phép của {employeeName} để theo dõi.",
                     "/Leave/LeaveApproval",
                     senderId,
                     requesterId);
@@ -786,7 +786,7 @@ namespace VS.Human.Business
         {
             return activeEmailSetting?.EmployeeFromName
                 ?? activeEmailSetting?.HrFromName
-                ?? "Phong HCNS";
+                ?? "Phòng HCNS";
         }
 
         private static void AddHcnsMailboxRecipients(List<string> target, Employee? manager, EmailSetting? activeEmailSetting, IEnumerable<string> fallbackEmails)

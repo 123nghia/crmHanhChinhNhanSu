@@ -513,7 +513,7 @@ namespace crmHuman.Pages
             var result = await _documentDataBussiness.RequestInternalSign(id, UserData.UserId, requestedAt);
             if (!result)
             {
-                return ApiResponseHelper.Error("Khong the yeu cau ky tai lieu nay", StatusCodes.Status409Conflict);
+                return ApiResponseHelper.Error("Không thể yêu cầu ký tài liệu này", StatusCodes.Status409Conflict);
             }
 
             return ApiResponseHelper.SuccessResponse(new
@@ -538,7 +538,7 @@ namespace crmHuman.Pages
             var document = await _documentDataBussiness.GetById(id);
             if (document == null || document.Id < 1)
             {
-                return new JsonResult(new { success = false, message = "Khong tim thay tai lieu" })
+                return new JsonResult(new { success = false, message = "Không tìm thấy tài liệu" })
                 {
                     StatusCode = StatusCodes.Status404NotFound
                 };
@@ -600,7 +600,7 @@ namespace crmHuman.Pages
             var document = await _documentDataBussiness.GetById(request.Id);
             if (document == null || document.Id < 1)
             {
-                return new JsonResult(new { success = false, message = "Khong tim thay tai lieu" })
+                return new JsonResult(new { success = false, message = "Không tìm thấy tài liệu" })
                 {
                     StatusCode = StatusCodes.Status404NotFound
                 };
@@ -633,7 +633,7 @@ namespace crmHuman.Pages
             var documentFilePath = ResolveDocumentFilePath(document.ValueFile);
             if (string.IsNullOrWhiteSpace(documentFilePath) || !global::System.IO.File.Exists(documentFilePath))
             {
-                return new JsonResult(new { success = false, message = "Khong tim thay file tai lieu de ky" })
+                return new JsonResult(new { success = false, message = "Không tìm thấy file tài liệu để ký" })
                 {
                     StatusCode = StatusCodes.Status400BadRequest
                 };
@@ -689,7 +689,7 @@ namespace crmHuman.Pages
             {
                 DeleteArchivedFileIfExists(signedFileArchivePath);
                 DeleteArchivedFileIfExists(signatureImagePath);
-                return new JsonResult(new { success = false, message = "Khong the ky tai lieu. Tai lieu co the da duoc cap nhat boi nguoi khac." })
+                return new JsonResult(new { success = false, message = "Không thể ký tài liệu. Tài liệu có thể đã được cập nhật bởi người khác." })
                 {
                     StatusCode = StatusCodes.Status409Conflict
                 };

@@ -407,7 +407,7 @@ async function submitAttendanceImport() {
 
     var formData = new FormData(form);
     if (!formData.get('FileRequest')) {
-        alert('Vui long chon file .xlsx');
+        alert('Vui lòng chọn file .xlsx');
         return;
     }
 
@@ -422,20 +422,20 @@ async function submitAttendanceImport() {
 
         var result = await response.json();
         if (response.ok && result.success) {
-            alert('Import thanh cong. Tong: ' + (result.total || 0) + ', thanh cong: ' + (result.totalSuccess || 0));
+            alert('Import thành công. Tổng: ' + (result.total || 0) + ', thành công: ' + (result.totalSuccess || 0));
             location.reload();
             return;
         }
 
         if (Array.isArray(result)) {
             var message = result.map(function (item) { return item.Content || item.content; }).join('\n');
-            alert(message || 'Import that bai');
+            alert(message || 'Import thất bại');
         } else {
-            alert(result.message || 'Import that bai');
+            alert(result.message || 'Import thất bại');
         }
     } catch (error) {
         console.error(error);
-        alert('Loi he thong khi import');
+        alert('Lỗi hệ thống khi import');
     }
 }
 

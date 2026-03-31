@@ -214,7 +214,7 @@ namespace VS.Human.Business
                     if (plan.ToEmails.Count == 0)
                     {
                         AddDistinctEmails(plan.ToEmails, hcnsEmails);
-                        tokens["ManagerName"] = "Phong HCNS";
+                        tokens["ManagerName"] = "Phòng HCNS";
                     }
 
                     return plan;
@@ -224,7 +224,7 @@ namespace VS.Human.Business
                 {
                     plan.TemplateCode = LateEarlyPendingHcnsTemplateCode;
                     AddDistinctEmails(plan.ToEmails, hcnsEmails);
-                    tokens["ManagerName"] = "Phong HCNS";
+                    tokens["ManagerName"] = "Phòng HCNS";
                     return plan;
                 }
 
@@ -238,7 +238,7 @@ namespace VS.Human.Business
                         AddDistinctEmails(plan.CcEmails, hcnsEmails);
                     }
 
-                    tokens["ManagerName"] = bgdEmails.Count > 0 ? "Ban Giam doc" : "Phong HCNS";
+                    tokens["ManagerName"] = bgdEmails.Count > 0 ? "Ban Giám đốc" : "Phòng HCNS";
                     return plan;
                 }
 
@@ -409,21 +409,21 @@ namespace VS.Human.Business
         private static string GetRequestTypeName(string? requestType)
         {
             return string.Equals(requestType, "EARLY", StringComparison.OrdinalIgnoreCase)
-                ? "ve som"
-                : "di tre";
+                ? "về sớm"
+                : "đi trễ";
         }
 
         private static string GetLateEarlyStatusText(int status)
         {
             return status switch
             {
-                0 => "Pending Lead",
-                1 => "Pending HCNS",
-                2 => "Pending BGD",
-                3 => "Pending Admin",
-                4 => "Approved",
-                5 => "Rejected",
-                6 => "Cancelled",
+                0 => "Chờ quản lý trực tiếp phê duyệt",
+                1 => "Chờ HCNS phê duyệt",
+                2 => "Chờ BGĐ phê duyệt",
+                3 => "Chờ Admin xác nhận",
+                4 => "Đã phê duyệt",
+                5 => "Từ chối",
+                6 => "Đã hủy",
                 _ => status.ToString(CultureInfo.InvariantCulture)
             };
         }
@@ -435,9 +435,9 @@ namespace VS.Human.Business
                 "1" => "Admin",
                 "2" => "TC",
                 "9" => "HCNS",
-                "3" => "Lead",
+                "3" => "Quản lý trực tiếp",
                 "8" => "BGD",
-                "TL" => "Lead",
+                "TL" => "Quản lý trực tiếp",
                 "HCNS" => "HCNS",
                 "BGD" => "BGD",
                 "ADMIN" => "Admin",

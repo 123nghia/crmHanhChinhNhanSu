@@ -18,7 +18,7 @@ namespace crmHuman.Pages.System
         {
             _emailSentLogBusiness = emailSentLogBusiness;
             _emailConfigBusiness = emailConfigBusiness;
-            TitlePage = "Mail da gui";
+            TitlePage = "Mail đã gửi";
             KeyPage = "MailSetting";
         }
 
@@ -69,13 +69,13 @@ namespace crmHuman.Pages.System
             GetInfoUser();
             if (!(Permision.View ?? false))
             {
-                return new JsonResult(new { success = false, message = "No permission" });
+                return new JsonResult(new { success = false, message = "Bạn không có quyền xem dữ liệu này." });
             }
 
             var log = await _emailSentLogBusiness.GetById(id, UserData?.UserId ?? 0, UserData?.RoleCode);
             if (log == null || log.Id <= 0)
             {
-                return new JsonResult(new { success = false, message = "Khong tim thay mail hoac ban khong co quyen xem" });
+                return new JsonResult(new { success = false, message = "Không tìm thấy mail hoặc bạn không có quyền xem." });
             }
 
             return new JsonResult(new

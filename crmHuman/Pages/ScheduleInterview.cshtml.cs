@@ -35,7 +35,7 @@ namespace crmHuman.Pages
             _empBusiness = empBusiness;
             _onboardMemberBusiness = onboardMemberBusiness;
             _notificationBusiness = notificationBusiness;
-            TitlePage = "Danh sach phong van";
+            TitlePage = "Danh sách phỏng vấn";
             KeyPage = "ScheduleInterview";
             DataAll = new BaseList();
             CandidateList = new BaseList();
@@ -62,7 +62,7 @@ namespace crmHuman.Pages
             var roleCode = UserData?.RoleCode;
             if (request.RelId <= 0 || !await _candidateBusiness.HasManageAccess(request.RelId, userId, roleCode))
             {
-                return ApiResponseHelper.Error("Khong co quyen tao hoac cap nhat lich cho ung vien nay", StatusCodes.Status403Forbidden);
+                return ApiResponseHelper.Error("Không có quyền tạo hoặc cập nhật lịch cho ứng viên này", StatusCodes.Status403Forbidden);
             }
 
             if (request.Id > 0)
@@ -70,12 +70,12 @@ namespace crmHuman.Pages
                 var existingSchedule = await _scheduleInterviewBussiness.GetById(request.Id);
                 if (existingSchedule == null || existingSchedule.Id <= 0)
                 {
-                    return ApiResponseHelper.Error("Khong tim thay lich phong van", StatusCodes.Status404NotFound);
+                    return ApiResponseHelper.Error("Không tìm thấy lịch phỏng vấn", StatusCodes.Status404NotFound);
                 }
 
                 if (!await _candidateBusiness.HasManageAccess(existingSchedule.RelId, userId, roleCode))
                 {
-                    return ApiResponseHelper.Error("Khong co quyen cap nhat lich phong van nay", StatusCodes.Status403Forbidden);
+                    return ApiResponseHelper.Error("Không có quyền cập nhật lịch phỏng vấn này", StatusCodes.Status403Forbidden);
                 }
 
                 request.RelId = existingSchedule.RelId;

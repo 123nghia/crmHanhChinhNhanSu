@@ -28,7 +28,7 @@ namespace crmHuman.Pages.InternalNews
         {
             _newsBusiness = newsBusiness;
             _hostingEnvironment = hostingEnvironment;
-            TitlePage = "Chinh sua tin noi bo";
+            TitlePage = "Chỉnh sửa tin nội bộ";
             KeyPage = "InternalNews";
         }
 
@@ -88,16 +88,16 @@ namespace crmHuman.Pages.InternalNews
 
             if (string.IsNullOrWhiteSpace(News.Title))
             {
-                ModelState.AddModelError("News.Title", "Vui long nhap tieu de.");
+                ModelState.AddModelError("News.Title", "Vui lòng nhập tiêu đề.");
             }
             else if (News.Title.Length > 200)
             {
-                ModelState.AddModelError("News.Title", "Tieu de toi da 200 ky tu.");
+                ModelState.AddModelError("News.Title", "Tiêu đề tối đa 200 ký tự.");
             }
 
             if (string.IsNullOrWhiteSpace(News.Content))
             {
-                ModelState.AddModelError("News.Content", "Vui long nhap noi dung.");
+                ModelState.AddModelError("News.Content", "Vui lòng nhập nội dung.");
             }
 
             if (!ModelState.IsValid)
@@ -155,7 +155,7 @@ namespace crmHuman.Pages.InternalNews
             var result = await _newsBusiness.AddOrUpdate(item);
             if (!result)
             {
-                ModelState.AddModelError(string.Empty, "Khong the luu bai viet.");
+                ModelState.AddModelError(string.Empty, "Không thể lưu bài viết.");
                 await LoadExistingAttachments();
                 return Page();
             }

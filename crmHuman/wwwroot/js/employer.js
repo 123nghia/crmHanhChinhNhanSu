@@ -1,4 +1,4 @@
-﻿
+
 function openPageMember(id = -1) {
 
     var dataString = "id=" + id;
@@ -679,13 +679,13 @@ function openSignContract(id) {
             $('#formModal').modal('show');
         },
         error: function (jqXHR, exception) {
-            var message = "Khong mo duoc form ky noi bo";
+            var message = "Không mở được form ký nội bộ";
             if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
                 message = jqXHR.responseJSON.message;
             }
             Swal.fire({
                 icon: "error",
-                title: "Khong thanh cong",
+                title: "Không thành công",
                 text: message
             });
         }
@@ -858,14 +858,14 @@ function signContract(id) {
                 return;
             }
 
-            var message = "Khong the ky hop dong";
+            var message = "Không thể ký hợp đồng";
             if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
                 message = jqXHR.responseJSON.message;
             }
 
             Swal.fire({
                 icon: "error",
-                title: "Khong thanh cong",
+                title: "Không thành công",
                 text: message
             });
         }
@@ -895,14 +895,14 @@ function requestEmployeeDocumentSign(id) {
             });
         },
         error: function (jqXHR, exception) {
-            var message = "Khong the yeu cau ky tai lieu";
+            var message = "Không thể yêu cầu ký tài liệu";
             if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
                 message = jqXHR.responseJSON.message;
             }
 
             Swal.fire({
                 icon: "error",
-                title: "Khong thanh cong",
+                title: "Không thành công",
                 text: message
             });
         }
@@ -924,13 +924,13 @@ function openEmployeeDocumentSign(id) {
             $('#formModal').modal('show');
         },
         error: function (jqXHR, exception) {
-            var message = "Khong mo duoc form ky tai lieu";
+            var message = "Không mở được form ký tài liệu";
             if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
                 message = jqXHR.responseJSON.message;
             }
             Swal.fire({
                 icon: "error",
-                title: "Khong thanh cong",
+                title: "Không thành công",
                 text: message
             });
         }
@@ -1101,14 +1101,14 @@ function signEmployeeDocument(id) {
                 return;
             }
 
-            var message = "Khong the ky tai lieu";
+            var message = "Không thể ký tài liệu";
             if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
                 message = jqXHR.responseJSON.message;
             }
 
             Swal.fire({
                 icon: "error",
-                title: "Khong thanh cong",
+                title: "Không thành công",
                 text: message
             });
         }
@@ -3577,24 +3577,24 @@ function saveSchedule(idEmp, handlerUrl) {
         Swal.fire({
             icon: "error",
             title: "Loi",
-            text: "Vui long chon ung vien"
+            text: "Vui lòng chọn ứng viên"
         });
         return;
     }
     if (scheduleDateInput == null || scheduleDateInput == "") {
-        addError("scheduleDateTime", "Cung cap ngay phong van");
+        addError("scheduleDateTime", "Vui lòng chọn ngày giờ phỏng vấn");
         Swal.fire({
             icon: "error",
             title: "Loi",
-            text: "Vui long chon ngay va gio phong van"
+            text: "Vui lòng chọn ngày và giờ phỏng vấn"
         });
         return;
     }
     if (shouldSendEmail && (candidateEmail == null || candidateEmail.trim() == "")) {
         Swal.fire({
             icon: "warning",
-            title: "Ung vien chua co email",
-            text: "Vui long cap nhat email trong ho so ung vien hoac bo chon muc gui mail truoc khi luu lich"
+            title: "Ứng viên chưa có email",
+            text: "Vui lòng cập nhật email trong hồ sơ ứng viên hoặc bỏ chọn mục gửi mail trước khi lưu lịch"
         });
         return;
     }
@@ -3646,8 +3646,8 @@ function saveSchedule(idEmp, handlerUrl) {
             }
             Swal.fire({
                 icon: "error",
-                title: "Khong thanh cong",
-                text: data && data.message ? data.message : "Khong the tao lich phong van"
+                title: "Không thành công",
+                text: data && data.message ? data.message : "Không thể tạo lịch phỏng vấn"
             });
         },
         error: function (jqXHR, exception) {
@@ -3655,7 +3655,7 @@ function saveSchedule(idEmp, handlerUrl) {
             Swal.fire({
                 icon: "error",
                 title: "Loi he thong",
-                text: "Khong the tao lich phong van"
+                text: "Không thể tạo lịch phỏng vấn"
             });
         },
         complete: function () {
@@ -3788,15 +3788,15 @@ function AddDocument(idCandidate, dataType = 1) {
             if (data && data.success === false) {
                 Swal.fire({
                     icon: "error",
-                    title: "Khong thanh cong",
-                    text: data.message || "Khong the cap nhat chung tu"
+                    title: "Không thành công",
+                    text: data.message || "Không thể cập nhật chứng từ"
                 });
                 return;
             }
             successAdd(idCandidate);
         },
         error: function (jqXHR, exception) {
-            var message = "Khong the cap nhat chung tu";
+            var message = "Không thể cập nhật chứng từ";
             if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message) {
                 message = jqXHR.responseJSON.message;
             }
@@ -3808,7 +3808,7 @@ function AddDocument(idCandidate, dataType = 1) {
 
             Swal.fire({
                 icon: "error",
-                title: "Khong thanh cong",
+                title: "Không thành công",
                 text: message
             });
         },

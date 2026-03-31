@@ -56,7 +56,7 @@ namespace VS.Human.Business
         {
             if (item == null)
             {
-                return (false, "Du lieu khong hop le.", 0);
+                return (false, "Dữ liệu không hợp lệ.", 0);
             }
 
             item.Title = (item.Title ?? string.Empty).Trim();
@@ -65,29 +65,29 @@ namespace VS.Human.Business
 
             if (string.IsNullOrWhiteSpace(item.Title))
             {
-                return (false, "Vui long nhap tieu de.", 0);
+                return (false, "Vui lòng nhập tiêu đề.", 0);
             }
 
             if (string.IsNullOrWhiteSpace(item.Content))
             {
-                return (false, "Vui long nhap noi dung.", 0);
+                return (false, "Vui lòng nhập nội dung.", 0);
             }
 
             if (string.IsNullOrWhiteSpace(item.TargetDepartmentCode))
             {
-                return (false, "Vui long chon bo phan xu ly.", 0);
+                return (false, "Vui lòng chọn bộ phận xử lý.", 0);
             }
 
             var requester = await _unitOfWork.EmployeeRep.GetById(userId);
             if (requester == null || requester.Id <= 0)
             {
-                return (false, "Khong tim thay thong tin nguoi tao.", 0);
+                return (false, "Không tìm thấy thông tin người tạo.", 0);
             }
 
             var assignee = await ResolveAssigneeAsync(item.TargetDepartmentCode, requester.Id);
             if (assignee == null || assignee.Id <= 0)
             {
-                return (false, "Khong tim thay nhan su phu trach cho bo phan da chon.", 0);
+                return (false, "Không tìm thấy nhân sự phụ trách cho bộ phận đã chọn.", 0);
             }
 
             item.RequesterId = requester.Id;
@@ -100,83 +100,83 @@ namespace VS.Human.Business
             var id = await _unitOfWork.SupportRequestRep.Create(item, userId);
             if (id <= 0)
             {
-                return (false, "Khong the tao yeu cau.", 0);
+                return (false, "Không thể tạo yêu cầu.", 0);
             }
 
             await TryNotifyCreateAsync(id, requester, assignee);
             await TrySendSupportRequestEmailAsync(id, requester.Id, "Create", null);
 
-            return (true, "Tao yeu cau thanh cong.", id);
+            return (true, "Tạo yêu cầu thành công.", id);
         }
 
         public async Task<(bool Success, string Message)> UpdateStatus(SupportRequestStatusUpdate model, int userId, string? roleCode)
         {
             if (model == null || model.Id <= 0)
             {
-                return (false, "Du lieu khong hop le.");
+                return (false, "Dữ liệu không hợp lệ.");
             }
 
             if (model.Status < 1 || model.Status > 3)
             {
-                return (false, "Trang thai khong hop le.");
+                return (false, "Trạng thái không hợp lệ.");
             }
 
             var request = await _unitOfWork.SupportRequestRep.GetById(model.Id);
             if (request == null || request.Id <= 0)
             {
-                return (false, "Khong tim thay yeu cau.");
+                return (false, "Không tìm thấy yêu cầu.");
             }
 
             if (!CanProcess(request, userId, roleCode))
             {
-                return (false, "Ban khong co quyen cap nhat yeu cau nay.");
+                return (false, "Bạn không có quyền cập nhật yêu cầu này.");
             }
 
             if (request.Status == 2 || request.Status == 3)
             {
-                return (false, "Yeu cau nay da ket thuc, khong the cap nhat tiep.");
+                return (false, "Yêu cầu này đã kết thúc, không thể cập nhật tiếp.");
             }
 
             var updated = await _unitOfWork.SupportRequestRep.UpdateStatus(model.Id, model.Status, model.Comment, userId);
             if (!updated)
             {
-                return (false, "Khong the cap nhat trang thai.");
+                return (false, "Không thể cập nhật trạng thái.");
             }
 
             await TryNotifyStatusChangedAsync(model.Id, userId, model.Status);
             await TrySendSupportRequestEmailAsync(model.Id, userId, "StatusChanged", model.Comment);
 
-            return (true, "Cap nhat trang thai thanh cong.");
+            return (true, "Cập nhật trạng thái thành công.");
         }
 
         public async Task<(bool Success, string Message)> Delete(int id, int userId, string? roleCode)
         {
             if (id <= 0)
             {
-                return (false, "Id khong hop le.");
+                return (false, "Id không hợp lệ.");
             }
 
             var request = await _unitOfWork.SupportRequestRep.GetById(id);
             if (request == null || request.Id <= 0)
             {
-                return (false, "Khong tim thay yeu cau.");
+                return (false, "Không tìm thấy yêu cầu.");
             }
 
             var isAdmin = string.Equals(roleCode, "1", StringComparison.OrdinalIgnoreCase);
             if (!isAdmin && request.RequesterId != userId)
             {
-                return (false, "Ban khong co quyen xoa yeu cau nay.");
+                return (false, "Bạn không có quyền xóa yêu cầu này.");
             }
 
             if (request.Status == 2)
             {
-                return (false, "Yeu cau da hoan thanh, khong duoc xoa.");
+                return (false, "Yêu cầu đã hoàn thành, không được xóa.");
             }
 
             var deleted = await _unitOfWork.SupportRequestRep.Delete(id, userId);
             return deleted
-                ? (true, "Xoa yeu cau thanh cong.")
-                : (false, "Khong the xoa yeu cau.");
+                ? (true, "Xóa yêu cầu thành công.")
+                : (false, "Không thể xóa yêu cầu.");
         }
 
         private async Task<Employee?> ResolveAssigneeAsync(string departmentCode, int requesterId)
@@ -196,14 +196,14 @@ namespace VS.Human.Business
             try
             {
                 var link = $"/SupportRequest/Processing?id={requestId}";
-                var message = $"Ban duoc giao xu ly mot yeu cau ho tro moi tu {requester.FullName}.";
+                var message = $"Bạn được giao xử lý một yêu cầu hỗ trợ mới từ {requester.FullName}.";
                 await _notificationBusiness.CreateNotification(assignee.Id, message, link, SupportRequestEntityType, requester.Id);
 
                 if (requester.Id != assignee.Id)
                 {
                     await _notificationBusiness.CreateNotification(
                         requester.Id,
-                        $"Yeu cau ho tro cua ban da duoc giao cho {assignee.FullName}.",
+                        $"Yêu cầu hỗ trợ của bạn đã được giao cho {assignee.FullName}.",
                         "/SupportRequest/Request",
                         SupportRequestEntityType,
                         assignee.Id);
@@ -226,12 +226,12 @@ namespace VS.Human.Business
                 }
 
                 var actor = await _unitOfWork.EmployeeRep.GetById(actorId);
-                var actorName = actor?.Id > 0 ? actor.FullName : "Nguoi xu ly";
+                var actorName = actor?.Id > 0 ? actor.FullName : "Người xử lý";
                 var statusText = GetStatusText(status);
 
                 await _notificationBusiness.CreateNotification(
                     request.RequesterId,
-                    $"Yeu cau '{request.Title}' da duoc cap nhat sang trang thai {statusText} boi {actorName}.",
+                    $"Yêu cầu '{request.Title}' đã được cập nhật sang trạng thái {statusText} bởi {actorName}.",
                     "/SupportRequest/Request",
                     SupportRequestEntityType,
                     actorId);
@@ -240,7 +240,7 @@ namespace VS.Human.Business
                 {
                     await _notificationBusiness.CreateNotification(
                         request.AssignedToId.Value,
-                        $"Yeu cau '{request.Title}' hien dang o trang thai {statusText}.",
+                        $"Yêu cầu '{request.Title}' hiện đang ở trạng thái {statusText}.",
                         $"/SupportRequest/Processing?id={requestId}",
                         SupportRequestEntityType,
                         actorId);
@@ -387,11 +387,11 @@ namespace VS.Human.Business
         {
             return status switch
             {
-                0 => "Moi tao",
-                1 => "Dang xu ly",
-                2 => "Hoan thanh",
-                3 => "Huy",
-                _ => "Khong xac dinh"
+                0 => "Mới tạo",
+                1 => "Đang xử lý",
+                2 => "Hoàn thành",
+                3 => "Hủy",
+                _ => "Không xác định"
             };
         }
 

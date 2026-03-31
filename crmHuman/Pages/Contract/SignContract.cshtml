@@ -69,14 +69,14 @@
     var hrSignedIpAddress = contract?.HrSignedIpAddress?.ToString() ?? string.Empty;
     var hrSignedUserAgent = contract?.HrSignedUserAgent?.ToString() ?? string.Empty;
 
-    var dialogTitle = "Thong tin ky hop dong";
+    var dialogTitle = "Thông tin ký hợp đồng";
     if (canSignHr && !isHrSigned)
     {
-        dialogTitle = "Ky HR hop dong";
+        dialogTitle = "Ký HR hợp đồng";
     }
     else if (canSignEmployee && isHrSigned && contract != null && contract.IsSignedInternal != true)
     {
-        dialogTitle = "Ky nhan vien";
+        dialogTitle = "Ký nhân viên";
     }
 }
 
@@ -88,27 +88,27 @@
 <div class="modal-body">
     @if (contract == null || contract.Id < 1)
     {
-        <div class="alert alert-danger mb-0">Khong tim thay hop dong.</div>
+        <div class="alert alert-danger mb-0">Không tìm thấy hợp đồng.</div>
     }
     else if (isSignedInternal)
     {
         <div class="alert alert-success">
-            Hop dong da duoc nhan vien ky noi bo.
+            Hợp đồng đã được nhân viên ký nội bộ.
             @if (!string.IsNullOrWhiteSpace(signedAtText))
             {
-                <div class="mt-2">Thoi gian ky: <strong>@signedAtText</strong></div>
+                <div class="mt-2">Thời gian ký: <strong>@signedAtText</strong></div>
             }
             @if (!string.IsNullOrWhiteSpace(signerDisplay))
             {
-                <div>Nguoi ky: <strong>@signerDisplay</strong></div>
+                <div>Người ký: <strong>@signerDisplay</strong></div>
             }
             @if (!string.IsNullOrWhiteSpace(signatureIntentText))
             {
-                <div class="mt-2">Y chi dong y: <strong>@signatureIntentText</strong></div>
+                <div class="mt-2">Ý chí đồng ý: <strong>@signatureIntentText</strong></div>
             }
             @if (!string.IsNullOrWhiteSpace(signedIpAddress))
             {
-                <div>IP luc ky: <strong>@signedIpAddress</strong></div>
+                <div>IP lúc ký: <strong>@signedIpAddress</strong></div>
             }
             @if (!string.IsNullOrWhiteSpace(signedUserAgent))
             {
@@ -116,29 +116,29 @@
             }
             @if (!string.IsNullOrWhiteSpace(signedFileArchivePath))
             {
-                <div class="text-break">Ban sao da ky: <a href="@signedFileArchivePath" target="_blank">Mo file da ky</a></div>
+                <div class="text-break">Bản sao đã ký: <a href="@signedFileArchivePath" target="_blank">Mở file đã ký</a></div>
             }
             @if (!string.IsNullOrWhiteSpace(signatureImagePath))
             {
-                <div class="text-break">Anh chu ky: <a href="@signatureImagePath" target="_blank">Mo anh chu ky</a></div>
+                <div class="text-break">Ảnh chữ ký: <a href="@signatureImagePath" target="_blank">Mở ảnh chữ ký</a></div>
             }
         </div>
 
         @if (isHrSigned)
         {
             <div class="alert alert-success mt-2">
-                HR da ky hop dong.
+                HR đã ký hợp đồng.
                 @if (!string.IsNullOrWhiteSpace(hrSignedAtText))
                 {
-                    <div class="mt-2">Thoi gian ky HR: <strong>@hrSignedAtText</strong></div>
+                    <div class="mt-2">Thời gian ký HR: <strong>@hrSignedAtText</strong></div>
                 }
                 @if (!string.IsNullOrWhiteSpace(hrSignerDisplay))
                 {
-                    <div>Nguoi ky HR: <strong>@hrSignerDisplay</strong></div>
+                    <div>Người ký HR: <strong>@hrSignerDisplay</strong></div>
                 }
                 @if (!string.IsNullOrWhiteSpace(hrSignedIpAddress))
                 {
-                    <div>IP HR luc ky: <strong>@hrSignedIpAddress</strong></div>
+                    <div>IP HR lúc ký: <strong>@hrSignedIpAddress</strong></div>
                 }
                 @if (!string.IsNullOrWhiteSpace(hrSignedUserAgent))
                 {
@@ -152,18 +152,18 @@
         if (isHrSigned)
         {
             <div class="alert alert-success">
-                HR da ky hop dong.
+                HR đã ký hợp đồng.
                 @if (!string.IsNullOrWhiteSpace(hrSignedAtText))
                 {
-                    <div class="mt-2">Thoi gian ky HR: <strong>@hrSignedAtText</strong></div>
+                    <div class="mt-2">Thời gian ký HR: <strong>@hrSignedAtText</strong></div>
                 }
                 @if (!string.IsNullOrWhiteSpace(hrSignerDisplay))
                 {
-                    <div>Nguoi ky HR: <strong>@hrSignerDisplay</strong></div>
+                    <div>Người ký HR: <strong>@hrSignerDisplay</strong></div>
                 }
                 @if (!string.IsNullOrWhiteSpace(hrSignedIpAddress))
                 {
-                    <div>IP HR luc ky: <strong>@hrSignedIpAddress</strong></div>
+                    <div>IP HR lúc ký: <strong>@hrSignedIpAddress</strong></div>
                 }
                 @if (!string.IsNullOrWhiteSpace(hrSignedUserAgent))
                 {
@@ -174,7 +174,7 @@
         else
         {
             <div class="alert alert-warning">
-                Hop dong chua duoc HR ky.
+                Hợp đồng chưa được HR ký.
             </div>
         }
 
@@ -182,61 +182,61 @@
         {
             if (!isHrSigned)
             {
-                <div class="alert alert-warning mb-0">Ban khong co quyen ky HR hop dong nay.</div>
+                <div class="alert alert-warning mb-0">Bạn không có quyền ký HR hợp đồng này.</div>
             }
             else
             {
-                <div class="alert alert-info mb-0">Cho nhan vien ky hop dong.</div>
+                <div class="alert alert-info mb-0">Chờ nhân viên ký hợp đồng.</div>
             }
         }
         else
         {
             <form id="signContractForm" class="needs-validation" novalidate>
                 <div class="col-12 form-group">
-                    <label class="form-label">Nhan vien</label>
+                    <label class="form-label">Nhân viên</label>
                     <input type="text" class="form-control" value="@($"{contract.UserName} - {contract.FullName}")" readonly />
                 </div>
 
                 <div class="col-12 form-group mt-2">
-                    <label class="form-label">File hop dong</label>
+                    <label class="form-label">File hợp đồng</label>
                     @if (!string.IsNullOrWhiteSpace((string?)contract.FileUrl))
                     {
                         <div>
-                            <a href="@contract.FileUrl" target="_blank">Mo file hop dong</a>
+                            <a href="@contract.FileUrl" target="_blank">Mở file hợp đồng</a>
                         </div>
                     }
                     else
                     {
-                        <div class="text-danger">Hop dong chua co file.</div>
+                        <div class="text-danger">Hợp đồng chưa có file.</div>
                     }
                 </div>
 
                 @if (canSignEmployee && isHrSigned)
                 {
                     <div class="alert alert-warning mt-3">
-                        <div class="fw-bold mb-2">Dieu khoan ky hop dong noi bo</div>
-                        <div>Toi xac nhan chinh toi la nguoi ky, da doc, hieu, dong y voi noi dung hop dong va dong y ky dien tu noi bo cho hop dong nay.</div>
+                        <div class="fw-bold mb-2">Điều khoản ký hợp đồng nội bộ</div>
+                        <div>Tôi xác nhận chính tôi là người ký, đã đọc, hiểu, đồng ý với nội dung hợp đồng và đồng ý ký điện tử nội bộ cho hợp đồng này.</div>
                         <div class="mt-2 small">
-                            He thong se dong dau chu ky len ban archive cua file da ky doi voi PDF va file anh. Cac dinh dang khac se luu kem anh chu ky de truy vet.
+                            Hệ thống sẽ đóng dấu chữ ký lên bản archive của file đã ký đối với PDF và file ảnh. Các định dạng khác sẽ lưu kèm ảnh chữ ký để truy vết.
                         </div>
                     </div>
 
                     <div class="col-12 form-group mt-3">
-                        <label class="form-label">Chu ky nhan vien <span class="text-danger">*</span></label>
+                        <label class="form-label">Chữ ký nhân viên <span class="text-danger">*</span></label>
                         <div class="border rounded bg-white p-2">
                             <canvas id="contractSignatureCanvas" width="520" height="180" style="width:100%;max-width:100%;border:1px dashed #ced4da;border-radius:8px;touch-action:none;"></canvas>
                         </div>
                         <div class="d-flex gap-2 mt-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearContractSignaturePad()">Xoa chu ky</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearContractSignaturePad()">Xóa chữ ký</button>
                         </div>
-                        <div class="small text-muted mt-1">Nhan vien ky truc tiep tren o ben tren bang chuot, but cam ung hoac ngon tay.</div>
+                        <div class="small text-muted mt-1">Nhân viên ky truc tiep tren o ben tren bang chuot, but cam ung hoac ngon tay.</div>
                         <div class="invalid-feedback-cs"></div>
                     </div>
 
                     <div class="form-group form-check mt-2">
                         <input class="form-check-input" type="checkbox" id="cbContractAcceptTerms" />
                         <label class="form-check-label" for="cbContractAcceptTerms">
-                            Toi da doc, hieu va dong y voi dieu khoan ky noi bo doi voi hop dong nay.
+                            Tôi đã đọc, hiểu và đồng ý với điều khoản ký nội bộ đối với hợp đồng này.
                         </label>
                         <div class="invalid-feedback-cs"></div>
                     </div>
@@ -244,23 +244,23 @@
                 else if (canSignHr && !isHrSigned)
                 {
                     <div class="alert alert-info mt-3">
-                        HR xac nhan ky noi bo cho hop dong nay bang tai khoan va mat khau dang nhap hien tai.
+                        HR xác nhận ký nội bộ cho hợp đồng này bằng tài khoản và mật khẩu đăng nhập hiện tại.
                     </div>
                 }
 
                 <div class="col-12 form-group mt-3">
-                    <label class="form-label">Ma ky noi bo (tuy chon)</label>
+                    <label class="form-label">Mã ký nội bộ (tùy chọn)</label>
                     <input type="text" id="txtSignatureCode" class="form-control" maxlength="100" placeholder="VD: TOI_DONG_Y_KY_HOP_DONG" />
                 </div>
 
                 <div class="col-12 form-group mt-2">
-                    <label class="form-label">Mat khau xac nhan <span class="text-danger">*</span></label>
+                    <label class="form-label">Mật khẩu xác nhận <span class="text-danger">*</span></label>
                     <input type="password" id="txtSignPassword" class="form-control" maxlength="100" autocomplete="off" />
                     <div class="invalid-feedback-cs"></div>
                 </div>
 
                 <div class="col-12 form-group mt-2">
-                    <label class="form-label">Ghi chu ky (tuy chon)</label>
+                    <label class="form-label">Ghi chú ký (tùy chọn)</label>
                     <textarea id="txtSignNote" class="form-control" style="height: 90px" maxlength="500"></textarea>
                 </div>
             </form>
@@ -269,7 +269,7 @@
 </div>
 
 <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
     @if (contract != null && contract.Id > 0 && contract.IsSignedInternal != true)
     {
         if (canSignHr && !isHrSigned)
@@ -278,7 +278,7 @@
         }
         else if (canSignEmployee && isHrSigned)
         {
-            <button type="button" class="btn btn-primary" onclick="signContract(@contract.Id)">Ky nhan vien</button>
+            <button type="button" class="btn btn-primary" onclick="signContract(@contract.Id)">Ký nhân viên</button>
         }
     }
 </div>

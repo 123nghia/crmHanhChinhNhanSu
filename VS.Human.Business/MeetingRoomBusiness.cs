@@ -34,32 +34,32 @@ namespace VS.Human.Business
         {
             if (request.RoomId <= 0)
             {
-                return new MeetingBookingSaveResult { Success = false, Message = "Phong hop khong hop le" };
+                return new MeetingBookingSaveResult { Success = false, Message = "Phòng họp không hợp lệ." };
             }
 
             if (string.IsNullOrWhiteSpace(request.Title))
             {
-                return new MeetingBookingSaveResult { Success = false, Message = "Vui long nhap tieu de" };
+                return new MeetingBookingSaveResult { Success = false, Message = "Vui lòng nhập tiêu đề cuộc họp." };
             }
 
             if (request.EndTime <= request.StartTime)
             {
-                return new MeetingBookingSaveResult { Success = false, Message = "Gio ket thuc phai lon hon gio bat dau" };
+                return new MeetingBookingSaveResult { Success = false, Message = "Giờ kết thúc phải lớn hơn giờ bắt đầu." };
             }
 
             if (request.StartTime.Date != request.EndTime.Date)
             {
-                return new MeetingBookingSaveResult { Success = false, Message = "Thoi gian dat phong phai trong cung 1 ngay" };
+                return new MeetingBookingSaveResult { Success = false, Message = "Thời gian đặt phòng phải nằm trong cùng một ngày." };
             }
 
             var hasOverlap = await _unitOfWork.MeetingRoomRep.HasOverlap(request.RoomId, request.StartTime, request.EndTime, request.Id > 0 ? request.Id : null);
             if (hasOverlap)
             {
-                return new MeetingBookingSaveResult { Success = false, Message = "Phong da duoc dat trong khung gio nay" };
+                return new MeetingBookingSaveResult { Success = false, Message = "Phòng họp đã được đặt trong khung giờ này." };
             }
 
             var id = await _unitOfWork.MeetingRoomRep.SaveBooking(request, userId);
-            return new MeetingBookingSaveResult { Success = id > 0, Id = id, Message = id > 0 ? null : "Khong the luu" };
+            return new MeetingBookingSaveResult { Success = id > 0, Id = id, Message = id > 0 ? null : "Không thể lưu lịch đặt phòng." };
         }
 
         public async Task<bool> DeleteBooking(int id, int userId)

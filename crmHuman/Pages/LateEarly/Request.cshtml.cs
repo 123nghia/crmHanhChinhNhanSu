@@ -60,17 +60,17 @@ namespace crmHuman.Pages.LateEarly
             GetInfoUser();
             if (model == null)
             {
-                return new JsonResult(new { success = false, message = "Du lieu khong hop le" });
+                return new JsonResult(new { success = false, message = "Dữ liệu không hợp lệ." });
             }
 
             if (model.Id == 0 && !(Permision.Add ?? false))
             {
-                return new JsonResult(new { success = false, message = "Khong co quyen them" });
+                return new JsonResult(new { success = false, message = "Bạn không có quyền tạo yêu cầu." });
             }
 
             if (model.Id > 0 && !(Permision.Edit ?? false))
             {
-                return new JsonResult(new { success = false, message = "Khong co quyen sua" });
+                return new JsonResult(new { success = false, message = "Bạn không có quyền chỉnh sửa yêu cầu." });
             }
 
             if (model.EmployeeId == 0)
@@ -84,18 +84,18 @@ namespace crmHuman.Pages.LateEarly
                 return new JsonResult(new { success = true, id = result });
             }
 
-            var message = "Co loi xay ra";
+            var message = "Có lỗi xảy ra.";
             if (result == -1)
             {
-                message = "Gio ket thuc phai lon hon gio bat dau";
+                message = "Giờ kết thúc phải lớn hơn giờ bắt đầu.";
             }
             else if (result == -2)
             {
-                message = "Ngay xin phep phai trung voi gio bat dau va ket thuc";
+                message = "Ngày xin phép phải trùng với ngày của giờ bắt đầu và giờ kết thúc.";
             }
             else if (result == -3)
             {
-                message = "Nhan vien khong hop le";
+                message = "Nhân viên không hợp lệ.";
             }
 
             return new JsonResult(new { success = false, message });
@@ -106,7 +106,7 @@ namespace crmHuman.Pages.LateEarly
             GetInfoUser();
             if (!(Permision.Delete ?? false))
             {
-                return new JsonResult(new { success = false, message = "Khong co quyen xoa" });
+                return new JsonResult(new { success = false, message = "Bạn không có quyền xóa yêu cầu." });
             }
 
             var result = await _lateEarlyBusiness.Delete(id, UserData.UserId);

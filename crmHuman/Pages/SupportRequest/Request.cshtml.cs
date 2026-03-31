@@ -42,7 +42,7 @@ namespace crmHuman.Pages.SupportRequest
             _masterDataBusiness = masterDataBusiness;
             _hostingEnvironment = hostingEnvironment;
             KeyPage = "SupportRequest";
-            TitlePage = "Yeu cau ho tro";
+            TitlePage = "Yêu cầu hỗ trợ";
         }
 
         public async Task<IActionResult> OnGetAsync(int page = 1, int limit = 20)
@@ -105,11 +105,11 @@ namespace crmHuman.Pages.SupportRequest
         {
             return status switch
             {
-                0 => "Moi tao",
-                1 => "Dang xu ly",
-                2 => "Hoan thanh",
-                3 => "Da huy",
-                _ => "Khong xac dinh"
+                0 => "Mới tạo",
+                1 => "Đang xử lý",
+                2 => "Hoàn thành",
+                3 => "Đã hủy",
+                _ => "Không xác định"
             };
         }
 
@@ -129,11 +129,11 @@ namespace crmHuman.Pages.SupportRequest
         {
             return status switch
             {
-                0 => "Yeu cau vua tao va da duoc he thong gan nguoi phu trach.",
-                1 => "Bo phan duoc giao dang tiep nhan va xu ly yeu cau.",
-                2 => "Yeu cau da xu ly xong.",
-                3 => "Yeu cau da dong ma khong tiep tuc xu ly.",
-                _ => "Trang thai khong xac dinh."
+                0 => "Yêu cầu vừa tạo và đã được hệ thống gán người phụ trách.",
+                1 => "Bộ phận được giao đang tiếp nhận và xử lý yêu cầu.",
+                2 => "Yêu cầu đã xử lý xong.",
+                3 => "Yêu cầu đã đóng mà không tiếp tục xử lý.",
+                _ => "Trạng thái không xác định."
             };
         }
 

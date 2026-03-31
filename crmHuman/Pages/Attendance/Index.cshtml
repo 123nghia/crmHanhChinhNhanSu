@@ -90,8 +90,8 @@
     <h1>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
-            <li class="breadcrumb-item active">Cham cong</li>
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Chấm công</li>
         </ol>
     </nav>
 </div>
@@ -103,13 +103,13 @@
 
             <form class="row g-3 align-items-end" method="get">
                 <div class="col-md-3">
-                    <label class="form-label">Thang</label>
+                    <label class="form-label">Tháng</label>
                     <input type="hidden" id="attendanceMonthInput" name="month" value="@monthValue" />
                     <input type="hidden" id="attendanceFingerprintInput" name="fingerprintCode" value="@Model.RequestSearch.FingerprintCode" />
                     <input type="text" class="form-control" id="attendanceMonthDisplay" placeholder="MM/YYYY" autocomplete="off" />
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Nhan vien</label>
+                    <label class="form-label">Nhân viên</label>
                     @if (isTcRole)
                     {
                         <input type="hidden" id="attendanceEmployeeId" name="employeeId" value="@Model.SelectedEmployeeId" />
@@ -118,7 +118,7 @@
                     else
                     {
                         <select class="form-select" name="employeeId" id="attendanceEmployeeSelect">
-                            <option value="">-- Tat ca --</option>
+                            <option value="">-- Tất cả --</option>
                             @foreach (var item in Model.SummaryItems)
                             {
                                 var isSelected = item.EmployeeId > 0
@@ -132,13 +132,13 @@
                     }
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Tu khoa</label>
-                    <input type="text" class="form-control" id="attendanceTokenInput" name="token" value="@Model.RequestSearch.Token" placeholder="Ten, ma van tay" />
+                    <label class="form-label">Từ khóa</label>
+                    <input type="text" class="form-control" id="attendanceTokenInput" name="token" value="@Model.RequestSearch.Token" placeholder="Tên, mã vân tay" />
                 </div>
                 <div class="col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-primary w-100">Xem</button>
                     <button type="button" class="btn btn-outline-success w-100" onclick="submitAttendanceExport()">Xuất Excel</button>
-                    @* Bo nut Import theo yeu cau *@
+                    @* Ẩn nút import theo yêu cầu *@
                 </div>
             </form>
 
@@ -153,49 +153,49 @@
             <div class="row g-3 mt-3" id="attendanceSummaryCards">
                 <div class="col-md-3">
                     <div class="attendance-summary-card">
-                        <div class="label">Tong cong</div>
+                        <div class="label">Tổng công</div>
                         <div class="value" id="summaryWorkDays">@((summary?.TotalWorkDays ?? 0).ToString("0.##"))</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="attendance-summary-card">
-                        <div class="label">Ngay nghi</div>
+                        <div class="label">Ngày nghỉ</div>
                         <div class="value" id="summaryOffCount">@((summary?.OffCount ?? 0).ToString())</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="attendance-summary-card">
-                        <div class="label">Di tre (lan)</div>
+                        <div class="label">Đi trễ (lần)</div>
                         <div class="value" id="summaryLateCount">@((summary?.LateCount ?? 0).ToString())</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="attendance-summary-card">
-                        <div class="label">Ra som (lan)</div>
+                        <div class="label">Ra sớm (lần)</div>
                         <div class="value" id="summaryEarlyCount">@((summary?.EarlyCount ?? 0).ToString())</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="attendance-summary-card">
-                        <div class="label">Tre (phut)</div>
+                        <div class="label">Trễ (phút)</div>
                         <div class="value" id="summaryLateMinutes">@((summary?.LateMinutes ?? 0).ToString())</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="attendance-summary-card">
-                        <div class="label">Som (phut)</div>
+                        <div class="label">Sớm (phút)</div>
                         <div class="value" id="summaryEarlyMinutes">@((summary?.EarlyMinutes ?? 0).ToString())</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="attendance-summary-card">
-                        <div class="label">Tong gio</div>
+                        <div class="label">Tổng giờ</div>
                         <div class="value" id="summaryTotalHours">@((summary?.TotalHours ?? 0).ToString("0.##"))</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="attendance-summary-card">
-                        <div class="label">Gio cong</div>
+                        <div class="label">Giờ công</div>
                         <div class="value" id="summaryWorkHours">@((summary?.TotalWorkHours ?? 0).ToString("0.##"))</div>
                     </div>
                 </div>
@@ -206,16 +206,16 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Ma van tay</th>
-                            <th>Ho ten</th>
-                            <th>Bo phan</th>
-                            <th>Vi tri</th>
-                            <th class="text-end">Cong</th>
-                            <th class="text-end">Nghi</th>
-                            <th class="text-end">Tre</th>
-                            <th class="text-end">Som</th>
-                            <th class="text-end">Tong gio</th>
-                            <th class="text-center">Chi tiet</th>
+                            <th>Mã vân tay</th>
+                            <th>Họ tên</th>
+                            <th>Bộ phận</th>
+                            <th>Vị trí</th>
+                            <th class="text-end">Công</th>
+                            <th class="text-end">Nghỉ</th>
+                            <th class="text-end">Trễ</th>
+                            <th class="text-end">Sớm</th>
+                            <th class="text-end">Tổng giờ</th>
+                            <th class="text-center">Chi tiết</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -272,14 +272,14 @@
     <div class="card mt-3">
         <div class="card-body">
             <div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
-                <h5 class="card-title mb-0">Chi tiet cham cong</h5>
+                <h5 class="card-title mb-0">Chi tiết chấm công</h5>
                 <div class="btn-group">
-                    <button type="button" class="btn btn-outline-secondary active" id="attendanceTableViewBtn" onclick="toggleAttendanceView('table')">Bang</button>
-                    <button type="button" class="btn btn-outline-secondary" id="attendanceCalendarViewBtn" onclick="toggleAttendanceView('calendar')">Calendar</button>
+                    <button type="button" class="btn btn-outline-secondary active" id="attendanceTableViewBtn" onclick="toggleAttendanceView('table')">Bảng</button>
+                    <button type="button" class="btn btn-outline-secondary" id="attendanceCalendarViewBtn" onclick="toggleAttendanceView('calendar')">Lịch</button>
                 </div>
             </div>
 
-            <div id="attendanceDetailHint" class="text-muted mb-2">Chon nhan vien de xem chi tiet.</div>
+            <div id="attendanceDetailHint" class="text-muted mb-2">Chọn nhân viên để xem chi tiết.</div>
 
             <div class="table-responsive d-none" id="attendanceDetailTableWrapper">
                 <table class="table table-sm table-striped">
@@ -308,31 +308,34 @@
     </div>
 </section>
 
-<div class="modal fade" id="attendanceImportModal" tabindex="-1" aria-labelledby="attendanceImportLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="attendanceImportLabel">Import cham cong</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="attendanceImportForm" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label class="form-label">Chon file Excel (.xlsx)</label>
-                        <input type="file" name="FileRequest" class="form-control" accept=".xlsx" required />
-                    </div>
-                </form>
-                <div class="text-muted small">
-                    Ma nhan vien trong file se duoc map theo ma van tay.
+@if (canImport)
+{
+    <div class="modal fade" id="attendanceImportModal" tabindex="-1" aria-labelledby="attendanceImportLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="attendanceImportLabel">Import chấm công</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
-                <button type="button" class="btn btn-primary" onclick="submitAttendanceImport()">Import</button>
+                <div class="modal-body">
+                    <form id="attendanceImportForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label">Chọn file Excel (.xlsx)</label>
+                            <input type="file" name="FileRequest" class="form-control" accept=".xlsx" required />
+                        </div>
+                    </form>
+                    <div class="text-muted small">
+                        Mã nhân viên trong file sẽ được map theo mã vân tay.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary" onclick="submitAttendanceImport()">Import</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+}
 
 <div id="attendanceMeta"
      data-selected-id="@Model.SelectedEmployeeId"

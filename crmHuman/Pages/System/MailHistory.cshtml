@@ -14,34 +14,34 @@
     <div class="card-body">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h5 class="card-title mb-0">@Model.TitlePage</h5>
-            <a class="btn btn-outline-secondary btn-sm" href="/System/MailSetting">Cau hinh mail</a>
+            <a class="btn btn-outline-secondary btn-sm" href="/System/MailSetting">Cấu hình mail</a>
         </div>
 
         <div class="alert alert-secondary small mt-3 mb-3">
-            Luu lai mail he thong da render va gui. Admin/BGD/HCNS xem toan bo, cac role khac chi xem mail do chinh minh kich hoat gui.
+            Lưu lại mail hệ thống đã render và gửi. Admin/BGĐ/HCNS xem toàn bộ, các role khác chỉ xem mail do chính mình kích hoạt gửi.
         </div>
 
         <form method="get" class="row g-3 mb-3">
             <div class="col-md-2">
-                <label class="form-label">Tu ngay</label>
+                <label class="form-label">Từ ngày</label>
                 <input type="date" class="form-control" name="from" value="@Model.RequestSearch?.FromText" />
             </div>
             <div class="col-md-2">
-                <label class="form-label">Den ngay</label>
+                <label class="form-label">Đến ngày</label>
                 <input type="date" class="form-control" name="to" value="@Model.RequestSearch?.ToText" />
             </div>
             <div class="col-md-2">
-                <label class="form-label">Ket qua</label>
+                <label class="form-label">Kết quả</label>
                 <select class="form-select" name="sendStatus">
-                    <option value="-1" selected="@((Model.RequestSearch?.SendStatus ?? -1) < 0)">Tat ca</option>
-                    <option value="1" selected="@((Model.RequestSearch?.SendStatus ?? -1) == 1)">Thanh cong</option>
-                    <option value="0" selected="@((Model.RequestSearch?.SendStatus ?? -1) == 0)">That bai</option>
+                    <option value="-1" selected="@((Model.RequestSearch?.SendStatus ?? -1) < 0)">Tất cả</option>
+                    <option value="1" selected="@((Model.RequestSearch?.SendStatus ?? -1) == 1)">Thành công</option>
+                    <option value="0" selected="@((Model.RequestSearch?.SendStatus ?? -1) == 0)">Thất bại</option>
                 </select>
             </div>
             <div class="col-md-3">
                 <label class="form-label">Template</label>
                 <select class="form-select" name="templateCode">
-                    <option value="">Tat ca</option>
+                    <option value="">Tất cả</option>
                     @foreach (var item in Model.Templates)
                     {
                         if (string.Equals(Model.RequestSearch?.TemplateCode, item.Code, StringComparison.OrdinalIgnoreCase))
@@ -56,11 +56,11 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Tim kiem</label>
+                <label class="form-label">Tìm kiếm</label>
                 <input type="text" class="form-control" name="token" value="@Model.RequestSearch?.Token" placeholder="subject, to, from, template..." />
             </div>
             <div class="col-md-2">
-                <label class="form-label">So dong</label>
+                <label class="form-label">Số dòng</label>
                 <select class="form-select" name="limit">
                     @foreach (var size in new[] { 10, 20, 50, 100 })
                     {
@@ -76,24 +76,24 @@
                 </select>
             </div>
             <div class="col-12 d-flex gap-2 justify-content-end">
-                <button type="submit" class="btn btn-primary">Tim kiem</button>
-                <a class="btn btn-outline-secondary" href="/System/MailHistory">Xoa loc</a>
+                <button type="submit" class="btn btn-primary">Tìm kiếm</button>
+                <a class="btn btn-outline-secondary" href="/System/MailHistory">Xóa lọc</a>
             </div>
         </form>
 
-        <div class="small text-muted mb-2">Tong so: @Model.LogData.Total mail</div>
+        <div class="small text-muted mb-2">Tổng số: @Model.LogData.Total mail</div>
 
         <div class="table-responsive">
             <table class="table table-striped table-bordered align-middle">
                 <thead>
                     <tr>
-                        <th style="width: 150px;">Thoi gian</th>
+                        <th style="width: 150px;">Thời gian</th>
                         <th style="width: 150px;">Template</th>
-                        <th style="min-width: 240px;">Tieu de</th>
-                        <th style="min-width: 220px;">Gui tu</th>
-                        <th style="min-width: 220px;">Nguoi kich hoat</th>
-                        <th style="min-width: 260px;">Nguoi nhan</th>
-                        <th style="width: 120px;">Ket qua</th>
+                        <th style="min-width: 240px;">Tiêu đề</th>
+                        <th style="min-width: 220px;">Gửi từ</th>
+                        <th style="min-width: 220px;">Người kích hoạt</th>
+                        <th style="min-width: 260px;">Người nhận</th>
+                        <th style="width: 120px;">Kết quả</th>
                         <th style="width: 110px;" class="text-center">Thao tac</th>
                     </tr>
                 </thead>
@@ -127,11 +127,11 @@
                                 <td>
                                     @if (item.SendSuccess)
                                     {
-                                        <span class="badge bg-success">Thanh cong</span>
+                                        <span class="badge bg-success">Thành công</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-danger">That bai</span>
+                                        <span class="badge bg-danger">Thất bại</span>
                                     }
                                 </td>
                                 <td class="text-center">
@@ -187,15 +187,15 @@
                         <div class="border rounded p-2 bg-light" id="mailDetailTemplate"></div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Thoi gian gui</label>
+                        <label class="form-label fw-semibold">Thời gian gui</label>
                         <div class="border rounded p-2 bg-light" id="mailDetailCreateAt"></div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Gui tu</label>
+                        <label class="form-label fw-semibold">Gửi từ</label>
                         <div class="border rounded p-2 bg-light" id="mailDetailFrom"></div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Nguoi kich hoat</label>
+                        <label class="form-label fw-semibold">Người kích hoạt</label>
                         <div class="border rounded p-2 bg-light" id="mailDetailTriggeredBy"></div>
                     </div>
                     <div class="col-md-12">
@@ -211,11 +211,11 @@
                         <div class="border rounded p-2 bg-light" id="mailDetailBcc"></div>
                     </div>
                     <div class="col-md-8">
-                        <label class="form-label fw-semibold">Tieu de</label>
+                        <label class="form-label fw-semibold">Tiêu đề</label>
                         <div class="border rounded p-2 bg-light" id="mailDetailSubject"></div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Ket qua</label>
+                        <label class="form-label fw-semibold">Kết quả</label>
                         <div class="border rounded p-2 bg-light" id="mailDetailStatus"></div>
                     </div>
                     <div class="col-md-12">
@@ -224,7 +224,7 @@
                     </div>
                 </div>
 
-                <label class="form-label fw-semibold">Noi dung mail</label>
+                <label class="form-label fw-semibold">Nội dung mail</label>
                 <div id="mailDetailBody" class="border rounded p-3 bg-white" style="min-height: 280px;"></div>
             </div>
         </div>
@@ -238,7 +238,7 @@
                 const response = await fetch(`/System/MailHistory?handler=Detail&id=${id}`);
                 const result = await response.json();
                 if (!result.success || !result.data) {
-                    alert(result.message || 'Khong tai duoc chi tiet mail');
+                    alert(result.message || 'Không tải được chi tiết mail');
                     return;
                 }
 
@@ -252,12 +252,12 @@
                 document.getElementById('mailDetailBcc').textContent = data.bccEmails || '';
                 document.getElementById('mailDetailSubject').textContent = data.subject || '';
                 document.getElementById('mailDetailStatus').innerHTML = data.sendSuccess
-                    ? '<span class="badge bg-success">Thanh cong</span>'
-                    : '<span class="badge bg-danger">That bai</span>';
+                    ? '<span class="badge bg-success">Thành công</span>'
+                    : '<span class="badge bg-danger">Thất bại</span>';
                 document.getElementById('mailDetailError').textContent = data.sendSuccess
                     ? (data.messageId || '')
                     : [data.messageId, data.errorMessage].filter(Boolean).join(' | ');
-                document.getElementById('mailDetailBody').innerHTML = data.bodyHtml || '<div class="text-muted">Khong co noi dung mail</div>';
+                document.getElementById('mailDetailBody').innerHTML = data.bodyHtml || '<div class="text-muted">Không có nội dung mail</div>';
 
                 const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('mailDetailModal'));
                 modal.show();

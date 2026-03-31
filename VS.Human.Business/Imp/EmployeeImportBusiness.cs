@@ -49,25 +49,25 @@ namespace VS.Human.Business.Imp
                 var workbookPart = document.WorkbookPart;
                 var worksheetPart = workbookPart?.WorksheetParts.FirstOrDefault();
                 if (worksheetPart == null)
-                    return ErrorResult(result, "File Excel khong hop le");
+                    return ErrorResult(result, "File Excel không hợp lệ");
 
                 var sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
                 var rows = sheetData.Elements<Row>().ToList();
 
                 if (rows.Count < 2)
-                    return ErrorResult(result, "File Excel khong co du lieu");
+                    return ErrorResult(result, "File Excel không có dữ liệu");
 
                 int headerRowIndex = FindHeaderRow(rows, workbookPart);
                 if (headerRowIndex == -1)
-                    return ErrorResult(result, "Khong tim thay dong tieu de (header) hop le.");
+                    return ErrorResult(result, "Không tìm thấy dòng tiêu đề (header) hợp lệ.");
 
                 var headerMap = GetHeaderMap(rows[headerRowIndex], workbookPart);
                 if (!headerMap.Any())
-                    return ErrorResult(result, "Khong tim thay cot du lieu trong file Excel.");
+                    return ErrorResult(result, "Không tìm thấy cột dữ liệu trong file Excel.");
 
                 int dataStartIndex = headerRowIndex + 1;
                 if (dataStartIndex >= rows.Count)
-                    return ErrorResult(result, "File Excel khong co du lieu sau dong tieu de.");
+                    return ErrorResult(result, "File Excel không có dữ liệu sau dòng tiêu đề.");
 
                 var precheckTotal = await PrecheckDuplicates(rows, dataStartIndex, workbookPart, headerMap, result);
                 if (result.TotalError > 0)
@@ -84,7 +84,7 @@ namespace VS.Human.Business.Imp
             }
             catch (Exception ex)
             {
-                return ErrorResult(result, $"Loi doc file Excel: {ex.Message}");
+                return ErrorResult(result, $"Lỗi đọc file Excel: {ex.Message}");
             }
 
             if (result.TotalError == 0)
@@ -99,7 +99,7 @@ namespace VS.Human.Business.Imp
                     result.Errors.Insert(0, new EmployeeImportError
                     {
                         Row = 0,
-                        Content = "Import failed, all changes were rolled back."
+                        Content = "Import thất bại, toàn bộ thay đổi đã được hoàn tác."
                     });
                     result.TotalError = result.Errors.Count;
                 }
@@ -162,7 +162,7 @@ namespace VS.Human.Business.Imp
             catch (Exception ex)
             {
                 var rowNumber = GetRowNumber(row, rowIndex);
-                AddError(result, rowNumber, $"Loi xu ly: {ex.Message}");
+                AddError(result, rowNumber, $"Lỗi xử lý: {ex.Message}");
             }
         }
 
@@ -208,7 +208,7 @@ namespace VS.Human.Business.Imp
             }
             else
             {
-                AddError(result, rowIndex, "Khong them nhan vien vao database");
+                AddError(result, rowIndex, "Không thêm nhân viên vào database");
             }
         }
 
@@ -263,7 +263,7 @@ namespace VS.Human.Business.Imp
                 {
                     if (fileEmails.TryGetValue(email, out var firstRow))
                     {
-                        AddError(result, rowNumber, $"Trung Email voi dong {firstRow}");
+                        AddError(result, rowNumber, $"Trùng Email với dòng {firstRow}");
                     }
                     else
                     {
@@ -272,7 +272,7 @@ namespace VS.Human.Business.Imp
 
                     if (existingEmails.Contains(email))
                     {
-                        AddError(result, rowNumber, "Trung Email voi du lieu hien co");
+                        AddError(result, rowNumber, "Trùng Email với dữ liệu hiện có");
                     }
                 }
 
@@ -280,7 +280,7 @@ namespace VS.Human.Business.Imp
                 {
                     if (filePhones.TryGetValue(phone, out var firstRow))
                     {
-                        AddError(result, rowNumber, $"Trung so dien thoai voi dong {firstRow}");
+                        AddError(result, rowNumber, $"Trùng số điện thoại với dòng {firstRow}");
                     }
                     else
                     {
@@ -289,7 +289,7 @@ namespace VS.Human.Business.Imp
 
                     if (existingPhones.Contains(phone))
                     {
-                        AddError(result, rowNumber, "Trung so dien thoai voi du lieu hien co");
+                        AddError(result, rowNumber, "Trùng số điện thoại với dữ liệu hiện có");
                     }
                 }
 
@@ -297,7 +297,7 @@ namespace VS.Human.Business.Imp
                 {
                     if (fileNationalIds.TryGetValue(nationalId, out var firstRow))
                     {
-                        AddError(result, rowNumber, $"Trung CCCD voi dong {firstRow}");
+                        AddError(result, rowNumber, $"Trùng CCCD với dòng {firstRow}");
                     }
                     else
                     {
@@ -306,7 +306,7 @@ namespace VS.Human.Business.Imp
 
                     if (existingNationalIds.Contains(nationalId))
                     {
-                        AddError(result, rowNumber, "Trung CCCD voi du lieu hien co");
+                        AddError(result, rowNumber, "Trùng CCCD với dữ liệu hiện có");
                     }
                 }
             }
@@ -396,7 +396,7 @@ namespace VS.Human.Business.Imp
             var saved = await _unitOfWork.HDLDItemRep.AddOrUpdate(hdld);
             if (!saved)
             {
-                AddError(result, rowIndex, "Khong luu duoc thong tin hop dong (HDLD)");
+                AddError(result, rowIndex, "Không lưu được thông tin hợp đồng (HĐLĐ)");
             }
         }
 
@@ -433,7 +433,7 @@ namespace VS.Human.Business.Imp
             var saved = await _unitOfWork.BHXHItemRep.AddOrUpdate(bhxh);
             if (!saved)
             {
-                AddError(result, rowIndex, "Khong luu duoc thong tin BHXH/BHYT");
+                AddError(result, rowIndex, "Không lưu được thông tin BHXH/BHYT");
                 return;
             }
 
@@ -463,7 +463,7 @@ namespace VS.Human.Business.Imp
                 var savedTax = await _unitOfWork.TaxtItemRep.AddOrUpdate(tax);
                 if (!savedTax)
                 {
-                    AddError(result, rowIndex, "Khong luu duoc thong tin Tax");
+                    AddError(result, rowIndex, "Không lưu được thông tin thuế");
                 }
             }
         }

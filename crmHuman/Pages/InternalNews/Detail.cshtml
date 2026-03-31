@@ -74,8 +74,8 @@
                         }
                         @if (Model.CanDelete)
                         {
-                            <form method="post" asp-page-handler="Delete" asp-route-id="@Model.NewsItem?.Id" class="d-inline" onsubmit="return confirm('Xoa thong bao?');">
-                                <button type="submit" class="btn btn-danger btn-sm">Xoa</button>
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@Model.NewsItem?.Id" class="d-inline" onsubmit="return confirm('Xóa thông báo?');">
+                                <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
                             </form>
                         }
                         <a class="btn btn-outline-secondary btn-sm" href="/InternalNews">Quay lai</a>

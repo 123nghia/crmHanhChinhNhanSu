@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using VS.Human.Business;
-using VS.Human.Rep.Model;
 using VS.Human.Item;
+using VS.Human.Rep.Model;
 
 namespace crmHuman.Pages.Leave
 {
@@ -77,22 +76,24 @@ namespace crmHuman.Pages.Leave
         public async Task<IActionResult> OnPostApproveAsync([FromBody] LeaveApproveRequest model)
         {
             GetInfoUser();
-            if (!(Permision.Approve ?? false)) return new JsonResult(new { success = false, message = "No permission to approve" });
+            if (!(Permision.Approve ?? false))
+            {
+                return new JsonResult(new { success = false, message = "Bạn không có quyền phê duyệt." });
+            }
 
             var leave = await _leaveBusiness.GetLeaveById(model.Id);
             if (leave == null || leave.Id <= 0)
             {
-                return new JsonResult(new { success = false, message = "Khong tim thay don nghi phep" });
+                return new JsonResult(new { success = false, message = "Không tìm thấy đơn nghỉ phép." });
             }
 
             if (IsAdminOrBgdRole(UserData.RoleCode) && leave.EmployeeId == UserData.UserId)
             {
-                return new JsonResult(new { success = false, message = "Admin/BGD khong duoc tu xu ly don cua chinh minh" });
+                return new JsonResult(new { success = false, message = "Admin/BGĐ không được tự xử lý đơn của chính mình." });
             }
 
-            // model.Action should be 'Agree', 'Reject', or 'Acting'
             var result = await _leaveBusiness.ApproveWorkflow(model.Id, model.Action, UserData.UserId, UserData.RoleCode, model.Comment);
-            return new JsonResult(new { success = result, message = result ? string.Empty : "Khong the xu ly don nghi phep" });
+            return new JsonResult(new { success = result, message = result ? string.Empty : "Không thể xử lý đơn nghỉ phép." });
         }
     }
 }

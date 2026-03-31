@@ -62,7 +62,7 @@ namespace crmHuman.Pages
             },
              new Model.SelectDisplay()
             {
-            Code ="8", Name ="BG�"
+            Code ="8", Name ="BGĐ"
             }
         };
 
@@ -86,11 +86,11 @@ namespace crmHuman.Pages
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Kh�ng ho?t d?ng"
+                Code ="0", Name ="Không hoạt động"
             },
             new Model.SelectDisplay()
             {
-            Code ="1", Name ="Ho?t d?ng"
+            Code ="1", Name ="Hoạt động"
             }
 
         };
@@ -134,9 +134,9 @@ namespace crmHuman.Pages
         {
             if (code < 1)
             {
-                return "Kh�ng ho?t d?ng";
+                return "Không hoạt động";
             }
-            return "Ho?t d?ng";
+            return "Hoạt động";
 
 
         }

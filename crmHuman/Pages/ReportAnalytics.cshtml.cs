@@ -19,7 +19,7 @@ namespace crmHuman.Pages
         {
             _logger = logger;
             _reportAnalyticsBusiness = reportAnalyticsBusiness;
-            TitlePage = "Bao cao va phan tich";
+            TitlePage = "Báo cáo và phân tích";
             KeyPage = "ReportAnalytics";
             Summary = new ReportAnalyticsSummary();
             ContractStatusCounts = new List<ContractStatusCount>();

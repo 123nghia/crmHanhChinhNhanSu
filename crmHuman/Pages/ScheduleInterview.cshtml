@@ -7,28 +7,28 @@
 
     var roundOptions = new List<crmHuman.Model.SelectDisplay>
     {
-        new crmHuman.Model.SelectDisplay { Code = "-1", Name = "Tat ca" },
+        new crmHuman.Model.SelectDisplay { Code = "-1", Name = "Tất cả" },
         new crmHuman.Model.SelectDisplay { Code = "1", Name = "HR" },
-        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Technical" },
-        new crmHuman.Model.SelectDisplay { Code = "3", Name = "Final" },
-        new crmHuman.Model.SelectDisplay { Code = "0", Name = "Khac" }
+        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Phỏng vấn chuyên môn" },
+        new crmHuman.Model.SelectDisplay { Code = "3", Name = "Vòng cuối" },
+        new crmHuman.Model.SelectDisplay { Code = "0", Name = "Khác" }
     };
 
     var statusOptions = new List<crmHuman.Model.SelectDisplay>
     {
-        new crmHuman.Model.SelectDisplay { Code = "-1", Name = "Tat ca" },
-        new crmHuman.Model.SelectDisplay { Code = "0", Name = "Draft" },
-        new crmHuman.Model.SelectDisplay { Code = "1", Name = "Scheduled" },
-        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Done" },
-        new crmHuman.Model.SelectDisplay { Code = "3", Name = "Canceled" },
-        new crmHuman.Model.SelectDisplay { Code = "4", Name = "No-show" }
+        new crmHuman.Model.SelectDisplay { Code = "-1", Name = "Tất cả" },
+        new crmHuman.Model.SelectDisplay { Code = "0", Name = "Nháp" },
+        new crmHuman.Model.SelectDisplay { Code = "1", Name = "Đã lên lịch" },
+        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Hoàn tất" },
+        new crmHuman.Model.SelectDisplay { Code = "3", Name = "Đã hủy" },
+        new crmHuman.Model.SelectDisplay { Code = "4", Name = "Không tham gia" }
     };
 
     var modeOptions = new List<crmHuman.Model.SelectDisplay>
     {
-        new crmHuman.Model.SelectDisplay { Code = "-1", Name = "Tat ca" },
-        new crmHuman.Model.SelectDisplay { Code = "1", Name = "Offline" },
-        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Online" }
+        new crmHuman.Model.SelectDisplay { Code = "-1", Name = "Tất cả" },
+        new crmHuman.Model.SelectDisplay { Code = "1", Name = "Trực tiếp" },
+        new crmHuman.Model.SelectDisplay { Code = "2", Name = "Trực tuyến" }
     };
 
     var candidateLookup = new Dictionary<int, dynamic>();
@@ -101,9 +101,9 @@
         switch (value)
         {
             case 1: return "HR";
-            case 2: return "Technical";
-            case 3: return "Final";
-            case 0: return "Khac";
+            case 2: return "Phỏng vấn chuyên môn";
+            case 3: return "Vòng cuối";
+            case 0: return "Khác";
             default: return "";
         }
     };
@@ -112,11 +112,11 @@
     {
         switch (value)
         {
-            case 0: return "Draft";
-            case 1: return "Scheduled";
-            case 2: return "Done";
-            case 3: return "Canceled";
-            case 4: return "No-show";
+            case 0: return "Nháp";
+            case 1: return "Đã lên lịch";
+            case 2: return "Hoàn tất";
+            case 3: return "Đã hủy";
+            case 4: return "Không tham gia";
             default: return "";
         }
     };
@@ -125,8 +125,8 @@
     {
         switch (value)
         {
-            case 1: return "Offline";
-            case 2: return "Online";
+            case 1: return "Trực tiếp";
+            case 2: return "Trực tuyến";
             default: return "";
         }
     };
@@ -135,9 +135,9 @@
     {
         switch (value)
         {
-            case 1: return "Pass";
-            case 2: return "Fail";
-            case 3: return "Hold";
+            case 1: return "Đạt";
+            case 2: return "Không đạt";
+            case 3: return "Chờ quyết định";
             default: return "";
         }
     };
@@ -147,9 +147,9 @@
     <h1>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Home</a></li>
-            <li class="breadcrumb-item"><a href="javascript:void(0)">Interview</a></li>
-            <li class="breadcrumb-item active">Danh sach</li>
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="javascript:void(0)">Phỏng vấn</a></li>
+            <li class="breadcrumb-item active">Danh sách</li>
         </ol>
     </nav>
 </div>
@@ -162,20 +162,20 @@
                     @Html.AntiForgeryToken()
                     <div class="d-flex justify-content-end mb-2">
                         <button type="button" class="btn btn-outline-success" onclick="exportInterview()">
-                            <i class="bi bi-file-earmark-excel"></i> Export Excel
+                            <i class="bi bi-file-earmark-excel"></i> Xuất Excel
                         </button>
                     </div>
                     <form method="get" class="row g-3" id="scheduleInterviewFilter">
                         <div class="col-md-3">
-                            <label class="form-label">Tu ngay</label>
+                            <label class="form-label">Từ ngày</label>
                             <input type="date" name="From" value="@request.FromText" class="form-control" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Den ngay</label>
+                            <label class="form-label">Đến ngày</label>
                             <input type="date" name="To" value="@request.ToText" class="form-control" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Vong phong van</label>
+                            <label class="form-label">Vòng phỏng vấn</label>
                             <select name="Type" class="form-select">
                                 @foreach (var item in roundOptions)
                                 {
@@ -185,7 +185,7 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Trang thai</label>
+                            <label class="form-label">Trạng thái</label>
                             <select name="Status" class="form-select">
                                 @foreach (var item in statusOptions)
                                 {
@@ -196,9 +196,9 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">Ung vien</label>
+                            <label class="form-label">Ứng viên</label>
                             <select name="RelId" class="form-select">
-                                <option value="">-- Tat ca --</option>
+                                <option value="">-- Tất cả --</option>
                                 @if (Model.CandidateList?.Data != null)
                                 {
                                     foreach (var item in Model.CandidateList.Data)
@@ -212,11 +212,11 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">Nguoi phong van</label>
+                            <label class="form-label">Người phỏng vấn</label>
                             @if (canEdit)
                             {
                                 <select name="InterviewerId" class="form-select">
-                                    <option value="">-- Tat ca --</option>
+                                    <option value="">-- Tất cả --</option>
                                     @if (Model.InterviewerList?.Data != null)
                                     {
                                         foreach (var item in Model.InterviewerList.Data)
@@ -236,7 +236,7 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">Hinh thuc</label>
+                            <label class="form-label">Hình thức</label>
                             <select name="InterviewMode" class="form-select">
                                 @foreach (var item in modeOptions)
                                 {
@@ -247,8 +247,8 @@
                         </div>
 
                         <div class="col-12">
-                            <button type="submit" class="btn btn-primary">Loc</button>
-                            <a class="btn btn-secondary" href="/ScheduleInterview">Reset</a>
+                            <button type="submit" class="btn btn-primary">Lọc</button>
+                            <a class="btn btn-secondary" href="/ScheduleInterview">Làm mới</a>
                         </div>
                     </form>
                 </div>
@@ -262,7 +262,7 @@
             <div class="col-lg-12">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Tao lich phong van</h5>
+                        <h5 class="card-title">Tạo lịch phỏng vấn</h5>
                         @{
                             Html.RenderPartial("ControlForm/InterviewScheduleForm", new
                             {
@@ -270,7 +270,7 @@
                                 CandidateList = Model.CandidateList,
                                 InterviewerList = Model.InterviewerList,
                                 HandlerUrl = "/ScheduleInterview?handler=AddSchedule",
-                                ButtonText = "Tao lich phong van"
+                                ButtonText = "Tạo lịch phỏng vấn"
                             });
                         }
                     </div>
@@ -461,19 +461,19 @@
                         <label class="form-label">Kết quả PV</label>
                         <select class="form-select" id="resultValue">
                             <option value="">Chưa xác định</option>
-                            <option value="1">Pass</option>
-                            <option value="2">Fail</option>
-                            <option value="3">Hold</option>
+                            <option value="1">Đạt</option>
+                            <option value="2">Không đạt</option>
+                            <option value="3">Chờ quyết định</option>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Trạng thái</label>
                         <select class="form-select" id="resultStatus">
-                            <option value="2">Done</option>
-                            <option value="1">Scheduled</option>
-                            <option value="0">Draft</option>
-                            <option value="3">Canceled</option>
-                            <option value="4">No-show</option>
+                            <option value="2">Hoàn tất</option>
+                            <option value="1">Đã lên lịch</option>
+                            <option value="0">Nháp</option>
+                            <option value="3">Đã hủy</option>
+                            <option value="4">Không tham gia</option>
                         </select>
                     </div>
                     <div class="col-md-12">
@@ -499,18 +499,18 @@
         if (!button || !id) return;
         
         // Populate the form
-        document.getElementById("scheduleId").value = id;
-        document.getElementById("scheduleCandidateId").value = button.getAttribute("data-relid") || "";
-        document.getElementById("scheduleRound").value = button.getAttribute("data-type") || "1";
-        document.getElementById("scheduleStatus").value = button.getAttribute("data-status") || "1";
-        document.getElementById("scheduleMode").value = button.getAttribute("data-mode") || "1";
-        document.getElementById("scheduleResult").value = button.getAttribute("data-result") || "";
-        document.getElementById("scheduleDateTime").value = button.getAttribute("data-date") || "";
-        document.getElementById("scheduleInterviewer").value = button.getAttribute("data-interviewer") || "";
-        document.getElementById("scheduleAddressInfo").value = button.getAttribute("data-address") || "";
-        document.getElementById("scheduleNote").value = button.getAttribute("data-note") || "";
-        if (document.getElementById("scheduleSendEmail")) {
-            document.getElementById("scheduleSendEmail").checked = false;
+        document.getElementuyId("scheduleId").value = id;
+        document.getElementuyId("scheduleCandidateId").value = button.getAttribute("data-relid") || "";
+        document.getElementuyId("scheduleRound").value = button.getAttribute("data-type") || "1";
+        document.getElementuyId("scheduleStatus").value = button.getAttribute("data-status") || "1";
+        document.getElementuyId("scheduleMode").value = button.getAttribute("data-mode") || "1";
+        document.getElementuyId("scheduleResult").value = button.getAttribute("data-result") || "";
+        document.getElementuyId("scheduleDateTime").value = button.getAttribute("data-date") || "";
+        document.getElementuyId("scheduleInterviewer").value = button.getAttribute("data-interviewer") || "";
+        document.getElementuyId("scheduleAddressInfo").value = button.getAttribute("data-address") || "";
+        document.getElementuyId("scheduleNote").value = button.getAttribute("data-note") || "";
+        if (document.getElementuyId("scheduleSendEmail")) {
+            document.getElementuyId("scheduleSendEmail").checked = false;
         }
         
         // Trigger position info update
@@ -539,7 +539,7 @@
     }
 
     function exportInterview() {
-        var searchForm = document.getElementById("scheduleInterviewFilter");
+        var searchForm = document.getElementuyId("scheduleInterviewFilter");
         var exportForm = document.createElement("form");
         exportForm.method = "post";
         exportForm.action = "/ScheduleInterview?handler=Export";
@@ -571,21 +571,21 @@
     function openInterviewResultModal(button, id) {
         if (!button || !id) return;
         
-        const scheduleIdInput = document.getElementById("resultScheduleId");
+        const scheduleIdInput = document.getElementuyId("resultScheduleId");
         if (scheduleIdInput) scheduleIdInput.value = id;
 
         // Populate fields from data attributes
-        document.getElementById("resultPosition").value = button.getAttribute("data-position") || "";
-        document.getElementById("resultType").value = button.getAttribute("data-type") || "1";
-        document.getElementById("resultInterviewer").value = button.getAttribute("data-interviewer") || "";
-        document.getElementById("resultDate").value = button.getAttribute("data-date") || "";
-        document.getElementById("resultMode").value = button.getAttribute("data-mode") || "1";
-        document.getElementById("resultValue").value = button.getAttribute("data-result") || "";
-        document.getElementById("resultStatus").value = button.getAttribute("data-status") || "2";
-        document.getElementById("resultAddress").value = button.getAttribute("data-address") || "";
-        document.getElementById("resultNote").value = button.getAttribute("data-note") || "";
+        document.getElementuyId("resultPosition").value = button.getAttribute("data-position") || "";
+        document.getElementuyId("resultType").value = button.getAttribute("data-type") || "1";
+        document.getElementuyId("resultInterviewer").value = button.getAttribute("data-interviewer") || "";
+        document.getElementuyId("resultDate").value = button.getAttribute("data-date") || "";
+        document.getElementuyId("resultMode").value = button.getAttribute("data-mode") || "1";
+        document.getElementuyId("resultValue").value = button.getAttribute("data-result") || "";
+        document.getElementuyId("resultStatus").value = button.getAttribute("data-status") || "2";
+        document.getElementuyId("resultAddress").value = button.getAttribute("data-address") || "";
+        document.getElementuyId("resultNote").value = button.getAttribute("data-note") || "";
 
-        const modalEl = document.getElementById("interviewResultModal");
+        const modalEl = document.getElementuyId("interviewResultModal");
         if (modalEl && window.bootstrap) {
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
@@ -593,15 +593,15 @@
     }
 
     function saveInterviewResult() {
-        const scheduleId = document.getElementById("resultScheduleId").value;
-        const type = document.getElementById("resultType").value;
-        const interviewerId = document.getElementById("resultInterviewer").value;
-        const scheduleDate = document.getElementById("resultDate").value;
-        const mode = document.getElementById("resultMode").value;
-        const resultValue = document.getElementById("resultValue").value;
-        const statusValue = document.getElementById("resultStatus").value;
-        const address = document.getElementById("resultAddress").value;
-        const note = document.getElementById("resultNote").value;
+        const scheduleId = document.getElementuyId("resultScheduleId").value;
+        const type = document.getElementuyId("resultType").value;
+        const interviewerId = document.getElementuyId("resultInterviewer").value;
+        const scheduleDate = document.getElementuyId("resultDate").value;
+        const mode = document.getElementuyId("resultMode").value;
+        const resultValue = document.getElementuyId("resultValue").value;
+        const statusValue = document.getElementuyId("resultStatus").value;
+        const address = document.getElementuyId("resultAddress").value;
+        const note = document.getElementuyId("resultNote").value;
 
         if (!scheduleId) {
             Swal.fire({ icon: "error", title: "Lỗi", text: "Không tìm thấy lịch" });
@@ -643,13 +643,13 @@
         if (!id) return;
         Swal.fire({
             title: 'Xác nhận xóa?',
-            text: "Bạn không thể hoàn tác thao tác này!",
+            text: "uạn không thể hoàn tác thao tác này!",
             icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Xóa',
-            cancelButtonText: 'Hủy'
+            showCanceluutton: true,
+            confirmuuttonColor: '#d33',
+            canceluuttonColor: '#3085d6',
+            confirmuuttonText: 'Xóa',
+            canceluuttonText: 'Hủy'
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({

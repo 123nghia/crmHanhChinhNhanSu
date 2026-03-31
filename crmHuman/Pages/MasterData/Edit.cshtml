@@ -1,4 +1,4 @@
-@{
+ï»¿@{
     
     var arrayRol = new List<crmHuman.Model.SelectDisplay>()
         {
@@ -32,7 +32,7 @@
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không ho?t d?ng"
+                Code ="0", Name ="Khï¿½ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
@@ -49,11 +49,11 @@
    
     @if (Model.Id < 1)
     {
-        <h5 class="modal-title">Thêm m?i ngành ngh?</h5>
+        <h5 class="modal-title">Thï¿½m m?i ngï¿½nh ngh?</h5>
     }
     else
     {
-        <h5 class="modal-title">C?p nh?t thông tin</h5>
+        <h5 class="modal-title">C?p nh?t thï¿½ng tin</h5>
     }
     <button type="button" class="btn-close"
                     data-bs-dismiss="modal"
@@ -65,7 +65,7 @@
             <form id="mainForm" class="needs-validation" novalidate>
 
                 <div class="col-12 form-group">
-                    <label class="form-label">Tên</label>
+                    <label class="form-label">Tï¿½n</label>
                          <input type="text" value="@Model.Name" name="fullName" id="txtFullName" class="form-control" required placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
@@ -75,7 +75,7 @@
                 @if (Model.Id > 0)
                 {
                         <div class="col-12 form-group ">
-                        <label class="form-label">Mã d?i tác</label>
+                        <label class="form-label">Mï¿½ d?i tï¿½c</label>
                         <input name="code" readonly id="txtCode" value="@Model.Code" type="text" class="form-control" placeholder="">
                         <div class="invalid-feedback-cs">
                         Please choose a username.
@@ -83,7 +83,7 @@
                         </div>
                  }
                  <div class="col-12 form-group">
-                    <label class="form-label">Tr?ng thái</label>
+                    <label class="form-label">Tr?ng thï¿½i</label>
                     <select name="isActive" id="isActive" class="form-select" aria-label="">
                         
                     @foreach (var item in arrayStatus)
@@ -106,7 +106,7 @@
                
 
                 <div class="col-12">
-            <label for="inputAddress2"  class="form-label">Ghi chú</label>
+            <label for="inputAddress2"  class="form-label">Ghi chï¿½</label>
             <textarea name="noted"  id="txtNoted" class="form-control" style="height: 100px">@Model.Noted</textarea>
                 </div>
 
@@ -115,10 +115,10 @@
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
-                    data-bs-dismiss="modal">Ðóng
+                    data-bs-dismiss="modal">ï¿½ï¿½ng
               </button>
     <button type="button" onclick="SaveMasterData(@Model.Id,'nganhnghe')" class="btn btn-primary">
-        Luu
+        LÆ°u
 
              </button>
         </div>

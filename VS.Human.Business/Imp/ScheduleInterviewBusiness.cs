@@ -41,19 +41,19 @@ namespace VS.Human.Business.Imp
             var result = new InterviewScheduleSaveResult();
             if (item == null)
             {
-                result.Message = "Du lieu lich phong van khong hop le";
+                result.Message = "Dữ liệu lịch phỏng vấn không hợp lệ";
                 return result;
             }
 
             if (item.RelId <= 0)
             {
-                result.Message = "Ung vien khong hop le";
+                result.Message = "Ứng viên không hợp lệ";
                 return result;
             }
 
             if (!item.ScheduleDate.HasValue)
             {
-                result.Message = "Vui long chon ngay gio phong van";
+                result.Message = "Vui lòng chọn ngày giờ phỏng vấn";
                 return result;
             }
 
@@ -64,7 +64,7 @@ namespace VS.Human.Business.Imp
                 existingSchedule = await _unitOfWork.ScheduleInterviewRep.GetById(item.Id);
                 if (existingSchedule == null || existingSchedule.Id <= 0)
                 {
-                    result.Message = "Khong tim thay lich phong van";
+                    result.Message = "Không tìm thấy lịch phỏng vấn";
                     return result;
                 }
             }
@@ -72,13 +72,13 @@ namespace VS.Human.Business.Imp
             var candidate = await _unitOfWork.CandidateRep.GetById(item.RelId);
             if (candidate == null || candidate.Id <= 0)
             {
-                result.Message = "Khong tim thay ung vien";
+                result.Message = "Không tìm thấy ứng viên";
                 return result;
             }
 
             if (item.SendEmail && string.IsNullOrWhiteSpace(GetCandidateRecipientEmail(candidate)))
             {
-                result.Message = "Ung vien chua co email hop le. Vui long cap nhat email trong ho so ung vien truoc khi lap lich de gui thu moi tu dong.";
+                result.Message = "Ứng viên chưa có email hợp lệ. Vui lòng cập nhật email trong hồ sơ ứng viên trước khi lập lịch để gửi thư mời tự động.";
                 return result;
             }
 
@@ -100,7 +100,7 @@ namespace VS.Human.Business.Imp
             var scheduleId = await _unitOfWork.ScheduleInterviewRep.SaveAndGetId(item);
             if (scheduleId <= 0)
             {
-                result.Message = "Khong the luu lich phong van";
+                result.Message = "Không thể lưu lịch phỏng vấn";
                 return result;
             }
 
@@ -242,7 +242,7 @@ namespace VS.Human.Business.Imp
             if (rooms.Count == 0)
             {
                 plan.Success = false;
-                plan.ErrorMessage = "Khong co phong hop dang hoat dong de dat lich";
+                plan.ErrorMessage = "Không có phòng họp đang hoạt động để đặt lịch";
                 return plan;
             }
 
@@ -272,7 +272,7 @@ namespace VS.Human.Business.Imp
             if (selectedRoom == null)
             {
                 plan.Success = false;
-                plan.ErrorMessage = "Khong con phong hop trong trong khung gio nay";
+                plan.ErrorMessage = "Không còn phòng họp trống trong khung giờ này";
                 return plan;
             }
 
@@ -302,8 +302,8 @@ namespace VS.Human.Business.Imp
 
             var scheduleText = item.ScheduleDate.Value.ToString("HH:mm dd/MM/yyyy");
             var message = isNew
-                ? $"Ban co lich phong van moi vao luc {scheduleText}."
-                : $"Lich phong van cua ban vao luc {scheduleText} da duoc cap nhat.";
+                ? $"Bạn có lịch phỏng vấn mới vào lúc {scheduleText}."
+                : $"Lịch phỏng vấn của bạn vào lúc {scheduleText} đã được cập nhật.";
 
             await _notificationBusiness.CreateNotification(
                 candidate.Id,
@@ -318,7 +318,7 @@ namespace VS.Human.Business.Imp
             var toEmail = GetCandidateRecipientEmail(candidate);
             if (string.IsNullOrWhiteSpace(toEmail))
             {
-                return (false, "Ung vien chua co email hop le.");
+                return (false, "Ứng viên chưa có email hợp lệ.");
             }
 
             await _emailConfigBusiness.EnsureDefaultTemplates(item.UpdatedBy > 0 ? item.UpdatedBy : item.CreatedBy);
@@ -335,7 +335,7 @@ namespace VS.Human.Business.Imp
                 ["AppliedPosition"] = appliedPosition,
                 ["CandidatePosition"] = appliedPosition,
                 ["PositionText"] = appliedPosition,
-                ["InterviewAction"] = isNew ? "da duoc len lich" : "da duoc cap nhat",
+                ["InterviewAction"] = isNew ? "đã được lên lịch" : "đã được cập nhật",
                 ["InterviewRound"] = GetInterviewRoundText(item.Type),
                 ["InterviewMode"] = GetInterviewModeText(item.InterviewMode),
                 ["ScheduleDate"] = item.ScheduleDate?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty,
@@ -361,7 +361,7 @@ namespace VS.Human.Business.Imp
                     item.Id,
                     sendResult.Error ?? "Unknown error");
 
-                return (false, "Khong gui duoc mail moi. Vui long kiem tra cau hinh mail trong phan quan tri.");
+                return (false, "Không gửi được mail mời. Vui lòng kiểm tra cấu hình mail trong phần quản trị.");
             }
 
             _logger.LogInformation(
@@ -410,17 +410,17 @@ namespace VS.Human.Business.Imp
         {
             var parts = new List<string>
             {
-                isNew ? "Da tao lich phong van" : "Da cap nhat lich phong van"
+                isNew ? "Đã tạo lịch phỏng vấn" : "Đã cập nhật lịch phỏng vấn"
             };
 
             if (result.MeetingRoomBooked && !string.IsNullOrWhiteSpace(result.MeetingRoomName))
             {
-                parts.Add($"Da dat phong hop {result.MeetingRoomName}");
+                parts.Add($"Đã đặt phòng họp {result.MeetingRoomName}");
             }
 
             if (result.EmailSent)
             {
-                parts.Add("Da gui mail moi ung vien");
+                parts.Add("Đã gửi mail mời ứng viên");
             }
             else if (!string.IsNullOrWhiteSpace(result.EmailError))
             {
@@ -432,22 +432,22 @@ namespace VS.Human.Business.Imp
 
         private static string BuildMeetingTitle(Candidate candidate, ScheduleInterviewAdd item)
         {
-            var candidateName = string.IsNullOrWhiteSpace(candidate.Name) ? $"Candidate {candidate.Id}" : candidate.Name.Trim();
-            return $"Phong van - {candidateName} - {GetInterviewRoundText(item.Type)}";
+            var candidateName = string.IsNullOrWhiteSpace(candidate.Name) ? $"Ứng viên {candidate.Id}" : candidate.Name.Trim();
+            return $"Phỏng vấn - {candidateName} - {GetInterviewRoundText(item.Type)}";
         }
 
         private static string BuildMeetingNote(Candidate candidate, ScheduleInterviewAdd item, string roomName)
         {
             var noteParts = new List<string>
             {
-                $"Ung vien: {candidate.Name ?? candidate.Code ?? candidate.Id.ToString()}",
-                $"Vong: {GetInterviewRoundText(item.Type)}",
-                $"Phong: {roomName}"
+                $"Ứng viên: {candidate.Name ?? candidate.Code ?? candidate.Id.ToString()}",
+                $"Vòng: {GetInterviewRoundText(item.Type)}",
+                $"Phòng: {roomName}"
             };
 
             if (!string.IsNullOrWhiteSpace(item.Noted))
             {
-                noteParts.Add($"Ghi chu: {item.Noted}");
+                noteParts.Add($"Ghi chú: {item.Noted}");
             }
 
             return string.Join(" | ", noteParts);
@@ -483,10 +483,10 @@ namespace VS.Human.Business.Imp
             return type switch
             {
                 1 => "HR",
-                2 => "Technical",
-                3 => "Final",
-                0 => "Khac",
-                _ => "Phong van"
+                2 => "Phỏng vấn chuyên môn",
+                3 => "Vòng cuối",
+                0 => "Khác",
+                _ => "Phỏng vấn"
             };
         }
 
@@ -494,8 +494,8 @@ namespace VS.Human.Business.Imp
         {
             return mode switch
             {
-                2 => "Online",
-                _ => "Offline"
+                2 => "Trực tuyến",
+                _ => "Trực tiếp"
             };
         }
 

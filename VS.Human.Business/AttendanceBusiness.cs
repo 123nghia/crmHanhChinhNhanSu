@@ -207,31 +207,31 @@ namespace VS.Human.Business
                 var worksheetPart = workbookPart?.WorksheetParts.FirstOrDefault();
                 if (worksheetPart == null)
                 {
-                    return ErrorResult(result, "File Excel khong hop le");
+                    return ErrorResult(result, "File Excel không hợp lệ.");
                 }
 
                 var sheetData = worksheetPart.Worksheet.Elements<SheetData>().FirstOrDefault();
                 if (sheetData == null)
                 {
-                    return ErrorResult(result, "Khong tim thay du lieu trong file");
+                    return ErrorResult(result, "Không tìm thấy dữ liệu trong file.");
                 }
 
                 var rows = sheetData.Elements<Row>().ToList();
                 if (rows.Count == 0)
                 {
-                    return ErrorResult(result, "File Excel khong co du lieu");
+                    return ErrorResult(result, "File Excel không có dữ liệu.");
                 }
 
                 var headerRowIndex = FindHeaderRow(rows, workbookPart);
                 if (headerRowIndex < 0)
                 {
-                    return ErrorResult(result, "Khong tim thay dong tieu de hop le");
+                    return ErrorResult(result, "Không tìm thấy dòng tiêu đề hợp lệ.");
                 }
 
                 var headerMap = GetHeaderMap(rows[headerRowIndex], workbookPart);
                 if (headerMap.Count == 0)
                 {
-                    return ErrorResult(result, "Khong nhan dien duoc cot du lieu");
+                    return ErrorResult(result, "Không nhận diện được cột dữ liệu.");
                 }
 
                 var employeeCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -254,7 +254,7 @@ namespace VS.Human.Business
                     var workDateRaw = GetValue(headerMap, values, "WorkDate");
                     if (!ExcelHelper.TryParseDate(workDateRaw, out var workDate))
                     {
-                        AddError(result, GetRowNumber(row, i), "Ngay khong hop le");
+                        AddError(result, GetRowNumber(row, i), "Ngày không hợp lệ.");
                         continue;
                     }
 
@@ -305,13 +305,13 @@ namespace VS.Human.Business
                     }
                     else
                     {
-                        AddError(result, record.RowIndex ?? (i + 1), "Khong the luu du lieu");
+                        AddError(result, record.RowIndex ?? (i + 1), "Không thể lưu dữ liệu.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                return ErrorResult(result, $"Loi doc file Excel: {ex.Message}");
+                return ErrorResult(result, $"Lỗi đọc file Excel: {ex.Message}");
             }
 
             return result;
@@ -323,7 +323,7 @@ namespace VS.Human.Business
             if (!OperatingSystem.IsWindows())
             {
                 var notSupported = new AttendanceImportResult();
-                return ErrorResult(notSupported, "Chuc nang dong bo Access chi ho tro tren Windows");
+                return ErrorResult(notSupported, "Chức năng đồng bộ Access chỉ hỗ trợ trên Windows.");
             }
 
             var result = new AttendanceImportResult();
@@ -335,12 +335,12 @@ namespace VS.Human.Business
 
             if (string.IsNullOrWhiteSpace(options.DbPath))
             {
-                return ErrorResult(result, "Chua cau hinh duong dan file cham cong");
+                return ErrorResult(result, "Chưa cấu hình đường dẫn file chấm công.");
             }
 
             if (!File.Exists(options.DbPath))
             {
-                return ErrorResult(result, "Khong tim thay file cham cong");
+                return ErrorResult(result, "Không tìm thấy file chấm công.");
             }
 
             if (fromDate == DateTime.MinValue || toDate == DateTime.MinValue)
@@ -358,7 +358,7 @@ namespace VS.Human.Business
 
             if (!TryOpenAccessConnection(options, out var connection, out var error) || connection == null)
             {
-                return ErrorResult(result, $"Khong the mo file cham cong: {error}");
+                return ErrorResult(result, $"Không thể mở file chấm công: {error}");
             }
 
             using (connection)
@@ -366,7 +366,7 @@ namespace VS.Human.Business
                 var tables = GetTableNames(connection);
                 if (tables.Count == 0)
                 {
-                    return ErrorResult(result, "Khong tim thay bang du lieu trong file");
+                    return ErrorResult(result, "Không tìm thấy bảng dữ liệu trong file.");
                 }
 
                 var columnsByTable = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
@@ -378,7 +378,7 @@ namespace VS.Human.Business
                 var logSchema = ResolveLogTableSchema(options, columnsByTable);
                 if (logSchema == null)
                 {
-                    return ErrorResult(result, "Khong tim thay bang cham cong hop le");
+                    return ErrorResult(result, "Không tìm thấy bảng chấm công hợp lệ.");
                 }
 
                 var userSchema = ResolveUserTableSchema(options, columnsByTable);
@@ -401,7 +401,7 @@ namespace VS.Human.Business
                     using var reader = command.ExecuteReader();
                     if (reader == null)
                     {
-                        return ErrorResult(result, "Khong doc duoc du lieu cham cong");
+                        return ErrorResult(result, "Không đọc được dữ liệu chấm công.");
                     }
 
                     while (reader.Read())
@@ -490,7 +490,7 @@ namespace VS.Human.Business
                     }
                     else
                     {
-                        AddError(result, result.Total, "Khong the luu du lieu");
+                        AddError(result, result.Total, "Không thể lưu dữ liệu.");
                     }
                 }
             }
@@ -505,7 +505,7 @@ namespace VS.Human.Business
 
             if (!options.UseDirectSqlRealtime || string.IsNullOrWhiteSpace(options.DirectSqlConnectionString))
             {
-                return ErrorResult(result, "Chua cau hinh nguon cham cong direct SQL");
+                return ErrorResult(result, "Chưa cấu hình nguồn chấm công direct SQL.");
             }
 
             if (fromDate == DateTime.MinValue || toDate == DateTime.MinValue)
@@ -629,7 +629,7 @@ ORDER BY RecordTime;", connection))
             }
             catch (Exception ex)
             {
-                return ErrorResult(result, $"Khong the doc du lieu direct SQL: {ex.Message}");
+                return ErrorResult(result, $"Không thể đọc dữ liệu direct SQL: {ex.Message}");
             }
 
             var employeeCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -661,7 +661,7 @@ ORDER BY RecordTime;", connection))
                 }
                 else
                 {
-                    AddError(result, result.Total, "Khong the luu du lieu");
+                    AddError(result, result.Total, "Không thể lưu dữ liệu.");
                 }
             }
 

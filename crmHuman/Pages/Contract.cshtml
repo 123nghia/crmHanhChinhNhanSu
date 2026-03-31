@@ -7,8 +7,8 @@
     <h1>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
-            <li class="breadcrumb-item active">Hop dong lao dong</li>
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Hợp đồng lao động</li>
         </ol>
     </nav>
 </div>
@@ -20,21 +20,21 @@
                 <div class="card-body">
                     <form class="row g-3" method="get" action="/Contract">
                         <div class="col-md-4">
-                            <label class="form-label">Tu ngay</label>
+                            <label class="form-label">Từ ngày</label>
                             <input value="@Model.RequestSearch.FromText" type="date" name="from" class="form-control">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Den ngay</label>
+                            <label class="form-label">Đến ngày</label>
                             <input value="@Model.RequestSearch.ToText" type="date" name="to" class="form-control">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Tu khoa</label>
-                            <input type="text" value="@Model.RequestSearch.Token" name="token" class="form-control" placeholder="Ten nhan vien / username">
+                            <label class="form-label">Từ khóa</label>
+                            <input type="text" value="@Model.RequestSearch.Token" name="token" class="form-control" placeholder="Tên nhân viên / username">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Loai hop dong</label>
+                            <label class="form-label">Loại hợp đồng</label>
                             <select name="contractTypeCode" class="form-select">
-                                <option value="">Tat ca</option>
+                                <option value="">Tất cả</option>
                                 @foreach (var item in Model.ContractTypes)
                                 {
                                     if (item.Code == Model.RequestSearch.ContractTypeCode)
@@ -49,9 +49,9 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Nhan vien</label>
+                            <label class="form-label">Nhân viên</label>
                             <select name="employeeId" class="form-select">
-                                <option value="">Tat ca</option>
+                                <option value="">Tất cả</option>
                                 @foreach (var emp in Model.EmployeeList.Data)
                                 {
                                     var empItem = emp as dynamic;
@@ -67,8 +67,8 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Trang thai</label>
-                            <input type="text" list="contractStatusList" value="@Model.RequestSearch.Status" name="status" class="form-control" placeholder="Tat ca">
+                            <label class="form-label">Trạng thái</label>
+                            <input type="text" list="contractStatusList" value="@Model.RequestSearch.Status" name="status" class="form-control" placeholder="Tất cả">
                             <datalist id="contractStatusList">
                                 @foreach (var status in Model.StatusSuggestions)
                                 {
@@ -78,10 +78,10 @@
                         </div>
 
                         <div class="text-end">
-                            <button type="submit" class="btn btn-primary">Tim kiem</button>
+                            <button type="submit" class="btn btn-primary">Tìm kiếm</button>
                             @if (Model.Permision.Add == true)
                             {
-                                <button type="button" class="btn btn-primary" onclick="openFormContract(-1)">Them moi</button>
+                                <button type="button" class="btn btn-primary" onclick="openFormContract(-1)">Thêm mới</button>
                             }
                         </div>
                     </form>
@@ -158,7 +158,7 @@
                                     <td>
                                         @if (isHrSigned)
                                         {
-                                            <span class="badge bg-success">HR da ky</span>
+                                            <span class="badge bg-success">HR đã ký</span>
                                             @if (!string.IsNullOrWhiteSpace(hrSignedAtText))
                                             {
                                                 <div class="small text-muted">@hrSignedAtText</div>
@@ -170,12 +170,12 @@
                                         }
                                         else
                                         {
-                                            <span class="badge bg-warning text-dark">HR chua ky</span>
+                                            <span class="badge bg-warning text-dark">HR chưa ký</span>
                                         }
                                         <div class="mt-1">
                                             @if (isSignedInternal)
                                             {
-                                                <span class="badge bg-success">NV da ky</span>
+                                                <span class="badge bg-success">NV đã ký</span>
                                                 @if (!string.IsNullOrWhiteSpace(signedAtText))
                                                 {
                                                     <div class="small text-muted">@signedAtText</div>
@@ -187,14 +187,14 @@
                                             }
                                             else
                                             {
-                                                <span class="badge bg-warning text-dark">NV chua ky</span>
+                                                <span class="badge bg-warning text-dark">NV chưa ký</span>
                                             }
                                         </div>
                                     </td>
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(itemInfo.FileUrl))
                                         {
-                                            <a href="@itemInfo.FileUrl" target="_blank">Tai ve</a>
+                                            <a href="@itemInfo.FileUrl" target="_blank">Tải về</a>
                                         }
                                         else
                                         {
@@ -217,13 +217,13 @@
                                         }
                                         @if (canSignHr)
                                         {
-                                            <a href="javascript:void(0)" onclick="openSignContract(@itemInfo.Id)" title="Ky HR">
+                                            <a href="javascript:void(0)" onclick="openSignContract(@itemInfo.Id)" title="Ký HR">
                                                 <i class="bi bi-pen-fill"></i>
                                             </a>
                                         }
                                         @if (canSignEmployee)
                                         {
-                                            <a href="javascript:void(0)" onclick="openSignContract(@itemInfo.Id)" title="Ky nhan vien">
+                                            <a href="javascript:void(0)" onclick="openSignContract(@itemInfo.Id)" title="Ký nhân viên">
                                                 <i class="bi bi-pen-fill"></i>
                                             </a>
                                         }

@@ -1,4 +1,4 @@
-@{
+ï»¿@{
     
     var arrayRol = new List<crmHuman.Model.SelectDisplay>()
         {
@@ -33,7 +33,7 @@
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không ho?t d?ng"
+                Code ="0", Name ="Khï¿½ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
@@ -56,9 +56,9 @@
         <div class="modal-body">
             <form id="mainFormMember" class="needs-validation" novalidate>
                 <div class="col-12 form-group">
-                    <label class="form-label">Ch?n thành viên</label>
+                    <label class="form-label">Ch?n thï¿½nh viï¿½n</label>
                      <select name="memberId" id="cbmemberId" class="form-select" aria-label="">
-                <option value="-1">Ch?n thành viên</option>
+                <option value="-1">Ch?n thï¿½nh viï¿½n</option>
                 @foreach (var item in Model.ListMeberNotGroup)
                 {
                     <option value="@item.Id">@item.UserName _  @item.FullName</option>
@@ -71,7 +71,7 @@
                         Please choose a username.
                     </div>
                 </div>
-                <button type="button" onclick="SaveMember(@Model.Id)" class="btn btn-primary buttonRight">Luu</button>
+                <button type="button" onclick="SaveMember(@Model.Id)" class="btn btn-primary buttonRight">LÆ°u</button>
              
             </form>
 
@@ -93,7 +93,7 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
                     data-bs-dismiss="modal">
-                Ðóng
+                ï¿½ï¿½ng
             </button>
 
         </div>

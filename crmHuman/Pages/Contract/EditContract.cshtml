@@ -73,7 +73,7 @@
         </div>
 
         <div class="col-12 form-group">
-            <label class="form-label">Trang thai</label>
+            <label class="form-label">Trạng thái</label>
             <input type="text" id="txtStatus" class="form-control" list="contractStatusList" value="@(contract?.Status ?? "")" />
             <datalist id="contractStatusList">
                 @foreach (var status in statusSuggestions)
@@ -114,5 +114,5 @@
 
 <div class="modal-footer">
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
-    <button type="button" class="btn btn-primary" onclick="saveContract(@(contract?.Id ?? -1))">Luu</button>
+    <button type="button" class="btn btn-primary" onclick="saveContract(@(contract?.Id ?? -1))">Lưu</button>
 </div>

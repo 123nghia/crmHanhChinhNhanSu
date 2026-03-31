@@ -46,17 +46,17 @@ async function saveLeave() {
     }
 
     const data = {
-        Id: parseInt($('#leaveId').val()),
+        Id: parseInt($('#leaveId').val(), 10),
         LeaveTypeCode: $('#leaveType').val(),
         FromDate: $('#fromDate').val(),
         ToDate: $('#toDate').val(),
         NumDays: parseFloat($('#numDays').val()),
         Reason: $('#reason').val(),
-        HandoverEmployeeId: $('#handoverEmployeeId').val() ? parseInt($('#handoverEmployeeId').val()) : null
+        HandoverEmployeeId: $('#handoverEmployeeId').val() ? parseInt($('#handoverEmployeeId').val(), 10) : null
     };
 
     if (!data.FromDate || !data.ToDate || data.NumDays <= 0 || !data.Reason) {
-        alert('Vui lòng điền đầy đủ thông tin hợp lệ');
+        alert('Vui lòng điền đầy đủ thông tin hợp lệ.');
         return;
     }
 
@@ -67,7 +67,7 @@ async function saveLeave() {
         const minDate = new Date(today);
         minDate.setDate(minDate.getDate() + 1);
         if (startDate < minDate) {
-            alert('Nghi phep nam phai dang ky truoc it nhat 1 ngay.');
+            alert('Nghỉ phép năm phải đăng ký trước ít nhất 1 ngày.');
             return;
         }
     }
@@ -86,21 +86,23 @@ async function saveLeave() {
 
         const result = await response.json();
         if (result.success) {
-            alert('Lưu thành công');
+            alert('Lưu thành công.');
             location.reload();
         } else {
-            alert(result.message || 'Có lỗi xảy ra');
+            alert(result.message || 'Có lỗi xảy ra.');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Lỗi hệ thống');
+        alert('Lỗi hệ thống.');
     } finally {
         resetLeaveSaveState();
     }
 }
 
 async function deleteLeave(id) {
-    if (!confirm('Bạn có chắc chắn muốn xóa yêu cầu này?')) return;
+    if (!confirm('Bạn có chắc chắn muốn xóa yêu cầu này?')) {
+        return;
+    }
 
     try {
         const response = await fetch(`?handler=Delete&id=${id}`, {
@@ -112,14 +114,14 @@ async function deleteLeave(id) {
 
         const result = await response.json();
         if (result.success) {
-            alert('Xóa thành công');
+            alert('Xóa thành công.');
             location.reload();
         } else {
-            alert(result.message || 'Có lỗi xảy ra');
+            alert(result.message || 'Có lỗi xảy ra.');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Lỗi hệ thống');
+        alert('Lỗi hệ thống.');
     }
 }
 
@@ -149,7 +151,7 @@ async function viewHistory(id) {
             html += `<tr>
                 <td>${new Date(item.actionTime).toLocaleString()}</td>
                 <td>${item.actionByName}</td>
-                <td><span class="badge ${getActionBadge(item.action)}">${item.action}</span></td>
+                <td><span class="badge ${getActionBadge(item.action)}">${getActionText(item.action)}</span></td>
                 <td>${item.comment || ''}</td>
             </tr>`;
         });
@@ -169,6 +171,18 @@ function getActionBadge(action) {
         case 'Acting': return 'bg-warning text-dark';
         case 'Cancel': return 'bg-secondary';
         default: return 'bg-light text-dark';
+    }
+}
+
+function getActionText(action) {
+    switch (action) {
+        case 'Create': return 'Tạo mới';
+        case 'Update': return 'Cập nhật';
+        case 'Agree': return 'Phê duyệt';
+        case 'Reject': return 'Từ chối';
+        case 'Acting': return 'Duyệt thay';
+        case 'Cancel': return 'Hủy';
+        default: return action || '';
     }
 }
 

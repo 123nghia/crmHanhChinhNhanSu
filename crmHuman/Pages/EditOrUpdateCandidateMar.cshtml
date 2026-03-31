@@ -1,4 +1,4 @@
-@{
+ï»¿@{
     
     var itemCanInfo= Model.resultView;
    var allTinhThanh= Model.allTinhThanh;
@@ -48,7 +48,7 @@
             },
             new Model.SelectDisplay()
             {
-              Code ="5", Name ="khác"
+              Code ="5", Name ="khï¿½c"
             }
             ,
             new Model.SelectDisplay()
@@ -71,7 +71,7 @@
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không ho?t d?ng"
+                Code ="0", Name ="Khï¿½ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
@@ -130,7 +130,7 @@
     
     @if (itemCanInfo.Id < 1)
     {
-        <h5 class="modal-title">Thêm m?i ?ng c? viên</h5>
+        <h5 class="modal-title">Thï¿½m m?i ?ng c? viï¿½n</h5>
     }
     else
     {
@@ -149,13 +149,13 @@
                  <div class="row">
                
                         <div class="col-6  ">
-                              <h6 class="colorApply">Thông tin ?ng viên</h6>
+                              <h6 class="colorApply">Thï¿½ng tin ?ng viï¿½n</h6>
                            <div class="row">
 
                                  <div class="col-6  ">
                                  
                                             <div class="form-group">
-                                                        <label class="form-label">Tên ?ng c? viên</label>
+                                                        <label class="form-label">Tï¿½n ?ng c? viï¿½n</label>
                                                         <input type="text" value="@itemCanInfo.Name" name="fullName" id="txtFullName" class="form-control" required placeholder="" />
                                                         <div class="invalid-feedback-cs">
                                                         </div>
@@ -166,7 +166,7 @@
 
                                         <div class="form-group">
 
-                                            <label class="form-label">Ngày sinh</label>
+                                            <label class="form-label">Ngï¿½y sinh</label>
                                             <input type="date" value="@dateText" name="dob" id="dob" class="form-control" required placeholder="" />
                                             <div class="invalid-feedback-cs">
                                             </div>
@@ -234,14 +234,14 @@
                             ValueControl = @itemCanInfo.CVLink,
                             NameControl = "inputCvlinkName",
                             IdControl ="inputCvlink",
-                            Lable = "File CV ( uu tiên file pdf, file hình)"
+                            Lable = "File CV ( uu tiï¿½n file pdf, file hï¿½nh)"
 
                         });
                     }
 
 
                                     <div class="form-group">
-                                    <label for="inputAddress2" class="form-label">Ghi chú ?ng c? viên</label>
+                                    <label for="inputAddress2" class="form-label">Ghi chï¿½ ?ng c? viï¿½n</label>
                                     <textarea name="noted" id="txtNoted" class="form-control" style="height: 50px">@itemCanInfo.Noted</textarea>
                                     </div>
 
@@ -256,7 +256,7 @@
                     <h6 class="colorApply">T?o m?I ?ng tuy?n</h6>
 
                     <div class="form-group">
-                    <label class="form-label"> V? trí Vi?c làm </label>
+                    <label class="form-label"> V? trï¿½ Vi?c lï¿½m </label>
                     <select name="cbJobId" id="cbJobId" class="form-select"
                     aria-label="">
 
@@ -271,7 +271,7 @@
                     </div>
 
                 <div class="form-group">
-                <label class="form-label">Link tài li?u </label>
+                <label class="form-label">Link tï¿½i li?u </label>
                 <input type="text" value="" name="ShortDes" id="txtShortDes" class="form-control" required placeholder="" />
                 <div class="invalid-feedback-cs">
                 </div>
@@ -295,7 +295,7 @@
                         </div>
 
                <div class="form-group">
-            <label for="inputAddress2"  class="form-label">Ghi chú ?ng tuy?n</label>
+            <label for="inputAddress2"  class="form-label">Ghi chï¿½ ?ng tuy?n</label>
             <textarea name="noted"  id="txtNotedOrder" class="form-control" style="height: 50px"></textarea>
                 </div>
 
@@ -313,17 +313,17 @@
        <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
                     data-bs-dismiss="modal">
-                Ðóng
+                ï¿½ï¿½ng
             </button>
-            <button type="button" onclick="saveOrderCandidateMarketting(@itemCanInfo.Id,false)" class="btn btn-primary">Luu thông tin ?ng viên</button>
-            <button type="button" onclick="saveOrderCandidateMarketting(@itemCanInfo.Id,true)" class="btn btn-primary">Luu và t?o ?ng tuy?n</button>
+            <button type="button" onclick="saveOrderCandidateMarketting(@itemCanInfo.Id,false)" class="btn btn-primary">Luu thï¿½ng tin ?ng viï¿½n</button>
+            <button type="button" onclick="saveOrderCandidateMarketting(@itemCanInfo.Id,true)" class="btn btn-primary">Luu vï¿½ t?o ?ng tuy?n</button>
         </div>
 
 
  @if( itemCanInfo.Id > 0 )
                         {
 
-             <h5 class="modal-title">Thông tin l?ch s? don hàng</h5>
+             <h5 class="modal-title">Thï¿½ng tin l?ch s? don hï¿½ng</h5>
              <table class="table  table-striped">
                         <thead>
                             <tr>
@@ -331,26 +331,26 @@
                                             STT
                                 </th>  
                                     <th>
-                                        Mã don hàng
+                                        Mï¿½ don hï¿½ng
                                 </th>
                                 <th>
-                                        ?ng c? viên
+                                        ?ng c? viï¿½n
                                 </th>
                                 <th>
-                                        V? trí
+                                        V? trï¿½
                                 </th>  
                                 <th>
-                                        Ð?i tác/d? án
+                                        ï¿½?i tï¿½c/d? ï¿½n
                                 </th>  
                                 <th>
-                                        Tr?ng thái
+                                        Tr?ng thï¿½i
                                 </th>
                                 
                                 <th>
-                                        X? lý b?i
+                                        X? lï¿½ b?i
                                 </th>
                                 <th>
-                                        Ngày nh?n
+                                        Ngï¿½y nh?n
                                 </th>
                                 <th>
                                         C?p nh?t g?n nh?t

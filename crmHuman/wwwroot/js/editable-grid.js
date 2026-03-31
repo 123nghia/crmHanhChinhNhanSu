@@ -412,7 +412,7 @@ var EditableGrid = (function () {
         var options = config.masterData[dataType] || [];
 
         var emptyOptionText = field === 'DepartmentCode'
-            ? '-- Khong thuoc phong ban --'
+            ? '-- Kh?ng thu?c ph?ng ban --'
             : '-- Chon --';
         select.innerHTML = '<option value="">' + emptyOptionText + '</option>';
         options.forEach(function (opt) {
@@ -567,7 +567,7 @@ var EditableGrid = (function () {
                     if (matched) {
                         cell.textContent = matched.Name || matched.FullName;
                     } else if (field === 'DepartmentCode' && !cell.dataset.value) {
-                        cell.textContent = '-- Khong thuoc phong ban --';
+                        cell.textContent = '-- Kh?ng thu?c ph?ng ban --';
                     } else {
                         cell.textContent = '--';
                     }

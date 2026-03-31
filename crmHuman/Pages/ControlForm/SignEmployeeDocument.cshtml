@@ -1,7 +1,7 @@
 @{
     var document = Model.Document as dynamic;
     var canSign = Model.CanSign != null && (bool)Model.CanSign;
-    var termsTitle = Model.TermsTitle?.ToString() ?? "Dieu khoan ky tai lieu noi bo";
+    var termsTitle = Model.TermsTitle?.ToString() ?? "Điều khoản ký tài liệu nội bộ";
     var termsContent = Model.TermsContent?.ToString() ?? string.Empty;
     var requestedAtText = string.Empty;
     if (document != null && document.SignatureRequestedAt != null)
@@ -45,30 +45,30 @@
 }
 
 <div class="modal-header">
-    <h5 class="modal-title">Ky xac nhan tai lieu</h5>
+    <h5 class="modal-title">Ký xác nhận tài liệu</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 
 <div class="modal-body">
     @if (document == null || document.Id < 1)
     {
-        <div class="alert alert-danger mb-0">Khong tim thay tai lieu.</div>
+        <div class="alert alert-danger mb-0">Không tìm thấy tài liệu.</div>
     }
     else if (document.IsSignedInternal == true)
     {
         <div class="alert alert-success mb-0">
-            Tai lieu nay da duoc ky noi bo.
+            Tài liệu này đã được ký nội bộ.
             @if (!string.IsNullOrWhiteSpace(signerDisplay))
             {
-                <div class="mt-2">Nguoi ky: <strong>@signerDisplay</strong></div>
+                <div class="mt-2">Người ký: <strong>@signerDisplay</strong></div>
             }
             @if (!string.IsNullOrWhiteSpace(signatureIntentText))
             {
-                <div class="mt-2">Y chi dong y: <strong>@signatureIntentText</strong></div>
+                <div class="mt-2">Ý chí đồng ý: <strong>@signatureIntentText</strong></div>
             }
             @if (!string.IsNullOrWhiteSpace(signedIpAddress))
             {
-                <div>IP luc ky: <strong>@signedIpAddress</strong></div>
+                <div>IP lúc ký: <strong>@signedIpAddress</strong></div>
             }
             @if (!string.IsNullOrWhiteSpace(signedUserAgent))
             {
@@ -76,42 +76,42 @@
             }
             @if (!string.IsNullOrWhiteSpace(signedFileArchivePath))
             {
-                <div class="text-break">Ban sao da ky: <a href="@signedFileArchivePath" target="_blank">Mo file da ky</a></div>
+                <div class="text-break">Bản sao đã ký: <a href="@signedFileArchivePath" target="_blank">Mở file đã ký</a></div>
             }
             @if (!string.IsNullOrWhiteSpace(signatureImagePath))
             {
-                <div class="text-break">Anh chu ky: <a href="@signatureImagePath" target="_blank">Mo anh chu ky</a></div>
+                <div class="text-break">Ảnh chữ ký: <a href="@signatureImagePath" target="_blank">Mở ảnh chữ ký</a></div>
             }
         </div>
     }
     else if (!canSign)
     {
-        <div class="alert alert-warning mb-0">Tai lieu nay chua duoc yeu cau ky.</div>
+        <div class="alert alert-warning mb-0">Tài liệu này chưa được yêu cầu ký.</div>
     }
     else
     {
         <form id="signEmployeeDocumentForm" class="needs-validation" novalidate>
             <div class="col-12 form-group">
-                <label class="form-label">Tai lieu</label>
+                <label class="form-label">Tài liệu</label>
                 <input type="text" class="form-control" value="@document.DisplayText" readonly />
             </div>
 
             <div class="col-12 form-group mt-2">
-                <label class="form-label">Nguoi ky</label>
+                <label class="form-label">Người ký</label>
                 <input type="text" class="form-control" value="@($"{document.UserName} - {document.FullName}")" readonly />
             </div>
 
             <div class="col-12 form-group mt-2">
-                <label class="form-label">File tai lieu</label>
+                <label class="form-label">File tài liệu</label>
                 @if (!string.IsNullOrWhiteSpace((string?)document.ValueFile))
                 {
                     <div>
-                        <a href="@document.ValueFile" target="_blank">Mo file tai lieu</a>
+                        <a href="@document.ValueFile" target="_blank">Mở file tài liệu</a>
                     </div>
                 }
                 else
                 {
-                    <div class="text-danger">Tai lieu chua co file.</div>
+                    <div class="text-danger">Tài liệu chua co file.</div>
                 }
             </div>
 
@@ -120,11 +120,11 @@
                 <div class="alert alert-info mt-3">
                     @if (!string.IsNullOrWhiteSpace(requestedAtText))
                     {
-                        <div>Yeu cau ky luc: <strong>@requestedAtText</strong></div>
+                        <div>Yêu cầu ký lúc: <strong>@requestedAtText</strong></div>
                     }
                     @if (!string.IsNullOrWhiteSpace(requestedByDisplay))
                     {
-                        <div>Nguoi yeu cau: <strong>@requestedByDisplay</strong></div>
+                        <div>Người yêu cầu: <strong>@requestedByDisplay</strong></div>
                     }
                 </div>
             }
@@ -133,43 +133,43 @@
                 <div class="fw-bold mb-2">@termsTitle</div>
                 <div>@termsContent</div>
                 <div class="mt-2 small">
-                    He thong se dong dau chu ky len ban archive cua file da ky doi voi PDF va file anh. Cac dinh dang khac se luu kem anh chu ky de truy vet.
+                    Hệ thống sẽ đóng dấu chữ ký lên bản archive của file đã ký đối với PDF và file ảnh. Các định dạng khác sẽ lưu kèm ảnh chữ ký để truy vết.
                 </div>
             </div>
 
             <div class="col-12 form-group mt-3">
-                <label class="form-label">Chu ky nhan vien <span class="text-danger">*</span></label>
+                <label class="form-label">Chữ ký nhân viên <span class="text-danger">*</span></label>
                 <div class="border rounded bg-white p-2">
                     <canvas id="employeeSignatureCanvas" width="520" height="180" style="width:100%;max-width:100%;border:1px dashed #ced4da;border-radius:8px;touch-action:none;"></canvas>
                 </div>
                 <div class="d-flex gap-2 mt-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearEmployeeSignaturePad()">Xoa chu ky</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearEmployeeSignaturePad()">Xóa chữ ký</button>
                 </div>
-                <div class="small text-muted mt-1">Nhan vien ky truc tiep tren o ben tren bang chuot, but cam ung hoac ngon tay.</div>
+                <div class="small text-muted mt-1">Nhân viên ký trực tiếp trên ô bên trên bằng chuột, bút cảm ứng hoặc ngón tay.</div>
                 <div class="invalid-feedback-cs"></div>
             </div>
 
             <div class="form-check mt-2">
                 <input class="form-check-input" type="checkbox" id="cbDocumentAcceptTerms" />
                 <label class="form-check-label" for="cbDocumentAcceptTerms">
-                    Toi da doc, hieu va dong y voi dieu khoan ky noi bo doi voi tai lieu nay.
+                    Tôi đã đọc, hiểu và đồng ý với điều khoản ký nội bộ đối với tài liệu này.
                 </label>
                 <div class="invalid-feedback-cs"></div>
             </div>
 
             <div class="col-12 form-group mt-3">
-                <label class="form-label">Ma ky noi bo (tuy chon)</label>
+                <label class="form-label">Mã ký nội bộ (tùy chọn)</label>
                 <input type="text" id="txtDocumentSignatureCode" class="form-control" maxlength="100" placeholder="VD: TOI_DONG_Y_KY_TAI_LIEU" />
             </div>
 
             <div class="col-12 form-group mt-2">
-                <label class="form-label">Mat khau xac nhan <span class="text-danger">*</span></label>
+                <label class="form-label">Mật khẩu xác nhận <span class="text-danger">*</span></label>
                 <input type="password" id="txtDocumentSignPassword" class="form-control" maxlength="100" autocomplete="off" />
                 <div class="invalid-feedback-cs"></div>
             </div>
 
             <div class="col-12 form-group mt-2">
-                <label class="form-label">Ghi chu ky (tuy chon)</label>
+                <label class="form-label">Ghi chú ký (tùy chọn)</label>
                 <textarea id="txtDocumentSignNote" class="form-control" style="height: 90px" maxlength="500"></textarea>
             </div>
         </form>
@@ -177,9 +177,9 @@
 </div>
 
 <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Dong</button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
     @if (document != null && document.Id > 0 && canSign && document.IsSignedInternal != true)
     {
-        <button type="button" class="btn btn-primary" onclick="signEmployeeDocument(@document.Id)">Ky xac nhan</button>
+        <button type="button" class="btn btn-primary" onclick="signEmployeeDocument(@document.Id)">Ký xác nhận</button>
     }
 </div>

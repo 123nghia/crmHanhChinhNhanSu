@@ -109,276 +109,276 @@ namespace VS.Human.Business
         {
             yield return CreateTemplate(
                 "INTERVIEW_SCHEDULE",
-                "Thu moi phong van",
-                "Thu moi phong van - {{CandidateName}}",
+                "Thư mời phỏng vấn",
+                "Thư mời phỏng vấn - {{CandidateName}}",
                 EmailSenderTypes.Candidate,
                 @"
 <p>Xin chao {{CandidateName}},</p>
-<p>Lich phong van cua ban {{InterviewAction}}.</p>
-<p>Thong tin chi tiet:</p>
+<p>Lịch phỏng vấn của bạn {{InterviewAction}}.</p>
+<p>Thông tin chi tiết:</p>
 <ul>
-    <li>Vi tri ung tuyen: {{AppliedPosition}}</li>
-    <li>Vong phong van: {{InterviewRound}}</li>
-    <li>Thoi gian: {{ScheduleDate}}</li>
-    <li>Hinh thuc: {{InterviewMode}}</li>
-    <li>Dia diem / Link: {{AddressInfo}}</li>
-    <li>Nguoi phong van: {{InterviewerName}}</li>
+    <li>Vị trí ứng tuyển: {{AppliedPosition}}</li>
+    <li>Vòng phỏng vấn: {{InterviewRound}}</li>
+    <li>Thời gian: {{ScheduleDate}}</li>
+    <li>Hình thức: {{InterviewMode}}</li>
+    <li>Địa điểm / Link: {{AddressInfo}}</li>
+    <li>Người phỏng vấn: {{InterviewerName}}</li>
 </ul>
 <p>{{Noted}}</p>
-<p>Tran trong,<br/>He thong quan ly nhan su</p>");
+<p>Trân trọng,<br/>Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LEAVE_CREATE",
-                "Don nghi phep moi",
-                "Don xin nghi phep moi tu {{EmployeeName}}",
+                "Đơn nghỉ phép mới",
+                "Đơn xin nghỉ phép mới từ {{EmployeeName}}",
                 EmailSenderTypes.Employee,
                 @"
-<p>Xin chao {{ManagerName}},</p>
-<p>Nhan vien {{EmployeeName}} vua tao mot don xin nghi phep voi thong tin nhu sau:</p>
+<p>Xin chào {{ManagerName}},</p>
+<p>Nhân viên {{EmployeeName}} vừa tạo một đơn xin nghỉ phép với thông tin như sau:</p>
 <ul>
-    <li>Loai nghi: {{LeaveType}}</li>
-    <li>Tu ngay: {{FromDate}}</li>
-    <li>Den ngay: {{ToDate}}</li>
-    <li>So ngay nghi: {{TotalDays}}</li>
-    <li>Ly do: {{Reason}}</li>
+    <li>Loại nghỉ: {{LeaveType}}</li>
+    <li>Từ ngày: {{FromDate}}</li>
+    <li>Đến ngày: {{ToDate}}</li>
+    <li>Số ngày nghỉ: {{TotalDays}}</li>
+    <li>Lý do: {{Reason}}</li>
 </ul>
-<p>Vui long dang nhap he thong de xem va phe duyet don.</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Vui lòng đăng nhập hệ thống để xem và phê duyệt đơn.</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LEAVE_APPROVE",
-                "Don nghi phep duoc phe duyet",
-                "Don nghi phep cua ban da duoc phe duyet",
+                "Đơn nghỉ phép được phê duyệt",
+                "Đơn nghỉ phép của bạn đã được phê duyệt",
                 EmailSenderTypes.Employee,
                 @"
-<p>Xin chao {{EmployeeName}},</p>
-<p>Don xin nghi phep cua ban da duoc phe duyet.</p>
-<p>Thong tin chi tiet:</p>
+<p>Xin chào {{EmployeeName}},</p>
+<p>Đơn xin nghỉ phép của bạn đã được phê duyệt.</p>
+<p>Thông tin chi tiết:</p>
 <ul>
-    <li>Loai nghi: {{LeaveType}}</li>
-    <li>Tu ngay: {{FromDate}}</li>
-    <li>Den ngay: {{ToDate}}</li>
-    <li>So ngay nghi: {{TotalDays}}</li>
+    <li>Loại nghỉ: {{LeaveType}}</li>
+    <li>Từ ngày: {{FromDate}}</li>
+    <li>Đến ngày: {{ToDate}}</li>
+    <li>Số ngày nghỉ: {{TotalDays}}</li>
 </ul>
-<p>Chuc ban co thoi gian nghi ngoi hieu qua.</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Chúc bạn có thời gian nghỉ ngơi hiệu quả.</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LEAVE_REJECT",
-                "Don nghi phep bi tu choi",
-                "Don nghi phep cua ban da bi tu choi",
+                "Đơn nghỉ phép bị từ chối",
+                "Đơn nghỉ phép của bạn đã bị từ chối",
                 EmailSenderTypes.Employee,
                 @"
-<p>Xin chao {{EmployeeName}},</p>
-<p>Rat tiec, don xin nghi phep cua ban da bi tu choi.</p>
-<p>Thong tin don:</p>
+<p>Xin chào {{EmployeeName}},</p>
+<p>Rất tiếc, đơn xin nghỉ phép của bạn đã bị từ chối.</p>
+<p>Thông tin đơn:</p>
 <ul>
-    <li>Loai nghi: {{LeaveType}}</li>
-    <li>Tu ngay: {{FromDate}}</li>
-    <li>Den ngay: {{ToDate}}</li>
+    <li>Loại nghỉ: {{LeaveType}}</li>
+    <li>Từ ngày: {{FromDate}}</li>
+    <li>Đến ngày: {{ToDate}}</li>
 </ul>
-<p>Ly do tu choi:<br />{{RejectReason}}</p>
-<p>Vui long lien he quan ly de biet them chi tiet.</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Lý do từ chối:<br />{{RejectReason}}</p>
+<p>Vui lòng liên hệ quản lý để biết thêm chi tiết.</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LEAVE_PENDING_HCNS",
-                "Don nghi phep cho HCNS xu ly",
-                "Don nghi phep cua {{EmployeeName}} cho HCNS xu ly",
+                "Đơn nghỉ phép chờ HCNS xử lý",
+                "Đơn nghỉ phép của {{EmployeeName}} chờ HCNS xử lý",
                 EmailSenderTypes.Employee,
                 @"
-<p>Kinh gui Phong HCNS,</p>
-<p>Don nghi phep cua {{EmployeeName}} da duoc Team Lead duyet va dang cho HCNS xu ly.</p>
+<p>Kính gửi Phòng HCNS,</p>
+<p>Đơn nghỉ phép của {{EmployeeName}} đã được Team Lead duyệt và đang chờ HCNS xử lý.</p>
 <ul>
-    <li>Loai nghi: {{LeaveType}}</li>
-    <li>Tu ngay: {{FromDate}}</li>
-    <li>Den ngay: {{ToDate}}</li>
-    <li>So ngay nghi: {{TotalDays}}</li>
-    <li>Ly do: {{Reason}}</li>
+    <li>Loại nghỉ: {{LeaveType}}</li>
+    <li>Từ ngày: {{FromDate}}</li>
+    <li>Đến ngày: {{ToDate}}</li>
+    <li>Số ngày nghỉ: {{TotalDays}}</li>
+    <li>Lý do: {{Reason}}</li>
 </ul>
-<p>Vui long dang nhap he thong de tiep tuc xu ly don.</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Vui lòng đăng nhập hệ thống để tiếp tục xử lý đơn.</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LEAVE_PENDING_BGD",
-                "Don nghi phep cho BGD phe duyet",
-                "Don nghi phep cua {{EmployeeName}} cho BGD phe duyet",
+                "Đơn nghỉ phép chờ BGĐ phê duyệt",
+                "Đơn nghỉ phép của {{EmployeeName}} chờ BGĐ phê duyệt",
                 EmailSenderTypes.Employee,
                 @"
-<p>Kinh gui Ban Giam doc,</p>
-<p>Don nghi phep cua {{EmployeeName}} da duoc HCNS kiem tra va dang cho BGD phe duyet.</p>
+<p>Kính gửi Ban Giám đốc,</p>
+<p>Đơn nghỉ phép của {{EmployeeName}} đã được HCNS kiểm tra và đang chờ BGĐ phê duyệt.</p>
 <ul>
-    <li>Loai nghi: {{LeaveType}}</li>
-    <li>Tu ngay: {{FromDate}}</li>
-    <li>Den ngay: {{ToDate}}</li>
-    <li>So ngay nghi: {{TotalDays}}</li>
-    <li>Ly do: {{Reason}}</li>
+    <li>Loại nghỉ: {{LeaveType}}</li>
+    <li>Từ ngày: {{FromDate}}</li>
+    <li>Đến ngày: {{ToDate}}</li>
+    <li>Số ngày nghỉ: {{TotalDays}}</li>
+    <li>Lý do: {{Reason}}</li>
 </ul>
-<p>Vui long dang nhap he thong de xem va phe duyet don.</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Vui lòng đăng nhập hệ thống để xem và phê duyệt đơn.</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_CREATE",
-                "Don di tre ve som moi",
-                "Don {{RequestTypeName}} moi tu {{EmployeeName}}",
+                "Đơn đi trễ về sớm mới",
+                "Đơn {{RequestTypeName}} mới từ {{EmployeeName}}",
                 EmailSenderTypes.Employee,
                 @"
-<p>Xin chao {{ManagerName}},</p>
-<p>{{EmployeeName}} vua tao mot yeu cau {{RequestTypeName}} voi thong tin nhu sau:</p>
+<p>Xin chào {{ManagerName}},</p>
+<p>{{EmployeeName}} vừa tạo một yêu cầu {{RequestTypeName}} với thông tin như sau:</p>
 <ul>
-    <li>Ngay ap dung: {{RequestDate}}</li>
-    <li>Khung gio: {{TimeRange}}</li>
-    <li>So phut: {{DurationMinutes}}</li>
-    <li>Ly do: {{Reason}}</li>
+    <li>Ngày áp dụng: {{RequestDate}}</li>
+    <li>Khung giờ: {{TimeRange}}</li>
+    <li>Số phút: {{DurationMinutes}}</li>
+    <li>Lý do: {{Reason}}</li>
 </ul>
-<p>Vui long dang nhap he thong de xem va phe duyet yeu cau.</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Vui lòng đăng nhập hệ thống để xem và phê duyệt yêu cầu.</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_APPROVE",
-                "Don di tre ve som duoc phe duyet",
-                "Don {{RequestTypeName}} cua ban da duoc phe duyet",
+                "Đơn đi trễ về sớm được phê duyệt",
+                "Đơn {{RequestTypeName}} của bạn đã được phê duyệt",
                 EmailSenderTypes.Employee,
                 @"
-<p>Xin chao {{EmployeeName}},</p>
-<p>Yeu cau {{RequestTypeName}} cua ban da duoc phe duyet.</p>
+<p>Xin chào {{EmployeeName}},</p>
+<p>Yêu cầu {{RequestTypeName}} của bạn đã được phê duyệt.</p>
 <ul>
-    <li>Ngay ap dung: {{RequestDate}}</li>
-    <li>Khung gio: {{TimeRange}}</li>
-    <li>So phut: {{DurationMinutes}}</li>
+    <li>Ngày áp dụng: {{RequestDate}}</li>
+    <li>Khung giờ: {{TimeRange}}</li>
+    <li>Số phút: {{DurationMinutes}}</li>
 </ul>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_REJECT",
-                "Don di tre ve som bi tu choi",
-                "Don {{RequestTypeName}} cua ban da bi tu choi",
+                "Đơn đi trễ về sớm bị từ chối",
+                "Đơn {{RequestTypeName}} của bạn đã bị từ chối",
                 EmailSenderTypes.Employee,
                 @"
-<p>Xin chao {{EmployeeName}},</p>
-<p>Rat tiec, yeu cau {{RequestTypeName}} cua ban da bi tu choi.</p>
+<p>Xin chào {{EmployeeName}},</p>
+<p>Rất tiếc, yêu cầu {{RequestTypeName}} của bạn đã bị từ chối.</p>
 <ul>
-    <li>Ngay ap dung: {{RequestDate}}</li>
-    <li>Khung gio: {{TimeRange}}</li>
+    <li>Ngày áp dụng: {{RequestDate}}</li>
+    <li>Khung giờ: {{TimeRange}}</li>
 </ul>
-<p>Ly do tu choi:<br />{{RejectReason}}</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Lý do từ chối:<br />{{RejectReason}}</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_PENDING_HCNS",
-                "Don di tre ve som cho HCNS xu ly",
-                "Don {{RequestTypeName}} cua {{EmployeeName}} cho HCNS xu ly",
+                "Đơn đi trễ về sớm chờ HCNS xử lý",
+                "Đơn {{RequestTypeName}} của {{EmployeeName}} chờ HCNS xử lý",
                 EmailSenderTypes.Employee,
                 @"
-<p>Kinh gui Phong HCNS,</p>
-<p>Yeu cau {{RequestTypeName}} cua {{EmployeeName}} da duoc Team Lead duyet va dang cho HCNS xu ly.</p>
+<p>Kính gửi Phòng HCNS,</p>
+<p>Yêu cầu {{RequestTypeName}} của {{EmployeeName}} đã được Team Lead duyệt và đang chờ HCNS xử lý.</p>
 <ul>
-    <li>Ngay ap dung: {{RequestDate}}</li>
-    <li>Khung gio: {{TimeRange}}</li>
-    <li>So phut: {{DurationMinutes}}</li>
-    <li>Ly do: {{Reason}}</li>
+    <li>Ngày áp dụng: {{RequestDate}}</li>
+    <li>Khung giờ: {{TimeRange}}</li>
+    <li>Số phút: {{DurationMinutes}}</li>
+    <li>Lý do: {{Reason}}</li>
 </ul>
-<p>Vui long dang nhap he thong de tiep tuc xu ly.</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Vui lòng đăng nhập hệ thống để tiếp tục xử lý.</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_PENDING_BGD",
-                "Don di tre ve som cho BGD phe duyet",
-                "Don {{RequestTypeName}} cua {{EmployeeName}} cho BGD phe duyet",
+                "Đơn đi trễ về sớm chờ BGĐ phê duyệt",
+                "Đơn {{RequestTypeName}} của {{EmployeeName}} chờ BGĐ phê duyệt",
                 EmailSenderTypes.Employee,
                 @"
-<p>Kinh gui Ban Giam doc,</p>
-<p>Yeu cau {{RequestTypeName}} cua {{EmployeeName}} da duoc HCNS kiem tra va dang cho BGD phe duyet.</p>
+<p>Kính gửi Ban Giám đốc,</p>
+<p>Yêu cầu {{RequestTypeName}} của {{EmployeeName}} đã được HCNS kiểm tra và đang chờ BGĐ phê duyệt.</p>
 <ul>
-    <li>Ngay ap dung: {{RequestDate}}</li>
-    <li>Khung gio: {{TimeRange}}</li>
-    <li>So phut: {{DurationMinutes}}</li>
-    <li>Ly do: {{Reason}}</li>
+    <li>Ngày áp dụng: {{RequestDate}}</li>
+    <li>Khung giờ: {{TimeRange}}</li>
+    <li>Số phút: {{DurationMinutes}}</li>
+    <li>Lý do: {{Reason}}</li>
 </ul>
-<p>Vui long dang nhap he thong de xem va phe duyet yeu cau.</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Vui lòng đăng nhập hệ thống để xem và phê duyệt yêu cầu.</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_PENDING_ADMIN",
-                "Don di tre ve som cho Admin phe duyet",
-                "Don {{RequestTypeName}} cua {{EmployeeName}} cho Admin phe duyet",
+                "Đơn đi trễ về sớm chờ Admin phê duyệt",
+                "Đơn {{RequestTypeName}} của {{EmployeeName}} chờ Admin phê duyệt",
                 EmailSenderTypes.Employee,
                 @"
 <p>Kinh gui Admin,</p>
-<p>Yeu cau {{RequestTypeName}} cua {{EmployeeName}} da duoc BGD duyet va dang cho Admin xac nhan cuoi.</p>
+<p>Yêu cầu {{RequestTypeName}} của {{EmployeeName}} đã được BGĐ duyệt và đang chờ Admin xác nhận cuối.</p>
 <ul>
-    <li>Ngay ap dung: {{RequestDate}}</li>
-    <li>Khung gio: {{TimeRange}}</li>
-    <li>So phut: {{DurationMinutes}}</li>
-    <li>Ly do: {{Reason}}</li>
+    <li>Ngày áp dụng: {{RequestDate}}</li>
+    <li>Khung giờ: {{TimeRange}}</li>
+    <li>Số phút: {{DurationMinutes}}</li>
+    <li>Lý do: {{Reason}}</li>
 </ul>
-<p>Vui long dang nhap he thong de tiep tuc xu ly.</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Vui lòng đăng nhập hệ thống để tiếp tục xử lý.</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "SUPPORT_REQUEST_CREATE",
-                "Yeu cau ho tro moi",
-                "Yeu cau ho tro moi: {{Title}}",
+                "Yêu cầu hỗ trợ mới",
+                "Yêu cầu hỗ trợ mới: {{Title}}",
                 EmailSenderTypes.Employee,
                 @"
 <p>Xin chao {{AssignedToName}},</p>
-<p>Ban vua duoc giao mot yeu cau ho tro moi.</p>
+<p>Bạn vừa được giao một yêu cầu hỗ trợ mới.</p>
 <ul>
-    <li>Nguoi tao: {{RequesterName}}</li>
-    <li>Bo phan can xu ly: {{TargetDepartment}}</li>
-    <li>Tieu de: {{Title}}</li>
-    <li>Noi dung: {{Content}}</li>
+    <li>Người tạo: {{RequesterName}}</li>
+    <li>Bộ phận cần xử lý: {{TargetDepartment}}</li>
+    <li>Tiêu đề: {{Title}}</li>
+    <li>Nội dung: {{Content}}</li>
 </ul>
-<p>Vui long dang nhap he thong de tiep nhan va cap nhat tien do.</p>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Vui lòng đăng nhập hệ thống để tiếp nhận và cập nhật tiến độ.</p>
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "SUPPORT_REQUEST_INPROCESS",
-                "Yeu cau ho tro dang duoc xu ly",
-                "Yeu cau ho tro '{{Title}}' dang duoc xu ly",
+                "Yêu cầu hỗ trợ đang được xử lý",
+                "Yêu cầu hỗ trợ '{{Title}}' đang được xử lý",
                 EmailSenderTypes.Employee,
                 @"
 <p>Xin chao {{RequesterName}},</p>
-<p>Yeu cau ho tro cua ban da duoc tiep nhan va dang xu ly.</p>
+<p>Yêu cầu hỗ trợ của bạn đã được tiếp nhận và đang xử lý.</p>
 <ul>
-    <li>Bo phan xu ly: {{TargetDepartment}}</li>
-    <li>Nguoi phu trach: {{AssignedToName}}</li>
-    <li>Tieu de: {{Title}}</li>
-    <li>Ghi chu xu ly: {{ProcessorComment}}</li>
+    <li>Bộ phận xử lý: {{TargetDepartment}}</li>
+    <li>Người phụ trách: {{AssignedToName}}</li>
+    <li>Tiêu đề: {{Title}}</li>
+    <li>Ghi chú xử lý: {{ProcessorComment}}</li>
 </ul>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "SUPPORT_REQUEST_DONE",
-                "Yeu cau ho tro da hoan thanh",
-                "Yeu cau ho tro '{{Title}}' da hoan thanh",
+                "Yêu cầu hỗ trợ đã hoàn thành",
+                "Yêu cầu hỗ trợ '{{Title}}' đã hoàn thành",
                 EmailSenderTypes.Employee,
                 @"
 <p>Xin chao {{RequesterName}},</p>
-<p>Yeu cau ho tro cua ban da duoc xu ly xong.</p>
+<p>Yêu cầu hỗ trợ của bạn đã được xử lý xong.</p>
 <ul>
-    <li>Bo phan xu ly: {{TargetDepartment}}</li>
-    <li>Nguoi phu trach: {{AssignedToName}}</li>
-    <li>Tieu de: {{Title}}</li>
-    <li>Ket qua: {{ProcessorComment}}</li>
+    <li>Bộ phận xử lý: {{TargetDepartment}}</li>
+    <li>Người phụ trách: {{AssignedToName}}</li>
+    <li>Tiêu đề: {{Title}}</li>
+    <li>Kết quả: {{ProcessorComment}}</li>
 </ul>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
 
             yield return CreateTemplate(
                 "SUPPORT_REQUEST_CANCEL",
-                "Yeu cau ho tro da bi huy",
-                "Yeu cau ho tro '{{Title}}' da bi huy",
+                "Yêu cầu hỗ trợ đã bị hủy",
+                "Yêu cầu hỗ trợ '{{Title}}' đã bị hủy",
                 EmailSenderTypes.Employee,
                 @"
 <p>Xin chao {{RequesterName}},</p>
-<p>Yeu cau ho tro cua ban da duoc cap nhat sang trang thai huy.</p>
+<p>Yêu cầu hỗ trợ của bạn đã được cập nhật sang trạng thái hủy.</p>
 <ul>
-    <li>Bo phan xu ly: {{TargetDepartment}}</li>
-    <li>Nguoi phu trach: {{AssignedToName}}</li>
-    <li>Tieu de: {{Title}}</li>
-    <li>Ly do / ghi chu: {{ProcessorComment}}</li>
+    <li>Bộ phận xử lý: {{TargetDepartment}}</li>
+    <li>Người phụ trách: {{AssignedToName}}</li>
+    <li>Tiêu đề: {{Title}}</li>
+    <li>Lý do / ghi chú: {{ProcessorComment}}</li>
 </ul>
-<p>Tran trong,<br />He thong quan ly nhan su</p>");
+<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
         }
 
         private static EmailTemplate CreateTemplate(string code, string name, string subject, string senderType, string body)

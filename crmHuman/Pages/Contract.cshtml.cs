@@ -53,19 +53,19 @@ namespace crmHuman.Pages
             _masterDataBussiness = masterDataBussiness;
             _hostingEnvironment = hostingEnvironment;
 
-            TitlePage = "Quan ly hop dong";
+            TitlePage = "Quản lý hợp đồng";
             KeyPage = "Contract";
             TableColumnText = new List<string>
             {
                 "STT",
-                "Nhan vien",
-                "Loai hop dong",
-                "Ngay bat dau",
-                "Ngay ket thuc",
-                "Trang thai",
-                "Chu ky noi bo",
+                "Nhân viên",
+                "Loại hợp đồng",
+                "Ngày bắt đầu",
+                "Ngày kết thúc",
+                "Trạng thái",
+                "Chữ ký nội bộ",
                 "File",
-                "Cap nhat",
+                "Cập nhật",
                 "Thao tac"
             };
 
@@ -253,7 +253,7 @@ namespace crmHuman.Pages
             var contract = await _contractBusiness.GetById(id) ?? new ContractEntity { Id = -1 };
             if (contract.Id < 1)
             {
-                return new JsonResult(new { success = false, message = "Khong tim thay hop dong" })
+                return new JsonResult(new { success = false, message = "Không tìm thấy hợp đồng" })
                 {
                     StatusCode = StatusCodes.Status404NotFound
                 };
@@ -261,7 +261,7 @@ namespace crmHuman.Pages
 
             if (IsEmployeeSelfService() && !CanEmployeeAccessContract(contract))
             {
-                return new JsonResult(new { success = false, message = "Ban khong co quyen xem hop dong nay" })
+                return new JsonResult(new { success = false, message = "Bạn không có quyền xem hợp đồng này" })
                 {
                     StatusCode = StatusCodes.Status403Forbidden
                 };
@@ -287,11 +287,11 @@ namespace crmHuman.Pages
             var listError = new List<object>();
             if (request.Id < 1)
             {
-                listError.Add(new { name = "txtSignPassword", Content = "Thieu hop dong can ky" });
+                listError.Add(new { name = "txtSignPassword", Content = "Thiếu hợp đồng cần ký" });
             }
             if (string.IsNullOrWhiteSpace(request.PasswordConfirm))
             {
-                listError.Add(new { name = "txtSignPassword", Content = "Nhap mat khau xac nhan" });
+                listError.Add(new { name = "txtSignPassword", Content = "Nhập mật khẩu xác nhận" });
             }
             if (listError.Count > 0)
             {
@@ -301,7 +301,7 @@ namespace crmHuman.Pages
             var contract = await _contractBusiness.GetById(request.Id);
             if (contract == null || contract.Id < 1)
             {
-                return new JsonResult(new { success = false, message = "Khong tim thay hop dong" })
+                return new JsonResult(new { success = false, message = "Không tìm thấy hợp đồng" })
                 {
                     StatusCode = StatusCodes.Status404NotFound
                 };
@@ -309,7 +309,7 @@ namespace crmHuman.Pages
 
             if (IsEmployeeSelfService() && !CanEmployeeAccessContract(contract))
             {
-                return new JsonResult(new { success = false, message = "Ban khong co quyen ky hop dong nay" })
+                return new JsonResult(new { success = false, message = "Bạn không có quyền ký hợp đồng này" })
                 {
                     StatusCode = StatusCodes.Status403Forbidden
                 };
@@ -317,7 +317,7 @@ namespace crmHuman.Pages
 
             if (contract.IsSignedInternal)
             {
-                return new JsonResult(new { success = false, message = "Hop dong da duoc ky noi bo" })
+                return new JsonResult(new { success = false, message = "Hợp đồng đã được ký nội bộ" })
                 {
                     StatusCode = StatusCodes.Status409Conflict
                 };
@@ -327,11 +327,11 @@ namespace crmHuman.Pages
             {
                 if (!request.AcceptTerms)
                 {
-                    listError.Add(new { name = "cbContractAcceptTerms", Content = "Ban can chap nhan dieu khoan truoc khi ky" });
+                    listError.Add(new { name = "cbContractAcceptTerms", Content = "Bạn cần chấp nhận điều khoản trước khi ký" });
                 }
                 if (string.IsNullOrWhiteSpace(request.SignatureDataUrl))
                 {
-                    listError.Add(new { name = "contractSignatureCanvas", Content = "Nhan vien can ve chu ky truoc khi ky hop dong" });
+                    listError.Add(new { name = "contractSignatureCanvas", Content = "Nhân viên cần vẽ chữ ký trước khi ký hợp đồng" });
                 }
                 if (listError.Count > 0)
                 {
@@ -342,7 +342,7 @@ namespace crmHuman.Pages
             var contractFilePath = ResolveContractFilePath(contract.FileUrl);
             if (string.IsNullOrWhiteSpace(contractFilePath) || !global::System.IO.File.Exists(contractFilePath))
             {
-                return new JsonResult(new { success = false, message = "Khong tim thay file hop dong de ky" })
+                return new JsonResult(new { success = false, message = "Không tìm thấy file hợp đồng để ký" })
                 {
                     StatusCode = StatusCodes.Status400BadRequest
                 };
@@ -357,7 +357,7 @@ namespace crmHuman.Pages
             {
                 if (!CanSignContractByHr(contract))
                 {
-                    return new JsonResult(new { success = false, message = "Ban khong co quyen ky HR hop dong nay" })
+                    return new JsonResult(new { success = false, message = "Bạn không có quyền ký HR hợp đồng này" })
                     {
                         StatusCode = StatusCodes.Status403Forbidden
                     };
@@ -366,7 +366,7 @@ namespace crmHuman.Pages
                 var authUser = await _empBusiness.Login(UserData.UserName, request.PasswordConfirm ?? string.Empty);
                 if (authUser == null || authUser.Id != UserData.UserId)
                 {
-                    return new JsonResult(new[] { new { name = "txtSignPassword", Content = "Mat khau xac nhan khong dung" } })
+                    return new JsonResult(new[] { new { name = "txtSignPassword", Content = "Mật khẩu xác nhận không đúng" } })
                     {
                         StatusCode = StatusCodes.Status400BadRequest
                     };
@@ -403,7 +403,7 @@ namespace crmHuman.Pages
 
                 if (!signed)
                 {
-                    return new JsonResult(new { success = false, message = "Khong the ky HR hop dong. Hop dong co the da duoc ky boi nguoi khac." })
+                    return new JsonResult(new { success = false, message = "Không thể ký HR hợp đồng. Hợp đồng có thể đã được ký bởi người khác." })
                     {
                         StatusCode = StatusCodes.Status409Conflict
                     };
@@ -419,7 +419,7 @@ namespace crmHuman.Pages
 
             if (!CanSignContractByEmployee(contract))
             {
-                var message = contract.IsHrSigned ? "Ban khong co quyen ky hop dong nay" : "Hop dong chua duoc HR ky";
+                var message = contract.IsHrSigned ? "Bạn không có quyền ký hợp đồng này" : "Hợp đồng chưa được HR ký";
                 return new JsonResult(new { success = false, message })
                 {
                     StatusCode = StatusCodes.Status403Forbidden
@@ -429,7 +429,7 @@ namespace crmHuman.Pages
             var authEmployee = await _empBusiness.Login(UserData.UserName, request.PasswordConfirm ?? string.Empty);
             if (authEmployee == null || authEmployee.Id != UserData.UserId)
             {
-                return new JsonResult(new[] { new { name = "txtSignPassword", Content = "Mat khau xac nhan khong dung" } })
+                return new JsonResult(new[] { new { name = "txtSignPassword", Content = "Mật khẩu xác nhận không đúng" } })
                 {
                     StatusCode = StatusCodes.Status400BadRequest
                 };
@@ -438,7 +438,7 @@ namespace crmHuman.Pages
             var signatureImageBytes = DecodeSignatureDataUrl(request.SignatureDataUrl);
             if (signatureImageBytes == null || signatureImageBytes.Length == 0)
             {
-                return new JsonResult(new[] { new { name = "contractSignatureCanvas", Content = "Chu ky ve tay khong hop le" } })
+                return new JsonResult(new[] { new { name = "contractSignatureCanvas", Content = "Chữ ký vẽ tay không hợp lệ" } })
                 {
                     StatusCode = StatusCodes.Status400BadRequest
                 };
@@ -485,7 +485,7 @@ namespace crmHuman.Pages
             {
                 DeleteArchivedFileIfExists(signedFileArchivePath);
                 DeleteArchivedFileIfExists(signatureImagePath);
-                return new JsonResult(new { success = false, message = "Khong the ky hop dong. Hop dong co the da duoc ky boi nguoi khac." })
+                return new JsonResult(new { success = false, message = "Không thể ký hợp đồng. Hợp đồng có thể đã được ký bởi người khác." })
                 {
                     StatusCode = StatusCodes.Status409Conflict
                 };
@@ -513,7 +513,7 @@ namespace crmHuman.Pages
             var listError = new List<object>();
             if (Id < 1)
             {
-                listError.Add(new { name = "id", Content = "Thieu thong tin can xoa" });
+                listError.Add(new { name = "id", Content = "Thiếu thông tin cần xóa" });
             }
 
             if (listError.Count > 0)
@@ -531,7 +531,7 @@ namespace crmHuman.Pages
             var contract = await _contractBusiness.GetById(contractId);
             if (contract == null || contract.Id < 1)
             {
-                return new JsonResult(new { success = false, message = "Khong tim thay hop dong" })
+                return new JsonResult(new { success = false, message = "Không tìm thấy hợp đồng" })
                 {
                     StatusCode = StatusCodes.Status404NotFound
                 };
@@ -539,7 +539,7 @@ namespace crmHuman.Pages
 
             if (IsEmployeeSelfService() && !CanEmployeeAccessContract(contract))
             {
-                return new JsonResult(new { success = false, message = "Ban khong co quyen xem lich su hop dong nay" })
+                return new JsonResult(new { success = false, message = "Bạn không có quyền xem lịch sử hợp đồng này" })
                 {
                     StatusCode = StatusCodes.Status403Forbidden
                 };

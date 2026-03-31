@@ -34,7 +34,7 @@ namespace crmHuman.Pages.SupportRequest
             _supportRequestBusiness = supportRequestBusiness;
             _masterDataBusiness = masterDataBusiness;
             KeyPage = "SupportRequestProcessing";
-            TitlePage = "Xu ly yeu cau ho tro";
+            TitlePage = "Xử lý yêu cầu hỗ trợ";
         }
 
         public async Task<IActionResult> OnGetAsync(int page = 1, int limit = 20)

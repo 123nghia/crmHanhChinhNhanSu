@@ -33,14 +33,14 @@
     var candidateList = getValue("CandidateList") as VS.Human.Item.BaseList;
     var interviewerList = getValue("InterviewerList") as VS.Human.Item.BaseList;
     var handlerUrl = getValue("HandlerUrl")?.ToString() ?? "/CandidateDetail?handler=AddSchedule";
-    var buttonText = getValue("ButtonText")?.ToString() ?? "Len lich phong van";
+    var buttonText = getValue("ButtonText")?.ToString() ?? "Lên lịch phỏng vấn";
 
     var roundOptions = new List<crmHuman.Model.SelectDisplay>
     {
         new crmHuman.Model.SelectDisplay { Code = "1", Name = "HR" },
         new crmHuman.Model.SelectDisplay { Code = "2", Name = "Technical" },
         new crmHuman.Model.SelectDisplay { Code = "3", Name = "Final" },
-        new crmHuman.Model.SelectDisplay { Code = "0", Name = "Khac" }
+        new crmHuman.Model.SelectDisplay { Code = "0", Name = "Khác" }
     };
 
     var statusOptions = new List<crmHuman.Model.SelectDisplay>
@@ -60,7 +60,7 @@
 
     var resultOptions = new List<crmHuman.Model.SelectDisplay>
     {
-        new crmHuman.Model.SelectDisplay { Code = "", Name = "Chua xac dinh" },
+        new crmHuman.Model.SelectDisplay { Code = "", Name = "Chưa xác định" },
         new crmHuman.Model.SelectDisplay { Code = "1", Name = "Pass" },
         new crmHuman.Model.SelectDisplay { Code = "2", Name = "Fail" },
         new crmHuman.Model.SelectDisplay { Code = "3", Name = "Hold" }
@@ -74,9 +74,9 @@
     @if (showCandidateSelect)
     {
         <div class="col-md-4">
-            <label class="form-label">Ung vien</label>
+            <label class="form-label">Ứng viên</label>
             <select class="form-select" id="scheduleCandidateId" onchange="updateScheduleCandidateInfo()">
-                <option value="">-- Chon ung vien --</option>
+                <option value="">-- Chọn ứng viên --</option>
                 @if (candidateList?.Data != null)
                 {
                     foreach (var item in candidateList.Data)
@@ -94,11 +94,11 @@
             </select>
         </div>
         <div class="col-md-4">
-            <label class="form-label">Vi tri</label>
+            <label class="form-label">Vị trí</label>
             <input type="text" id="schedulePositionText" class="form-control" readonly />
         </div>
         <div class="col-md-4">
-            <label class="form-label">Email nhan thu moi</label>
+            <label class="form-label">Email nhận thư mời</label>
             <input type="text" id="scheduleCandidateEmail" class="form-control" readonly />
         </div>
     }
@@ -106,22 +106,22 @@
     {
         <input type="hidden" id="scheduleCandidateId" value="@candidateId" />
         <div class="col-md-4">
-            <label class="form-label">Ung vien</label>
+            <label class="form-label">Ứng viên</label>
             <input type="text" class="form-control" value="@candidateName" readonly />
         </div>
         <div class="col-md-4">
-            <label class="form-label">Vi tri</label>
+            <label class="form-label">Vị trí</label>
             <input type="text" id="schedulePositionText" class="form-control" value="@candidatePositionText" readonly />
         </div>
         <div class="col-md-4">
-            <label class="form-label">Email nhan thu moi</label>
+            <label class="form-label">Email nhận thư mời</label>
             <input type="text" id="scheduleCandidateEmail" class="form-control" value="@candidateEmail" readonly />
         </div>
     }
 
     <div class="col-12">
         <div id="scheduleEmailWarning" class="alert alert-warning py-2 mb-0 @(showCandidateSelect || hasCandidateEmail ? "d-none" : "")">
-            Ung vien chua co email. Neu muon gui thu moi, vui long cap nhat email trong ho so ung vien hoac bo chon muc gui mail.
+            Ứng viên chưa có email. Nếu muốn gửi thư mời, vui lòng cập nhật email trong hồ sơ ứng viên hoặc bỏ chọn mục gửi mail.
         </div>
     </div>
 
@@ -129,14 +129,14 @@
         <div class="form-check">
             <input class="form-check-input" type="checkbox" id="scheduleSendEmail" checked onchange="updateScheduleEmailUi()" />
             <label class="form-check-label" for="scheduleSendEmail">
-                Gui mail moi ung vien sau khi luu lich
+                Gửi mail mời ứng viên sau khi lưu lịch
             </label>
         </div>
-        <small class="text-muted">Bo chon neu chi muon luu lich phong van ma khong gui email.</small>
+        <small class="text-muted">Bỏ chọn nếu chỉ muốn lưu lịch phỏng vấn mà không gửi email.</small>
     </div>
 
     <div class="col-md-3">
-        <label class="form-label">Vong phong van</label>
+        <label class="form-label">Vòng phỏng vấn</label>
         <select class="form-select" id="scheduleRound">
             @foreach (var item in roundOptions)
             {
@@ -145,7 +145,7 @@
         </select>
     </div>
     <div class="col-md-3">
-        <label class="form-label">Trang thai</label>
+        <label class="form-label">Trạng thái</label>
         <select class="form-select" id="scheduleStatus">
             @foreach (var item in statusOptions)
             {
@@ -161,7 +161,7 @@
         </select>
     </div>
     <div class="col-md-3">
-        <label class="form-label">Hinh thuc</label>
+        <label class="form-label">Hình thức</label>
         <select class="form-select" id="scheduleMode">
             @foreach (var item in modeOptions)
             {
@@ -170,7 +170,7 @@
         </select>
     </div>
     <div class="col-md-3">
-        <label class="form-label">Ket qua PV</label>
+        <label class="form-label">Kết quả PV</label>
         <select class="form-select" id="scheduleResult">
             @foreach (var item in resultOptions)
             {
@@ -180,13 +180,13 @@
     </div>
 
     <div class="col-md-6">
-        <label class="form-label">Ngay va gio</label>
+        <label class="form-label">Ngày và giờ</label>
         <input type="datetime-local" value="" id="scheduleDateTime" class="form-control" />
     </div>
     <div class="col-md-6">
-        <label class="form-label">Nguoi phong van</label>
+        <label class="form-label">Người phỏng vấn</label>
         <select class="form-select" id="scheduleInterviewer">
-            <option value="">-- Chon nguoi phong van --</option>
+            <option value="">-- Chọn người phỏng vấn --</option>
             @if (interviewerList?.Data != null)
             {
                 foreach (var item in interviewerList.Data)
@@ -202,11 +202,11 @@
     </div>
 
     <div class="col-md-6">
-        <label class="form-label">Dia diem / Link meeting</label>
+        <label class="form-label">Địa điểm / Link meeting</label>
         <input type="text" value="" id="scheduleAddressInfo" class="form-control" />
     </div>
     <div class="col-md-6">
-        <label class="form-label">Ghi chu cho interviewer</label>
+        <label class="form-label">Ghi chú cho interviewer</label>
         <input type="text" value="" id="scheduleNote" class="form-control" />
     </div>
 

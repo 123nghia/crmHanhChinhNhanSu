@@ -1,4 +1,4 @@
-﻿<div class="col-12 form-group">
+<div class="col-12 form-group">
     @{
         var modelType = Model?.GetType();
 
@@ -95,7 +95,7 @@
             }
 
             var extensionLabel = string.IsNullOrEmpty(extension) ? "FILE" : extension.TrimStart('.').ToUpperInvariant();
-            var displayName = string.IsNullOrWhiteSpace(fileName) ? "Open file" : fileName;
+            var displayName = string.IsNullOrWhiteSpace(fileName) ? "Mở file" : fileName;
             var isImage = extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".gif" || extension == ".webp" || extension == ".bmp";
             var iconClass = "bi-file-earmark";
             if (isImage)
@@ -144,14 +144,14 @@
                 @if (valueId > 0)
                 {
                     <div class="mt-2">
-                        <span class="badge bg-secondary">Tai lieu nhan vien</span>
+                        <span class="badge bg-secondary">Tài liệu nhân viên</span>
                         @if (isSignatureRequested && !isSignedInternal)
                         {
-                            <span class="badge bg-warning text-dark ms-1">Dang cho ky</span>
+                            <span class="badge bg-warning text-dark ms-1">Đang chờ ký</span>
                         }
                         @if (isSignedInternal)
                         {
-                            <span class="badge bg-success ms-1">Da ky noi bo</span>
+                            <span class="badge bg-success ms-1">Đã ký nội bộ</span>
                         }
                     </div>
                     @if (isSignatureRequested && !isSignedInternal)
@@ -159,11 +159,11 @@
                         <div class="small text-muted mt-2">
                             @if (requestedAt.HasValue)
                             {
-                                <div>Yeu cau ky: <strong>@requestedAt.Value.ToString("dd/MM/yyyy HH:mm")</strong></div>
+                                <div>Yêu cầu ký: <strong>@requestedAt.Value.ToString("dd/MM/yyyy HH:mm")</strong></div>
                             }
                             @if (!string.IsNullOrWhiteSpace(requestedByDisplay))
                             {
-                                <div>Nguoi yeu cau: <strong>@requestedByDisplay</strong></div>
+                                <div>Người yêu cầu: <strong>@requestedByDisplay</strong></div>
                             }
                         </div>
                     }
@@ -172,19 +172,19 @@
                         <div class="small text-muted mt-2">
                             @if (signedAt.HasValue)
                             {
-                                <div>Da ky luc: <strong>@signedAt.Value.ToString("dd/MM/yyyy HH:mm")</strong></div>
+                                <div>Đã ký lúc: <strong>@signedAt.Value.ToString("dd/MM/yyyy HH:mm")</strong></div>
                             }
                             @if (!string.IsNullOrWhiteSpace(signedByDisplay))
                             {
-                                <div>Nguoi ky: <strong>@signedByDisplay</strong></div>
+                                <div>Người ký: <strong>@signedByDisplay</strong></div>
                             }
                             @if (!string.IsNullOrWhiteSpace(signatureIntentText))
                             {
-                                <div>Y chi dong y: <strong>@signatureIntentText</strong></div>
+                                <div>Ý chí đồng ý: <strong>@signatureIntentText</strong></div>
                             }
                             @if (!string.IsNullOrWhiteSpace(signedIpAddress))
                             {
-                                <div>IP luc ky: <strong>@signedIpAddress</strong></div>
+                                <div>IP lúc ký: <strong>@signedIpAddress</strong></div>
                             }
                             @if (!string.IsNullOrWhiteSpace(signedUserAgent))
                             {
@@ -192,19 +192,19 @@
                             }
                             @if (!string.IsNullOrWhiteSpace(signedFileArchivePath))
                             {
-                                <div class="text-break">Ban sao da ky: <a href="@signedFileArchivePath" target="_blank">Mo file da ky</a></div>
+                                <div class="text-break">Bản sao đã ký: <a href="@signedFileArchivePath" target="_blank">Mở file đã ký</a></div>
                             }
                             @if (!string.IsNullOrWhiteSpace(signatureImagePath))
                             {
-                                <div class="text-break">Anh chu ky: <a href="@signatureImagePath" target="_blank">Mo anh chu ky</a></div>
+                                <div class="text-break">Ảnh chữ ký: <a href="@signatureImagePath" target="_blank">Mở ảnh chữ ký</a></div>
                             }
-                            <div>Tai lieu da khoa chinh sua.</div>
+                            <div>Tài liệu đã khóa chỉnh sửa.</div>
                         </div>
                     }
                     @if (canRequestSignature && !isSignatureRequested && !isSignedInternal && !string.IsNullOrWhiteSpace(linkfiledisplay))
                     {
                         <div class="mt-2">
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="requestEmployeeDocumentSign(@valueId)">Yeu cau ky</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="requestEmployeeDocumentSign(@valueId)">Yêu cầu ký</button>
                         </div>
                     }
                     @if (canSignInternal && isSignatureRequested && !isSignedInternal)

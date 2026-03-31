@@ -7,7 +7,7 @@ function approveLeave(id, action) {
 
 async function submitApproval() {
     const data = {
-        Id: parseInt($('#approveId').val()),
+        Id: parseInt($('#approveId').val(), 10),
         Action: $('#approveAction').val(),
         Comment: $('#approveComment').val()
     };
@@ -24,14 +24,14 @@ async function submitApproval() {
 
         const result = await response.json();
         if (result.success) {
-            alert('Thao tác thành công');
+            alert('Thao tác thành công.');
             location.reload();
         } else {
-            alert(result.message || 'Có lỗi xảy ra');
+            alert(result.message || 'Có lỗi xảy ra.');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Lỗi hệ thống');
+        alert('Lỗi hệ thống.');
     }
 }
 
@@ -44,7 +44,7 @@ async function viewHistory(id) {
             html += `<tr>
                 <td>${new Date(item.actionTime).toLocaleString()}</td>
                 <td>${item.actionByName}</td>
-                <td><span class="badge ${getActionBadge(item.action)}">${item.action}</span></td>
+                <td><span class="badge ${getActionBadge(item.action)}">${getActionText(item.action)}</span></td>
                 <td>${item.comment || ''}</td>
             </tr>`;
         });
@@ -64,5 +64,17 @@ function getActionBadge(action) {
         case 'Acting': return 'bg-warning text-dark';
         case 'Cancel': return 'bg-secondary';
         default: return 'bg-light text-dark';
+    }
+}
+
+function getActionText(action) {
+    switch (action) {
+        case 'Create': return 'Tạo mới';
+        case 'Update': return 'Cập nhật';
+        case 'Agree': return 'Phê duyệt';
+        case 'Reject': return 'Từ chối';
+        case 'Acting': return 'Duyệt thay';
+        case 'Cancel': return 'Hủy';
+        default: return action || '';
     }
 }

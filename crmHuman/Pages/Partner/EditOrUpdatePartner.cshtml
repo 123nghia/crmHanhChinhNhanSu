@@ -1,4 +1,4 @@
-@{
+ï»¿@{
     
     var arrayRol = new List<crmHuman.Model.SelectDisplay>()
         {
@@ -32,7 +32,7 @@
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không ho?t d?ng"
+                Code ="0", Name ="Khï¿½ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
@@ -51,11 +51,11 @@
    
     @if (itemObject.Id < 1)
     {
-        <h5 class="modal-title">Thêm m?i d?i tác</h5>
+        <h5 class="modal-title">Thï¿½m m?i d?i tï¿½c</h5>
     }
     else
     {
-        <h5 class="modal-title">C?p nh?t thông tin</h5>
+        <h5 class="modal-title">C?p nh?t thï¿½ng tin</h5>
     }
     <button type="button" class="btn-close"
                     data-bs-dismiss="modal"
@@ -69,7 +69,7 @@
                     @if (itemObject.Id > 0)
                 {
                         <div class="col-12 form-group ">
-                        <label class="form-label">Mã d?i tác</label>
+                        <label class="form-label">Mï¿½ d?i tï¿½c</label>
                         <input name="code" readonly id="txtCode" value="@itemObject.Code" type="text" class="form-control" placeholder="">
                         <div class="invalid-feedback-cs">
                         Please choose a username.
@@ -78,7 +78,7 @@
                  }
      
                 <div class="col-12 form-group">
-                    <label class="form-label">Tên d?i tác</label>
+                    <label class="form-label">Tï¿½n d?i tï¿½c</label>
                          <input type="text" value="@itemObject.Name" name="fullName" id="txtFullName" class="form-control" required placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
@@ -86,7 +86,7 @@
                 </div>
 
                   <div class="col-12 form-group">
-                    <label class="form-label">Tên ng?n</label>
+                    <label class="form-label">Tï¿½n ng?n</label>
                          <input type="text" value="@itemObject.ShortName"  id="txtShortName" class="form-control" required placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
@@ -94,7 +94,7 @@
                 </div>
 
                <div class="col-12 form-group">
-                    <label class="form-label">Nã s? thu?</label>
+                    <label class="form-label">Nï¿½ s? thu?</label>
                          <input type="text" value="@itemObject.TaxCode"  id="txtTaxCode" class="form-control" required placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
@@ -105,7 +105,7 @@
 
              
                  <div class="col-12 form-group">
-                    <label class="form-label">Tr?ng thái</label>
+                    <label class="form-label">Tr?ng thï¿½i</label>
                     <select name="isActive" id="isActive" class="form-select" aria-label="">
                         
                     @foreach (var item in arrayStatus)
@@ -128,7 +128,7 @@
                
 
                 <div class="col-12">
-            <label for="inputAddress2"  class="form-label">Ghi chú</label>
+            <label for="inputAddress2"  class="form-label">Ghi chï¿½</label>
             <textarea name="noted"  id="txtNoted" class="form-control" style="height: 100px">@itemObject.Noted</textarea>
                 </div>
 
@@ -138,10 +138,10 @@
                             {
                                  DataList = Model.listProject.Data,
                                  idAdd = "listProject",
-                                 controlButton =  "D? án",
+                                 controlButton =  "D? ï¿½n",
                                 
-                                buttonAddText ="Thêm d? án",
-                                LableText ="Danh sách d? án"
+                                buttonAddText ="Thï¿½m d? ï¿½n",
+                                LableText ="Danh sï¿½ch d? ï¿½n"
                             
 
                             });
@@ -151,10 +151,10 @@
                             Html.RenderPartial("ControlForm/ItemAdd", new
                             {
                                 DataList = Model.listAddress.Data,
-                                buttonAddText ="Thêm m?i d?a ch?",
-                                LableText ="Ð?a ch?",
+                                buttonAddText ="Thï¿½m m?i d?a ch?",
+                                LableText ="ï¿½?a ch?",
                                  idAdd = "lisItemAdd",
-                                controlButton = "D? án",
+                                controlButton = "D? ï¿½n",
                             
 
                             });
@@ -165,9 +165,9 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
                     data-bs-dismiss="modal">
-                Ðóng
+                ï¿½ï¿½ng
             </button>
-    <button type="button" onclick="SavePartner(@itemObject.Id)" class="btn btn-primary">Luu</button>
+    <button type="button" onclick="SavePartner(@itemObject.Id)" class="btn btn-primary">LÆ°u</button>
         </div>
 
 

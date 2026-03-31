@@ -31,7 +31,7 @@ namespace crmHuman.Helpers
             var connectionString = _configuration.GetValue<string>("AttendanceMachine:DirectSqlConnectionString");
             if (string.IsNullOrWhiteSpace(connectionString))
             {
-                return "Chua cau hinh AttendanceMachine:DirectSqlConnectionString.";
+                return "Chưa cấu hình AttendanceMachine:DirectSqlConnectionString.";
             }
 
             try
@@ -42,7 +42,7 @@ namespace crmHuman.Helpers
             }
             catch (Exception ex)
             {
-                return $"Khong the ket noi SQL direct: {ex.Message}";
+                return $"Không thể kết nối nguồn chấm công direct SQL: {ex.Message}";
             }
         }
 
@@ -57,7 +57,7 @@ namespace crmHuman.Helpers
                 result.Add(new AccessTableData
                 {
                     Name = "DirectSql",
-                    Error = "Chua cau hinh AttendanceMachine:DirectSqlConnectionString."
+                    Error = "Chưa cấu hình AttendanceMachine:DirectSqlConnectionString."
                 });
                 return result;
             }
@@ -74,7 +74,7 @@ namespace crmHuman.Helpers
                         : new AccessTableData
                         {
                             Name = requested.Name,
-                            Error = "Nguon direct SQL khong ho tro bang nay."
+                            Error = "Nguồn direct SQL không hỗ trợ bảng này."
                         };
 
                 result.Add(tableData);

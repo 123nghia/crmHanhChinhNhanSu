@@ -25,7 +25,7 @@ namespace crmHuman.Pages.Attendance
             _attendanceBusiness = attendanceBusiness;
             _logger = logger;
             KeyPage = "Attendance";
-            TitlePage = "Quan ly cham cong";
+            TitlePage = "Quản lý chấm công";
         }
 
         public AttendanceRequest RequestSearch { get; set; } = new AttendanceRequest();
@@ -182,7 +182,7 @@ namespace crmHuman.Pages.Attendance
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error while importing attendance");
-                return ApiResponseHelper.Error("Loi he thong khi import. Vui long thu lai sau.");
+                return ApiResponseHelper.Error("Lỗi hệ thống khi import. Vui lòng thử lại sau.");
             }
         }
 

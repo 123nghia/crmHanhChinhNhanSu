@@ -53,7 +53,7 @@ namespace crmHuman.Pages.Meeting
 
             if (request == null)
             {
-                return new JsonResult(new { success = false, message = "Du lieu khong hop le" });
+                return new JsonResult(new { success = false, message = "D? li?u kh?ng h?p l?." });
             }
 
             if (request.Id > 0)
@@ -61,19 +61,19 @@ namespace crmHuman.Pages.Meeting
                 var existing = await _meetingRoomBusiness.GetBookingById(request.Id);
                 if (existing == null || existing.Id <= 0)
                 {
-                    return new JsonResult(new { success = false, message = "Khong tim thay lich" });
+                    return new JsonResult(new { success = false, message = "Kh?ng t?m th?y l?ch." });
                 }
 
                 if (!CanEditBooking(existing))
                 {
-                    return new JsonResult(new { success = false, message = "Khong co quyen sua" });
+                    return new JsonResult(new { success = false, message = "B?n kh?ng c? quy?n ch?nh s?a l?ch n?y." });
                 }
             }
             else
             {
                 if (!(Permision.Add ?? false))
                 {
-                    return new JsonResult(new { success = false, message = "Khong co quyen them" });
+                    return new JsonResult(new { success = false, message = "B?n kh?ng c? quy?n t?o l?ch n?y." });
                 }
             }
 
@@ -86,18 +86,18 @@ namespace crmHuman.Pages.Meeting
             GetInfoUser();
             if (id <= 0)
             {
-                return new JsonResult(new { success = false, message = "Id khong hop le" });
+                return new JsonResult(new { success = false, message = "Id kh?ng h?p l?." });
             }
 
             var existing = await _meetingRoomBusiness.GetBookingById(id);
             if (existing == null || existing.Id <= 0)
             {
-                return new JsonResult(new { success = false, message = "Khong tim thay lich" });
+                return new JsonResult(new { success = false, message = "Kh?ng t?m th?y l?ch." });
             }
 
             if (!CanEditBooking(existing))
             {
-                return new JsonResult(new { success = false, message = "Khong co quyen xoa" });
+                return new JsonResult(new { success = false, message = "B?n kh?ng c? quy?n x?a l?ch n?y." });
             }
 
             var result = await _meetingRoomBusiness.DeleteBooking(id, UserData.UserId);

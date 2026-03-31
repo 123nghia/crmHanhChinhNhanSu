@@ -26,19 +26,19 @@ function openLeaveDetailsModal(button) {
     var name = row.getAttribute('data-name') || '';
 
     if (!employeeId || employeeId <= 0) {
-        alert('EmployeeId khong hop le');
+        alert('Mã nhân viên không hợp lệ.');
         return;
     }
 
     $('#leaveDetailEmployeeName').val(name);
-    $('#leaveDetailContent').html('<tr><td colspan="8" class="text-center">Dang tai...</td></tr>');
+    $('#leaveDetailContent').html('<tr><td colspan="8" class="text-center">Đang tải...</td></tr>');
     $('#leaveDetailModal').modal('show');
 
     fetch('?handler=LeaveDetails&employeeId=' + employeeId)
         .then(function (res) { return res.json(); })
         .then(function (data) {
             if (!Array.isArray(data) || data.length === 0) {
-                $('#leaveDetailContent').html('<tr><td colspan="8" class="text-center">Khong co du lieu</td></tr>');
+                $('#leaveDetailContent').html('<tr><td colspan="8" class="text-center">Không có dữ liệu</td></tr>');
                 return;
             }
 
@@ -68,28 +68,28 @@ function openLeaveDetailsModal(button) {
         })
         .catch(function (error) {
             console.error('Error:', error);
-            $('#leaveDetailContent').html('<tr><td colspan="8" class="text-center">Loi he thong</td></tr>');
+            $('#leaveDetailContent').html('<tr><td colspan="8" class="text-center">Lỗi hệ thống</td></tr>');
         });
 }
 
 function getLeaveStatusInfo(status) {
     switch (status) {
         case 0:
-            return { text: 'Cho Lead duyet', className: 'bg-warning text-dark' };
+            return { text: 'Chờ quản lý trực tiếp phê duyệt', className: 'bg-warning text-dark' };
         case 1:
-            return { text: 'Cho HCNS duyet', className: 'bg-info text-dark' };
+            return { text: 'Chờ HCNS phê duyệt', className: 'bg-info text-dark' };
         case 2:
-            return { text: 'Cho BGD duyet', className: 'bg-primary' };
+            return { text: 'Chờ BGĐ phê duyệt', className: 'bg-primary' };
         case 3:
-            return { text: 'Da duyet', className: 'bg-success' };
+            return { text: 'Đã phê duyệt', className: 'bg-success' };
         case 4:
-            return { text: 'Da duyet (HCNS)', className: 'bg-success' };
+            return { text: 'Đã phê duyệt (HCNS duyệt thay)', className: 'bg-success' };
         case 5:
-            return { text: 'Tu choi', className: 'bg-danger' };
+            return { text: 'Từ chối', className: 'bg-danger' };
         case 6:
-            return { text: 'Da huy', className: 'bg-secondary' };
+            return { text: 'Đã hủy', className: 'bg-secondary' };
         default:
-            return { text: 'Khong ro', className: 'bg-light text-dark' };
+            return { text: 'Không xác định', className: 'bg-light text-dark' };
     }
 }
 
@@ -144,22 +144,22 @@ async function saveLeaveBalance() {
     var expiredLeaveDays = expiredRaw === '' ? null : parseFloat(expiredRaw);
 
     if (!employeeId || employeeId <= 0) {
-        alert('EmployeeId khong hop le');
+        alert('Mã nhân viên không hợp lệ.');
         return;
     }
 
     if (allowedLeaveDays !== null && Number.isNaN(allowedLeaveDays)) {
-        alert('So ngay duoc huong khong hop le');
+        alert('Số ngày phép năm không hợp lệ.');
         return;
     }
 
     if (carryOverLeaveDays !== null && Number.isNaN(carryOverLeaveDays)) {
-        alert('So ngay phep ton nam cu khong hop le');
+        alert('Số ngày phép tồn năm cũ không hợp lệ.');
         return;
     }
 
     if (expiredLeaveDays !== null && Number.isNaN(expiredLeaveDays)) {
-        alert('So ngay phep het han khong hop le');
+        alert('Số ngày phép hết hạn không hợp lệ.');
         return;
     }
 
@@ -182,20 +182,20 @@ async function saveLeaveBalance() {
 
         var result = await response.json();
         if (response.ok && result.success) {
-            alert('Cap nhat thanh cong');
+            alert('Cập nhật thành công.');
             location.reload();
             return;
         }
 
         if (Array.isArray(result)) {
             var message = result.map(function (item) { return item.Content; }).join('\n');
-            alert(message || 'Co loi xay ra');
+            alert(message || 'Có lỗi xảy ra.');
         } else {
-            alert(result.message || 'Co loi xay ra');
+            alert(result.message || 'Có lỗi xảy ra.');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Loi he thong');
+        alert('Lỗi hệ thống.');
     }
 }
 

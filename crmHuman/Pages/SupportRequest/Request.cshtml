@@ -9,8 +9,8 @@
     <h1>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
-            <li class="breadcrumb-item active">Yeu cau ho tro</li>
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Yêu cầu hỗ trợ</li>
         </ol>
     </nav>
 </div>
@@ -20,7 +20,7 @@
         <div class="col-lg-5">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Tao yeu cau moi</h5>
+                    <h5 class="card-title">Tạo yêu cầu mới</h5>
 
                     @if (!string.IsNullOrWhiteSpace(TempData["ErrorMessage"] as string))
                     {
@@ -34,23 +34,23 @@
                     <form method="post" enctype="multipart/form-data" asp-page-handler="Create">
                         <div class="mb-3">
                             <label class="form-label">
-                                Tieu de
-                                <span data-bs-toggle="tooltip" title="Dat tieu de ngan gon, mo ta dung su co de bo phan tiep nhan nhin la hieu van de.">
+                                Tiêu đề
+                                <span data-bs-toggle="tooltip" title="Đặt tiêu đề ngắn gọn, mô tả đúng sự cố để bộ phận tiếp nhận nhìn là hiểu vấn đề.">
                                     <i class="@tooltipIcon"></i>
                                 </span>
                             </label>
-                            <input asp-for="FormModel.Title" class="form-control" maxlength="250" placeholder="VD: May in phong HCNS bi ket giay" />
+                            <input asp-for="FormModel.Title" class="form-control" maxlength="250" placeholder="VD: Máy in phòng HCNS bị kẹt giấy" />
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">
-                                Bo phan xu ly
-                                <span data-bs-toggle="tooltip" title="He thong se uu tien giao cho team lead cua bo phan nay. Neu khong co team lead thi se tu dong chon mot nhan su dang hoat dong.">
+                                Bộ phận xử lý
+                                <span data-bs-toggle="tooltip" title="Hệ thống sẽ ưu tiên giao cho team lead của bộ phận này. Nếu không có team lead thì sẽ tự động chọn một nhân sự đang hoạt động.">
                                     <i class="@tooltipIcon"></i>
                                 </span>
                             </label>
                             <select asp-for="FormModel.TargetDepartmentCode" class="form-select">
-                                <option value="">-- Chon bo phan --</option>
+                                <option value="">-- Chọn bộ phận --</option>
                                 @foreach (var dept in Model.Departments)
                                 {
                                     <option value="@dept.Code">@dept.Name</option>
@@ -60,18 +60,18 @@
 
                         <div class="mb-3">
                             <label class="form-label">
-                                Noi dung
-                                <span data-bs-toggle="tooltip" title="Mo ta ro hien tuong loi, muc do anh huong, thoi diem xay ra va cach da thu xu ly neu co.">
+                                Nội dung
+                                <span data-bs-toggle="tooltip" title="Mô tả rõ hiện tượng lỗi, mức độ ảnh hưởng, thời điểm xảy ra và cách đã thử xử lý nếu có.">
                                     <i class="@tooltipIcon"></i>
                                 </span>
                             </label>
-                            <textarea asp-for="FormModel.Content" class="form-control" rows="5" placeholder="Mo ta chi tiet van de can ho tro"></textarea>
+                            <textarea asp-for="FormModel.Content" class="form-control" rows="5" placeholder="Mô tả chi tiết vấn đề cần hỗ trợ"></textarea>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">
-                                Hinh anh minh hoa
-                                <span data-bs-toggle="tooltip" title="Co the tai len anh chup loi, man hinh, may moc hoac tai lieu lien quan de bo phan xu ly de hinh dung hon.">
+                                Hình ảnh minh họa
+                                <span data-bs-toggle="tooltip" title="Có thể tải lên ảnh chụp lỗi, màn hình, máy móc hoặc tài liệu liên quan để bộ phận xử lý dễ hình dung hơn.">
                                     <i class="@tooltipIcon"></i>
                                 </span>
                             </label>
@@ -79,7 +79,7 @@
                         </div>
 
                         <div class="d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">Gui yeu cau</button>
+                            <button type="submit" class="btn btn-primary">Gửi yêu cầu</button>
                         </div>
                     </form>
                 </div>
@@ -89,17 +89,17 @@
         <div class="col-lg-7">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Danh sach yeu cau cua toi</h5>
+                    <h5 class="card-title">Danh sách yêu cầu của tôi</h5>
 
                     <form method="get" class="row g-3 mb-3">
                         <div class="col-md-5">
-                            <label class="form-label">Tu khoa</label>
-                            <input type="text" name="token" value="@Model.Token" class="form-control" placeholder="Tim theo tieu de, noi dung" />
+                            <label class="form-label">Từ khóa</label>
+                            <input type="text" name="token" value="@Model.Token" class="form-control" placeholder="Tìm theo tiêu đề, nội dung" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Bo phan</label>
+                            <label class="form-label">Bộ phận</label>
                             <select name="targetDepartmentCode" class="form-select">
-                                <option value="">-- Tat ca --</option>
+                                <option value="">-- Tất cả --</option>
                                 @foreach (var dept in Model.Departments)
                                 {
                                     if (Model.TargetDepartmentCode == dept.Code)
@@ -114,9 +114,9 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Trang thai</label>
+                            <label class="form-label">Trạng thái</label>
                             <select name="status" class="form-select">
-                                <option value="">Tat ca</option>
+                                <option value="">Tất cả</option>
                                 @for (var status = 0; status <= 3; status++)
                                 {
                                     if (Model.Status == status)
@@ -131,7 +131,7 @@
                             </select>
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-outline-primary w-100">Tim</button>
+                            <button type="submit" class="btn btn-outline-primary w-100">Tìm</button>
                         </div>
                     </form>
 
@@ -141,21 +141,21 @@
                                 <tr>
                                     <th>#</th>
                                     <th>
-                                        Tieu de
-                                        <span data-bs-toggle="tooltip" title="Ten ngan gon cua yeu cau ho tro.">
+                                        Tiêu đề
+                                        <span data-bs-toggle="tooltip" title="Tên ngắn gọn của yêu cầu hỗ trợ.">
                                             <i class="@tooltipIcon"></i>
                                         </span>
                                     </th>
-                                    <th>Bo phan xu ly</th>
-                                    <th>Nguoi duoc giao</th>
+                                    <th>Bộ phận xử lý</th>
+                                    <th>Người được giao</th>
                                     <th>
-                                        Trang thai
-                                        <span data-bs-toggle="tooltip" title="Moi tao: da assign. Dang xu ly: bo phan da tiep nhan. Hoan thanh/Da huy: yeu cau da dong.">
+                                        Trạng thái
+                                        <span data-bs-toggle="tooltip" title="Mới tạo: đã assign. Đang xử lý: bộ phận đã tiếp nhận. Hoàn thành/Đã hủy: yêu cầu đã đóng.">
                                             <i class="@tooltipIcon"></i>
                                         </span>
                                     </th>
-                                    <th>Ghi chu</th>
-                                    <th>Thao tac</th>
+                                    <th>Ghi chú</th>
+                                    <th>Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -201,7 +201,7 @@
                                             {
                                                 <form method="post" asp-page-handler="Delete" class="d-inline">
                                                     <input type="hidden" name="id" value="@item.Id" />
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Xoa</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
                                                 </form>
                                             }
                                         </td>
@@ -211,7 +211,7 @@
                                 @if (index == 0)
                                 {
                                     <tr>
-                                        <td colspan="7" class="text-center text-muted">Chua co yeu cau nao.</td>
+                                        <td colspan="7" class="text-center text-muted">Chưa có yêu cầu nào.</td>
                                     </tr>
                                 }
                             </tbody>

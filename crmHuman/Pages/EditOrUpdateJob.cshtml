@@ -1,4 +1,4 @@
-@{
+ï»¿@{
     
     var arrayRol = new List<crmHuman.Model.SelectDisplay>()
         {
@@ -32,7 +32,7 @@
         {
             new Model.SelectDisplay()
             {
-                Code ="0", Name ="Không ho?t d?ng"
+                Code ="0", Name ="Khï¿½ng ho?t d?ng"
             },
             new Model.SelectDisplay()
             {
@@ -50,11 +50,11 @@
    
     @if (itemModel.Id < 1)
     {
-        <h5 class="modal-title">Thêm m?i vi?c làm</h5>
+        <h5 class="modal-title">Thï¿½m m?i vi?c lï¿½m</h5>
     }
     else
     {
-        <h5 class="modal-title">C?p nh?t thông tin</h5>
+        <h5 class="modal-title">C?p nh?t thï¿½ng tin</h5>
     }
     <button type="button" class="btn-close"
                     data-bs-dismiss="modal"
@@ -68,9 +68,9 @@
 
                
                  <div class="col-12 form-group">
-            <label class="form-label">Ð?i tác</label>
+            <label class="form-label">ï¿½?i tï¿½c</label>
             <select name="partnerId" id="cbpartnerId4" class="form-select" aria-label="" onchange="getProject(this)" >
-                <option value="-1">Ch?n d?i tác</option>
+                <option value="-1">Ch?n d?i tï¿½c</option>
                 @foreach (var item in Model.allPartner.Data)
 
                 {
@@ -92,7 +92,7 @@
         </div>
      <input type="hidden" id ="txtProjectId" value="@itemModel.ProjectId">
       <div class="col-12 form-group">
-            <label class="form-label">D? án </label>
+            <label class="form-label">D? ï¿½n </label>
             <select  id="cbProject" class="form-select" aria-label=""  >
                 <option value="-1">T?t c?</option>
                
@@ -128,7 +128,7 @@
 
        
               <div class="col-12 form-group">
-                    <label class="form-label">V? trí tuy?n</label>
+                    <label class="form-label">V? trï¿½ tuy?n</label>
                     <input type="text" value="@itemModel.Name" name="fullName" id="txtName" class="form-control" required placeholder="" />
                     <div class="invalid-feedback-cs">
                     </div>
@@ -138,7 +138,7 @@
 
 
                 <div class="col-12 form-group">
-                    <label class="form-label">Tr?ng thái</label>
+                    <label class="form-label">Tr?ng thï¿½i</label>
             <select name="isActive" id="cbisActive" class="form-select" aria-label="">
                         
                 @foreach (var item in arrayStatus)
@@ -161,7 +161,7 @@
                     </div>
                 </div>
         <div class="col-12 form-group">
-                <label class="form-label">S? ngày b?o hành</label>
+                <label class="form-label">S? ngï¿½y b?o hï¿½nh</label>
             <input type="text" value="@itemModel.WarrantyDate" name="Warrantydate" id="txtWarrantydate" class="form-control" required placeholder="" />
                 <div class="invalid-feedback-cs">
                 </div>
@@ -174,12 +174,12 @@
                 ValueControl = itemModel.Inputfile,
                 NameControl = "txtinputfile",
                 IdControl = "txtinputfile",
-                Lable = "File mô t?"
+                Lable = "File mï¿½ t?"
 
             });
         }
         <div class="col-12">
-            <label for="inputAddress2" class="form-label">Mô t? ng?n</label>
+            <label for="inputAddress2" class="form-label">Mï¿½ t? ng?n</label>
             <textarea name="ShortDes" id="txtShortDes" class="form-control" style="height: 100px">@itemModel.ShortDes</textarea>
         </div>   
         
@@ -199,7 +199,7 @@
 
 
                 <div class="col-12">
-            <label for="inputAddress2"  class="form-label">Ghi chú</label>
+            <label for="inputAddress2"  class="form-label">Ghi chï¿½</label>
             <textarea name="noted" id="txtNoted" class="form-control" style="height: 100px">@itemModel.Noted</textarea>
                 </div>
 
@@ -211,9 +211,9 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary"
                     data-bs-dismiss="modal">
-                Ðóng
+                ï¿½ï¿½ng
             </button>
-    <button type="button" onclick="saveJob(@itemModel.Id)" class="btn btn-primary">Luu</button>
+    <button type="button" onclick="saveJob(@itemModel.Id)" class="btn btn-primary">LÆ°u</button>
         </div>
 
 

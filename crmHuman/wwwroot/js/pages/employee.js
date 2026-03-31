@@ -1,4 +1,4 @@
-﻿function openImportEmployee() {
+function openImportEmployee() {
     $("#contentModal").html("");
     $("#formModal").modal("show");
     $.get("/Employee?handler=FormImportEmployee", function (rs) {
@@ -23,7 +23,7 @@ function formatImportErrors(errors) {
     var items = errors.map(function (item) {
         var row = item && (item.Row ?? item.row);
         var content = item && (item.Content ?? item.content);
-        var rowLabel = row !== undefined && row !== null && row !== "" ? "Dong " + row + ": " : "";
+        var rowLabel = row !== undefined && row !== null && row !== "" ? "Dòng " + row + ": " : "";
         return "<li>" + escapeHtml(rowLabel + (content ?? "")) + "</li>";
     }).join("");
 
@@ -34,7 +34,7 @@ function showImportModal(options) {
     if (window.Swal && typeof Swal.fire === "function") {
         return Swal.fire(options);
     }
-    console.error(options && options.title ? options.title : "Import error");
+    console.error(options && options.title ? options.title : "Lỗi import");
     return Promise.resolve();
 }
 
@@ -43,8 +43,8 @@ function submitImportEmployee() {
     if (!form) {
         showImportModal({
             icon: "error",
-            title: "Loi",
-            text: "Khong tim thay form import"
+            title: "Lỗi",
+            text: "Không tìm thấy form import"
         });
         return;
     }
@@ -52,8 +52,8 @@ function submitImportEmployee() {
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
         showImportModal({
             icon: "warning",
-            title: "Thong bao",
-            text: "Vui long chon file .xlsx"
+            title: "Thông báo",
+            text: "Vui lòng chọn file .xlsx"
         });
         return;
     }
@@ -62,7 +62,7 @@ function submitImportEmployee() {
     const originalText = btnSubmit ? btnSubmit.innerHTML : "";
     if (btnSubmit) {
         btnSubmit.disabled = true;
-        btnSubmit.innerHTML = "<span class=\"spinner-border spinner-border-sm\" role=\"status\" aria-hidden=\"true\"></span> Dang xu ly...";
+        btnSubmit.innerHTML = "<span class=\"spinner-border spinner-border-sm\" role=\"status\" aria-hidden=\"true\"></span> Đang xử lý...";
     }
 
     const data = new FormData(form);
@@ -84,13 +84,13 @@ function submitImportEmployee() {
 
             if (res && res.success) {
                 var successHtml = "<div style=\"text-align:left\">";
-                successHtml += "<div>- Thanh cong: " + (res.totalSuccess ?? 0) + "</div>";
-                successHtml += "<div>- Loi: " + (res.totalError ?? 0) + "</div>";
+                successHtml += "<div>- Thành công: " + (res.totalSuccess ?? 0) + "</div>";
+                successHtml += "<div>- Lỗi: " + (res.totalError ?? 0) + "</div>";
                 successHtml += "</div>";
 
                 showImportModal({
                     icon: "success",
-                    title: "Import thanh cong",
+                    title: "Import thành công",
                     html: successHtml
                 }).then(function () {
                     $("#formModal").modal("hide");
@@ -99,8 +99,8 @@ function submitImportEmployee() {
             } else {
                 showImportModal({
                     icon: "error",
-                    title: "Import that bai",
-                    text: "Khong the xu ly du lieu import"
+                    title: "Import thất bại",
+                    text: "Không thể xử lý dữ liệu import"
                 });
             }
         },
@@ -123,13 +123,13 @@ function submitImportEmployee() {
             if (errorHtml) {
                 showImportModal({
                     icon: "error",
-                    title: "Import that bai",
+                    title: "Import thất bại",
                     html: errorHtml
                 });
                 return;
             }
 
-            var fallbackMsg = "Import that bai";
+            var fallbackMsg = "Import thất bại";
             if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
                 fallbackMsg = xhr.responseJSON.message;
             } else if (xhr && xhr.responseText) {
@@ -137,7 +137,7 @@ function submitImportEmployee() {
             }
             showImportModal({
                 icon: "error",
-                title: "Import that bai",
+                title: "Import thất bại",
                 text: fallbackMsg
             });
         }
@@ -235,7 +235,7 @@ function populateEmployeeFilterDropdowns() {
             return a.label.localeCompare(b.label);
         });
 
-        var optionsHtml = '<option value="-1">Tat ca</option>';
+        var optionsHtml = '<option value="-1">Tất cả</option>';
         items.forEach(function (item) {
             var safeValue = escapeHtml(item.value);
             var safeLabel = escapeHtml(item.label);

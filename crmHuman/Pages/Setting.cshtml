@@ -1,7 +1,7 @@
 @page
 @model SettingModel
 @{
-    ViewData["Title"] = "Th�ng tin";
+    ViewData["Title"] = "Thông tin";
 
     var userCurrent = Model.UserProfile;
     var dateText = "";
@@ -10,38 +10,19 @@
         dateText = userCurrent.Dob.Value.ToString("dd/MM/yyyy");
     }
 
-
     var arrayRol = new List<crmHuman.Model.SelectDisplay>()
-        {
-            new Model.SelectDisplay()
-            {
-                Code ="1", Name ="Admin"
-            },
-            new Model.SelectDisplay()
-            {
-            Code ="2", Name ="TC"
-            },
-            new Model.SelectDisplay()
-            {
-            Code ="9", Name ="HCNS"
-            },
-            new Model.SelectDisplay()
-            {
-            Code ="3", Name ="TL"
-            }, new Model.SelectDisplay()
-            {
-              Code ="4", Name ="Marketing"
-            },
-            new Model.SelectDisplay()
-            {
-            Code ="6", Name ="Tru?ng CTV"
-            }
-        };
-
+    {
+        new Model.SelectDisplay() { Code = "1", Name = "Admin" },
+        new Model.SelectDisplay() { Code = "2", Name = "TC" },
+        new Model.SelectDisplay() { Code = "9", Name = "HCNS" },
+        new Model.SelectDisplay() { Code = "3", Name = "TL" },
+        new Model.SelectDisplay() { Code = "4", Name = "Marketing" },
+        new Model.SelectDisplay() { Code = "6", Name = "Trưởng CTV" }
+    };
 
     string getNameArrol(string roleCode)
     {
-        if( roleCode =="1")
+        if (roleCode == "1")
         {
             return "Admin";
         }
@@ -55,57 +36,55 @@
         }
         if (roleCode == "3")
         {
-            return "Tru?ng nh�m";
+            return "Trưởng nhóm";
         }
         return "";
     }
 }
- 
- <div class="pagetitle">
 
+<div class="pagetitle">
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang ch?</a></li>
-            <li class="breadcrumb-item"><a href="javascript:void(0)">C�i d?t</a></li>
-         
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="javascript:void(0)">Cài đặt</a></li>
         </ol>
     </nav>
-</div><!-- End Page Title -->
+</div>
 
 <section class="section profile">
     <div class="row">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Ca nhan hoa giao dien</h5>
+                <h5 class="card-title">Cá nhân hóa giao diện</h5>
 
                 @if (TempData["ThemeSaved"] != null)
                 {
                     var saved = TempData["ThemeSaved"]?.ToString();
                     if (saved == "1")
                     {
-                        <div class="alert alert-success">Da luu cai dat giao dien.</div>
+                        <div class="alert alert-success">Đã lưu cài đặt giao diện.</div>
                     }
                     else
                     {
-                        <div class="alert alert-danger">Khong the luu cai dat giao dien.</div>
+                        <div class="alert alert-danger">Không thể lưu cài đặt giao diện.</div>
                     }
                 }
 
                 <form method="post" asp-page-handler="SaveTheme" class="row g-3">
                     <div class="col-md-4 form-group">
-                        <label class="form-label" for="ThemeForm_PrimaryColor">Mau chu dao</label>
+                        <label class="form-label" for="ThemeForm_PrimaryColor">Màu chủ đạo</label>
                         <input type="color" class="form-control form-control-color" asp-for="ThemeForm.PrimaryColor">
                     </div>
                     <div class="col-md-4 form-group">
-                        <label class="form-label" for="ThemeForm_ButtonColor">Mau nut</label>
+                        <label class="form-label" for="ThemeForm_ButtonColor">Màu nút</label>
                         <input type="color" class="form-control form-control-color" asp-for="ThemeForm.ButtonColor">
                     </div>
                     <div class="col-md-4 form-group">
-                        <label class="form-label" for="ThemeForm_BackgroundColor">Mau nen</label>
+                        <label class="form-label" for="ThemeForm_BackgroundColor">Màu nền</label>
                         <input type="color" class="form-control form-control-color" asp-for="ThemeForm.BackgroundColor">
                     </div>
                     <div class="col-12">
-                        <button class="btn btn-primary" type="submit">Luu cai dat</button>
+                        <button class="btn btn-primary" type="submit">Lưu cài đặt</button>
                     </div>
                 </form>
             </div>
@@ -115,18 +94,18 @@
         {
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Logo he thong</h5>
+                    <h5 class="card-title">Logo hệ thống</h5>
 
                     @if (TempData["LogoSaved"] != null)
                     {
                         var saved = TempData["LogoSaved"]?.ToString();
                         if (saved == "1")
                         {
-                            <div class="alert alert-success">Da cap nhat logo.</div>
+                            <div class="alert alert-success">Đã cập nhật logo.</div>
                         }
                         else
                         {
-                            <div class="alert alert-danger">Khong the cap nhat logo.</div>
+                            <div class="alert alert-danger">Không thể cập nhật logo.</div>
                         }
                     }
 
@@ -135,19 +114,19 @@
                         var err = TempData["LogoError"]?.ToString();
                         if (err == "missing")
                         {
-                            <div class="alert alert-danger">Vui long chon file logo.</div>
+                            <div class="alert alert-danger">Vui lòng chọn file logo.</div>
                         }
                         else if (err == "size")
                         {
-                            <div class="alert alert-danger">Logo qua lon (toi da 2MB).</div>
+                            <div class="alert alert-danger">Logo quá lớn (tối đa 2MB).</div>
                         }
                         else if (err == "type")
                         {
-                            <div class="alert alert-danger">Chi ho tro PNG/JPG.</div>
+                            <div class="alert alert-danger">Chỉ hỗ trợ PNG/JPG.</div>
                         }
                         else
                         {
-                            <div class="alert alert-danger">Khong the cap nhat logo.</div>
+                            <div class="alert alert-danger">Không thể cập nhật logo.</div>
                         }
                     }
 
@@ -157,11 +136,11 @@
 
                     <form method="post" asp-page-handler="UpdateLogo" enctype="multipart/form-data" class="row g-3">
                         <div class="col-12 form-group">
-                            <label class="form-label" for="LogoFile">Chon logo (png/jpg, &lt;= 2MB)</label>
+                            <label class="form-label" for="LogoFile">Chọn logo (png/jpg, &lt;= 2MB)</label>
                             <input type="file" asp-for="LogoFile" class="form-control" accept=".png,.jpg,.jpeg">
                         </div>
                         <div class="col-12">
-                            <button class="btn btn-primary" type="submit">Cap nhat logo</button>
+                            <button class="btn btn-primary" type="submit">Cập nhật logo</button>
                         </div>
                     </form>
                 </div>

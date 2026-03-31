@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Linq;
+using System.Threading.Tasks;
 using VS.Human.Business;
-using VS.Human.Rep.Model;
 using VS.Human.Item;
+using VS.Human.Rep.Model;
 
 namespace crmHuman.Pages.Leave
 {
@@ -58,7 +60,6 @@ namespace crmHuman.Pages.Leave
             GetInfoUser();
             if (!(Permision.View ?? false))
             {
-                // Handle unauthorized access if needed, or rely on layout hiding links
                 LeaveList = new BaseList { Data = new List<object>(), Total = 0 };
             }
             else
@@ -140,8 +141,15 @@ namespace crmHuman.Pages.Leave
         public async Task<IActionResult> OnPostSaveAsync([FromBody] LeaveAddUpdate model)
         {
             GetInfoUser();
-            if (!(Permision.Add ?? false) && model.Id == 0) return new JsonResult(new { success = false, message = "No permission to add" });
-            if (!(Permision.Edit ?? false) && model.Id > 0) return new JsonResult(new { success = false, message = "No permission to edit" });
+            if (!(Permision.Add ?? false) && model.Id == 0)
+            {
+                return new JsonResult(new { success = false, message = "Bạn không có quyền tạo đơn nghỉ phép." });
+            }
+
+            if (!(Permision.Edit ?? false) && model.Id > 0)
+            {
+                return new JsonResult(new { success = false, message = "Bạn không có quyền chỉnh sửa đơn nghỉ phép." });
+            }
 
             if (model.EmployeeId == 0)
             {
@@ -154,22 +162,22 @@ namespace crmHuman.Pages.Leave
                 return new JsonResult(new { success = true, id = result });
             }
 
-            var message = "Co loi xay ra";
+            var message = "Có lỗi xảy ra.";
             if (result == -1)
             {
-                message = "Ngay bat dau khong duoc lon hon ngay ket thuc.";
+                message = "Ngày bắt đầu không được lớn hơn ngày kết thúc.";
             }
             else if (result == -2)
             {
-                message = "Nghi phep nam phai dang ky truoc it nhat 1 ngay.";
+                message = "Nghỉ phép năm phải đăng ký trước ít nhất 1 ngày.";
             }
             else if (result == -3)
             {
-                message = "Don nghi phep nay da ton tai tren he thong. Vui long kiem tra lai danh sach truoc khi luu.";
+                message = "Đơn nghỉ phép này đã tồn tại trên hệ thống. Vui lòng kiểm tra lại danh sách trước khi lưu.";
             }
             else if (result == -4)
             {
-                message = "He thong dang xu ly mot yeu cau trung lap. Vui long thu lai sau it giay.";
+                message = "Hệ thống đang xử lý một yêu cầu trùng lặp. Vui lòng thử lại sau ít giây.";
             }
 
             return new JsonResult(new { success = false, message });
@@ -178,10 +186,117 @@ namespace crmHuman.Pages.Leave
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {
             GetInfoUser();
-            if (!(Permision.Delete ?? false)) return new JsonResult(new { success = false, message = "No permission to delete" });
+            if (!(Permision.Delete ?? false))
+            {
+                return new JsonResult(new { success = false, message = "Bạn không có quyền xóa đơn nghỉ phép." });
+            }
 
             var result = await _leaveBusiness.DeleteLeave(id, UserData.UserId);
             return new JsonResult(new { success = result });
+        }
+
+        public async Task<IActionResult> OnPostExportAsync()
+        {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Redirect("/Login");
+            }
+
+            GetInfoUser();
+            if (!(Permision.View ?? false))
+            {
+                return new JsonResult(new { success = false, message = "Bạn không có quyền xuất dữ liệu." });
+            }
+
+            var scope = ResolveLeaveScope();
+            var leaveList = await _leaveBusiness.GetLeaveList(scope.employeeId, null, null, null, 1, 5000, scope.userId);
+            var items = leaveList.Data?.OfType<LeaveIndexModel>().ToList() ?? new List<LeaveIndexModel>();
+
+            if (items.Count == 0)
+            {
+                var errorBytes = global::System.Text.Encoding.UTF8.GetBytes("Không có dữ liệu để xuất.");
+                return File(errorBytes, "text/plain", "Khong_co_du_lieu.txt");
+            }
+
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using var package = new ExcelPackage();
+            var worksheet = package.Workbook.Worksheets.Add("Nghỉ phép");
+
+            var headers = new[]
+            {
+                "STT",
+                "Người tạo",
+                "Ngày tạo",
+                "Loại nghỉ",
+                "Từ ngày",
+                "Đến ngày",
+                "Số ngày",
+                "Người nhận bàn giao",
+                "Lý do",
+                "Trạng thái",
+                "Người phê duyệt cuối"
+            };
+
+            worksheet.Cells[1, 1, 1, headers.Length].Merge = true;
+            worksheet.Cells[1, 1].Value = "DỮ LIỆU NGHỈ PHÉP";
+            worksheet.Cells[2, 1, 2, headers.Length].Merge = true;
+            worksheet.Cells[2, 1].Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm}";
+            worksheet.Cells[1, 1, 2, headers.Length].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            worksheet.Cells[1, 1, 2, headers.Length].Style.Font.Bold = true;
+
+            const int headerRow = 4;
+            for (int i = 0; i < headers.Length; i++)
+            {
+                worksheet.Cells[headerRow, i + 1].Value = headers[i];
+            }
+
+            worksheet.Cells[headerRow, 1, headerRow, headers.Length].Style.Font.Bold = true;
+            worksheet.Cells[headerRow, 1, headerRow, headers.Length].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            worksheet.Cells[headerRow, 1, headerRow, headers.Length].Style.Fill.BackgroundColor.SetColor(global::System.Drawing.Color.LightGray);
+
+            var row = headerRow + 1;
+            var stt = 1;
+            foreach (var item in items)
+            {
+                worksheet.Cells[row, 1].Value = stt++;
+                worksheet.Cells[row, 2].Value = item.EmployeeName;
+                worksheet.Cells[row, 3].Value = item.CreateAt.ToString("dd/MM/yyyy");
+                worksheet.Cells[row, 4].Value = item.LeaveTypeName;
+                worksheet.Cells[row, 5].Value = item.FromDate.ToString("dd/MM/yyyy");
+                worksheet.Cells[row, 6].Value = item.ToDate.ToString("dd/MM/yyyy");
+                worksheet.Cells[row, 7].Value = item.NumDays;
+                worksheet.Cells[row, 8].Value = item.HandoverEmployeeName;
+                worksheet.Cells[row, 9].Value = item.Reason;
+                worksheet.Cells[row, 10].Value = GetLeaveStatusText(item.Status);
+                worksheet.Cells[row, 11].Value = item.ApproverName;
+                row++;
+            }
+
+            var dataRange = worksheet.Cells[headerRow, 1, row - 1, headers.Length];
+            dataRange.Style.Border.Top.Style = ExcelBorderStyle.Thin;
+            dataRange.Style.Border.Left.Style = ExcelBorderStyle.Thin;
+            dataRange.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            dataRange.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+
+            var fileBytes = package.GetAsByteArray();
+            var fileName = $"DuLieuNghiPhep_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+            return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+
+        private static string GetLeaveStatusText(int status)
+        {
+            return status switch
+            {
+                0 => "Chờ quản lý trực tiếp phê duyệt",
+                1 => "Chờ HCNS phê duyệt",
+                2 => "Chờ BGĐ phê duyệt",
+                3 => "Đã phê duyệt",
+                4 => "Đã phê duyệt (HCNS duyệt thay)",
+                5 => "Từ chối",
+                6 => "Đã hủy",
+                _ => "Không xác định"
+            };
         }
     }
 }

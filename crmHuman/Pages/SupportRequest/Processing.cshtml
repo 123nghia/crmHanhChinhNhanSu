@@ -9,8 +9,8 @@
     <h1>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
-            <li class="breadcrumb-item active">Xu ly yeu cau ho tro</li>
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Xử lý yêu cầu hỗ trợ</li>
         </ol>
     </nav>
 </div>
@@ -18,7 +18,7 @@
 <section class="section">
     <div class="card">
         <div class="card-body">
-            <h5 class="card-title">Danh sach can xu ly</h5>
+            <h5 class="card-title">Danh sách cần xử lý</h5>
 
             @if (!string.IsNullOrWhiteSpace(TempData["ErrorMessage"] as string))
             {
@@ -31,13 +31,13 @@
 
             <form method="get" class="row g-3 mb-3">
                 <div class="col-md-5">
-                    <label class="form-label">Tu khoa</label>
-                    <input type="text" name="token" value="@Model.Token" class="form-control" placeholder="Tim theo tieu de, noi dung, nguoi gui" />
+                    <label class="form-label">Từ khóa</label>
+                    <input type="text" name="token" value="@Model.Token" class="form-control" placeholder="Tìm theo tiêu đề, nội dung, người gửi" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Bo phan</label>
+                    <label class="form-label">Bộ phận</label>
                     <select name="targetDepartmentCode" class="form-select">
-                        <option value="">-- Tat ca --</option>
+                        <option value="">-- Tất cả --</option>
                         @foreach (var dept in Model.Departments)
                         {
                             if (Model.TargetDepartmentCode == dept.Code)
@@ -52,9 +52,9 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Trang thai</label>
+                    <label class="form-label">Trạng thái</label>
                     <select name="status" class="form-select">
-                        <option value="">Tat ca</option>
+                        <option value="">Tất cả</option>
                         @for (var status = 0; status <= 3; status++)
                         {
                             if (Model.Status == status)
@@ -69,7 +69,7 @@
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-outline-primary w-100">Tim</button>
+                    <button type="submit" class="btn btn-outline-primary w-100">Tìm</button>
                 </div>
             </form>
 
@@ -85,8 +85,8 @@
                     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                         <div>
                             <div class="fw-semibold fs-5">@item.Title</div>
-                            <div class="text-muted small">Nguoi gui: @item.RequesterName | Bo phan gui: @item.RequesterDepartmentText</div>
-                            <div class="text-muted small">Bo phan xu ly: @item.TargetDepartmentText | Nguoi duoc giao: @item.AssignedToName</div>
+                            <div class="text-muted small">Người gửi: @item.RequesterName | Bộ phận gửi: @item.RequesterDepartmentText</div>
+                            <div class="text-muted small">Bộ phận xử lý: @item.TargetDepartmentText | Người được giao: @item.AssignedToName</div>
                         </div>
                         <div>
                             <span class="badge @crmHuman.Pages.SupportRequest.ProcessingModel.GetStatusClass(item.Status)"
@@ -99,8 +99,8 @@
 
                     <div class="mt-3">
                         <label class="form-label mb-1">
-                            Noi dung su co
-                            <span data-bs-toggle="tooltip" title="Mo ta goc do nhan vien gui len, dung de tham chieu khi tiep nhan va cap nhat ket qua.">
+                            Nội dung sự cố
+                            <span data-bs-toggle="tooltip" title="Mô tả gốc do nhân viên gửi lên, dùng để tham chiếu khi tiếp nhận và cập nhật kết quả.">
                                 <i class="@tooltipIcon"></i>
                             </span>
                         </label>
@@ -110,7 +110,7 @@
                     @if ((item.Attachments?.Count ?? 0) > 0)
                     {
                         <div class="mt-3">
-                            <label class="form-label mb-1">Tep dinh kem</label>
+                            <label class="form-label mb-1">Tệp đính kèm</label>
                             <div>
                                 @foreach (var file in item.Attachments)
                                 {
@@ -123,7 +123,7 @@
                     @if (!string.IsNullOrWhiteSpace(item.ProcessorComment))
                     {
                         <div class="mt-3">
-                            <label class="form-label mb-1">Ghi chu xu ly hien tai</label>
+                            <label class="form-label mb-1">Ghi chú xử lý hiện tại</label>
                             <div class="p-3 bg-light rounded">@item.ProcessorComment</div>
                         </div>
                     }
@@ -134,28 +134,28 @@
                             <input type="hidden" name="UpdateModel.Id" value="@item.Id" />
                             <div class="col-md-3">
                                 <label class="form-label">
-                                    Trang thai moi
-                                    <span data-bs-toggle="tooltip" title="Dang xu ly: da tiep nhan. Hoan thanh: da xu ly xong. Da huy: tam dung/khong tiep tuc xu ly.">
+                                    Trạng thái mới
+                                    <span data-bs-toggle="tooltip" title="Đang xử lý: đã tiếp nhận. Hoàn thành: đã xử lý xong. Đã hủy: tạm dừng/không tiếp tục xử lý.">
                                         <i class="@tooltipIcon"></i>
                                     </span>
                                 </label>
                                 <select name="UpdateModel.Status" class="form-select" required>
-                                    <option value="1">Dang xu ly</option>
-                                    <option value="2">Hoan thanh</option>
-                                    <option value="3">Da huy</option>
+                                    <option value="1">Đang xử lý</option>
+                                    <option value="2">Hoàn thành</option>
+                                    <option value="3">Đã hủy</option>
                                 </select>
                             </div>
                             <div class="col-md-7">
                                 <label class="form-label">
-                                    Ghi chu cap nhat
-                                    <span data-bs-toggle="tooltip" title="Noi ro cach xu ly, ket qua, ly do huy hoac thong tin phan hoi cho nhan vien.">
+                                    Ghi chú cập nhật
+                                    <span data-bs-toggle="tooltip" title="Nói rõ cách xử lý, kết quả, lý do hủy hoặc thông tin phản hồi cho nhân viên.">
                                         <i class="@tooltipIcon"></i>
                                     </span>
                                 </label>
-                                <textarea name="UpdateModel.Comment" class="form-control" rows="2" placeholder="Nhap noi dung phan hoi"></textarea>
+                                <textarea name="UpdateModel.Comment" class="form-control" rows="2" placeholder="Nhập nội dung phản hồi"></textarea>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary w-100">Cap nhat</button>
+                                <button type="submit" class="btn btn-primary w-100">Cập nhật</button>
                             </div>
                         </form>
                     }
@@ -164,7 +164,7 @@
 
             @if (Model.RequestList.Total <= 0)
             {
-                <div class="text-center text-muted py-4">Khong co yeu cau nao can xu ly.</div>
+                <div class="text-center text-muted py-4">Không có yêu cầu nào cần xử lý.</div>
             }
         </div>
     </div>

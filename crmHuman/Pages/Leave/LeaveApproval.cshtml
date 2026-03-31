@@ -54,23 +54,23 @@
                                     <td class="text-center">
                                         @if (info.Status == 0)
                                         {
-                                            <span class="badge bg-warning text-dark">Chờ Lead duyệt</span>
+                                            <span class="badge bg-warning text-dark">Chờ quản lý trực tiếp phê duyệt</span>
                                         }
                                         else if (info.Status == 1)
                                         {
-                                            <span class="badge bg-info text-dark">Chờ HCNS duyệt</span>
+                                            <span class="badge bg-info text-dark">Chờ HCNS phê duyệt</span>
                                         }
                                         else if (info.Status == 2)
                                         {
-                                            <span class="badge bg-primary">Chờ BGĐ duyệt</span>
+                                            <span class="badge bg-primary">Chờ BGĐ phê duyệt</span>
                                         }
                                         else if (info.Status == 3)
                                         {
-                                            <span class="badge bg-success">Đã duyệt</span>
+                                            <span class="badge bg-success">Đã phê duyệt</span>
                                         }
                                         else if (info.Status == 4)
                                         {
-                                            <span class="badge bg-success">Đã duyệt (HCNS duyệt thay)</span>
+                                            <span class="badge bg-success">Đã phê duyệt (HCNS duyệt thay)</span>
                                         }
                                         else if (info.Status == 5)
                                         {
@@ -90,7 +90,7 @@
                                             <button class="btn btn-sm btn-info" onclick="viewHistory(@info.Id)" title="Xem lịch sử"><i class="bi bi-clock-history"></i></button>
                                             @if (!isSelfApprovalBlocked)
                                             {
-                                                <button class="btn btn-sm btn-success" onclick="approveLeave(@info.Id, 'Agree')">Duyệt</button>
+                                                <button class="btn btn-sm btn-success" onclick="approveLeave(@info.Id, 'Agree')">Phê duyệt</button>
                                                 @if (Model.UserData.RoleCode == "9" || Model.UserData.RoleCode == "1")
                                                 {
                                                     <button class="btn btn-sm btn-primary" onclick="approveLeave(@info.Id, 'Acting')">Duyệt thay BGĐ</button>
@@ -99,7 +99,7 @@
                                             }
                                             else
                                             {
-                                                <span class="badge bg-secondary">Khong tu duyet</span>
+                                                <span class="badge bg-secondary">Không được tự phê duyệt</span>
                                             }
                                         </div>
                                     </td>
@@ -108,7 +108,7 @@
                             @if (i == 0)
                             {
                                 <tr>
-                                    <td colspan="8" class="text-center">Không có yêu cầu chờ duyệt</td>
+                                    <td colspan="9" class="text-center">Không có yêu cầu chờ duyệt</td>
                                 </tr>
                             }
                         </tbody>
@@ -119,19 +119,18 @@
     </div>
 </section>
 
-<!-- Modal for Rejection Comment -->
 <div class="modal fade" id="commentModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Ghi chú duyệt</h5>
+                <h5 class="modal-title">Ý kiến phê duyệt</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="approveId" />
                 <input type="hidden" id="approveAction" />
                 <div class="mb-3">
-                    <label class="form-label">Ý kiến phản hồi</label>
+                    <label class="form-label">Ghi chú/Lý do</label>
                     <textarea class="form-control" id="approveComment" rows="3"></textarea>
                 </div>
             </div>
@@ -143,7 +142,6 @@
     </div>
 </div>
 
-<!-- Modal for View History -->
 <div class="modal fade" id="historyModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -163,7 +161,6 @@
                             </tr>
                         </thead>
                         <tbody id="historyContent">
-                            <!-- History items will be injected here -->
                         </tbody>
                     </table>
                 </div>
