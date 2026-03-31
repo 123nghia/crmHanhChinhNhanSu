@@ -12,11 +12,17 @@ namespace VS.Human.Rep
 {
     public class LateEarlyRep : RepositoryBase<LateEarlyRequest>, ILateEarlyRep
     {
+        private static bool IsLeadRole(string? roleCode)
+        {
+            return string.Equals(roleCode, "3", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(roleCode, "TL", StringComparison.OrdinalIgnoreCase);
+        }
+
         public LateEarlyRep(IConfiguration configuration) : base(configuration)
         {
         }
 
-        public async Task<BaseList> GetAll(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit)
+        public async Task<BaseList> GetAll(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit, int? currentUserId = null, string? currentRoleCode = null)
         {
             if (page <= 0) page = 1;
             if (limit <= 0) limit = 20;
@@ -38,6 +44,10 @@ namespace VS.Human.Rep
             if (toDate.HasValue)
             {
                 where.Add("r.RequestDate <= @ToDate");
+            }
+            if (currentUserId.HasValue && currentUserId.Value > 0 && IsLeadRole(currentRoleCode))
+            {
+                where.Add("r.EmployeeId IN (SELECT Id FROM getAllUserByUserId(@CurrentUserId))");
             }
 
             var whereSql = string.Join(" AND ", where);
@@ -78,8 +88,19 @@ namespace VS.Human.Rep
                 OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY";
 
             using var con = GetConnection();
-            var total = await con.ExecuteScalarAsync<int>(countSql, new { EmployeeId = employeeId, Status = status, FromDate = fromDate, ToDate = toDate });
-            var data = await con.QueryAsync<LateEarlyIndexModel>(dataSql, new { EmployeeId = employeeId, Status = status, FromDate = fromDate, ToDate = toDate, Offset = offset, Limit = limit });
+            var parameters = new
+            {
+                EmployeeId = employeeId,
+                Status = status,
+                FromDate = fromDate,
+                ToDate = toDate,
+                Offset = offset,
+                Limit = limit,
+                CurrentUserId = currentUserId
+            };
+
+            var total = await con.ExecuteScalarAsync<int>(countSql, parameters);
+            var data = await con.QueryAsync<LateEarlyIndexModel>(dataSql, parameters);
 
             return new BaseList
             {
@@ -202,24 +223,7 @@ namespace VS.Human.Rep
             }
             else
             {
-                if (roleCode == "1")
-                {
-                    statusAfter = 4;
-                    var sql = @"
-                        UPDATE LateEarlyRequests
-                        SET Status = @Status,
-                            AdminApproverId = @ApproverId,
-                            AdminApproveAt = GETDATE(),
-                            AdminComment = @Comment,
-                            ApproverId = @ApproverId,
-                            ApproveAt = GETDATE(),
-                            UpdateAt = GETDATE(),
-                            UpdatedBy = @ApproverId
-                        WHERE Id = @Id";
-
-                    await con.ExecuteAsync(sql, new { Status = statusAfter, ApproverId = approverId, Comment = comment, Id = id }, tran);
-                }
-                else if (currentStatus == 0 && (roleCode == "3" || roleCode == "TL"))
+                if (currentStatus == 0 && (roleCode == "3" || roleCode == "TL"))
                 {
                     statusAfter = 1;
                     var sql = @"
@@ -236,13 +240,15 @@ namespace VS.Human.Rep
                 }
                 else if (currentStatus == 1 && (roleCode == "2" || roleCode == "9" || roleCode == "HCNS"))
                 {
-                    statusAfter = 2;
+                    statusAfter = 4;
                     var sql = @"
                         UPDATE LateEarlyRequests
                         SET Status = @Status,
                             HCNSApproverId = @ApproverId,
                             HCNSApproveAt = GETDATE(),
                             HCNSComment = @Comment,
+                            ApproverId = @ApproverId,
+                            ApproveAt = GETDATE(),
                             UpdateAt = GETDATE(),
                             UpdatedBy = @ApproverId
                         WHERE Id = @Id";
@@ -251,13 +257,15 @@ namespace VS.Human.Rep
                 }
                 else if (currentStatus == 2 && (roleCode == "8" || roleCode == "BGD"))
                 {
-                    statusAfter = 3;
+                    statusAfter = 4;
                     var sql = @"
                         UPDATE LateEarlyRequests
                         SET Status = @Status,
                             BGDApproverId = @ApproverId,
                             BGDApproveAt = GETDATE(),
                             BGDComment = @Comment,
+                            ApproverId = @ApproverId,
+                            ApproveAt = GETDATE(),
                             UpdateAt = GETDATE(),
                             UpdatedBy = @ApproverId
                         WHERE Id = @Id";

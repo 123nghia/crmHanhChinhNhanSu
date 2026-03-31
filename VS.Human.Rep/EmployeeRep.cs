@@ -218,6 +218,38 @@ namespace VS.Human.Rep
             }
         }
 
+        public async Task<bool> IsPeopleManager(int employeeId)
+        {
+            if (employeeId <= 0)
+            {
+                return false;
+            }
+
+            using (var con = GetConnection())
+            {
+                var sql = @"
+                    SELECT CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM [Group] g
+                            WHERE TRY_CONVERT(int, g.ManagerId) = @EmployeeId
+                              AND ISNULL(g.Deleted, 0) = 0
+                        )
+                        OR EXISTS (
+                            SELECT 1
+                            FROM Employees e
+                            WHERE e.ManagerId = @EmployeeId
+                              AND e.Id <> @EmployeeId
+                              AND ISNULL(e.Deleted, 0) = 0
+                        )
+                        THEN CAST(1 AS bit)
+                        ELSE CAST(0 AS bit)
+                    END";
+
+                return await con.ExecuteScalarAsync<bool>(sql, new { EmployeeId = employeeId });
+            }
+        }
+
         public async Task<Employee?> GetTeamLeadByDepartmentCode(string departmentCode)
         {
             if (string.IsNullOrWhiteSpace(departmentCode))

@@ -601,6 +601,28 @@
             return tokenField ? tokenField.value : '';
         }
 
+        function readJsonResponse(response) {
+            return response.text().then(function (text) {
+                var data = {};
+
+                if (text) {
+                    try {
+                        data = JSON.parse(text);
+                    } catch (error) {
+                        throw new Error(response.ok
+                            ? 'Máy chủ trả về dữ liệu không hợp lệ.'
+                            : ('Yêu cầu thất bại (' + response.status + ').'));
+                    }
+                }
+
+                if (!response.ok) {
+                    throw new Error((data && (data.message || data.error)) || ('Yêu cầu thất bại (' + response.status + ').'));
+                }
+
+                return data;
+            });
+        }
+
         function pickSửaorImageFile() {
             return new Promise(function (resolve) {
                 var picker = document.createElement('input');
@@ -623,7 +645,7 @@
                 var formData = new FormData();
                 formData.append('file', file, file.name || 'mail-image.png');
 
-                fetch('?handler=UploadSửaorImage', {
+                fetch('?handler=UploadEditorImage', {
                     method: 'POST',
                     headers: {
                         'RequestVerificationToken': getRequestVerificationToken()
@@ -631,21 +653,13 @@
                     body: formData
                 })
                 .then(function (response) {
-                    return response.json()
-                        .catch(function () {
-                            return {};
-                        })
-                        .then(function (data) {
-                            if (!response.ok) {
-                                throw new Error(data && data.error ? data.error : ('Upload failed: ' + response.status));
-                            }
+                    return readJsonResponse(response).then(function (data) {
+                        if (!data || !data.location) {
+                            throw new Error('Upload response is missing image URL.');
+                        }
 
-                            if (!data || !data.location) {
-                                throw new Error('Upload response is missing image URL.');
-                            }
-
-                            resolve(data.location);
-                        });
+                        resolve(data.location);
+                    });
                 })
                 .catch(function (error) {
                     reject(error && error.message ? error.message : error);
@@ -1672,7 +1686,7 @@
                 IsActive: document.getElementById('settingActive').checked ? 1 : 0
             };
 
-            fetch('?handler=LưuSetting', {
+            fetch('?handler=SaveSetting', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1680,9 +1694,17 @@
                 },
                 body: JSON.stringify(payload)
             })
-            .then(response => response.json())
+            .then(readJsonResponse)
             .then(data => {
-                alert(data.success ? 'Lưud' : ('Lưu failed: ' + (data.message || 'Lỗi không xác định')));
+                if (data.success) {
+                    alert('Lưu cấu hình mail thành công.');
+                    return;
+                }
+
+                throw new Error(data.message || 'Lưu cấu hình mail thất bại.');
+            })
+            .catch(error => {
+                alert(error && error.message ? error.message : 'Lưu cấu hình mail thất bại.');
             });
         }
 
@@ -1700,7 +1722,7 @@
                 IsActive: document.getElementById('tplIsActive').checked ? 1 : 0
             };
 
-            fetch('?handler=LưuTemplate', {
+            fetch('?handler=SaveTemplate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1708,13 +1730,16 @@
                 },
                 body: JSON.stringify(payload)
             })
-            .then(response => response.json())
+            .then(readJsonResponse)
             .then(data => {
                 if (data.success) {
                     location.reload();
                 } else {
-                    alert('Lưu failed: ' + (data.message || 'Lỗi không xác định'));
+                    throw new Error(data.message || 'Lưu template thất bại.');
                 }
+            })
+            .catch(error => {
+                alert(error && error.message ? error.message : 'Lưu template thất bại.');
             });
         }
 
@@ -1732,9 +1757,17 @@
                 },
                 body: JSON.stringify(payload)
             })
-            .then(response => response.json())
+            .then(readJsonResponse)
             .then(data => {
-                alert(data.success ? 'Đã gửi mail kiểm thử' : ('Gửi thất bại: ' + (data.message || 'Lỗi không xác định')));
+                if (data.success) {
+                    alert('Đã gửi mail kiểm thử');
+                    return;
+                }
+
+                throw new Error(data.message || 'Gửi mail kiểm thử thất bại.');
+            })
+            .catch(error => {
+                alert(error && error.message ? error.message : 'Gửi mail kiểm thử thất bại.');
             });
         }
     </script>

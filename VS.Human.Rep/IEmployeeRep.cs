@@ -20,6 +20,7 @@ namespace VS.Human.Rep
         Task<Employee> GetLastByEmailOrPhone(string email, string phone);
         Task<List<Employee>> GetDuplicateSeeds();
         Task<List<Employee>> GetByRoleCodes(IEnumerable<string> roleCodes);
+        Task<bool> IsPeopleManager(int employeeId);
         Task<Employee?> GetTeamLeadByDepartmentCode(string departmentCode);
         Task<List<Employee>> GetActiveByDepartmentCode(string departmentCode);
         Task<BaseList> GetAll(EmployeeRequest id);

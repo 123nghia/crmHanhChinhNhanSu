@@ -25,6 +25,8 @@ namespace VS.Human.Business
         private const string LateEarlyPendingBgdTemplateCode = "LATE_EARLY_PENDING_BGD";
         private const string LateEarlyPendingAdminTemplateCode = "LATE_EARLY_PENDING_ADMIN";
         private const string LateEarlyEmailEntityType = "LATE_EARLY";
+        private const int DepartmentMasterType = 5;
+        private const string RecruitmentDepartmentName = "Tuyển dụng";
 
         private readonly IEmailConfigBusiness _emailConfigBusiness;
         private readonly IEmailService _emailService;
@@ -43,9 +45,9 @@ namespace VS.Human.Business
             _logger = logger;
         }
 
-        public async Task<BaseList> GetList(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit)
+        public async Task<BaseList> GetList(int? employeeId, int? status, DateTime? fromDate, DateTime? toDate, int page, int limit, int? currentUserId = null, string? currentRoleCode = null)
         {
-            return await _unitOfWork.LateEarlyRep.GetAll(employeeId, status, fromDate, toDate, page, limit);
+            return await _unitOfWork.LateEarlyRep.GetAll(employeeId, status, fromDate, toDate, page, limit, currentUserId, currentRoleCode);
         }
 
         public async Task<LateEarlyIndexModel?> GetById(int id)
@@ -70,17 +72,13 @@ namespace VS.Human.Business
                 return -3;
             }
 
-            var status = 0;
             var employee = await _unitOfWork.EmployeeRep.GetById(model.EmployeeId);
             if (employee == null || employee.Id <= 0)
             {
                 return -4;
             }
 
-            if (!employee.ManagerId.HasValue || employee.ManagerId.Value <= 0)
-            {
-                status = 1;
-            }
+            var status = await ResolveInitialStatusAsync(employee);
 
             var isNew = model.Id <= 0;
             var savedId = await _unitOfWork.LateEarlyRep.Save(model, userId, status);
@@ -94,6 +92,17 @@ namespace VS.Human.Business
 
         public async Task<bool> ApproveWorkflow(int id, string action, int approverId, string roleCode, string? comment)
         {
+            var request = await _unitOfWork.LateEarlyRep.GetById(id);
+            if (request == null || request.Id <= 0)
+            {
+                return false;
+            }
+
+            if (IsAdminOrBgdRole(roleCode) && request.EmployeeId == approverId)
+            {
+                return false;
+            }
+
             var result = await _unitOfWork.LateEarlyRep.ApproveWorkflow(id, action, approverId, roleCode, comment);
             if (result)
             {
@@ -395,6 +404,53 @@ namespace VS.Human.Business
             return null;
         }
 
+        private async Task<int> ResolveInitialStatusAsync(Employee employee)
+        {
+            var isRecruitmentDepartment = await IsRecruitmentDepartmentAsync(employee.DepartmentCode);
+            var isRequesterManager = await IsRequesterManagerAsync(employee);
+            if (!isRecruitmentDepartment || isRequesterManager)
+            {
+                return 2;
+            }
+
+            var manager = await ResolveManagerAsync(employee);
+            if (manager != null && manager.Id > 0 && IsLeadRole(manager.RoleCode))
+            {
+                return 0;
+            }
+
+            return 1;
+        }
+
+        private async Task<bool> IsRecruitmentDepartmentAsync(string? departmentCode)
+        {
+            var normalizedDepartmentCode = departmentCode?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedDepartmentCode))
+            {
+                return false;
+            }
+
+            var recruitmentDepartment = await _unitOfWork.MasterDataRep.GetByName(RecruitmentDepartmentName, DepartmentMasterType);
+            return recruitmentDepartment != null
+                && !string.IsNullOrWhiteSpace(recruitmentDepartment.Code)
+                && string.Equals(recruitmentDepartment.Code, normalizedDepartmentCode, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task<bool> IsRequesterManagerAsync(Employee employee)
+        {
+            if (employee == null || employee.Id <= 0)
+            {
+                return false;
+            }
+
+            if (IsLeadRole(employee.RoleCode))
+            {
+                return true;
+            }
+
+            return await _unitOfWork.EmployeeRep.IsPeopleManager(employee.Id);
+        }
+
         private async Task<List<string>> GetRoleEmailsAsync(params string[] roleCodes)
         {
             var employees = await _unitOfWork.EmployeeRep.GetByRoleCodes(roleCodes);
@@ -519,6 +575,12 @@ namespace VS.Human.Business
         {
             return string.Equals(roleCode, RoleHcns, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(roleCode, "HCNS", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsLeadRole(string? roleCode)
+        {
+            return string.Equals(roleCode, "3", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(roleCode, "TL", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsAdminOrBgdRole(string? roleCode)
