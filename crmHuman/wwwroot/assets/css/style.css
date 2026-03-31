@@ -15,7 +15,7 @@
 
 body {
   font-family: "Open Sans", sans-serif;
-  background: #f6f9ff;
+  background: #f4f7f6;
   color: #444444;
 }
 
@@ -219,9 +219,10 @@ h6 {
 /* Card */
 .card {
   margin-bottom: 30px;
-  border: none;
-  border-radius: 5px;
-  box-shadow: 0px 0 30px rgba(1, 41, 112, 0.1);
+  border: 1px solid #eaedf1;
+  border-radius: 8px;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.03);
+  background-color: #fff;
 }
 
 .card-header,
@@ -380,7 +381,7 @@ h6 {
   transition: all 0.5s;
   z-index: 997;
   height: 60px;
-  box-shadow: 0px 2px 20px rgba(1, 41, 112, 0.1);
+  box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.05);
   background-color: #fff;
   padding-left: 20px;
   /* Toggle Sidebar Button */
@@ -609,7 +610,7 @@ h6 {
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #aab7cf transparent;
-  box-shadow: 0px 0px 20px rgba(1, 41, 112, 0.1);
+  border-right: 1px solid #eaedf1;
   background-color: #fff;
 }
 
@@ -684,17 +685,17 @@ h6 {
   align-items: center;
   font-size: 15px;
   font-weight: 600;
-  color: #98181c;
+  color: #012970;
   transition: 0.3;
-  background: #f6f9ff;
+  background: transparent;
   padding: 10px 15px;
   border-radius: 4px;
 }
 
 .sidebar-nav .nav-link i {
-  font-size: 16px;
+  font-size: 18px;
   margin-right: 10px;
-  color: #98181c;
+  color: #899bbd;
 }
 
 .sidebar-nav .nav-link.collapsed {
@@ -708,10 +709,21 @@ h6 {
 
 .sidebar-nav .nav-link:hover {
   color: #98181c;
-  background: #f6f9ff;
+  background: #fdfdfd;
 }
 
 .sidebar-nav .nav-link:hover i {
+  color: #98181c;
+}
+
+/* Specific active styling for top-level */
+.sidebar-nav .nav-link.active {
+  color: #98181c;
+  background: #fdfdfd;
+  border-left: 3px solid #98181c;
+}
+
+.sidebar-nav .nav-link.active i {
   color: #98181c;
 }
 
@@ -742,10 +754,11 @@ h6 {
 }
 
 .sidebar-nav .nav-content a i {
-  font-size: 6px;
+  font-size: 14px;
   margin-right: 8px;
   line-height: 0;
   border-radius: 50%;
+  color: #012970;
 }
 
 .sidebar-nav .nav-content a:hover,
@@ -753,8 +766,17 @@ h6 {
   color: #98181c;
 }
 
+.sidebar-nav .nav-content a.active {
+  color: #98181c;
+  font-weight: 700;
+}
+
 .sidebar-nav .nav-content a.active i {
-  background-color: #98181c;
+  color: #98181c;
+}
+
+.sidebar-nav .nav-content a:hover i {
+  color: #98181c;
 }
 
 /*--------------------------------------------------------------
@@ -1242,3 +1264,34 @@ h6 {
 .divblock {
   margin-top: 35px;
 }
+
+/*--------------------------------------------------------------
+# Modern Design Enhancements
+--------------------------------------------------------------*/
+.form-control, .form-select {
+  border: 1px solid #dce1e7;
+  border-radius: 4px;
+  box-shadow: none;
+  font-size: 14px;
+  padding: 8px 12px;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #98181c;
+  box-shadow: 0 0 0 0.2rem rgba(152, 24, 28, 0.15);
+}
+.table {
+  color: #444444;
+}
+.table thead th {
+  background-color: #f8f9fa !important;
+  color: #51678f;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 2px solid #eaedf1;
+  padding: 12px 15px;
+}
+.table tbody td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eaedf1;
+  vertical-align: middle;
+}

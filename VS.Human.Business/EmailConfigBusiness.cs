@@ -32,24 +32,61 @@ namespace VS.Human.Business
         {
             var effectiveUserId = userId > 0 ? userId : 1;
             var templates = await _unitOfWork.EmailConfigRep.GetTemplates();
-            var existingCodes = new HashSet<string>(
-                templates
-                    .Where(x => !string.IsNullOrWhiteSpace(x.Code))
-                    .Select(x => x.Code.Trim()),
-                StringComparer.OrdinalIgnoreCase);
+            var existingByCode = templates
+                .Where(x => !string.IsNullOrWhiteSpace(x.Code))
+                .ToDictionary(x => x.Code.Trim(), x => x, StringComparer.OrdinalIgnoreCase);
 
-            foreach (var template in GetDefaultTemplates())
+            foreach (var defaultTemplate in GetDefaultTemplates())
             {
-                if (existingCodes.Contains(template.Code))
+                if (existingByCode.TryGetValue(defaultTemplate.Code, out var existing))
                 {
+                    // Tự động fix lỗi thiếu dấu tiếng Việt và sai token trong các template cũ
+                    var needsUpdate = false;
+                    var fixedSubject = FixTemplateVi(existing.Subject);
+                    var fixedBody = FixTemplateVi(existing.Body);
+                    var fixedName = FixTemplateVi(existing.Name);
+
+                    if (existing.Subject != fixedSubject)
+                    {
+                        existing.Subject = fixedSubject;
+                        needsUpdate = true;
+                    }
+                    if (existing.Body != fixedBody)
+                    {
+                        existing.Body = fixedBody;
+                        needsUpdate = true;
+                    }
+                    if (existing.Name != fixedName)
+                    {
+                        existing.Name = fixedName;
+                        needsUpdate = true;
+                    }
+
+                    if (needsUpdate)
+                    {
+                        existing.UpdatedBy = effectiveUserId;
+                        await _unitOfWork.EmailConfigRep.SaveTemplate(existing);
+                    }
                     continue;
                 }
 
-                template.CreatedBy = effectiveUserId;
-                template.UpdatedBy = effectiveUserId;
-                await _unitOfWork.EmailConfigRep.SaveTemplate(template);
-                existingCodes.Add(template.Code);
+                defaultTemplate.CreatedBy = effectiveUserId;
+                defaultTemplate.UpdatedBy = effectiveUserId;
+                await _unitOfWork.EmailConfigRep.SaveTemplate(defaultTemplate);
+                existingByCode[defaultTemplate.Code] = defaultTemplate;
             }
+        }
+
+        private static string? FixTemplateVi(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            text = text.Replace("đi tre", "đi trễ", StringComparison.OrdinalIgnoreCase);
+            text = text.Replace("di tre", "đi trễ", StringComparison.OrdinalIgnoreCase);
+            text = text.Replace("Xin chao", "Xin chào");
+            text = text.Replace("Kinh gui", "Kính gửi");
+            text = text.Replace("vừa tạo một yêu cầu", "vừa gửi đơn xin");
+            text = text.Replace("{{RequestType}}", "{{RequestTypeName}}");
+            return text;
         }
 
         public async Task<bool> SaveSetting(EmailSetting setting, int userId)
@@ -113,7 +150,7 @@ namespace VS.Human.Business
                 "Thư mời phỏng vấn - {{CandidateName}}",
                 EmailSenderTypes.Candidate,
                 @"
-<p>Xin chao {{CandidateName}},</p>
+<p>Xin chào {{CandidateName}},</p>
 <p>Lịch phỏng vấn của bạn {{InterviewAction}}.</p>
 <p>Thông tin chi tiết:</p>
 <ul>
@@ -125,7 +162,7 @@ namespace VS.Human.Business
     <li>Người phỏng vấn: {{InterviewerName}}</li>
 </ul>
 <p>{{Noted}}</p>
-<p>Trân trọng,<br/>Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng,<br/>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</p>");
 
             yield return CreateTemplate(
                 "LEAVE_CREATE",
@@ -134,7 +171,7 @@ namespace VS.Human.Business
                 EmailSenderTypes.Employee,
                 @"
 <p>Xin chào {{ManagerName}},</p>
-<p>Nhân viên {{EmployeeName}} vừa tạo một đơn xin nghỉ phép với thông tin như sau:</p>
+<p>{{EmployeeName}} vừa gửi đơn xin nghỉ phép với thông tin như sau:</p>
 <ul>
     <li>Loại nghỉ: {{LeaveType}}</li>
     <li>Từ ngày: {{FromDate}}</li>
@@ -142,8 +179,9 @@ namespace VS.Human.Business
     <li>Số ngày nghỉ: {{TotalDays}}</li>
     <li>Lý do: {{Reason}}</li>
 </ul>
-<p>Vui lòng đăng nhập hệ thống để xem và phê duyệt đơn.</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Vui lòng đăng nhập hệ thống để xem và phê duyệt.</p>
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "LEAVE_APPROVE",
@@ -161,7 +199,8 @@ namespace VS.Human.Business
     <li>Số ngày nghỉ: {{TotalDays}}</li>
 </ul>
 <p>Chúc bạn có thời gian nghỉ ngơi hiệu quả.</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "LEAVE_REJECT",
@@ -179,7 +218,8 @@ namespace VS.Human.Business
 </ul>
 <p>Lý do từ chối:<br />{{RejectReason}}</p>
 <p>Vui lòng liên hệ quản lý để biết thêm chi tiết.</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "LEAVE_PENDING_HCNS",
@@ -197,7 +237,8 @@ namespace VS.Human.Business
     <li>Lý do: {{Reason}}</li>
 </ul>
 <p>Vui lòng đăng nhập hệ thống để tiếp tục xử lý đơn.</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "LEAVE_PENDING_BGD",
@@ -215,7 +256,8 @@ namespace VS.Human.Business
     <li>Lý do: {{Reason}}</li>
 </ul>
 <p>Vui lòng đăng nhập hệ thống để xem và phê duyệt đơn.</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_CREATE",
@@ -224,15 +266,16 @@ namespace VS.Human.Business
                 EmailSenderTypes.Employee,
                 @"
 <p>Xin chào {{ManagerName}},</p>
-<p>{{EmployeeName}} vừa tạo một yêu cầu {{RequestTypeName}} với thông tin như sau:</p>
+<p>{{EmployeeName}} vừa gửi đơn xin {{RequestTypeName}} với thông tin như sau:</p>
 <ul>
     <li>Ngày áp dụng: {{RequestDate}}</li>
     <li>Khung giờ: {{TimeRange}}</li>
     <li>Số phút: {{DurationMinutes}}</li>
     <li>Lý do: {{Reason}}</li>
 </ul>
-<p>Vui lòng đăng nhập hệ thống để xem và phê duyệt yêu cầu.</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Vui lòng đăng nhập hệ thống để xem và phê duyệt.</p>
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_APPROVE",
@@ -247,7 +290,8 @@ namespace VS.Human.Business
     <li>Khung giờ: {{TimeRange}}</li>
     <li>Số phút: {{DurationMinutes}}</li>
 </ul>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_REJECT",
@@ -262,7 +306,8 @@ namespace VS.Human.Business
     <li>Khung giờ: {{TimeRange}}</li>
 </ul>
 <p>Lý do từ chối:<br />{{RejectReason}}</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_PENDING_HCNS",
@@ -279,7 +324,8 @@ namespace VS.Human.Business
     <li>Lý do: {{Reason}}</li>
 </ul>
 <p>Vui lòng đăng nhập hệ thống để tiếp tục xử lý.</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_PENDING_BGD",
@@ -295,8 +341,9 @@ namespace VS.Human.Business
     <li>Số phút: {{DurationMinutes}}</li>
     <li>Lý do: {{Reason}}</li>
 </ul>
-<p>Vui lòng đăng nhập hệ thống để xem và phê duyệt yêu cầu.</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Vui lòng đăng nhập hệ thống để xem và phê duyệt.</p>
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "LATE_EARLY_PENDING_ADMIN",
@@ -304,7 +351,7 @@ namespace VS.Human.Business
                 "Đơn {{RequestTypeName}} của {{EmployeeName}} chờ Admin phê duyệt",
                 EmailSenderTypes.Employee,
                 @"
-<p>Kinh gui Admin,</p>
+<p>Kính gửi Admin,</p>
 <p>Yêu cầu {{RequestTypeName}} của {{EmployeeName}} đã được BGĐ duyệt và đang chờ Admin xác nhận cuối.</p>
 <ul>
     <li>Ngày áp dụng: {{RequestDate}}</li>
@@ -313,7 +360,8 @@ namespace VS.Human.Business
     <li>Lý do: {{Reason}}</li>
 </ul>
 <p>Vui lòng đăng nhập hệ thống để tiếp tục xử lý.</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "SUPPORT_REQUEST_CREATE",
@@ -321,7 +369,7 @@ namespace VS.Human.Business
                 "Yêu cầu hỗ trợ mới: {{Title}}",
                 EmailSenderTypes.Employee,
                 @"
-<p>Xin chao {{AssignedToName}},</p>
+<p>Xin chào {{AssignedToName}},</p>
 <p>Bạn vừa được giao một yêu cầu hỗ trợ mới.</p>
 <ul>
     <li>Người tạo: {{RequesterName}}</li>
@@ -330,7 +378,8 @@ namespace VS.Human.Business
     <li>Nội dung: {{Content}}</li>
 </ul>
 <p>Vui lòng đăng nhập hệ thống để tiếp nhận và cập nhật tiến độ.</p>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "SUPPORT_REQUEST_INPROCESS",
@@ -338,7 +387,7 @@ namespace VS.Human.Business
                 "Yêu cầu hỗ trợ '{{Title}}' đang được xử lý",
                 EmailSenderTypes.Employee,
                 @"
-<p>Xin chao {{RequesterName}},</p>
+<p>Xin chào {{RequesterName}},</p>
 <p>Yêu cầu hỗ trợ của bạn đã được tiếp nhận và đang xử lý.</p>
 <ul>
     <li>Bộ phận xử lý: {{TargetDepartment}}</li>
@@ -346,7 +395,8 @@ namespace VS.Human.Business
     <li>Tiêu đề: {{Title}}</li>
     <li>Ghi chú xử lý: {{ProcessorComment}}</li>
 </ul>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "SUPPORT_REQUEST_DONE",
@@ -354,7 +404,7 @@ namespace VS.Human.Business
                 "Yêu cầu hỗ trợ '{{Title}}' đã hoàn thành",
                 EmailSenderTypes.Employee,
                 @"
-<p>Xin chao {{RequesterName}},</p>
+<p>Xin chào {{RequesterName}},</p>
 <p>Yêu cầu hỗ trợ của bạn đã được xử lý xong.</p>
 <ul>
     <li>Bộ phận xử lý: {{TargetDepartment}}</li>
@@ -362,7 +412,8 @@ namespace VS.Human.Business
     <li>Tiêu đề: {{Title}}</li>
     <li>Kết quả: {{ProcessorComment}}</li>
 </ul>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
 
             yield return CreateTemplate(
                 "SUPPORT_REQUEST_CANCEL",
@@ -370,7 +421,7 @@ namespace VS.Human.Business
                 "Yêu cầu hỗ trợ '{{Title}}' đã bị hủy",
                 EmailSenderTypes.Employee,
                 @"
-<p>Xin chao {{RequesterName}},</p>
+<p>Xin chào {{RequesterName}},</p>
 <p>Yêu cầu hỗ trợ của bạn đã được cập nhật sang trạng thái hủy.</p>
 <ul>
     <li>Bộ phận xử lý: {{TargetDepartment}}</li>
@@ -378,7 +429,8 @@ namespace VS.Human.Business
     <li>Tiêu đề: {{Title}}</li>
     <li>Lý do / ghi chú: {{ProcessorComment}}</li>
 </ul>
-<p>Trân trọng,<br />Hệ thống quản lý nhân sự</p>");
+<p>Trân trọng./.</p>
+<p><strong>HỆ THỐNG QUẢN LÝ NHÂN SỰ VIETSTAR</strong></p>");
         }
 
         private static EmailTemplate CreateTemplate(string code, string name, string subject, string senderType, string body)
