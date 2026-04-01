@@ -234,13 +234,14 @@
                 <div class="row mb-3">
                     <label class="col-sm-3 col-form-label">Name</label>
                     <div class="col-sm-9">
-                        <input type="text" class="form-control" id="tplName" />
+                        <input type="text" class="form-control" id="tplName" maxlength="200" autocomplete="off" />
                     </div>
                 </div>
                 <div class="row mb-3">
                     <label class="col-sm-3 col-form-label">Subject</label>
                     <div class="col-sm-9">
-                        <input type="text" class="form-control" id="tplSubject" />
+                        <input type="text" class="form-control" id="tplSubject" maxlength="300" autocomplete="off" />
+                        <div class="form-text">Tiêu đề mail tối đa 300 ký tự.</div>
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -677,6 +678,23 @@
             renderSignaturePreview('hr');
             renderSignaturePreview('employee');
             renderSignaturePreview('candidate');
+            var saveTemplateButton = document.querySelector('#templateModal .modal-footer .btn.btn-primary');
+            if (saveTemplateButton && !saveTemplateButton.id) {
+                saveTemplateButton.id = 'saveTemplateButton';
+            }
+
+            ['tplName', 'tplSubject'].forEach(function (fieldId) {
+                var field = document.getElementById(fieldId);
+                if (!field) {
+                    return;
+                }
+
+                field.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter') {
+                        saveTemplate(event);
+                    }
+                });
+            });
         });
 
         function getTemplateVisualSửaor() {
@@ -1664,6 +1682,17 @@
             modal.show();
         }
 
+        function setTemplateSaveState(isSaving) {
+            var saveButton = document.getElementById('saveTemplateButton')
+                || document.querySelector('#templateModal .modal-footer .btn.btn-primary');
+            if (!saveButton) {
+                return;
+            }
+
+            saveButton.disabled = isSaving;
+            saveButton.textContent = isSaving ? 'Dang luu...' : 'Luu';
+        }
+
         function saveMailSetting() {
             var payload = {
                 Id: parseInt(document.getElementById('settingId').value || '0'),
@@ -1708,7 +1737,7 @@
             });
         }
 
-        function saveTemplate() {
+        function saveTemplateLegacy() {
             var payload = {
                 Id: parseInt(document.getElementById('tplId').value || '0'),
                 Code: document.getElementById('tplCode').value,
@@ -1741,6 +1770,71 @@
             .catch(error => {
                 alert(error && error.message ? error.message : 'Lưu template thất bại.');
             });
+        }
+
+        async function saveTemplate(event) {
+            if (event) {
+                event.preventDefault();
+            }
+
+            try {
+                var payload = {
+                    Id: parseInt(document.getElementById('tplId').value || '0'),
+                    Code: (document.getElementById('tplCode').value || '').trim(),
+                    Name: (document.getElementById('tplName').value || '').trim(),
+                    Subject: (document.getElementById('tplSubject').value || '').trim(),
+                    Body: getTemplateBodyValue(),
+                    SenderType: document.getElementById('tplSenderType').value,
+                    CcManager: document.getElementById('tplCcManager').checked,
+                    CcEmails: (document.getElementById('tplCcEmails').value || '').trim(),
+                    BccEmails: (document.getElementById('tplBccEmails').value || '').trim(),
+                    IsActive: document.getElementById('tplIsActive').checked ? 1 : 0
+                };
+
+                if (!payload.Code) {
+                    throw new Error('Khong xac dinh duoc template can luu.');
+                }
+
+                if (!payload.Name) {
+                    throw new Error('Vui long nhap ten template.');
+                }
+
+                if (!payload.Subject) {
+                    throw new Error('Vui long nhap tieu de mail.');
+                }
+
+                if (payload.Name.length > 200) {
+                    throw new Error('Ten template chi duoc toi da 200 ky tu.');
+                }
+
+                if (payload.Subject.length > 300) {
+                    throw new Error('Tieu de mail chi duoc toi da 300 ky tu.');
+                }
+
+                setTemplateSaveState(true);
+
+                var response = await fetch('?handler=SaveTemplate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getRequestVerificationToken()
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                var data = await readJsonResponse(response);
+                if (!data.success) {
+                    throw new Error(data.message || 'Luu template that bai.');
+                }
+
+                location.reload();
+            } catch (error) {
+                alert(error && error.message ? error.message : 'Luu template that bai.');
+            } finally {
+                setTemplateSaveState(false);
+            }
+
+            return false;
         }
 
         function sendTestMail() {

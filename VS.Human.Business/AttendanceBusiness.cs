@@ -668,6 +668,83 @@ ORDER BY RecordTime;", connection))
             return result;
         }
 
+        public async Task<AttendanceImportResult> SyncFromDeviceAsync(DateTime fromDate, DateTime toDate, int userId)
+        {
+            var result = new AttendanceImportResult();
+            var options = GetMachineOptions();
+
+            if (!options.UseDirectDeviceRealtime || string.IsNullOrWhiteSpace(options.DeviceIp))
+            {
+                return ErrorResult(result, "ChÆ°a cáº¥u hÃ¬nh nguá»“n cháº¥m cÃ´ng káº¿t ná»‘i trá»±c tiáº¿p tá»« mÃ¡y.");
+            }
+
+            if (fromDate == DateTime.MinValue || toDate == DateTime.MinValue)
+            {
+                fromDate = DateTime.Today.AddDays(-7);
+                toDate = DateTime.Today;
+            }
+
+            if (fromDate > toDate)
+            {
+                var temp = fromDate;
+                fromDate = toDate;
+                toDate = temp;
+            }
+
+            var aggregates = new Dictionary<string, AttendanceAggregate>(StringComparer.OrdinalIgnoreCase);
+            var rawLogs = new List<AttendanceDeviceRawLog>();
+            var fromDateOnly = fromDate.Date;
+            var toExclusive = toDate.Date.AddDays(1);
+
+            try
+            {
+                await using var client = new AttendanceDeviceTcpClient(
+                    options.DeviceIp,
+                    options.DevicePort,
+                    TimeSpan.FromSeconds(options.DeviceTimeoutSeconds));
+
+                await client.ReadAttendanceLogsAsync(log =>
+                {
+                    if (string.IsNullOrWhiteSpace(log.UserId) ||
+                        log.RecordTime < fromDateOnly ||
+                        log.RecordTime >= toExclusive)
+                    {
+                        return;
+                    }
+
+                    var rawUserId = log.UserId.Trim();
+                    rawLogs.Add(new AttendanceDeviceRawLog
+                    {
+                        DeviceIp = options.DeviceIp ?? string.Empty,
+                        DevicePort = options.DevicePort,
+                        DeviceUserId = rawUserId,
+                        NormalizedUserId = NormalizeUserId(rawUserId),
+                        RecordTime = log.RecordTime,
+                        InOutMode = NormalizeDeviceInOutMode(log.State),
+                        Source = "DIRECT_DEVICE"
+                    });
+
+                    AggregateAttendanceLog(aggregates, rawUserId, log.RecordTime, null);
+                });
+            }
+            catch (Exception ex)
+            {
+                return ErrorResult(result, $"KhÃ´ng thá»ƒ Ä‘á»c dá»¯ liá»‡u trá»±c tiáº¿p tá»« mÃ¡y cháº¥m cÃ´ng: {ex.Message}");
+            }
+
+            try
+            {
+                await RefreshDeviceRawLogsAsync(rawLogs, options, fromDateOnly, toExclusive);
+            }
+            catch (Exception ex)
+            {
+                return ErrorResult(result, $"Khong the luu lich su quet the tu may cham cong: {ex.Message}");
+            }
+
+            await SaveAggregatesAsync(aggregates, result, GetDirectDeviceSourceName(options), userId);
+            return result;
+        }
+
         [SupportedOSPlatform("windows")]
         private async Task<BaseList> GetSummaryFromAccess(AttendanceRequest request)
         {
@@ -1237,6 +1314,9 @@ ORDER BY RecordTime;", connection))
                 ? null
                 : options.DeviceIp.Trim();
             options.DevicePort = options.DevicePort <= 0 ? 4370 : options.DevicePort;
+            options.DeviceTimeoutSeconds = options.DeviceTimeoutSeconds <= 0
+                ? 120
+                : options.DeviceTimeoutSeconds;
             options.RealtimeSyncIntervalSeconds = options.RealtimeSyncIntervalSeconds <= 0
                 ? 10
                 : options.RealtimeSyncIntervalSeconds;
@@ -1272,6 +1352,12 @@ ORDER BY RecordTime;", connection))
             {
                 return "AttendanceDirectSync";
             }
+        }
+
+        private static string GetDirectDeviceSourceName(AttendanceMachineOptions options)
+        {
+            var deviceIp = string.IsNullOrWhiteSpace(options.DeviceIp) ? "unknown" : options.DeviceIp.Trim();
+            return $"Device_{deviceIp}_{options.DevicePort}";
         }
 
         [SupportedOSPlatform("windows")]
@@ -1638,6 +1724,50 @@ ORDER BY RecordTime;", connection))
             return null;
         }
 
+        private static void AggregateAttendanceLog(
+            Dictionary<string, AttendanceAggregate> aggregates,
+            string rawUserId,
+            DateTime checkTime,
+            MachineUserInfo? userInfo)
+        {
+            if (string.IsNullOrWhiteSpace(rawUserId))
+            {
+                return;
+            }
+
+            var fingerprint = userInfo?.FingerprintCode;
+            if (string.IsNullOrWhiteSpace(fingerprint))
+            {
+                fingerprint = rawUserId;
+            }
+
+            fingerprint = fingerprint.Trim();
+            if (string.IsNullOrWhiteSpace(fingerprint))
+            {
+                return;
+            }
+
+            var workDate = checkTime.Date;
+            var key = fingerprint + "|" + workDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            if (!aggregates.TryGetValue(key, out var aggregate))
+            {
+                aggregate = new AttendanceAggregate(fingerprint, workDate);
+                aggregates[key] = aggregate;
+            }
+
+            if (string.IsNullOrWhiteSpace(aggregate.EmployeeName))
+            {
+                aggregate.EmployeeName = userInfo?.Name;
+            }
+
+            if (aggregate.UserInfo == null && userInfo != null)
+            {
+                aggregate.UserInfo = userInfo;
+            }
+
+            aggregate.Update(checkTime.TimeOfDay);
+        }
+
         private static AttendanceRecord BuildAttendanceRecord(AttendanceAggregate aggregate, string sourcePath)
         {
             var checkIn = aggregate.FirstTime;
@@ -1659,6 +1789,216 @@ ORDER BY RecordTime;", connection))
             };
 
             return record;
+        }
+
+        private async Task SaveAggregatesAsync(
+            Dictionary<string, AttendanceAggregate> aggregates,
+            AttendanceImportResult result,
+            string sourceName,
+            int userId)
+        {
+            var employeeCache = new Dictionary<string, EmployeeResolution>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var aggregate in aggregates.Values
+                .OrderBy(item => item.WorkDate)
+                .ThenBy(item => item.FingerprintCode, StringComparer.OrdinalIgnoreCase))
+            {
+                var record = BuildAttendanceRecord(aggregate, sourceName);
+                record.SourceFile = sourceName;
+
+                await ApplyEmployeeResolutionAsync(record, employeeCache);
+
+                result.Total++;
+                var saved = await _unitOfWork.AttendanceRep.UpsertAsync(record, userId);
+                if (saved)
+                {
+                    result.TotalSuccess++;
+                }
+                else
+                {
+                    AddError(result, result.Total, "KhÃ´ng thá»ƒ lÆ°u dá»¯ liá»‡u.");
+                }
+            }
+        }
+
+        private async Task RefreshDeviceRawLogsAsync(
+            List<AttendanceDeviceRawLog> rawLogs,
+            AttendanceMachineOptions options,
+            DateTime fromDate,
+            DateTime toExclusive)
+        {
+            if (string.IsNullOrWhiteSpace(options.DeviceIp))
+            {
+                throw new InvalidOperationException("AttendanceMachine:DeviceIp is empty.");
+            }
+
+            var connectionString = GetApplicationConnectionString();
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException("ConnectionStrings:stringConnect7 is empty.");
+            }
+
+            using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+            using var transaction = connection.BeginTransaction();
+
+            using (var deleteCommand = new SqlCommand(@"
+DELETE FROM dbo.AttendanceDeviceLogs
+WHERE DeviceIp = @DeviceIp
+  AND DevicePort = @DevicePort
+  AND RecordTime >= @FromDate
+  AND RecordTime < @ToDate;", connection, transaction))
+            {
+                deleteCommand.Parameters.Add("@DeviceIp", SqlDbType.NVarChar, 50).Value = options.DeviceIp;
+                deleteCommand.Parameters.Add("@DevicePort", SqlDbType.Int).Value = options.DevicePort;
+                deleteCommand.Parameters.Add("@FromDate", SqlDbType.DateTime2).Value = fromDate;
+                deleteCommand.Parameters.Add("@ToDate", SqlDbType.DateTime2).Value = toExclusive;
+                await deleteCommand.ExecuteNonQueryAsync();
+            }
+
+            if (rawLogs.Count > 0)
+            {
+                var table = new DataTable();
+                table.Columns.Add("DeviceIp", typeof(string));
+                table.Columns.Add("DevicePort", typeof(int));
+                table.Columns.Add("DeviceUserId", typeof(string));
+                table.Columns.Add("NormalizedUserId", typeof(string));
+                table.Columns.Add("RecordTime", typeof(DateTime));
+                table.Columns.Add("InOutMode", typeof(string));
+                table.Columns.Add("Source", typeof(string));
+
+                foreach (var item in rawLogs
+                    .GroupBy(log => new
+                    {
+                        log.DeviceIp,
+                        log.DevicePort,
+                        log.DeviceUserId,
+                        log.RecordTime
+                    })
+                    .Select(group => group.First())
+                    .OrderBy(log => log.RecordTime)
+                    .ThenBy(log => log.DeviceUserId, StringComparer.OrdinalIgnoreCase))
+                {
+                    table.Rows.Add(
+                        item.DeviceIp,
+                        item.DevicePort,
+                        item.DeviceUserId,
+                        string.IsNullOrWhiteSpace(item.NormalizedUserId) ? DBNull.Value : item.NormalizedUserId,
+                        item.RecordTime,
+                        string.IsNullOrWhiteSpace(item.InOutMode) ? DBNull.Value : item.InOutMode,
+                        item.Source);
+                }
+
+                using var bulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, transaction)
+                {
+                    DestinationTableName = "dbo.AttendanceDeviceLogs",
+                    BatchSize = 1000
+                };
+
+                bulkCopy.ColumnMappings.Add("DeviceIp", "DeviceIp");
+                bulkCopy.ColumnMappings.Add("DevicePort", "DevicePort");
+                bulkCopy.ColumnMappings.Add("DeviceUserId", "DeviceUserId");
+                bulkCopy.ColumnMappings.Add("NormalizedUserId", "NormalizedUserId");
+                bulkCopy.ColumnMappings.Add("RecordTime", "RecordTime");
+                bulkCopy.ColumnMappings.Add("InOutMode", "InOutMode");
+                bulkCopy.ColumnMappings.Add("Source", "Source");
+
+                await bulkCopy.WriteToServerAsync(table);
+            }
+
+            transaction.Commit();
+        }
+
+        private string? GetApplicationConnectionString()
+        {
+            var connectionString = _configuration.GetConnectionString("stringConnect7");
+            if (!string.IsNullOrWhiteSpace(connectionString))
+            {
+                return connectionString.Trim();
+            }
+
+            connectionString = _configuration.GetConnectionString("stringConnect");
+            return string.IsNullOrWhiteSpace(connectionString) ? null : connectionString.Trim();
+        }
+
+        private static string? NormalizeDeviceInOutMode(byte state)
+        {
+            return state <= 3 ? state.ToString(CultureInfo.InvariantCulture) : null;
+        }
+
+        private async Task ApplyEmployeeResolutionAsync(
+            AttendanceRecord record,
+            Dictionary<string, EmployeeResolution> employeeCache)
+        {
+            if (string.IsNullOrWhiteSpace(record.FingerprintCode))
+            {
+                return;
+            }
+
+            var rawFingerprint = record.FingerprintCode.Trim();
+            var normalizedFingerprint = NormalizeUserId(rawFingerprint);
+            var resolution = await ResolveEmployeeResolutionAsync(rawFingerprint, normalizedFingerprint, employeeCache);
+
+            if (resolution.EmployeeId > 0)
+            {
+                record.EmployeeId = resolution.EmployeeId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(resolution.FingerprintCode))
+            {
+                record.FingerprintCode = resolution.FingerprintCode;
+            }
+
+            if (string.IsNullOrWhiteSpace(record.EmployeeName) &&
+                !string.IsNullOrWhiteSpace(resolution.EmployeeName))
+            {
+                record.EmployeeName = resolution.EmployeeName;
+            }
+        }
+
+        private async Task<EmployeeResolution> ResolveEmployeeResolutionAsync(
+            string rawFingerprint,
+            string normalizedFingerprint,
+            Dictionary<string, EmployeeResolution> employeeCache)
+        {
+            if (employeeCache.TryGetValue(rawFingerprint, out var resolution))
+            {
+                return resolution;
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedFingerprint) &&
+                employeeCache.TryGetValue(normalizedFingerprint, out resolution))
+            {
+                return resolution;
+            }
+
+            Employee? employee = await _unitOfWork.EmployeeRep.GetByFingerprintCode(rawFingerprint);
+            if (employee == null &&
+                !string.Equals(rawFingerprint, normalizedFingerprint, StringComparison.OrdinalIgnoreCase))
+            {
+                employee = await _unitOfWork.EmployeeRep.GetByFingerprintCode(normalizedFingerprint);
+            }
+
+            resolution = employee != null && employee.Id > 0
+                ? new EmployeeResolution
+                {
+                    EmployeeId = employee.Id,
+                    FingerprintCode = string.IsNullOrWhiteSpace(employee.FingerprintCode)
+                        ? rawFingerprint
+                        : employee.FingerprintCode.Trim(),
+                    EmployeeName = string.IsNullOrWhiteSpace(employee.FullName)
+                        ? null
+                        : employee.FullName.Trim()
+                }
+                : EmployeeResolution.Empty;
+
+            employeeCache[rawFingerprint] = resolution;
+            if (!string.IsNullOrWhiteSpace(normalizedFingerprint))
+            {
+                employeeCache[normalizedFingerprint] = resolution;
+            }
+
+            return resolution;
         }
 
         [SupportedOSPlatform("windows")]
@@ -2659,6 +2999,25 @@ ORDER BY RecordTime;", connection))
             public string? FingerprintCode { get; set; }
             public string? Name { get; set; }
             public int? ScheduleId { get; set; }
+        }
+
+        private sealed class EmployeeResolution
+        {
+            public static EmployeeResolution Empty { get; } = new();
+            public int EmployeeId { get; set; }
+            public string? FingerprintCode { get; set; }
+            public string? EmployeeName { get; set; }
+        }
+
+        private sealed class AttendanceDeviceRawLog
+        {
+            public string DeviceIp { get; set; } = string.Empty;
+            public int DevicePort { get; set; }
+            public string DeviceUserId { get; set; } = string.Empty;
+            public string? NormalizedUserId { get; set; }
+            public DateTime RecordTime { get; set; }
+            public string? InOutMode { get; set; }
+            public string Source { get; set; } = string.Empty;
         }
 
         private sealed class AttendanceAggregate

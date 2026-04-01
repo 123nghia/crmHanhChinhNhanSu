@@ -9,6 +9,8 @@ namespace VS.Human.Business.Model
         public bool UseAccessRealtime { get; set; }
         public string? DeviceIp { get; set; }
         public int DevicePort { get; set; } = 4370;
+        public bool UseDirectDeviceRealtime { get; set; }
+        public int DeviceTimeoutSeconds { get; set; } = 120;
         public bool RealtimeSyncEnabled { get; set; }
         public int RealtimeSyncIntervalSeconds { get; set; } = 10;
         public int RealtimeSyncLookbackDays { get; set; } = 2;

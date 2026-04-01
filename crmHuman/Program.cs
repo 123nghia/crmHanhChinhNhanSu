@@ -111,9 +111,9 @@ namespace crmHuman
             {
                 app.UseExceptionHandler("/Error");
                 app.UseHsts();
+                app.UseHttpsRedirection();
             }
             app.UseRequestLocalization(localizationOptions);
-            app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthentication();

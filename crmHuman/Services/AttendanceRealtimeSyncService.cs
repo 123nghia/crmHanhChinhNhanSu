@@ -32,75 +32,98 @@ namespace crmHuman.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
-                var options = GetOptions();
-                if (!options.UseDirectSqlRealtime && !OperatingSystem.IsWindows())
-                {
-                    _logger.LogWarning("Attendance realtime sync only runs on Windows when the source is an Access database.");
-                    return;
-                }
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
 
-                var interval = TimeSpan.FromSeconds(Math.Max(options.RealtimeSyncIntervalSeconds, 10));
-
-                if (!options.RealtimeSyncEnabled)
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    LogRuntimeStateOnce(
-                        "disabled",
-                        LogLevel.Information,
-                        "Attendance realtime sync is disabled in configuration.");
-                    await Task.Delay(interval, stoppingToken);
-                    continue;
-                }
+                    var options = GetOptions();
+                    if (!options.UseDirectSqlRealtime &&
+                        !options.UseDirectDeviceRealtime &&
+                        !OperatingSystem.IsWindows())
+                    {
+                        _logger.LogWarning("Attendance realtime sync only runs on Windows when the source is an Access database.");
+                        return;
+                    }
 
-                if (options.UseDirectSqlRealtime)
-                {
-                    if (string.IsNullOrWhiteSpace(options.DirectSqlConnectionString))
+                    var interval = TimeSpan.FromSeconds(Math.Max(options.RealtimeSyncIntervalSeconds, 10));
+
+                    if (!options.RealtimeSyncEnabled)
                     {
                         LogRuntimeStateOnce(
-                            "missing-direct-sql-connection",
-                            LogLevel.Warning,
-                            "Attendance realtime sync skipped because AttendanceMachine:DirectSqlConnectionString is empty.");
+                            "disabled",
+                            LogLevel.Information,
+                            "Attendance realtime sync is disabled in configuration.");
                         await Task.Delay(interval, stoppingToken);
                         continue;
                     }
-                }
-                else if (!string.IsNullOrWhiteSpace(options.DbSourceError))
-                {
-                    LogRuntimeStateOnce(
-                        "mdb-source-error:" + options.DbSourceError,
-                        LogLevel.Warning,
-                        "Attendance realtime sync skipped because the MDB source could not be prepared. {Message}",
-                        options.DbSourceError);
-                    await Task.Delay(interval, stoppingToken);
-                    continue;
-                }
-                else if (string.IsNullOrWhiteSpace(options.DbPath))
-                {
-                    LogRuntimeStateOnce(
-                        "missing-db-path",
-                        LogLevel.Warning,
-                        "Attendance realtime sync skipped because AttendanceMachine:DbPath is empty.");
-                    await Task.Delay(interval, stoppingToken);
-                    continue;
-                }
 
-                if (!options.UseDirectSqlRealtime && !File.Exists(options.DbPath))
-                {
-                    LogRuntimeStateOnce(
-                        "missing-db-file:" + (options.DbConfiguredSource ?? options.DbPath),
-                        LogLevel.Warning,
-                        "Attendance realtime sync skipped because the MDB file was not found: {DbPath}",
-                        options.DbConfiguredSource ?? options.DbPath);
-                    await Task.Delay(interval, stoppingToken);
-                    continue;
-                }
+                    if (options.UseDirectDeviceRealtime)
+                    {
+                        if (string.IsNullOrWhiteSpace(options.DeviceIp))
+                        {
+                            LogRuntimeStateOnce(
+                                "missing-device-ip",
+                                LogLevel.Warning,
+                                "Attendance realtime sync skipped because AttendanceMachine:DeviceIp is empty.");
+                            await Task.Delay(interval, stoppingToken);
+                            continue;
+                        }
+                    }
+                    else if (options.UseDirectSqlRealtime)
+                    {
+                        if (string.IsNullOrWhiteSpace(options.DirectSqlConnectionString))
+                        {
+                            LogRuntimeStateOnce(
+                                "missing-direct-sql-connection",
+                                LogLevel.Warning,
+                                "Attendance realtime sync skipped because AttendanceMachine:DirectSqlConnectionString is empty.");
+                            await Task.Delay(interval, stoppingToken);
+                            continue;
+                        }
+                    }
+                    else if (!string.IsNullOrWhiteSpace(options.DbSourceError))
+                    {
+                        LogRuntimeStateOnce(
+                            "mdb-source-error:" + options.DbSourceError,
+                            LogLevel.Warning,
+                            "Attendance realtime sync skipped because the MDB source could not be prepared. {Message}",
+                            options.DbSourceError);
+                        await Task.Delay(interval, stoppingToken);
+                        continue;
+                    }
+                    else if (string.IsNullOrWhiteSpace(options.DbPath))
+                    {
+                        LogRuntimeStateOnce(
+                            "missing-db-path",
+                            LogLevel.Warning,
+                            "Attendance realtime sync skipped because AttendanceMachine:DbPath is empty.");
+                        await Task.Delay(interval, stoppingToken);
+                        continue;
+                    }
 
-                await LogDeviceConnectivityAsync(options);
-                await RunSyncAsync(options, stoppingToken);
-                await Task.Delay(interval, stoppingToken);
+                    if (!options.UseDirectDeviceRealtime &&
+                        !options.UseDirectSqlRealtime &&
+                        !File.Exists(options.DbPath))
+                    {
+                        LogRuntimeStateOnce(
+                            "missing-db-file:" + (options.DbConfiguredSource ?? options.DbPath),
+                            LogLevel.Warning,
+                            "Attendance realtime sync skipped because the MDB file was not found: {DbPath}",
+                            options.DbConfiguredSource ?? options.DbPath);
+                        await Task.Delay(interval, stoppingToken);
+                        continue;
+                    }
+
+                    await LogDeviceConnectivityAsync(options);
+                    await RunSyncAsync(options, stoppingToken);
+                    await Task.Delay(interval, stoppingToken);
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
             }
         }
 
@@ -113,9 +136,11 @@ namespace crmHuman.Services
                 var lookbackDays = Math.Max(options.RealtimeSyncLookbackDays, 1);
                 var fromDate = DateTime.Today.AddDays(1 - lookbackDays);
                 var toDate = DateTime.Today;
-                var result = options.UseDirectSqlRealtime
-                    ? await _attendanceBusiness.SyncFromDirectSqlAsync(fromDate, toDate, options.RealtimeSyncUserId)
-                    : await _attendanceBusiness.SyncFromAccessAsync(fromDate, toDate, options.RealtimeSyncUserId);
+                var result = options.UseDirectDeviceRealtime
+                    ? await _attendanceBusiness.SyncFromDeviceAsync(fromDate, toDate, options.RealtimeSyncUserId)
+                    : options.UseDirectSqlRealtime
+                        ? await _attendanceBusiness.SyncFromDirectSqlAsync(fromDate, toDate, options.RealtimeSyncUserId)
+                        : await _attendanceBusiness.SyncFromAccessAsync(fromDate, toDate, options.RealtimeSyncUserId);
 
                 if (result.TotalError > 0)
                 {
@@ -129,7 +154,18 @@ namespace crmHuman.Services
                     return;
                 }
 
-                if (options.UseDirectSqlRealtime)
+                if (options.UseDirectDeviceRealtime)
+                {
+                    LogRuntimeStateOnce(
+                        "running-direct-device",
+                        LogLevel.Information,
+                        "Attendance realtime sync is running directly from device TCP/IP. Device {DeviceIp}:{DevicePort}, interval {IntervalSeconds}s, lookback {LookbackDays} day(s).",
+                        options.DeviceIp ?? "n/a",
+                        options.DevicePort,
+                        options.RealtimeSyncIntervalSeconds,
+                        lookbackDays);
+                }
+                else if (options.UseDirectSqlRealtime)
                 {
                     LogRuntimeStateOnce(
                         "running-direct-sql",
@@ -251,6 +287,9 @@ namespace crmHuman.Services
                 ? null
                 : options.DeviceIp.Trim();
             options.DevicePort = options.DevicePort <= 0 ? 4370 : options.DevicePort;
+            options.DeviceTimeoutSeconds = options.DeviceTimeoutSeconds <= 0
+                ? 120
+                : options.DeviceTimeoutSeconds;
             options.RealtimeSyncIntervalSeconds = options.RealtimeSyncIntervalSeconds <= 0
                 ? 10
                 : options.RealtimeSyncIntervalSeconds;

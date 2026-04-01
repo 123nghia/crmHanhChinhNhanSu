@@ -43,14 +43,14 @@ namespace crmHuman.Pages.Attendance
                 return Task.FromResult<IActionResult>(Page());
             }
 
-            var useDirectSql = _directReader.IsEnabled();
-            if (!useDirectSql)
+            var useDirectSource = _directReader.IsEnabled();
+            if (!useDirectSource)
             {
                 ErrorMessage = "He thong chi dong bo nen tu file MDB vao SQL. Man hinh nay khong doc truc tiep Access de tranh loi OLEDB.";
                 return Task.FromResult<IActionResult>(Page());
             }
 
-            if (!useDirectSql && !OperatingSystem.IsWindows())
+            if (!useDirectSource && !OperatingSystem.IsWindows())
             {
                 ErrorMessage = "Ch\u1EC9 h\u1ED7 tr\u1EE3 \u0111\u1ECDc d\u1EEF li\u1EC7u Access tr\u00EAn Windows.";
                 return Task.FromResult<IActionResult>(Page());
@@ -60,12 +60,12 @@ namespace crmHuman.Pages.Attendance
             SelectedEmployee = Request.Query["emp"];
             PageSize = ParseInt(Request.Query["ps"], 50);
 
-            ErrorMessage = useDirectSql
+            ErrorMessage = useDirectSource
                 ? _directReader.GetConfigError()
                 : _accessReader.GetConfigError();
             if (string.IsNullOrWhiteSpace(ErrorMessage))
             {
-                var userTable = (useDirectSql ? _directReader : null)?.LoadTables(new[]
+                var userTable = (useDirectSource ? _directReader : null)?.LoadTables(new[]
                 {
                     BuildUserQuery()
                 }, 5000) ?? _accessReader.LoadTables(new[]
@@ -75,10 +75,10 @@ namespace crmHuman.Pages.Attendance
                 var userMap = BuildUserMap(userTable.FirstOrDefault());
                 Employees = BuildEmployeeOptions(userMap);
 
-                Tables = useDirectSql
+                Tables = useDirectSource
                     ? _directReader.LoadTables(new[]
                     {
-                        BuildQuery("CheckInOut", new[] { "UserEnrollNumber", "TimeStr", "MachineNo", "Source" })
+                        BuildQuery("CheckInOut", new[] { "UserEnrollNumber", "TimeStr", "InOutMode", "MachineNo", "Source" })
                     }, 5000)
                     : _accessReader.LoadTables(new[]
                     {
@@ -88,13 +88,13 @@ namespace crmHuman.Pages.Attendance
                 AttendanceTableFormatter.NormalizeTables(Tables);
                 ApplyUserNames(Tables, userMap);
                 PrepareHistoryTables(Tables);
-                if (!useDirectSql)
+                if (!useDirectSource)
                 {
                     Tables = MergeHistoryTables(Tables);
                 }
                 else if (Tables.Sum(table => table.TotalCount) == 0)
                 {
-                    ErrorMessage = "Ngu\u1ED3n direct SQL \u0111ang ho\u1EA1t \u0111\u1ED9ng, nh\u01B0ng ch\u01B0a c\u00F3 log qu\u1EB9t m\u1EDBi t\u1EEB m\u00E1y ch\u1EA5m c\u00F4ng. D\u1EEF li\u1EC7u s\u1EBD hi\u1EC3n th\u1ECB ngay sau l\u1EA7n ch\u1EA5m c\u00F4ng k\u1EBF ti\u1EBFp.";
+                    ErrorMessage = "Nguon dong bo dang hoat dong, nhung chua co log quet moi trong khoang du lieu dang cache.";
                 }
             }
 
