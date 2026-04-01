@@ -15,6 +15,10 @@ namespace VS.Human.Business.Model
         public int RealtimeSyncIntervalSeconds { get; set; } = 10;
         public int RealtimeSyncLookbackDays { get; set; } = 2;
         public int RealtimeSyncUserId { get; set; }
+        public bool DailyEvaluationEnabled { get; set; } = true;
+        public int DailyEvaluationHour { get; set; } = 21;
+        public bool HistoricalSyncEnabled { get; set; }
+        public DateTime? HistoricalSyncFromDate { get; set; }
         public bool UseDirectSqlRealtime { get; set; }
         public string? DirectSqlConnectionString { get; set; }
 

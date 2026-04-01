@@ -79,6 +79,18 @@
             background-color: #fff2f2;
         }
 
+        .attendance-row-half-day {
+            background-color: #fff7e6;
+        }
+
+        .attendance-row-leave {
+            background-color: #ecfdf3;
+        }
+
+        .attendance-row-holiday {
+            background-color: #eff6ff;
+        }
+
         .attendance-cell-late {
             background-color: #fff3cd;
             font-weight: 600;
@@ -98,6 +110,42 @@
             background-color: #fde2e4;
             font-weight: 600;
             color: #b42318;
+        }
+
+        .attendance-cell-half-day {
+            background-color: #ffe7c2;
+            font-weight: 600;
+            color: #9a3412;
+        }
+
+        .attendance-cell-leave {
+            background-color: #dcfce7;
+            font-weight: 600;
+            color: #166534;
+        }
+
+        .attendance-cell-holiday {
+            background-color: #dbeafe;
+            font-weight: 600;
+            color: #1d4ed8;
+        }
+
+        .attendance-day-cell.attendance-day-half-day {
+            background: #fff7e6;
+            border-color: #fdba74;
+            box-shadow: inset 0 0 0 1px #fed7aa;
+        }
+
+        .attendance-day-cell.attendance-day-leave {
+            background: #ecfdf3;
+            border-color: #86efac;
+            box-shadow: inset 0 0 0 1px #bbf7d0;
+        }
+
+        .attendance-day-cell.attendance-day-holiday {
+            background: #eff6ff;
+            border-color: #93c5fd;
+            box-shadow: inset 0 0 0 1px #bfdbfe;
         }
     </style>
 }
@@ -165,6 +213,37 @@
                 <input type="hidden" name="FingerprintCode" id="exportFingerprintCode" />
                 <input type="hidden" name="Token" id="exportToken" />
             </form>
+
+            @if (Model.SyncStatus?.HasData == true)
+            {
+                <div class="alert alert-light border mt-3 mb-0">
+                    <div><strong>Last update</strong></div>
+                    @if (!string.IsNullOrWhiteSpace(Model.SyncStatus.ModeText))
+                    {
+                        <div class="small text-muted">Nguồn: @Model.SyncStatus.ModeText</div>
+                    }
+                    @if (Model.SyncStatus.LatestLogTime.HasValue)
+                    {
+                        <div class="small text-muted">Log mới nhất: @Model.SyncStatus.LatestLogTime.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                    }
+                    @if (Model.SyncStatus.LastSyncedAt.HasValue)
+                    {
+                        <div class="small text-muted">Đồng bộ gần nhất: @Model.SyncStatus.LastSyncedAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                    }
+                    @if (Model.SyncStatus.AttendanceLastUpdatedAt.HasValue)
+                    {
+                        <div class="small text-muted">Bảng công cập nhật lần cuối: @Model.SyncStatus.AttendanceLastUpdatedAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                    }
+                    @if (Model.SyncStatus.AttendanceThroughDate.HasValue)
+                    {
+                        <div class="small text-muted">Dữ liệu công đang tới ngày: @Model.SyncStatus.AttendanceThroughDate.Value.ToString("dd/MM/yyyy")</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.SyncStatus.ErrorMessage))
+                    {
+                        <div class="small text-danger">@Model.SyncStatus.ErrorMessage</div>
+                    }
+                </div>
+            }
 
             <div class="row g-3 mt-3" id="attendanceSummaryCards">
                 <div class="col-md-3">

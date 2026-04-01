@@ -69,6 +69,37 @@
                 <div class="alert alert-info py-2 mt-3 mb-0">@Model.AccessScopeText</div>
             }
 
+            @if (Model.SyncStatus?.HasData == true)
+            {
+                <div class="alert alert-light border mt-3 mb-0">
+                    <div><strong>Last update</strong></div>
+                    @if (!string.IsNullOrWhiteSpace(Model.SyncStatus.ModeText))
+                    {
+                        <div class="small text-muted">Nguồn: @Model.SyncStatus.ModeText</div>
+                    }
+                    @if (Model.SyncStatus.LatestLogTime.HasValue)
+                    {
+                        <div class="small text-muted">Log mới nhất: @Model.SyncStatus.LatestLogTime.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                    }
+                    @if (Model.SyncStatus.LastSyncedAt.HasValue)
+                    {
+                        <div class="small text-muted">Đồng bộ gần nhất: @Model.SyncStatus.LastSyncedAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                    }
+                    @if (Model.SyncStatus.AttendanceLastUpdatedAt.HasValue)
+                    {
+                        <div class="small text-muted">Bảng công cập nhật lần cuối: @Model.SyncStatus.AttendanceLastUpdatedAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                    }
+                    @if (Model.SyncStatus.AttendanceThroughDate.HasValue)
+                    {
+                        <div class="small text-muted">Dữ liệu công đang tới ngày: @Model.SyncStatus.AttendanceThroughDate.Value.ToString("dd/MM/yyyy")</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.SyncStatus.ErrorMessage))
+                    {
+                        <div class="small text-danger">@Model.SyncStatus.ErrorMessage</div>
+                    }
+                </div>
+            }
+
             @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
             {
                 <div class="alert alert-warning">@Model.ErrorMessage</div>

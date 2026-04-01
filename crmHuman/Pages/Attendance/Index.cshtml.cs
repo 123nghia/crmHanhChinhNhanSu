@@ -1,5 +1,6 @@
 using crmHuman.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -19,11 +20,16 @@ namespace crmHuman.Pages.Attendance
     {
         private readonly IAttendanceBusiness _attendanceBusiness;
         private readonly ILogger<IndexModel> _logger;
+        private readonly DirectAttendanceReader _directReader;
 
-        public IndexModel(IAttendanceBusiness attendanceBusiness, ILogger<IndexModel> logger)
+        public IndexModel(
+            IAttendanceBusiness attendanceBusiness,
+            ILogger<IndexModel> logger,
+            IConfiguration configuration)
         {
             _attendanceBusiness = attendanceBusiness;
             _logger = logger;
+            _directReader = new DirectAttendanceReader(configuration);
             KeyPage = "Attendance";
             TitlePage = "Quản lý chấm công";
         }
@@ -40,6 +46,7 @@ namespace crmHuman.Pages.Attendance
         public bool IsManager { get; set; }
         public bool IsTcRole { get; set; }
         public bool IsFullAccess { get; set; }
+        public AttendanceSyncStatus? SyncStatus { get; private set; }
 
         public async Task<IActionResult> OnGetAsync([FromQuery] AttendanceRequest request)
         {
@@ -67,6 +74,7 @@ namespace crmHuman.Pages.Attendance
             RequestSearch.From = fromDate;
             RequestSearch.To = toDate;
             RequestSearch.UserId = UserData.UserId;
+            SyncStatus = _directReader.IsEnabled() ? _directReader.GetSyncStatus() : null;
 
             IsFullAccess = IsFullAccessRole();
             IsManager = UserData?.RoleCode == "3";

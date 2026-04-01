@@ -191,9 +191,138 @@ namespace VS.Human.Business
             return await _unitOfWork.AttendanceRep.GetDetails(employeeId, fingerprintCode, fromDate, toDate, userId);
         }
 
+        public async Task<List<AttendanceDepartmentRuleModel>> GetDepartmentRulesAsync()
+        {
+            return await _unitOfWork.AttendanceRep.GetDepartmentRulesAsync();
+        }
+
+        public async Task<bool> SaveDepartmentRuleAsync(AttendanceDepartmentRuleModel rule, int userId)
+        {
+            if (rule == null)
+            {
+                return false;
+            }
+
+            rule.DepartmentCode = rule.DepartmentCode?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(rule.DepartmentCode) || !IsValidDepartmentRule(rule))
+            {
+                return false;
+            }
+
+            return await _unitOfWork.AttendanceRep.UpsertDepartmentRuleAsync(rule, userId);
+        }
+
+        public async Task<bool> DeleteDepartmentRuleAsync(int id, int userId)
+        {
+            if (id <= 0)
+            {
+                return false;
+            }
+
+            return await _unitOfWork.AttendanceRep.DeleteDepartmentRuleAsync(id, userId);
+        }
+
+        public async Task<List<AttendanceHolidayModel>> GetHolidaysAsync()
+        {
+            return await _unitOfWork.AttendanceRep.GetHolidaysAsync();
+        }
+
+        public async Task<bool> SaveHolidayAsync(AttendanceHolidayModel holiday, int userId)
+        {
+            if (holiday == null)
+            {
+                return false;
+            }
+
+            holiday.HolidayName = holiday.HolidayName?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(holiday.HolidayName))
+            {
+                return false;
+            }
+
+            if (holiday.FromDate == DateTime.MinValue || holiday.ToDate == DateTime.MinValue)
+            {
+                return false;
+            }
+
+            if (holiday.FromDate.Date > holiday.ToDate.Date)
+            {
+                (holiday.FromDate, holiday.ToDate) = (holiday.ToDate.Date, holiday.FromDate.Date);
+            }
+            else
+            {
+                holiday.FromDate = holiday.FromDate.Date;
+                holiday.ToDate = holiday.ToDate.Date;
+            }
+
+            return await _unitOfWork.AttendanceRep.UpsertHolidayAsync(holiday, userId);
+        }
+
+        public async Task<bool> DeleteHolidayAsync(int id, int userId)
+        {
+            if (id <= 0)
+            {
+                return false;
+            }
+
+            return await _unitOfWork.AttendanceRep.DeleteHolidayAsync(id, userId);
+        }
+
+        public async Task<int> EvaluateAttendanceRangeAsync(DateTime fromDate, DateTime toDate, int userId)
+        {
+            var (from, to) = NormalizeDateRange(fromDate, toDate);
+            var rules = await _unitOfWork.AttendanceRep.GetDepartmentRulesAsync();
+            var ruleMap = rules
+                .Where(rule => rule.IsActive
+                    && !string.IsNullOrWhiteSpace(rule.DepartmentCode)
+                    && IsValidDepartmentRule(rule))
+                .GroupBy(rule => rule.DepartmentCode.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+            if (ruleMap.Count == 0)
+            {
+                return 0;
+            }
+
+            await EnsureMissingAttendanceRecordsAsync(from, to, userId, ruleMap);
+
+            var records = await _unitOfWork.AttendanceRep.GetRecordsForEvaluationAsync(from, to);
+            var approvedLeaves = await _unitOfWork.AttendanceRep.GetApprovedLeavesForEvaluationAsync(from, to);
+            var leaveMap = BuildApprovedLeaveMap(approvedLeaves);
+            var holidays = await _unitOfWork.AttendanceRep.GetHolidaysForEvaluationAsync(from, to);
+            var holidayMap = BuildHolidayMap(holidays);
+            var updatedCount = 0;
+
+            foreach (var record in records)
+            {
+                if (string.IsNullOrWhiteSpace(record.DepartmentCode))
+                {
+                    continue;
+                }
+
+                if (!ruleMap.TryGetValue(record.DepartmentCode.Trim(), out var rule))
+                {
+                    continue;
+                }
+
+                leaveMap.TryGetValue(BuildEmployeeDateKey(record.EmployeeId ?? 0, record.WorkDate), out var approvedLeave);
+                holidayMap.TryGetValue(BuildDateKey(record.WorkDate), out var holiday);
+                var update = BuildAttendanceEvaluation(record, rule, approvedLeave, holiday);
+                var updated = await _unitOfWork.AttendanceRep.UpdateEvaluationAsync(update, userId);
+                if (updated)
+                {
+                    updatedCount++;
+                }
+            }
+
+            return updatedCount;
+        }
+
         public async Task<AttendanceImportResult> ImportAsync(IFormFile file, int userId)
         {
             var result = new AttendanceImportResult();
+            DateTime? minWorkDate = null;
+            DateTime? maxWorkDate = null;
             if (file == null || file.Length == 0)
             {
                 return ErrorResult(result, "File khong hop le");
@@ -302,6 +431,12 @@ namespace VS.Human.Business
                     if (saved)
                     {
                         result.TotalSuccess++;
+                        minWorkDate = !minWorkDate.HasValue || record.WorkDate < minWorkDate.Value
+                            ? record.WorkDate
+                            : minWorkDate;
+                        maxWorkDate = !maxWorkDate.HasValue || record.WorkDate > maxWorkDate.Value
+                            ? record.WorkDate
+                            : maxWorkDate;
                     }
                     else
                     {
@@ -312,6 +447,11 @@ namespace VS.Human.Business
             catch (Exception ex)
             {
                 return ErrorResult(result, $"Lỗi đọc file Excel: {ex.Message}");
+            }
+
+            if (result.TotalSuccess > 0 && minWorkDate.HasValue && maxWorkDate.HasValue)
+            {
+                await EvaluateAttendanceRangeAsync(minWorkDate.Value, maxWorkDate.Value, userId);
             }
 
             return result;
@@ -495,6 +635,11 @@ namespace VS.Human.Business
                 }
             }
 
+            if (result.TotalSuccess > 0)
+            {
+                await EvaluateAttendanceRangeAsync(fromDate.Date, toDate.Date, userId);
+            }
+
             return result;
         }
 
@@ -665,6 +810,11 @@ ORDER BY RecordTime;", connection))
                 }
             }
 
+            if (result.TotalSuccess > 0)
+            {
+                await EvaluateAttendanceRangeAsync(fromDate.Date, toDate.Date, userId);
+            }
+
             return result;
         }
 
@@ -742,6 +892,12 @@ ORDER BY RecordTime;", connection))
             }
 
             await SaveAggregatesAsync(aggregates, result, GetDirectDeviceSourceName(options), userId);
+
+            if (result.TotalSuccess > 0)
+            {
+                await EvaluateAttendanceRangeAsync(fromDate.Date, toDate.Date, userId);
+            }
+
             return result;
         }
 
@@ -2099,6 +2255,441 @@ WHERE DeviceIp = @DeviceIp
             }
 
             return (fromDate.Value.Date, toDate.Value.Date);
+        }
+
+        private async Task EnsureMissingAttendanceRecordsAsync(
+            DateTime fromDate,
+            DateTime toDate,
+            int userId,
+            Dictionary<string, AttendanceDepartmentRuleModel> ruleMap)
+        {
+            var employees = await _unitOfWork.AttendanceRep.GetEmployeesForEvaluationAsync(fromDate, toDate);
+            if (employees.Count == 0)
+            {
+                return;
+            }
+
+            var existingRecords = await _unitOfWork.AttendanceRep.GetRecordsForEvaluationAsync(fromDate, toDate);
+            var existingKeys = new HashSet<string>(
+                existingRecords
+                    .Where(item => !string.IsNullOrWhiteSpace(item.FingerprintCode))
+                    .Select(item => BuildAttendanceRecordKey(item.FingerprintCode, item.WorkDate)),
+                StringComparer.OrdinalIgnoreCase);
+
+            var approvedLeaves = await _unitOfWork.AttendanceRep.GetApprovedLeavesForEvaluationAsync(fromDate, toDate);
+            var leaveMap = BuildApprovedLeaveMap(approvedLeaves);
+            var holidays = await _unitOfWork.AttendanceRep.GetHolidaysForEvaluationAsync(fromDate, toDate);
+            var holidayMap = BuildHolidayMap(holidays);
+
+            foreach (var employee in employees)
+            {
+                var fingerprintCode = employee.FingerprintCode?.Trim();
+                if (string.IsNullOrWhiteSpace(fingerprintCode))
+                {
+                    continue;
+                }
+
+                var departmentCode = employee.DepartmentCode?.Trim();
+                if (string.IsNullOrWhiteSpace(departmentCode) || !ruleMap.ContainsKey(departmentCode))
+                {
+                    continue;
+                }
+
+                var employeeFrom = fromDate.Date;
+                var employeeTo = toDate.Date;
+
+                if (employee.OnboardDate.HasValue && employee.OnboardDate.Value.Date > employeeFrom)
+                {
+                    employeeFrom = employee.OnboardDate.Value.Date;
+                }
+
+                if (employee.ResignationDate.HasValue && employee.ResignationDate.Value.Date < employeeTo)
+                {
+                    employeeTo = employee.ResignationDate.Value.Date;
+                }
+
+                if (employeeFrom > employeeTo)
+                {
+                    continue;
+                }
+
+                for (var workDate = employeeFrom.Date; workDate <= employeeTo.Date; workDate = workDate.AddDays(1))
+                {
+                    var recordKey = BuildAttendanceRecordKey(fingerprintCode, workDate);
+                    if (existingKeys.Contains(recordKey))
+                    {
+                        continue;
+                    }
+
+                    holidayMap.TryGetValue(BuildDateKey(workDate), out var holiday);
+                    leaveMap.TryGetValue(BuildEmployeeDateKey(employee.EmployeeId, workDate), out var approvedLeave);
+                    if (holiday == null && IsScheduledOffDate(workDate))
+                    {
+                        continue;
+                    }
+
+                    if (holiday == null && approvedLeave == null && !CanFinalizeAttendanceDate(workDate))
+                    {
+                        continue;
+                    }
+
+                    var syntheticRecord = BuildSyntheticAttendanceRecord(employee, workDate, approvedLeave, holiday);
+                    var saved = await _unitOfWork.AttendanceRep.UpsertAsync(syntheticRecord, userId);
+                    if (saved)
+                    {
+                        existingKeys.Add(recordKey);
+                    }
+                }
+            }
+        }
+
+        private static Dictionary<string, AttendanceApprovedLeave> BuildApprovedLeaveMap(IEnumerable<AttendanceApprovedLeave> approvedLeaves)
+        {
+            var result = new Dictionary<string, AttendanceApprovedLeave>(StringComparer.OrdinalIgnoreCase);
+            foreach (var leave in approvedLeaves)
+            {
+                var from = leave.FromDate.Date;
+                var to = leave.ToDate.Date;
+                if (from > to)
+                {
+                    (from, to) = (to, from);
+                }
+
+                for (var workDate = from; workDate <= to; workDate = workDate.AddDays(1))
+                {
+                    result[BuildEmployeeDateKey(leave.EmployeeId, workDate)] = leave;
+                }
+            }
+
+            return result;
+        }
+
+        private static Dictionary<string, AttendanceHolidayModel> BuildHolidayMap(IEnumerable<AttendanceHolidayModel> holidays)
+        {
+            var result = new Dictionary<string, AttendanceHolidayModel>(StringComparer.OrdinalIgnoreCase);
+            foreach (var holiday in holidays.Where(item => item != null && item.IsActive))
+            {
+                var from = holiday.FromDate.Date;
+                var to = holiday.ToDate.Date;
+                if (from > to)
+                {
+                    (from, to) = (to, from);
+                }
+
+                for (var workDate = from; workDate <= to; workDate = workDate.AddDays(1))
+                {
+                    result[BuildDateKey(workDate)] = holiday;
+                }
+            }
+
+            return result;
+        }
+
+        private AttendanceRecord BuildSyntheticAttendanceRecord(
+            AttendanceEvaluationEmployee employee,
+            DateTime workDate,
+            AttendanceApprovedLeave? approvedLeave,
+            AttendanceHolidayModel? holiday)
+        {
+            var leaveSymbol = approvedLeave?.LeaveTypeName?.Trim();
+            var holidayName = holiday?.HolidayName?.Trim();
+            var symbol = holiday != null
+                ? (string.IsNullOrWhiteSpace(holidayName) ? "Nghỉ lễ" : holidayName)
+                : approvedLeave != null
+                    ? (string.IsNullOrWhiteSpace(leaveSymbol) ? "Nghỉ phép" : leaveSymbol)
+                    : "Nghỉ không phép";
+            var symbolPlus = holiday != null
+                ? "HOLIDAY"
+                : string.IsNullOrWhiteSpace(approvedLeave?.LeaveTypeCode)
+                    ? "ABSENT_UNEXCUSED"
+                    : approvedLeave!.LeaveTypeCode!.Trim();
+
+            return new AttendanceRecord
+            {
+                EmployeeId = employee.EmployeeId,
+                FingerprintCode = employee.FingerprintCode?.Trim() ?? string.Empty,
+                EmployeeName = employee.EmployeeName,
+                DepartmentName = employee.DepartmentText,
+                PositionName = employee.PositionText,
+                WorkDate = workDate.Date,
+                DayName = GetDayName(workDate),
+                CheckIn = null,
+                CheckOut = null,
+                WorkDay = 0m,
+                WorkHours = 0m,
+                WorkDayPlus = 0m,
+                WorkHoursPlus = 0m,
+                LateMinutes = 0,
+                EarlyMinutes = 0,
+                ShiftName = employee.DepartmentText,
+                Symbol = symbol,
+                SymbolPlus = symbolPlus,
+                TotalHours = 0m,
+                SourceFile = "AUTO-EVALUATION"
+            };
+        }
+
+        private bool CanFinalizeAttendanceDate(DateTime workDate)
+        {
+            var targetDate = workDate.Date;
+            var today = DateTime.Today;
+            if (targetDate < today)
+            {
+                return true;
+            }
+
+            if (targetDate > today)
+            {
+                return false;
+            }
+
+            var cutoffHour = GetDailyEvaluationHour();
+            return DateTime.Now.Hour >= cutoffHour;
+        }
+
+        private int GetDailyEvaluationHour()
+        {
+            var evaluationHour = _configuration.GetValue<int?>("AttendanceMachine:DailyEvaluationHour") ?? 21;
+            return evaluationHour < 0 || evaluationHour > 23
+                ? 21
+                : evaluationHour;
+        }
+
+        private static bool IsScheduledOffDate(DateTime workDate)
+        {
+            if (workDate.DayOfWeek == DayOfWeek.Sunday)
+            {
+                return true;
+            }
+
+            if (workDate.DayOfWeek != DayOfWeek.Saturday)
+            {
+                return false;
+            }
+
+            return ((workDate.Day - 1) / 7) + 1 > 2;
+        }
+
+        private static string BuildAttendanceRecordKey(string fingerprintCode, DateTime workDate)
+        {
+            return (fingerprintCode?.Trim() ?? string.Empty)
+                + "|"
+                + workDate.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        private static string BuildEmployeeDateKey(int employeeId, DateTime workDate)
+        {
+            return employeeId.ToString(CultureInfo.InvariantCulture)
+                + "|"
+                + workDate.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        private static string BuildDateKey(DateTime workDate)
+        {
+            return workDate.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        private static bool IsValidDepartmentRule(AttendanceDepartmentRuleModel rule)
+        {
+            return rule.WorkStartTime.HasValue
+                && rule.LunchStartTime.HasValue
+                && rule.LunchEndTime.HasValue
+                && rule.WorkEndTime.HasValue
+                && rule.WorkStartTime.Value < rule.LunchStartTime.Value
+                && rule.LunchStartTime.Value <= rule.LunchEndTime.Value
+                && rule.LunchEndTime.Value < rule.WorkEndTime.Value;
+        }
+
+        private static AttendanceEvaluationUpdate BuildAttendanceEvaluation(
+            AttendanceEvaluationRecord record,
+            AttendanceDepartmentRuleModel rule,
+            AttendanceApprovedLeave? approvedLeave,
+            AttendanceHolidayModel? holiday)
+        {
+            var expectedMorningMinutes = (int)Math.Round((rule.LunchStartTime!.Value - rule.WorkStartTime!.Value).TotalMinutes);
+            var expectedAfternoonMinutes = (int)Math.Round((rule.WorkEndTime!.Value - rule.LunchEndTime!.Value).TotalMinutes);
+            var expectedWorkMinutes = Math.Max(0, expectedMorningMinutes) + Math.Max(0, expectedAfternoonMinutes);
+
+            var checkInMinutes = record.CheckIn.HasValue
+                ? Math.Max(0, (int)Math.Round(record.CheckIn.Value.TotalMinutes))
+                : 0;
+            var checkOutMinutes = record.CheckOut.HasValue
+                ? Math.Max(0, (int)Math.Round(record.CheckOut.Value.TotalMinutes))
+                : 0;
+
+            if (checkOutMinutes < checkInMinutes)
+            {
+                checkOutMinutes = checkInMinutes;
+            }
+
+            var workStartMinutes = (int)Math.Round(rule.WorkStartTime.Value.TotalMinutes);
+            var lunchStartMinutes = (int)Math.Round(rule.LunchStartTime.Value.TotalMinutes);
+            var lunchEndMinutes = (int)Math.Round(rule.LunchEndTime.Value.TotalMinutes);
+            var workEndMinutes = (int)Math.Round(rule.WorkEndTime.Value.TotalMinutes);
+
+            var morningWorkedMinutes = CalculateOverlapMinutes(
+                checkInMinutes,
+                checkOutMinutes,
+                workStartMinutes,
+                lunchStartMinutes);
+            var afternoonWorkedMinutes = CalculateOverlapMinutes(
+                checkInMinutes,
+                checkOutMinutes,
+                lunchEndMinutes,
+                workEndMinutes);
+            var workedMinutes = morningWorkedMinutes + afternoonWorkedMinutes;
+            var workHours = Math.Round(workedMinutes / 60m, 2);
+
+            decimal workDay;
+            if (expectedWorkMinutes <= 0 || workedMinutes <= 0)
+            {
+                workDay = 0m;
+            }
+            else if (workedMinutes >= (int)Math.Ceiling(expectedWorkMinutes * 0.75m))
+            {
+                workDay = 1m;
+            }
+            else if (workedMinutes >= (int)Math.Ceiling(expectedWorkMinutes * 0.5m))
+            {
+                workDay = 0.5m;
+            }
+            else
+            {
+                workDay = 0m;
+            }
+
+            var lateMinutes = 0;
+            if (record.CheckIn.HasValue && checkInMinutes > workStartMinutes)
+            {
+                lateMinutes = checkInMinutes - workStartMinutes;
+            }
+
+            var earlyMinutes = 0;
+            if (record.CheckOut.HasValue && checkOutMinutes < workEndMinutes)
+            {
+                earlyMinutes = workEndMinutes - checkOutMinutes;
+            }
+
+            if (workDay <= 0m)
+            {
+                lateMinutes = 0;
+                earlyMinutes = 0;
+            }
+
+            var existingSymbol = record.Symbol?.Trim();
+            string? symbol = workDay switch
+            {
+                0m => ResolveZeroWorkdaySymbol(record.WorkDate, existingSymbol, record.SymbolPlus, approvedLeave, holiday),
+                0.5m => "1/2 công",
+                _ => string.Empty
+            };
+
+            return new AttendanceEvaluationUpdate
+            {
+                Id = record.Id,
+                WorkDay = workDay,
+                WorkHours = workHours,
+                TotalHours = workHours,
+                LateMinutes = lateMinutes,
+                EarlyMinutes = earlyMinutes,
+                Symbol = symbol,
+                ShiftName = rule.DepartmentText
+            };
+        }
+
+        private static string ResolveZeroWorkdaySymbol(
+            DateTime workDate,
+            string? symbol,
+            string? symbolPlus,
+            AttendanceApprovedLeave? approvedLeave,
+            AttendanceHolidayModel? holiday)
+        {
+            var holidayName = holiday?.HolidayName?.Trim();
+            if (holiday != null)
+            {
+                return string.IsNullOrWhiteSpace(holidayName) ? "Nghỉ lễ" : holidayName;
+            }
+
+            var leaveName = approvedLeave?.LeaveTypeName?.Trim();
+            if (approvedLeave != null)
+            {
+                return string.IsNullOrWhiteSpace(leaveName) ? "Nghỉ phép" : leaveName;
+            }
+
+            if (IsScheduledOffDate(workDate))
+            {
+                return GetScheduledOffLabel(workDate);
+            }
+
+            return NormalizeZeroWorkdaySymbol(symbol, symbolPlus);
+        }
+
+        private static string NormalizeZeroWorkdaySymbol(string? symbol, string? symbolPlus)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                return "Nghỉ không phép";
+            }
+
+            var normalizedPlus = symbolPlus?.Trim().ToUpperInvariant() ?? string.Empty;
+            if (normalizedPlus == "HOLIDAY"
+                || normalizedPlus == "ABSENT_UNEXCUSED"
+                || normalizedPlus == "NP"
+                || normalizedPlus == "NB"
+                || normalizedPlus == "NVR"
+                || normalizedPlus == "NTS"
+                || normalizedPlus == "NKL")
+            {
+                return "Nghỉ không phép";
+            }
+
+            var normalized = RemoveVietnameseSigns(symbol).Trim().ToLowerInvariant();
+            return normalized switch
+            {
+                "vang" => "Nghỉ không phép",
+                "vang mat" => "Nghỉ không phép",
+                "nghi khong phep" => "Nghỉ không phép",
+                _ => symbol.Trim()
+            };
+        }
+
+        private static string GetScheduledOffLabel(DateTime workDate)
+        {
+            return workDate.DayOfWeek == DayOfWeek.Sunday
+                ? "Nghỉ Chủ nhật"
+                : "Nghỉ thứ 7";
+        }
+
+        private static string RemoveVietnameseSigns(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var normalized = value.Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder(normalized.Length);
+            foreach (var ch in normalized)
+            {
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    builder.Append(ch);
+                }
+            }
+
+            return builder
+                .ToString()
+                .Normalize(NormalizationForm.FormC)
+                .Replace('đ', 'd')
+                .Replace('Đ', 'D');
+        }
+
+        private static int CalculateOverlapMinutes(int rangeStart, int rangeEnd, int slotStart, int slotEnd)
+        {
+            var start = Math.Max(rangeStart, slotStart);
+            var end = Math.Min(rangeEnd, slotEnd);
+            return Math.Max(0, end - start);
         }
 
         private static decimal? CalculateWorkHours(AttendanceAggregate aggregate)

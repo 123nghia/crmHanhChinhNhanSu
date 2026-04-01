@@ -7,6 +7,13 @@ namespace VS.Human.Business
     {
         Task<BaseList> GetSummary(AttendanceRequest request);
         Task<List<AttendanceDetailModel>> GetDetails(int? employeeId, string? fingerprintCode, DateTime fromDate, DateTime toDate, int userId);
+        Task<List<AttendanceDepartmentRuleModel>> GetDepartmentRulesAsync();
+        Task<bool> SaveDepartmentRuleAsync(AttendanceDepartmentRuleModel rule, int userId);
+        Task<bool> DeleteDepartmentRuleAsync(int id, int userId);
+        Task<List<AttendanceHolidayModel>> GetHolidaysAsync();
+        Task<bool> SaveHolidayAsync(AttendanceHolidayModel holiday, int userId);
+        Task<bool> DeleteHolidayAsync(int id, int userId);
+        Task<int> EvaluateAttendanceRangeAsync(DateTime fromDate, DateTime toDate, int userId);
         Task<AttendanceImportResult> ImportAsync(IFormFile file, int userId);
         Task<AttendanceImportResult> SyncFromAccessAsync(DateTime fromDate, DateTime toDate, int userId);
         Task<AttendanceImportResult> SyncFromDeviceAsync(DateTime fromDate, DateTime toDate, int userId);

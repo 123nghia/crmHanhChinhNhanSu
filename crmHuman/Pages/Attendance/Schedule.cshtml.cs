@@ -1,142 +1,354 @@
-using crmHuman.Helpers;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Runtime.Versioning;
+using System.Linq;
 using System.Threading.Tasks;
+using VS.Human.Business;
+using VS.Human.Item;
+using VS.Human.Rep.Model;
+using MasterDataModel = VS.Human.Rep.Model.MasterData;
 
 namespace crmHuman.Pages.Attendance
 {
     public class ScheduleModel : BaseModel2
     {
-        private readonly IConfiguration _configuration;
-        private readonly AccessAttendanceReader _reader;
+        private const int DepartmentMasterType = 5;
+        private readonly IAttendanceBusiness _attendanceBusiness;
+        private readonly ImasterDataBussiness _masterDataBusiness;
 
-        public ScheduleModel(IConfiguration configuration)
+        public ScheduleModel(
+            IAttendanceBusiness attendanceBusiness,
+            ImasterDataBussiness masterDataBusiness)
         {
-            _configuration = configuration;
-            _reader = new AccessAttendanceReader(configuration);
+            _attendanceBusiness = attendanceBusiness;
+            _masterDataBusiness = masterDataBusiness;
             KeyPage = "Attendance";
-            TitlePage = "Ca k\u00EDp / l\u1ECBch l\u00E0m vi\u1EC7c";
+            TitlePage = "Ca kíp / lịch làm việc";
         }
 
-        public List<AccessTableData> Tables { get; private set; } = new List<AccessTableData>();
-        public string? ErrorMessage { get; private set; }
-        public string? SearchToken { get; private set; }
-        public int PageSize { get; private set; } = 50;
+        public List<MasterDataModel> Departments { get; private set; } = new List<MasterDataModel>();
+        public List<AttendanceDepartmentRuleModel> DepartmentRules { get; private set; } = new List<AttendanceDepartmentRuleModel>();
+        public List<AttendanceHolidayModel> Holidays { get; private set; } = new List<AttendanceHolidayModel>();
 
-        [SupportedOSPlatform("windows")]
-        public Task<IActionResult> OnGetAsync()
+        [BindProperty]
+        public AttendanceDepartmentRuleModel RuleForm { get; set; } = new AttendanceDepartmentRuleModel
+        {
+            IsActive = true
+        };
+
+        [BindProperty]
+        public AttendanceHolidayModel HolidayForm { get; set; } = new AttendanceHolidayModel
+        {
+            FromDate = DateTime.Today,
+            ToDate = DateTime.Today,
+            IsActive = true
+        };
+
+        [BindProperty(SupportsGet = true)]
+        public int EditId { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public int EditHolidayId { get; set; }
+
+        public bool CanManageRules { get; private set; }
+
+        public async Task<IActionResult> OnGetAsync()
         {
             if (!HttpContext.User.Identity.IsAuthenticated)
             {
-                return Task.FromResult<IActionResult>(Redirect("/Login"));
+                return Redirect("/Login");
             }
 
             GetInfoUser();
             if (!(Permision.View ?? false))
             {
-                return Task.FromResult<IActionResult>(Page());
+                return Page();
             }
 
-            if (_configuration.GetValue<bool>("AttendanceMachine:UseAccessRealtime"))
-            {
-                ErrorMessage = "He thong chi dong bo nen tu file MDB vao SQL. Man hinh nay khong doc truc tiep Access de tranh loi OLEDB.";
-                return Task.FromResult<IActionResult>(Page());
-            }
+            await LoadDataAsync();
 
-            if (_configuration.GetValue<bool>("AttendanceMachine:UseDirectSqlRealtime"))
+            if (EditId > 0)
             {
-                ErrorMessage = "Ch\u1EBF \u0111\u1ED9 k\u1EBFt n\u1ED1i tr\u1EF1c ti\u1EBFp ch\u1EC9 \u0111\u1ED3ng b\u1ED9 log ch\u1EA5m c\u00F4ng. D\u1EEF li\u1EC7u ca/l\u1ECBch t\u1EEB WiseEye hi\u1EC7n kh\u00F4ng kh\u1EA3 d\u1EE5ng.";
-                return Task.FromResult<IActionResult>(Page());
-            }
-
-            if (!OperatingSystem.IsWindows())
-            {
-                ErrorMessage = "Ch\u1EC9 h\u1ED7 tr\u1EE3 \u0111\u1ECDc d\u1EEF li\u1EC7u Access tr\u00EAn Windows.";
-                return Task.FromResult<IActionResult>(Page());
-            }
-
-            SearchToken = Request.Query["q"];
-            PageSize = ParseInt(Request.Query["ps"], 50);
-
-            ErrorMessage = _reader.GetConfigError();
-            if (string.IsNullOrWhiteSpace(ErrorMessage))
-            {
-                Tables = _reader.LoadTables(new[]
+                var editRule = DepartmentRules.FirstOrDefault(item => item.Id == EditId);
+                if (editRule != null)
                 {
-                    BuildQuery("Shifts", new[] { "ShiftID", "ShiftCode", "ShiftName", "InTime", "OutTime", "WorkMinutes", "LateMinutes", "EarlyMinutes", "OverTime" }),
-                    BuildQuery("Schedule", new[] { "SchID", "SchName", "IsAbsentSat", "IsAbsentSun", "WorkMinutes" }),
-                    BuildQuery("MSchedules", new[] { "SchID", "ShiftID", "DayID" }),
-                    BuildQuery("WSchedules", new[] { "SchID", "ShiftID", "DayID" }),
-                    BuildQuery("YSchedules", new[] { "SchID", "ShiftID", "DayID", "MonthID" }),
-                    BuildQuery("UserTempSch", new[] { "UserEnrollNumber", "SchID", "BDate", "EDate" })
-                }, 5000);
-                AttendanceTableFormatter.NormalizeTables(Tables);
+                    RuleForm = CloneRule(editRule);
+                }
             }
 
-            return Task.FromResult<IActionResult>(Page());
+            if (EditHolidayId > 0)
+            {
+                var editHoliday = Holidays.FirstOrDefault(item => item.Id == EditHolidayId);
+                if (editHoliday != null)
+                {
+                    HolidayForm = CloneHoliday(editHoliday);
+                }
+            }
+
+            return Page();
         }
 
-        public string BuildPageLink(string table, int page)
+        public async Task<IActionResult> OnPostSaveRuleAsync()
         {
-            var query = Request.Query.ToDictionary(k => k.Key, v => v.Value.ToString(), StringComparer.OrdinalIgnoreCase);
-            query["p_" + table] = page.ToString(CultureInfo.InvariantCulture);
-            if (!string.IsNullOrWhiteSpace(SearchToken))
+            if (!HttpContext.User.Identity.IsAuthenticated)
             {
-                query["q"] = SearchToken;
+                return Redirect("/Login");
             }
-            query["ps"] = PageSize.ToString(CultureInfo.InvariantCulture);
 
-            var queryString = string.Join("&", query.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
-            return string.IsNullOrWhiteSpace(queryString) ? string.Empty : "?" + queryString;
+            GetInfoUser();
+            if (!CanManage())
+            {
+                TempData["ErrorMessage"] = "Bạn không có quyền cập nhật cấu hình chấm công.";
+                return RedirectToPage();
+            }
+
+            NormalizeRuleForm();
+            var validationError = ValidateRuleForm();
+            if (!string.IsNullOrWhiteSpace(validationError))
+            {
+                TempData["ErrorMessage"] = validationError;
+                return RedirectToPage(new { editId = RuleForm.Id });
+            }
+
+            var saved = await _attendanceBusiness.SaveDepartmentRuleAsync(RuleForm, UserData.UserId);
+            if (!saved)
+            {
+                TempData["ErrorMessage"] = "Không thể lưu cấu hình giờ làm việc.";
+                return RedirectToPage(new { editId = RuleForm.Id });
+            }
+
+            await RecalculateCurrentMonthAsync();
+            TempData["SuccessMessage"] = "Đã lưu cấu hình giờ làm việc theo bộ phận.";
+            return RedirectToPage();
         }
 
-        private AccessTableQuery BuildQuery(string table, IEnumerable<string> columns)
+        public async Task<IActionResult> OnPostDeleteRuleAsync(int id)
         {
-            var page = ParseInt(Request.Query["p_" + table], 1);
-            return new AccessTableQuery
+            if (!HttpContext.User.Identity.IsAuthenticated)
             {
-                Name = table,
-                Columns = columns.ToList(),
-                ColumnLabels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["ShiftID"] = "M\u00E3 ca",
-                    ["ShiftCode"] = "K\u00FD hi\u1EC7u ca",
-                    ["ShiftName"] = "T\u00EAn ca",
-                    ["InTime"] = "Gi\u1EDD v\u00E0o",
-                    ["OutTime"] = "Gi\u1EDD ra",
-                    ["WorkMinutes"] = "Ph\u00FAt c\u00F4ng",
-                    ["LateMinutes"] = "Tr\u1EC5 (ph\u00FAt)",
-                    ["EarlyMinutes"] = "S\u1EDBm (ph\u00FAt)",
-                    ["OverTime"] = "OT (ph\u00FAt)",
-                    ["SchID"] = "M\u00E3 l\u1ECBch",
-                    ["SchName"] = "T\u00EAn l\u1ECBch",
-                    ["IsAbsentSat"] = "Ngh\u1EC9 T7",
-                    ["IsAbsentSun"] = "Ngh\u1EC9 CN",
-                    ["DayID"] = "Th\u1EE9",
-                    ["MonthID"] = "Th\u00E1ng",
-                    ["UserEnrollNumber"] = "M\u00E3 v\u00E2n tay",
-                    ["BDate"] = "T\u1EEB ng\u00E0y",
-                    ["EDate"] = "\u0110\u1EBFn ng\u00E0y"
-                },
-                SearchToken = SearchToken,
-                Page = page,
-                PageSize = PageSize
+                return Redirect("/Login");
+            }
+
+            GetInfoUser();
+            if (!CanManage())
+            {
+                TempData["ErrorMessage"] = "Bạn không có quyền xóa cấu hình chấm công.";
+                return RedirectToPage();
+            }
+
+            var deleted = await _attendanceBusiness.DeleteDepartmentRuleAsync(id, UserData.UserId);
+            if (!deleted)
+            {
+                TempData["ErrorMessage"] = "Không thể xóa cấu hình giờ làm việc.";
+                return RedirectToPage();
+            }
+
+            await RecalculateCurrentMonthAsync();
+            TempData["SuccessMessage"] = "Đã xóa cấu hình giờ làm việc.";
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostSaveHolidayAsync()
+        {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Redirect("/Login");
+            }
+
+            GetInfoUser();
+            if (!CanManage())
+            {
+                TempData["ErrorMessage"] = "Báº¡n khÃ´ng cÃ³ quyá»n cáº­p nháº­t ngÃ y nghá»‰ lá»….";
+                return RedirectToPage();
+            }
+
+            NormalizeHolidayForm();
+            var validationError = ValidateHolidayForm();
+            if (!string.IsNullOrWhiteSpace(validationError))
+            {
+                TempData["ErrorMessage"] = validationError;
+                return RedirectToPage(new { editHolidayId = HolidayForm.Id });
+            }
+
+            var saved = await _attendanceBusiness.SaveHolidayAsync(HolidayForm, UserData.UserId);
+            if (!saved)
+            {
+                TempData["ErrorMessage"] = "KhÃ´ng thá»ƒ lÆ°u ngÃ y nghá»‰ lá»….";
+                return RedirectToPage(new { editHolidayId = HolidayForm.Id });
+            }
+
+            await RecalculateCurrentMonthAsync();
+            TempData["SuccessMessage"] = "ÄÃ£ lÆ°u ngÃ y nghá»‰ lá»… vÃ  cáº­p nháº­t cháº¥m cÃ´ng.";
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostDeleteHolidayAsync(int id)
+        {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Redirect("/Login");
+            }
+
+            GetInfoUser();
+            if (!CanManage())
+            {
+                TempData["ErrorMessage"] = "Báº¡n khÃ´ng cÃ³ quyá»n xÃ³a ngÃ y nghá»‰ lá»….";
+                return RedirectToPage();
+            }
+
+            var deleted = await _attendanceBusiness.DeleteHolidayAsync(id, UserData.UserId);
+            if (!deleted)
+            {
+                TempData["ErrorMessage"] = "KhÃ´ng thá»ƒ xÃ³a ngÃ y nghá»‰ lá»….";
+                return RedirectToPage();
+            }
+
+            await RecalculateCurrentMonthAsync();
+            TempData["SuccessMessage"] = "ÄÃ£ xÃ³a ngÃ y nghá»‰ lá»….";
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostRunEvaluationAsync()
+        {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Redirect("/Login");
+            }
+
+            GetInfoUser();
+            if (!CanManage())
+            {
+                TempData["ErrorMessage"] = "Bạn không có quyền chạy đánh giá chấm công.";
+                return RedirectToPage();
+            }
+
+            var updated = await RecalculateCurrentMonthAsync();
+            TempData["SuccessMessage"] = $"Đã chạy đánh giá lại chấm công. Số dòng cập nhật: {updated}.";
+            return RedirectToPage();
+        }
+
+        public string FormatTime(TimeSpan? value)
+        {
+            return value.HasValue ? value.Value.ToString(@"hh\:mm") : string.Empty;
+        }
+
+        private async Task LoadDataAsync()
+        {
+            CanManageRules = CanManage();
+
+            Departments = (await _masterDataBusiness.GetallByTypeData(DepartmentMasterType))
+                .Where(item => item != null && !string.IsNullOrWhiteSpace(item.Code))
+                .OrderBy(item => item.Name ?? item.Code)
+                .ToList();
+
+            DepartmentRules = (await _attendanceBusiness.GetDepartmentRulesAsync())
+                .OrderBy(item => item.DepartmentText ?? item.DepartmentCode)
+                .ToList();
+
+            Holidays = (await _attendanceBusiness.GetHolidaysAsync())
+                .OrderByDescending(item => item.FromDate)
+                .ThenByDescending(item => item.ToDate)
+                .ThenBy(item => item.HolidayName)
+                .ToList();
+        }
+
+        private bool CanManage()
+        {
+            return (Permision.Add ?? false)
+                || (Permision.Edit ?? false)
+                || string.Equals(UserData?.RoleCode, "1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(UserData?.RoleCode, "8", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void NormalizeRuleForm()
+        {
+            RuleForm.DepartmentCode = RuleForm.DepartmentCode?.Trim() ?? string.Empty;
+        }
+
+        private void NormalizeHolidayForm()
+        {
+            HolidayForm.HolidayName = HolidayForm.HolidayName?.Trim() ?? string.Empty;
+            HolidayForm.FromDate = HolidayForm.FromDate.Date;
+            HolidayForm.ToDate = HolidayForm.ToDate.Date;
+        }
+
+        private string ValidateRuleForm()
+        {
+            if (string.IsNullOrWhiteSpace(RuleForm.DepartmentCode))
+            {
+                return "Vui lòng chọn bộ phận.";
+            }
+
+            if (!RuleForm.WorkStartTime.HasValue
+                || !RuleForm.LunchStartTime.HasValue
+                || !RuleForm.LunchEndTime.HasValue
+                || !RuleForm.WorkEndTime.HasValue)
+            {
+                return "Vui lòng nhập đầy đủ giờ vào, nghỉ trưa, vào lại và tan làm.";
+            }
+
+            if (!(RuleForm.WorkStartTime.Value < RuleForm.LunchStartTime.Value
+                && RuleForm.LunchStartTime.Value <= RuleForm.LunchEndTime.Value
+                && RuleForm.LunchEndTime.Value < RuleForm.WorkEndTime.Value))
+            {
+                return "Thứ tự thời gian không hợp lệ. Cần theo thứ tự: vào làm < nghỉ trưa <= vào lại < tan làm.";
+            }
+
+            return string.Empty;
+        }
+
+        private string ValidateHolidayForm()
+        {
+            if (string.IsNullOrWhiteSpace(HolidayForm.HolidayName))
+            {
+                return "Vui lÃ²ng nháº­p tÃªn ngÃ y nghá»‰ lá»….";
+            }
+
+            if (HolidayForm.FromDate == DateTime.MinValue || HolidayForm.ToDate == DateTime.MinValue)
+            {
+                return "Vui lÃ²ng chá»n tá»« ngÃ y vÃ  Ä‘áº¿n ngÃ y.";
+            }
+
+            if (HolidayForm.FromDate.Date > HolidayForm.ToDate.Date)
+            {
+                return "Khoáº£ng ngÃ y nghá»‰ lá»… khÃ´ng há»£p lá»‡.";
+            }
+
+            return string.Empty;
+        }
+
+        private async Task<int> RecalculateCurrentMonthAsync()
+        {
+            var fromDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            return await _attendanceBusiness.EvaluateAttendanceRangeAsync(fromDate, DateTime.Today, UserData.UserId);
+        }
+
+        private static AttendanceDepartmentRuleModel CloneRule(AttendanceDepartmentRuleModel source)
+        {
+            return new AttendanceDepartmentRuleModel
+            {
+                Id = source.Id,
+                DepartmentCode = source.DepartmentCode,
+                DepartmentText = source.DepartmentText,
+                WorkStartTime = source.WorkStartTime,
+                LunchStartTime = source.LunchStartTime,
+                LunchEndTime = source.LunchEndTime,
+                WorkEndTime = source.WorkEndTime,
+                IsActive = source.IsActive,
+                ExpectedWorkHours = source.ExpectedWorkHours
             };
         }
 
-        private static int ParseInt(string? raw, int defaultValue)
+        private static AttendanceHolidayModel CloneHoliday(AttendanceHolidayModel source)
         {
-            if (string.IsNullOrWhiteSpace(raw))
+            return new AttendanceHolidayModel
             {
-                return defaultValue;
-            }
-
-            return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
-                ? value
-                : defaultValue;
+                Id = source.Id,
+                HolidayName = source.HolidayName,
+                FromDate = source.FromDate,
+                ToDate = source.ToDate,
+                IsActive = source.IsActive
+            };
         }
     }
 }

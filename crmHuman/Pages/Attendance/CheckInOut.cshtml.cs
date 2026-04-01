@@ -33,6 +33,7 @@ namespace crmHuman.Pages.Attendance
         public int PageSize { get; private set; } = 50;
         public List<EmployeeOption> Employees { get; private set; } = new List<EmployeeOption>();
         public string? AccessScopeText { get; private set; }
+        public AttendanceSyncStatus? SyncStatus { get; private set; }
 
         [SupportedOSPlatform("windows")]
         public async Task<IActionResult> OnGetAsync()
@@ -54,6 +55,8 @@ namespace crmHuman.Pages.Attendance
                 ErrorMessage = "He thong chi dong bo nen tu file MDB vao SQL. Man hinh nay khong doc truc tiep Access de tranh loi OLEDB.";
                 return Page();
             }
+
+            SyncStatus = _directReader.GetSyncStatus();
 
             if (!useDirectSource && !OperatingSystem.IsWindows())
             {

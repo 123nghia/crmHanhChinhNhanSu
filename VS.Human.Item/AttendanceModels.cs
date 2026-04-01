@@ -53,4 +53,24 @@ namespace VS.Human.Item
         public decimal? TotalHours { get; set; }
         public string? FingerprintCode { get; set; }
     }
+
+    public class AttendanceDepartmentRuleModel : BaseIndexModel
+    {
+        public string DepartmentCode { get; set; } = string.Empty;
+        public string? DepartmentText { get; set; }
+        public TimeSpan? WorkStartTime { get; set; }
+        public TimeSpan? LunchStartTime { get; set; }
+        public TimeSpan? LunchEndTime { get; set; }
+        public TimeSpan? WorkEndTime { get; set; }
+        public bool IsActive { get; set; } = true;
+        public decimal? ExpectedWorkHours { get; set; }
+    }
+
+    public class AttendanceHolidayModel : BaseIndexModel
+    {
+        public string HolidayName { get; set; } = string.Empty;
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
 }

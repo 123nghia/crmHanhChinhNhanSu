@@ -250,6 +250,10 @@ function getScheduledOffLabel(date) {
     return 'Nghỉ';
 }
 
+function getHalfDayLabel() {
+    return '1/2 công';
+}
+
 function getScheduledOffCount(month) {
     var monthInfo = getAttendanceMonthInfo(month);
     if (!monthInfo) return 0;
@@ -267,22 +271,54 @@ function getScheduledOffCount(month) {
 }
 
 function updateAttendanceOffCounts(month) {
-    var offCount = getScheduledOffCount(month);
-    var rows = document.querySelectorAll('.attendance-summary-row');
-
-    rows.forEach(function (row) {
-        row.setAttribute('data-off-count', offCount);
-        if (row.children.length > 6) {
-            row.children[6].textContent = offCount;
-        }
-    });
-
     var activeRow = document.querySelector('.attendance-summary-row.active') || document.querySelector('.attendance-summary-row');
     if (activeRow) {
         setText('summaryOffCount', activeRow.getAttribute('data-off-count'));
-    } else {
-        setText('summaryOffCount', offCount);
     }
+}
+
+function normalizeAttendanceStatusText(value) {
+    var text = (value || '').toString().trim();
+    if (!text) {
+        return '';
+    }
+
+    if (typeof text.normalize === 'function') {
+        text = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    return text.toLowerCase();
+}
+
+function isHolidayRecord(item) {
+    if (!item) {
+        return false;
+    }
+
+    var symbolPlus = (item.symbolPlus || '').toString().trim().toUpperCase();
+    if (symbolPlus === 'HOLIDAY') {
+        return true;
+    }
+
+    return normalizeAttendanceStatusText(item.symbol).indexOf('nghi le') === 0;
+}
+
+function isLeaveRecord(item) {
+    if (!item || item.isScheduledOff || isHolidayRecord(item)) {
+        return false;
+    }
+
+    var symbolPlus = (item.symbolPlus || '').toString().trim().toUpperCase();
+    if (symbolPlus === 'NP' || symbolPlus === 'NB' || symbolPlus === 'NVR' || symbolPlus === 'NTS' || symbolPlus === 'NKL') {
+        return true;
+    }
+
+    var normalizedSymbol = normalizeAttendanceStatusText(item.symbol);
+    return normalizedSymbol.indexOf('nghi phep') === 0
+        || normalizedSymbol.indexOf('nghi benh') === 0
+        || normalizedSymbol.indexOf('nghi viec rieng') === 0
+        || normalizedSymbol.indexOf('nghi thai san') === 0
+        || normalizedSymbol.indexOf('nghi khong luong') === 0;
 }
 
 function normalizeAttendanceItem(item) {
@@ -300,6 +336,7 @@ function normalizeAttendanceItem(item) {
         earlyMinutes: item.earlyMinutes || item.EarlyMinutes || 0,
         shiftName: item.shiftName || item.ShiftName || '',
         symbol: symbol,
+        symbolPlus: item.symbolPlus || item.SymbolPlus || '',
         isScheduledOff: Boolean(item.isScheduledOff || item.IsScheduledOff)
     };
 }
@@ -477,21 +514,47 @@ function renderAttendanceTable(data) {
         var earlyMinutes = normalized.earlyMinutes;
         var shiftName = normalized.shiftName;
         var isScheduledOff = normalized.isScheduledOff || isScheduledOffDate(normalized.workDate);
+        var isHalfDay = Number(workDay) === 0.5;
+        var isHoliday = isHolidayRecord(normalized);
+        var isLeave = isLeaveRecord(normalized);
         var symbol = normalized.symbol || (isScheduledOff ? getScheduledOffLabel(normalized.workDate) : '');
+        if (!symbol && isHalfDay) {
+            symbol = getHalfDayLabel();
+        }
 
         var rowClasses = [];
-        if (symbol) {
+        if (symbol && !isHalfDay && !isLeave && !isHoliday && !isScheduledOff) {
             rowClasses.push('attendance-row-absent');
         }
         if (isScheduledOff) {
             rowClasses.push('attendance-row-scheduled-off');
         }
+        if (isHalfDay) {
+            rowClasses.push('attendance-row-half-day');
+        }
+        if (isLeave) {
+            rowClasses.push('attendance-row-leave');
+        }
+        if (isHoliday) {
+            rowClasses.push('attendance-row-holiday');
+        }
 
         var lateClass = lateMinutes > 0 ? 'attendance-cell-late' : '';
         var earlyClass = earlyMinutes > 0 ? 'attendance-cell-early' : '';
-        var symbolClass = symbol ? 'attendance-cell-absent' : '';
+        var symbolClass = '';
+        if (isHoliday) {
+            symbolClass = 'attendance-cell-holiday';
+        } else if (isLeave) {
+            symbolClass = 'attendance-cell-leave';
+        } else if (symbol && !isHalfDay) {
+            symbolClass = 'attendance-cell-absent';
+        }
         if (isScheduledOff) {
             symbolClass += (symbolClass ? ' ' : '') + 'attendance-cell-off';
+        }
+        var workDayClass = isHalfDay ? 'attendance-cell-half-day' : '';
+        if (isHalfDay) {
+            symbolClass += (symbolClass ? ' ' : '') + 'attendance-cell-half-day';
         }
 
         html += '<tr class="' + rowClasses.join(' ') + '">'
@@ -499,7 +562,7 @@ function renderAttendanceTable(data) {
             + '<td>' + escapeHtml(dayName) + '</td>'
             + '<td>' + escapeHtml(checkIn) + '</td>'
             + '<td>' + escapeHtml(checkOut) + '</td>'
-            + '<td class="text-end">' + workDay + '</td>'
+            + '<td class="text-end ' + workDayClass + '">' + workDay + '</td>'
             + '<td class="text-end">' + workHours + '</td>'
             + '<td class="text-end ' + lateClass + '">' + lateMinutes + '</td>'
             + '<td class="text-end ' + earlyClass + '">' + earlyMinutes + '</td>'
@@ -546,7 +609,14 @@ function renderAttendanceCalendar(data, month) {
         var key = toDateKey(date);
         var record = recordMap[key];
         var isScheduledOff = isScheduledOffDate(date);
-        var cellClass = 'attendance-day-cell' + (isScheduledOff ? ' attendance-day-off' : '');
+        var isHalfDay = record ? Number(record.workDay || 0) === 0.5 : false;
+        var isHoliday = record ? isHolidayRecord(record) : false;
+        var isLeave = record ? isLeaveRecord(record) : false;
+        var cellClass = 'attendance-day-cell'
+            + (isScheduledOff ? ' attendance-day-off' : '')
+            + (isHalfDay ? ' attendance-day-half-day' : '')
+            + (isHoliday ? ' attendance-day-holiday' : '')
+            + (isLeave ? ' attendance-day-leave' : '');
         var cellHtml = '<div class="' + cellClass + '">';
         cellHtml += '<div class="attendance-day-number">' + day + '</div>';
 
@@ -557,13 +627,20 @@ function renderAttendanceCalendar(data, month) {
             var lateMinutes = record.lateMinutes || 0;
             var earlyMinutes = record.earlyMinutes || 0;
             var symbol = record.symbol || '';
+            if (!symbol && isHalfDay) {
+                symbol = getHalfDayLabel();
+            }
 
             if (isScheduledOff) {
                 cellHtml += '<div class="attendance-badge text-bg-danger mt-1">Ngày nghỉ</div>';
             }
+            if (isHalfDay) {
+                cellHtml += '<div class="attendance-badge bg-warning text-dark mt-1">1/2 công</div>';
+            }
 
             if (symbol) {
-                cellHtml += '<div class="attendance-day-meta">' + escapeHtml(symbol) + '</div>';
+                var symbolBadgeClass = isHoliday ? 'bg-primary' : (isLeave ? 'bg-success' : 'bg-danger');
+                cellHtml += '<div class="attendance-badge ' + symbolBadgeClass + ' mt-1">' + escapeHtml(symbol) + '</div>';
             }
 
             if (checkIn || checkOut) {
