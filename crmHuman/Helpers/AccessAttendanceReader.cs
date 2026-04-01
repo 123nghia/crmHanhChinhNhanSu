@@ -32,6 +32,7 @@ namespace crmHuman.Helpers
         public string? SearchToken { get; set; }
         public string? FilterColumn { get; set; }
         public string? FilterValue { get; set; }
+        public List<string> FilterValues { get; set; } = new List<string>();
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 50;
     }
@@ -240,19 +241,7 @@ namespace crmHuman.Helpers
                     if (string.IsNullOrWhiteSpace(tableData.Error))
                     {
                         var filtered = FilterRows(tableData.Rows, requested.SearchToken);
-                        if (!string.IsNullOrWhiteSpace(requested.FilterColumn) &&
-                            !string.IsNullOrWhiteSpace(requested.FilterValue))
-                        {
-                            var filterIndex = tableData.Columns.FindIndex(c => c.Equals(requested.FilterColumn, StringComparison.OrdinalIgnoreCase));
-                            if (filterIndex >= 0)
-                            {
-                                var filterValue = requested.FilterValue.Trim();
-                                filtered = filtered
-                                    .Where(row => filterIndex < row.Count &&
-                                        string.Equals(row[filterIndex], filterValue, StringComparison.OrdinalIgnoreCase))
-                                    .ToList();
-                            }
-                        }
+                        filtered = ApplyColumnFilter(filtered, tableData.Columns, requested);
                         tableData.TotalCount = filtered.Count;
                         var pageSize = requested.PageSize <= 0 ? 50 : requested.PageSize;
                         var page = requested.Page <= 0 ? 1 : requested.Page;
@@ -377,6 +366,45 @@ namespace crmHuman.Helpers
             return rows
                 .Where(row => row.Any(cell => cell != null &&
                     cell.Contains(normalized, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+
+        private static List<List<string>> ApplyColumnFilter(
+            List<List<string>> rows,
+            List<string> columns,
+            AccessTableQuery requested)
+        {
+            if (rows.Count == 0 ||
+                string.IsNullOrWhiteSpace(requested.FilterColumn))
+            {
+                return rows;
+            }
+
+            var filterIndex = columns.FindIndex(c => c.Equals(requested.FilterColumn, StringComparison.OrdinalIgnoreCase));
+            if (filterIndex < 0)
+            {
+                return rows;
+            }
+
+            var filterValues = requested.FilterValues?
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? new List<string>();
+
+            if (filterValues.Count == 0 && !string.IsNullOrWhiteSpace(requested.FilterValue))
+            {
+                filterValues.Add(requested.FilterValue.Trim());
+            }
+
+            if (filterValues.Count == 0)
+            {
+                return rows;
+            }
+
+            var allowedValues = new HashSet<string>(filterValues, StringComparer.OrdinalIgnoreCase);
+            return rows
+                .Where(row => filterIndex < row.Count && allowedValues.Contains(row[filterIndex]))
                 .ToList();
         }
     }

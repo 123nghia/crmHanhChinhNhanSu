@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 
 namespace crmHuman.Helpers
 {
@@ -165,14 +166,18 @@ SELECT CASE WHEN OBJECT_ID(N'dbo.AttendanceDeviceLogs', N'U') IS NULL THEN 0 ELS
                 Headers = new List<string> { "UserEnrollNumber", "UserFullName" }
             };
 
+            var filterValues = GetRequestedFilterValues(requested);
             using var command = connection.CreateCommand();
-            command.CommandText = @"
+            var sql = new StringBuilder(@"
 SELECT TOP (@MaxRows)
     DeviceUserId AS UserEnrollNumber,
     [Name] AS UserFullName
 FROM dbo.DeviceUsers
-WHERE (@DeviceIp IS NULL OR DeviceIp = @DeviceIp)
-ORDER BY [Name], DeviceUserId;";
+WHERE (@DeviceIp IS NULL OR DeviceIp = @DeviceIp)");
+            AppendInClause(sql, command, "DeviceUserId", filterValues, "userEnroll");
+            sql.Append(@"
+ORDER BY [Name], DeviceUserId;");
+            command.CommandText = sql.ToString();
             command.Parameters.AddWithValue("@MaxRows", maxRows);
             command.Parameters.AddWithValue("@DeviceIp", (object?)deviceIp ?? DBNull.Value);
 
@@ -201,16 +206,20 @@ ORDER BY [Name], DeviceUserId;";
                 Headers = new List<string> { "Ma van tay", "Thoi gian", "May", "Nguon" }
             };
 
+            var filterValues = GetRequestedFilterValues(requested);
             using var command = connection.CreateCommand();
-            command.CommandText = @"
+            var sql = new StringBuilder(@"
 SELECT TOP (@MaxRows)
     DeviceUserId AS UserEnrollNumber,
     RecordTime AS TimeStr,
     DeviceIp AS MachineNo,
     [Source]
 FROM dbo.DeviceAttendanceLogs
-WHERE (@DeviceIp IS NULL OR DeviceIp = @DeviceIp)
-ORDER BY RecordTime DESC;";
+WHERE (@DeviceIp IS NULL OR DeviceIp = @DeviceIp)");
+            AppendInClause(sql, command, "DeviceUserId", filterValues, "historyEnroll");
+            sql.Append(@"
+ORDER BY RecordTime DESC;");
+            command.CommandText = sql.ToString();
             command.Parameters.AddWithValue("@MaxRows", maxRows);
             command.Parameters.AddWithValue("@DeviceIp", (object?)deviceIp ?? DBNull.Value);
 
@@ -241,8 +250,9 @@ ORDER BY RecordTime DESC;";
                 Headers = new List<string> { "UserEnrollNumber", "UserFullName" }
             };
 
+            var filterValues = GetRequestedFilterValues(requested);
             using var command = connection.CreateCommand();
-            command.CommandText = @"
+            var sql = new StringBuilder(@"
 SELECT TOP (@MaxRows)
     q.UserEnrollNumber,
     MAX(q.UserFullName) AS UserFullName
@@ -265,9 +275,12 @@ FROM
     WHERE (@DeviceIp IS NULL OR l.DeviceIp = @DeviceIp)
 ) q
 WHERE q.UserEnrollNumber IS NOT NULL
-  AND q.UserEnrollNumber <> ''
+  AND q.UserEnrollNumber <> ''");
+            AppendInClause(sql, command, "q.UserEnrollNumber", filterValues, "cacheUserEnroll");
+            sql.Append(@"
 GROUP BY q.UserEnrollNumber
-ORDER BY MAX(q.UserFullName), q.UserEnrollNumber;";
+ORDER BY MAX(q.UserFullName), q.UserEnrollNumber;");
+            command.CommandText = sql.ToString();
             command.Parameters.AddWithValue("@MaxRows", maxRows);
             command.Parameters.AddWithValue("@DeviceIp", (object?)deviceIp ?? DBNull.Value);
 
@@ -296,8 +309,9 @@ ORDER BY MAX(q.UserFullName), q.UserEnrollNumber;";
                 Headers = new List<string> { "Ma van tay", "Thoi gian", "Vao / Ra", "May", "Nguon" }
             };
 
+            var filterValues = GetRequestedFilterValues(requested);
             using var command = connection.CreateCommand();
-            command.CommandText = @"
+            var sql = new StringBuilder(@"
 SELECT TOP (@MaxRows)
     COALESCE(NULLIF(e.FingerprintCode, ''), NULLIF(l.NormalizedUserId, ''), l.DeviceUserId) AS UserEnrollNumber,
     l.RecordTime AS TimeStr,
@@ -314,8 +328,16 @@ OUTER APPLY
       AND (emp.FingerprintCode = l.DeviceUserId OR emp.FingerprintCode = l.NormalizedUserId)
     ORDER BY CASE WHEN emp.FingerprintCode = l.DeviceUserId THEN 0 ELSE 1 END, emp.Id
 ) e
-WHERE (@DeviceIp IS NULL OR l.DeviceIp = @DeviceIp)
-ORDER BY l.RecordTime DESC;";
+WHERE (@DeviceIp IS NULL OR l.DeviceIp = @DeviceIp)");
+            AppendInClause(
+                sql,
+                command,
+                "COALESCE(NULLIF(e.FingerprintCode, ''), NULLIF(l.NormalizedUserId, ''), l.DeviceUserId)",
+                filterValues,
+                "cacheHistoryEnroll");
+            sql.Append(@"
+ORDER BY l.RecordTime DESC;");
+            command.CommandText = sql.ToString();
             command.Parameters.AddWithValue("@MaxRows", maxRows);
             command.Parameters.AddWithValue("@DeviceIp", (object?)deviceIp ?? DBNull.Value);
 
@@ -339,19 +361,7 @@ ORDER BY l.RecordTime DESC;";
         private static void ApplyFilterAndPaging(AccessTableData tableData, AccessTableQuery requested)
         {
             var filtered = FilterRows(tableData.Rows, requested.SearchToken);
-            if (!string.IsNullOrWhiteSpace(requested.FilterColumn) &&
-                !string.IsNullOrWhiteSpace(requested.FilterValue))
-            {
-                var filterIndex = tableData.Columns.FindIndex(c => c.Equals(requested.FilterColumn, StringComparison.OrdinalIgnoreCase));
-                if (filterIndex >= 0)
-                {
-                    var filterValue = requested.FilterValue.Trim();
-                    filtered = filtered
-                        .Where(row => filterIndex < row.Count &&
-                                      string.Equals(row[filterIndex], filterValue, StringComparison.OrdinalIgnoreCase))
-                        .ToList();
-                }
-            }
+            filtered = ApplyColumnFilter(filtered, tableData.Columns, requested);
 
             tableData.TotalCount = filtered.Count;
             var pageSize = requested.PageSize <= 0 ? 50 : requested.PageSize;
@@ -360,6 +370,78 @@ ORDER BY l.RecordTime DESC;";
             tableData.Page = page;
             tableData.PageSize = pageSize;
             tableData.Rows = filtered.Skip(skip).Take(pageSize).ToList();
+        }
+
+        private static List<List<string>> ApplyColumnFilter(
+            List<List<string>> rows,
+            List<string> columns,
+            AccessTableQuery requested)
+        {
+            if (rows.Count == 0 || string.IsNullOrWhiteSpace(requested.FilterColumn))
+            {
+                return rows;
+            }
+
+            var filterIndex = columns.FindIndex(c => c.Equals(requested.FilterColumn, StringComparison.OrdinalIgnoreCase));
+            if (filterIndex < 0)
+            {
+                return rows;
+            }
+
+            var filterValues = GetRequestedFilterValues(requested);
+            if (filterValues.Count == 0)
+            {
+                return rows;
+            }
+
+            var allowedValues = new HashSet<string>(filterValues, StringComparer.OrdinalIgnoreCase);
+            return rows
+                .Where(row => filterIndex < row.Count && allowedValues.Contains(row[filterIndex]))
+                .ToList();
+        }
+
+        private static List<string> GetRequestedFilterValues(AccessTableQuery requested)
+        {
+            var values = requested.FilterValues?
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? new List<string>();
+
+            if (values.Count == 0 && !string.IsNullOrWhiteSpace(requested.FilterValue))
+            {
+                values.Add(requested.FilterValue.Trim());
+            }
+
+            return values;
+        }
+
+        private static void AppendInClause(
+            StringBuilder sql,
+            SqlCommand command,
+            string sqlExpression,
+            IReadOnlyList<string> filterValues,
+            string parameterPrefix)
+        {
+            if (filterValues == null || filterValues.Count == 0)
+            {
+                return;
+            }
+
+            sql.Append(" AND ").Append(sqlExpression).Append(" IN (");
+            for (var i = 0; i < filterValues.Count; i++)
+            {
+                var parameterName = $"@{parameterPrefix}{i}";
+                if (i > 0)
+                {
+                    sql.Append(", ");
+                }
+
+                sql.Append(parameterName);
+                command.Parameters.AddWithValue(parameterName, filterValues[i]);
+            }
+
+            sql.Append(')');
         }
 
         private string? GetMainConnectionString()

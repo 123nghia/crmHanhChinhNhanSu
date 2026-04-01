@@ -1,6 +1,7 @@
 function selectAttendanceEmployee(button) {
     var row = button.closest('tr');
     if (!row) return;
+
     var employeeId = parseInt(row.getAttribute('data-employee-id'), 10);
     var fingerprint = row.getAttribute('data-fingerprint') || '';
     syncAttendanceEmployeeSelect(employeeId, fingerprint);
@@ -14,6 +15,7 @@ function highlightSummaryRow(row) {
     document.querySelectorAll('.attendance-summary-row').forEach(function (item) {
         item.classList.remove('active');
     });
+
     if (row) {
         row.classList.add('active');
     }
@@ -21,6 +23,7 @@ function highlightSummaryRow(row) {
 
 function updateSummaryFromRow(row) {
     if (!row) return;
+
     setText('summaryWorkDays', row.getAttribute('data-work-days'));
     setText('summaryOffCount', row.getAttribute('data-off-count'));
     setText('summaryLateCount', row.getAttribute('data-late-count'));
@@ -134,12 +137,15 @@ function initMonthPicker() {
 
     var toHidden = function (value) {
         if (!value) return '';
+
         var match = value.trim().match(/^(\d{1,2})[\/\-](\d{4})$/);
         if (!match) return '';
+
         var mm = match[1].padStart(2, '0');
         var yyyy = match[2];
         var month = parseInt(mm, 10);
         if (Number.isNaN(month) || month < 1 || month > 12) return '';
+
         return yyyy + '-' + mm;
     };
 
@@ -176,6 +182,196 @@ function initMonthPicker() {
 }
 
 document.addEventListener('DOMContentLoaded', initMonthPicker);
+
+function getAttendanceDate(value) {
+    if (!value) return null;
+
+    var date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getAttendanceMonthInfo(month) {
+    if (!month) return null;
+
+    var parts = month.split('-');
+    var year = parseInt(parts[0], 10);
+    var monthIndex = parseInt(parts[1], 10) - 1;
+    if (Number.isNaN(year) || Number.isNaN(monthIndex)) return null;
+
+    return {
+        year: year,
+        monthIndex: monthIndex
+    };
+}
+
+function getAttendanceDayName(date) {
+    switch (date.getDay()) {
+        case 1: return 'Thứ 2';
+        case 2: return 'Thứ 3';
+        case 3: return 'Thứ 4';
+        case 4: return 'Thứ 5';
+        case 5: return 'Thứ 6';
+        case 6: return 'Thứ 7';
+        default: return 'CN';
+    }
+}
+
+function isScheduledOffDate(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return false;
+    }
+
+    if (date.getDay() === 0) {
+        return true;
+    }
+
+    if (date.getDay() !== 6) {
+        return false;
+    }
+
+    return Math.floor((date.getDate() - 1) / 7) + 1 > 2;
+}
+
+function getScheduledOffLabel(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return 'Nghỉ';
+    }
+
+    if (date.getDay() === 0) {
+        return 'Nghỉ Chủ nhật';
+    }
+
+    if (date.getDay() === 6) {
+        return 'Nghỉ thứ 7';
+    }
+
+    return 'Nghỉ';
+}
+
+function getScheduledOffCount(month) {
+    var monthInfo = getAttendanceMonthInfo(month);
+    if (!monthInfo) return 0;
+
+    var total = 0;
+    var lastDay = new Date(monthInfo.year, monthInfo.monthIndex + 1, 0);
+
+    for (var day = 1; day <= lastDay.getDate(); day++) {
+        if (isScheduledOffDate(new Date(monthInfo.year, monthInfo.monthIndex, day))) {
+            total++;
+        }
+    }
+
+    return total;
+}
+
+function updateAttendanceOffCounts(month) {
+    var offCount = getScheduledOffCount(month);
+    var rows = document.querySelectorAll('.attendance-summary-row');
+
+    rows.forEach(function (row) {
+        row.setAttribute('data-off-count', offCount);
+        if (row.children.length > 6) {
+            row.children[6].textContent = offCount;
+        }
+    });
+
+    var activeRow = document.querySelector('.attendance-summary-row.active') || document.querySelector('.attendance-summary-row');
+    if (activeRow) {
+        setText('summaryOffCount', activeRow.getAttribute('data-off-count'));
+    } else {
+        setText('summaryOffCount', offCount);
+    }
+}
+
+function normalizeAttendanceItem(item) {
+    var date = getAttendanceDate(item.workDate || item.WorkDate);
+    var symbol = item.symbol || item.Symbol || '';
+
+    return {
+        workDate: date,
+        dayName: item.dayName || item.DayName || (date ? getAttendanceDayName(date) : ''),
+        checkIn: item.checkIn || item.CheckIn || '',
+        checkOut: item.checkOut || item.CheckOut || '',
+        workDay: item.workDay || item.WorkDay || 0,
+        workHours: item.workHours || item.WorkHours || 0,
+        lateMinutes: item.lateMinutes || item.LateMinutes || 0,
+        earlyMinutes: item.earlyMinutes || item.EarlyMinutes || 0,
+        shiftName: item.shiftName || item.ShiftName || '',
+        symbol: symbol,
+        isScheduledOff: Boolean(item.isScheduledOff || item.IsScheduledOff)
+    };
+}
+
+function buildAttendanceDisplayData(data, month) {
+    var monthInfo = getAttendanceMonthInfo(month);
+    if (!monthInfo) return [];
+
+    var recordMap = {};
+
+    if (Array.isArray(data)) {
+        data.forEach(function (item) {
+            var normalized = normalizeAttendanceItem(item);
+            if (!normalized.workDate) {
+                return;
+            }
+
+            var key = toDateKey(normalized.workDate);
+            if (!key) {
+                return;
+            }
+
+            normalized.isScheduledOff = normalized.isScheduledOff || isScheduledOffDate(normalized.workDate);
+            if (normalized.isScheduledOff && !normalized.symbol) {
+                normalized.symbol = getScheduledOffLabel(normalized.workDate);
+            }
+
+            recordMap[key] = normalized;
+        });
+    }
+
+    var result = [];
+    var lastDay = new Date(monthInfo.year, monthInfo.monthIndex + 1, 0);
+
+    for (var day = 1; day <= lastDay.getDate(); day++) {
+        var date = new Date(monthInfo.year, monthInfo.monthIndex, day);
+        var key = toDateKey(date);
+        var record = recordMap[key];
+
+        if (record) {
+            record.isScheduledOff = record.isScheduledOff || isScheduledOffDate(date);
+            if (record.isScheduledOff && !record.symbol) {
+                record.symbol = getScheduledOffLabel(date);
+            }
+
+            result.push(record);
+            continue;
+        }
+
+        if (!isScheduledOffDate(date)) {
+            continue;
+        }
+
+        result.push({
+            workDate: date,
+            dayName: getAttendanceDayName(date),
+            checkIn: '',
+            checkOut: '',
+            workDay: 0,
+            workHours: 0,
+            lateMinutes: 0,
+            earlyMinutes: 0,
+            shiftName: '',
+            symbol: getScheduledOffLabel(date),
+            isScheduledOff: true
+        });
+    }
+
+    return result.sort(function (a, b) {
+        return a.workDate.getTime() - b.workDate.getTime();
+    });
+}
 
 function toggleAttendanceView(view) {
     var tableWrapper = document.getElementById('attendanceDetailTableWrapper');
@@ -225,8 +421,9 @@ async function loadAttendanceDetails(employeeId, fingerprint) {
     try {
         var response = await fetch(url);
         var data = await response.json();
+        var displayData = buildAttendanceDisplayData(Array.isArray(data) ? data : [], month);
 
-        if (!Array.isArray(data) || data.length === 0) {
+        if (displayData.length === 0) {
             renderAttendanceTable([]);
             renderAttendanceCalendar([], month);
             hint.textContent = 'Không có dữ liệu chi tiết.';
@@ -234,9 +431,11 @@ async function loadAttendanceDetails(employeeId, fingerprint) {
             return;
         }
 
-        renderAttendanceTable(data);
-        renderAttendanceCalendar(data, month);
-        hint.textContent = '';
+        renderAttendanceTable(displayData);
+        renderAttendanceCalendar(displayData, month);
+        hint.textContent = Array.isArray(data) && data.length === 0
+            ? 'Hiển thị ngày nghỉ theo lịch.'
+            : '';
 
         var calendarBtn = document.getElementById('attendanceCalendarViewBtn');
         if (calendarBtn && calendarBtn.classList.contains('active')) {
@@ -263,23 +462,39 @@ function renderAttendanceTable(data) {
 
     var html = '';
     data.forEach(function (item) {
-        var dateText = formatDate(item.workDate || item.WorkDate);
-        var dayName = item.dayName || item.DayName || '';
-        var checkIn = item.checkIn || item.CheckIn || '';
-        var checkOut = item.checkOut || item.CheckOut || '';
-        var workDay = item.workDay || item.WorkDay || 0;
-        var workHours = item.workHours || item.WorkHours || 0;
-        var lateMinutes = item.lateMinutes || item.LateMinutes || 0;
-        var earlyMinutes = item.earlyMinutes || item.EarlyMinutes || 0;
-        var shiftName = item.shiftName || item.ShiftName || '';
-        var symbol = item.symbol || item.Symbol || '';
+        var normalized = normalizeAttendanceItem(item);
+        if (!normalized.workDate) {
+            return;
+        }
 
-        var rowClass = symbol ? 'attendance-row-absent' : '';
+        var dateText = formatDate(normalized.workDate);
+        var dayName = normalized.dayName;
+        var checkIn = normalized.checkIn;
+        var checkOut = normalized.checkOut;
+        var workDay = normalized.workDay;
+        var workHours = normalized.workHours;
+        var lateMinutes = normalized.lateMinutes;
+        var earlyMinutes = normalized.earlyMinutes;
+        var shiftName = normalized.shiftName;
+        var isScheduledOff = normalized.isScheduledOff || isScheduledOffDate(normalized.workDate);
+        var symbol = normalized.symbol || (isScheduledOff ? getScheduledOffLabel(normalized.workDate) : '');
+
+        var rowClasses = [];
+        if (symbol) {
+            rowClasses.push('attendance-row-absent');
+        }
+        if (isScheduledOff) {
+            rowClasses.push('attendance-row-scheduled-off');
+        }
+
         var lateClass = lateMinutes > 0 ? 'attendance-cell-late' : '';
         var earlyClass = earlyMinutes > 0 ? 'attendance-cell-early' : '';
         var symbolClass = symbol ? 'attendance-cell-absent' : '';
+        if (isScheduledOff) {
+            symbolClass += (symbolClass ? ' ' : '') + 'attendance-cell-off';
+        }
 
-        html += '<tr class="' + rowClass + '">'
+        html += '<tr class="' + rowClasses.join(' ') + '">'
             + '<td>' + dateText + '</td>'
             + '<td>' + escapeHtml(dayName) + '</td>'
             + '<td>' + escapeHtml(checkIn) + '</td>'
@@ -300,29 +515,23 @@ function renderAttendanceCalendar(data, month) {
     var wrapper = document.getElementById('attendanceCalendar');
     if (!wrapper) return;
 
-    if (!month) {
+    var monthInfo = getAttendanceMonthInfo(month);
+    if (!monthInfo) {
         wrapper.innerHTML = '';
         return;
     }
 
-    var parts = month.split('-');
-    var year = parseInt(parts[0], 10);
-    var monthIndex = parseInt(parts[1], 10) - 1;
-    if (Number.isNaN(year) || Number.isNaN(monthIndex)) {
-        wrapper.innerHTML = '';
-        return;
-    }
-
-    var firstDay = new Date(year, monthIndex, 1);
-    var lastDay = new Date(year, monthIndex + 1, 0);
+    var firstDay = new Date(monthInfo.year, monthInfo.monthIndex, 1);
+    var lastDay = new Date(monthInfo.year, monthInfo.monthIndex + 1, 0);
     var startWeekDay = firstDay.getDay();
 
     var recordMap = {};
     if (Array.isArray(data)) {
         data.forEach(function (item) {
-            var key = toDateKey(item.workDate || item.WorkDate);
+            var normalized = normalizeAttendanceItem(item);
+            var key = toDateKey(normalized.workDate);
             if (key) {
-                recordMap[key] = item;
+                recordMap[key] = normalized;
             }
         });
     }
@@ -333,26 +542,34 @@ function renderAttendanceCalendar(data, month) {
     }
 
     for (var day = 1; day <= lastDay.getDate(); day++) {
-        var date = new Date(year, monthIndex, day);
+        var date = new Date(monthInfo.year, monthInfo.monthIndex, day);
         var key = toDateKey(date);
         var record = recordMap[key];
-        var cellHtml = '<div class="attendance-day-cell">';
+        var isScheduledOff = isScheduledOffDate(date);
+        var cellClass = 'attendance-day-cell' + (isScheduledOff ? ' attendance-day-off' : '');
+        var cellHtml = '<div class="' + cellClass + '">';
         cellHtml += '<div class="attendance-day-number">' + day + '</div>';
 
         if (record) {
-            var checkIn = record.checkIn || record.CheckIn || '';
-            var checkOut = record.checkOut || record.CheckOut || '';
-            var workDay = record.workDay || record.WorkDay || 0;
-            var lateMinutes = record.lateMinutes || record.LateMinutes || 0;
-            var earlyMinutes = record.earlyMinutes || record.EarlyMinutes || 0;
-            var symbol = record.symbol || record.Symbol || '';
+            var checkIn = record.checkIn || '';
+            var checkOut = record.checkOut || '';
+            var workDay = record.workDay || 0;
+            var lateMinutes = record.lateMinutes || 0;
+            var earlyMinutes = record.earlyMinutes || 0;
+            var symbol = record.symbol || '';
+
+            if (isScheduledOff) {
+                cellHtml += '<div class="attendance-badge text-bg-danger mt-1">Ngày nghỉ</div>';
+            }
 
             if (symbol) {
-                cellHtml += '<div class="attendance-day-meta">Nghỉ: ' + escapeHtml(symbol) + '</div>';
-            } else if (checkIn || checkOut) {
+                cellHtml += '<div class="attendance-day-meta">' + escapeHtml(symbol) + '</div>';
+            }
+
+            if (checkIn || checkOut) {
                 cellHtml += '<div class="attendance-day-meta">Vào: ' + escapeHtml(checkIn) + '</div>';
                 cellHtml += '<div class="attendance-day-meta">Ra: ' + escapeHtml(checkOut) + '</div>';
-            } else {
+            } else if (!symbol) {
                 cellHtml += '<div class="attendance-day-meta">Nghỉ</div>';
             }
 
@@ -365,6 +582,9 @@ function renderAttendanceCalendar(data, month) {
             if (earlyMinutes > 0) {
                 cellHtml += '<div class="attendance-badge bg-info text-dark mt-1">Sớm ' + earlyMinutes + 'p</div>';
             }
+        } else if (isScheduledOff) {
+            cellHtml += '<div class="attendance-badge text-bg-danger mt-1">Ngày nghỉ</div>';
+            cellHtml += '<div class="attendance-day-meta">' + escapeHtml(getScheduledOffLabel(date)) + '</div>';
         }
 
         cellHtml += '</div>';
@@ -375,17 +595,18 @@ function renderAttendanceCalendar(data, month) {
 }
 
 function formatDate(value) {
-    if (!value) return '';
-    var date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '';
+    var date = getAttendanceDate(value);
+    if (!date) return '';
+
     var day = String(date.getDate()).padStart(2, '0');
     var month = String(date.getMonth() + 1).padStart(2, '0');
     return day + '/' + month + '/' + date.getFullYear();
 }
 
 function toDateKey(value) {
-    var date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) return '';
+    var date = getAttendanceDate(value);
+    if (!date) return '';
+
     var day = String(date.getDate()).padStart(2, '0');
     var month = String(date.getMonth() + 1).padStart(2, '0');
     return date.getFullYear() + '-' + month + '-' + day;
@@ -393,6 +614,7 @@ function toDateKey(value) {
 
 function escapeHtml(value) {
     if (value == null) return '';
+
     return String(value)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -415,7 +637,7 @@ async function submitAttendanceImport() {
         var response = await fetch('?handler=ImportAttendance', {
             method: 'POST',
             headers: {
-                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                RequestVerificationToken: document.querySelector('input[name="__RequestVerificationToken"]').value
             },
             body: formData
         });
@@ -445,6 +667,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var selectedId = parseInt(meta.getAttribute('data-selected-id'), 10);
     var fingerprint = meta.getAttribute('data-selected-fingerprint') || '';
+    var month = meta.getAttribute('data-month') || '';
+
+    updateAttendanceOffCounts(month);
 
     if (selectedId > 0 || fingerprint) {
         var row = findAttendanceRow(selectedId, fingerprint);
@@ -462,15 +687,16 @@ document.addEventListener('DOMContentLoaded', function () {
         employeeSelect.addEventListener('change', function (event) {
             var value = parseInt(event.target.value, 10);
             var selectedOption = event.target.options[event.target.selectedIndex];
-            var fingerprint = selectedOption ? (selectedOption.getAttribute('data-fingerprint') || '') : '';
-            setAttendanceFingerprint(fingerprint);
-            var row = findAttendanceRow(value, fingerprint);
+            var optionFingerprint = selectedOption ? (selectedOption.getAttribute('data-fingerprint') || '') : '';
+            setAttendanceFingerprint(optionFingerprint);
+
+            var row = findAttendanceRow(value, optionFingerprint);
             if (row) {
                 updateSummaryFromRow(row);
                 highlightSummaryRow(row);
-                loadAttendanceDetails(value, row.getAttribute('data-fingerprint') || fingerprint);
+                loadAttendanceDetails(value, row.getAttribute('data-fingerprint') || optionFingerprint);
             } else {
-                loadAttendanceDetails(value, fingerprint);
+                loadAttendanceDetails(value, optionFingerprint);
             }
         });
     }

@@ -64,6 +64,11 @@
                 </div>
             </form>
 
+            @if (!string.IsNullOrWhiteSpace(Model.AccessScopeText))
+            {
+                <div class="alert alert-info py-2 mt-3 mb-0">@Model.AccessScopeText</div>
+            }
+
             @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
             {
                 <div class="alert alert-warning">@Model.ErrorMessage</div>

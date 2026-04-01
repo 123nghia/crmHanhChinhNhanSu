@@ -1066,7 +1066,7 @@ ORDER BY RecordTime;", connection))
                         WorkDate = aggregate.WorkDate,
                         DayName = GetDayName(aggregate.WorkDate),
                         CheckIn = aggregate.FirstTime,
-                        CheckOut = aggregate.PunchCount > 1 ? aggregate.LastTime : null,
+                        CheckOut = aggregate.LastTime,
                         WorkDay = aggregate.PunchCount > 0 ? 1 : 0,
                         WorkHours = workHours,
                         WorkDayPlus = 0,
@@ -1771,7 +1771,7 @@ ORDER BY RecordTime;", connection))
         private static AttendanceRecord BuildAttendanceRecord(AttendanceAggregate aggregate, string sourcePath)
         {
             var checkIn = aggregate.FirstTime;
-            var checkOut = aggregate.PunchCount > 1 ? aggregate.LastTime : null;
+            var checkOut = aggregate.LastTime;
             var workHours = CalculateWorkHours(aggregate);
 
             var record = new AttendanceRecord

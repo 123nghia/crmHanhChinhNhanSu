@@ -6,6 +6,8 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.Versioning;
 using System.Threading.Tasks;
+using VS.Human.Business;
+using VS.Human.Item;
 
 namespace crmHuman.Pages.Attendance
 {
@@ -13,11 +15,13 @@ namespace crmHuman.Pages.Attendance
     {
         private readonly AccessAttendanceReader _accessReader;
         private readonly DirectAttendanceReader _directReader;
+        private readonly IEmpBusiness _empBusiness;
 
-        public CheckInOutModel(IConfiguration configuration)
+        public CheckInOutModel(IConfiguration configuration, IEmpBusiness empBusiness)
         {
             _accessReader = new AccessAttendanceReader(configuration);
             _directReader = new DirectAttendanceReader(configuration);
+            _empBusiness = empBusiness;
             KeyPage = "Attendance";
             TitlePage = "L\u1ECBch s\u1EED qu\u1EB9t th\u1EBB/\u0111i\u1EC3m danh";
         }
@@ -28,62 +32,92 @@ namespace crmHuman.Pages.Attendance
         public string? SelectedEmployee { get; private set; }
         public int PageSize { get; private set; } = 50;
         public List<EmployeeOption> Employees { get; private set; } = new List<EmployeeOption>();
+        public string? AccessScopeText { get; private set; }
 
         [SupportedOSPlatform("windows")]
-        public Task<IActionResult> OnGetAsync()
+        public async Task<IActionResult> OnGetAsync()
         {
             if (!HttpContext.User.Identity.IsAuthenticated)
             {
-                return Task.FromResult<IActionResult>(Redirect("/Login"));
+                return Redirect("/Login");
             }
 
             GetInfoUser();
             if (!(Permision.View ?? false))
             {
-                return Task.FromResult<IActionResult>(Page());
+                return Page();
             }
 
             var useDirectSource = _directReader.IsEnabled();
             if (!useDirectSource)
             {
                 ErrorMessage = "He thong chi dong bo nen tu file MDB vao SQL. Man hinh nay khong doc truc tiep Access de tranh loi OLEDB.";
-                return Task.FromResult<IActionResult>(Page());
+                return Page();
             }
 
             if (!useDirectSource && !OperatingSystem.IsWindows())
             {
                 ErrorMessage = "Ch\u1EC9 h\u1ED7 tr\u1EE3 \u0111\u1ECDc d\u1EEF li\u1EC7u Access tr\u00EAn Windows.";
-                return Task.FromResult<IActionResult>(Page());
+                return Page();
             }
 
             SearchToken = Request.Query["q"];
-            SelectedEmployee = Request.Query["emp"];
+            SelectedEmployee = NormalizeText(Request.Query["emp"]);
             PageSize = ParseInt(Request.Query["ps"], 50);
 
-            ErrorMessage = useDirectSource
+            var accessScope = await BuildAccessScopeAsync();
+            AccessScopeText = accessScope.Description;
+
+            if (!accessScope.IsFullAccess &&
+                accessScope.AllowedFingerprints.Count == 0)
+            {
+                Employees = new List<EmployeeOption>();
+                ErrorMessage = "Tai khoan nay chua duoc gan ma van tay hoac chua co pham vi xem du lieu cham cong.";
+                return Page();
+            }
+
+            if (!string.IsNullOrWhiteSpace(SelectedEmployee) &&
+                !accessScope.IsFullAccess &&
+                !accessScope.AllowedFingerprints.Contains(SelectedEmployee))
+            {
+                SelectedEmployee = null;
+                ErrorMessage = "Ban chi duoc xem lich su quet the trong pham vi duoc phan quyen.";
+            }
+
+            var accessWarning = ErrorMessage;
+            var configError = useDirectSource
                 ? _directReader.GetConfigError()
                 : _accessReader.GetConfigError();
-            if (string.IsNullOrWhiteSpace(ErrorMessage))
+            ErrorMessage = string.IsNullOrWhiteSpace(configError) ? accessWarning : configError;
+            if (string.IsNullOrWhiteSpace(configError))
             {
+                var userFilterValues = accessScope.IsFullAccess
+                    ? new List<string>()
+                    : accessScope.AllowedFingerprints.OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToList();
+                var historyFilterValues = ResolveHistoryFilterValues(accessScope, SelectedEmployee);
+
                 var userTable = (useDirectSource ? _directReader : null)?.LoadTables(new[]
                 {
-                    BuildUserQuery()
+                    BuildUserQuery(userFilterValues)
                 }, 5000) ?? _accessReader.LoadTables(new[]
                 {
-                    BuildUserQuery()
+                    BuildUserQuery(userFilterValues)
                 }, 5000);
                 var userMap = BuildUserMap(userTable.FirstOrDefault());
-                Employees = BuildEmployeeOptions(userMap);
+                MergeEmployeeNames(userMap, accessScope.EmployeeNamesByFingerprint);
+                Employees = accessScope.IsFullAccess
+                    ? BuildEmployeeOptions(userMap)
+                    : accessScope.EmployeeOptions;
 
                 Tables = useDirectSource
                     ? _directReader.LoadTables(new[]
                     {
-                        BuildQuery("CheckInOut", new[] { "UserEnrollNumber", "TimeStr", "InOutMode", "MachineNo", "Source" })
+                        BuildQuery("CheckInOut", new[] { "UserEnrollNumber", "TimeStr", "InOutMode", "MachineNo", "Source" }, historyFilterValues)
                     }, 5000)
                     : _accessReader.LoadTables(new[]
                     {
-                        BuildQuery("CheckInOut", new[] { "UserEnrollNumber", "TimeStr", "OriginType", "NewType", "MachineNo", "Source" }),
-                        BuildQuery("DelInOut", new[] { "UserEnrollNumber", "TimeStr", "TimeType", "TimeSource", "MachineNo" })
+                        BuildQuery("CheckInOut", new[] { "UserEnrollNumber", "TimeStr", "OriginType", "NewType", "MachineNo", "Source" }, historyFilterValues),
+                        BuildQuery("DelInOut", new[] { "UserEnrollNumber", "TimeStr", "TimeType", "TimeSource", "MachineNo" }, historyFilterValues)
                     }, 5000);
                 AttendanceTableFormatter.NormalizeTables(Tables);
                 ApplyUserNames(Tables, userMap);
@@ -98,7 +132,7 @@ namespace crmHuman.Pages.Attendance
                 }
             }
 
-            return Task.FromResult<IActionResult>(Page());
+            return Page();
         }
 
         public string BuildPageLink(string table, int page)
@@ -119,7 +153,7 @@ namespace crmHuman.Pages.Attendance
             return string.IsNullOrWhiteSpace(queryString) ? string.Empty : "?" + queryString;
         }
 
-        private AccessTableQuery BuildQuery(string table, IEnumerable<string> columns)
+        private AccessTableQuery BuildQuery(string table, IEnumerable<string> columns, IReadOnlyCollection<string>? filterValues = null)
         {
             var page = ParseInt(Request.Query["p_" + table], 1);
             return new AccessTableQuery
@@ -143,8 +177,11 @@ namespace crmHuman.Pages.Attendance
                     ["Overday"] = "Qua ng\u00E0y"
                 },
                 SearchToken = SearchToken,
-                FilterColumn = string.IsNullOrWhiteSpace(SelectedEmployee) ? null : "UserEnrollNumber",
-                FilterValue = string.IsNullOrWhiteSpace(SelectedEmployee) ? null : SelectedEmployee,
+                FilterColumn = (filterValues != null && filterValues.Count > 0) ? "UserEnrollNumber" : null,
+                FilterValues = filterValues?.Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Select(value => value.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList() ?? new List<string>(),
                 Page = page,
                 PageSize = PageSize
             };
@@ -162,13 +199,147 @@ namespace crmHuman.Pages.Attendance
                 : defaultValue;
         }
 
-        private static AccessTableQuery BuildUserQuery()
+        private static AccessTableQuery BuildUserQuery(IReadOnlyCollection<string>? filterValues = null)
         {
             return new AccessTableQuery
             {
                 Name = "UserInfo",
-                Columns = new List<string> { "UserEnrollNumber", "UserFullName" }
+                Columns = new List<string> { "UserEnrollNumber", "UserFullName" },
+                FilterColumn = (filterValues != null && filterValues.Count > 0) ? "UserEnrollNumber" : null,
+                FilterValues = filterValues?.Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Select(value => value.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList() ?? new List<string>()
             };
+        }
+
+        private static string? NormalizeText(string? raw)
+        {
+            return string.IsNullOrWhiteSpace(raw) ? null : raw.Trim();
+        }
+
+        private List<string> ResolveHistoryFilterValues(AttendanceHistoryAccessScope accessScope, string? selectedEmployee)
+        {
+            var selectedFingerprint = NormalizeText(selectedEmployee);
+            if (!string.IsNullOrWhiteSpace(selectedFingerprint))
+            {
+                return new List<string> { selectedFingerprint };
+            }
+
+            return accessScope.IsFullAccess
+                ? new List<string>()
+                : accessScope.AllowedFingerprints.OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        private async Task<AttendanceHistoryAccessScope> BuildAccessScopeAsync()
+        {
+            var scope = new AttendanceHistoryAccessScope
+            {
+                IsFullAccess = IsFullAccessRole()
+            };
+
+            if (scope.IsFullAccess)
+            {
+                scope.Description = "Phạm vi xem: toàn bộ dữ liệu theo quyền hiện tại.";
+                return scope;
+            }
+
+            if (UserData == null || UserData.UserId <= 0)
+            {
+                scope.Description = "Phạm vi xem: không xác định.";
+                return scope;
+            }
+
+            try
+            {
+                var currentEmployee = await _empBusiness.GetById(UserData.UserId);
+                AddAccessibleEmployee(scope, currentEmployee?.FingerprintCode, currentEmployee?.FullName);
+            }
+            catch
+            {
+                // Keep the page usable even if the current employee record cannot be resolved.
+            }
+
+            var request = new EmployeeRequest
+            {
+                Page = 1,
+                Limit = 10000,
+                UserId = UserData.UserId,
+                RoleCode = UserData.RoleCode,
+                IsDeleted = false,
+                Token = string.Empty
+            };
+
+            var accessibleEmployees = await _empBusiness.GetAll(request);
+            foreach (var employee in accessibleEmployees.Data?.OfType<EmployeeIndexModel>() ?? Enumerable.Empty<EmployeeIndexModel>())
+            {
+                AddAccessibleEmployee(scope, employee.FingerprintCode, employee.FullName);
+            }
+
+            scope.Description = scope.EmployeeOptions.Count > 1
+                ? "Phạm vi xem: cá nhân và nhân sự trong phạm vi quản lý."
+                : "Phạm vi xem: chỉ dữ liệu cá nhân.";
+            return scope;
+        }
+
+        private bool IsFullAccessRole()
+        {
+            if (UserData == null)
+            {
+                return false;
+            }
+
+            if (UserData.RoleCode == "1" || UserData.RoleCode == "8" || UserData.RoleCode == "9")
+            {
+                return true;
+            }
+
+            return UserData.RoleCode == "2"
+                && string.Equals(UserData.UserName, "VS061", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void AddAccessibleEmployee(AttendanceHistoryAccessScope scope, string? fingerprintCode, string? fullName)
+        {
+            var normalizedFingerprint = NormalizeText(fingerprintCode);
+            if (string.IsNullOrWhiteSpace(normalizedFingerprint))
+            {
+                return;
+            }
+
+            var displayName = NormalizeText(fullName) ?? normalizedFingerprint;
+            scope.AllowedFingerprints.Add(normalizedFingerprint);
+            scope.EmployeeNamesByFingerprint[normalizedFingerprint] = displayName;
+
+            if (scope.EmployeeOptions.Any(item => string.Equals(item.Id, normalizedFingerprint, StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
+            scope.EmployeeOptions.Add(new EmployeeOption
+            {
+                Id = normalizedFingerprint,
+                Name = displayName
+            });
+
+            scope.EmployeeOptions = scope.EmployeeOptions
+                .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static void MergeEmployeeNames(
+            Dictionary<string, string> userMap,
+            Dictionary<string, string> employeeNames)
+        {
+            if (employeeNames == null || employeeNames.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var pair in employeeNames)
+            {
+                userMap[pair.Key] = pair.Value;
+            }
         }
 
         private static Dictionary<string, string> BuildUserMap(AccessTableData? table)
@@ -602,6 +773,15 @@ namespace crmHuman.Pages.Attendance
             };
 
             return new List<AccessTableData> { merged };
+        }
+
+        private sealed class AttendanceHistoryAccessScope
+        {
+            public bool IsFullAccess { get; set; }
+            public string Description { get; set; } = string.Empty;
+            public HashSet<string> AllowedFingerprints { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            public Dictionary<string, string> EmployeeNamesByFingerprint { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            public List<EmployeeOption> EmployeeOptions { get; set; } = new List<EmployeeOption>();
         }
 
         public sealed class EmployeeOption
