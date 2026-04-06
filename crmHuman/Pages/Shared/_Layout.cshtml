@@ -4,6 +4,8 @@
     var logoPath = string.IsNullOrWhiteSpace(Model?.LogoPath) ? "/assets/img/logo.png" : Model.LogoPath;
     var themeStyle = Model?.ThemeStyle ?? string.Empty;
     var avatarPath = string.IsNullOrWhiteSpace(Model?.UserData?.AvatarFile) ? "/assets/img/profile-img.jpg" : Model.UserData.AvatarFile;
+    var roleLabel = Model?.UserData?.UserName == "VS061" ? "HCNS" : Model?.UserData?.RoleName;
+    var pageTitle = ViewData["Title"] as string ?? "crmHuman";
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -13,17 +15,26 @@
     @await Html.PartialAsync("_LayoutHeadResources")
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body style="@themeStyle">
+<body class="app-shell" style="@themeStyle">
     @Html.AntiForgeryToken()
 
     <header id="header" class="header fixed-top d-flex align-items-center">
-        <div class="d-flex align-items-center justify-content-between">
-            <a href="~/" class="logo d-flex align-items-center">
-                <img src="@logoPath" alt="crmHuman logo" asp-append-version="true">
-            </a>
-            <button class="btn btn-link toggle-sidebar-btn" type="button" aria-label="Toggle sidebar">
+        <div class="header-brand-group d-flex align-items-center">
+            <button class="btn btn-link toggle-sidebar-btn shell-icon-btn" type="button" aria-label="Toggle sidebar">
                 <i class="bi bi-list"></i>
             </button>
+            <a href="~/" class="logo d-flex align-items-center app-brand">
+                <img src="@logoPath" alt="crmHuman logo" asp-append-version="true">
+                <span class="app-brand-copy d-none d-sm-flex">
+                    <small class="app-brand-kicker">HR workspace</small>
+                    <strong>crmHuman</strong>
+                </span>
+            </a>
+        </div>
+
+        <div class="header-page-meta d-none d-xl-flex">
+            <span class="header-page-kicker">Hệ thống nhân sự</span>
+            <span class="header-page-title">@pageTitle</span>
         </div>
 
         <nav class="header-nav ms-auto" aria-label="User navigation">
@@ -38,15 +49,16 @@
                        href="#"
                        data-bs-toggle="dropdown"
                        aria-expanded="false">
+                        <span class="header-user-meta d-none d-md-flex">
+                            <span class="header-user-name">@Model.UserData?.FullName</span>
+                            <span class="header-user-role">@roleLabel</span>
+                        </span>
                         <img src="@avatarPath" alt="Profile" class="rounded-circle" asp-append-version="true">
-                        <span class="d-none d-md-block dropdown-toggle ps-2">@Model.UserData?.FullName</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
                         <li class="dropdown-header text-center">
                             <h6 class="mb-0">@Model.UserData?.UserName</h6>
-                            <small class="text-muted">
-                                @(Model.UserData?.UserName == "VS061" ? "HCNS" : Model.UserData?.RoleName)
-                            </small>
+                            <small class="text-muted">@roleLabel</small>
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
@@ -68,9 +80,7 @@
         </nav>
     </header>
 
-    <aside id="sidebar" class="sidebar">
-        @await Html.PartialAsync("_RoleSidebar", Model)
-    </aside>
+    @await Html.PartialAsync("_RoleSidebar", Model)
 
     <main id="main" class="main">
         @RenderBody()
@@ -82,7 +92,9 @@
 
     <footer id="footer" class="footer">
         <div class="credits">
-            Designed by <a href="javascript:void(0)">Vietstar</a>
+            <span>crmHuman</span>
+            <span class="footer-separator"></span>
+            <span>Nền tảng quản trị nhân sự nội bộ</span>
         </div>
     </footer>
 

@@ -66,5 +66,36 @@ WHERE ISNULL(Deleted, 0) = 0
                 return result ?? new AuditLogStats();
             }
         }
+
+        public async Task<IReadOnlyList<AuditLog>> GetCandidateActivityAsync(int candidateId, int top = 20)
+        {
+            const string sql = @"
+SELECT TOP (@Top) *
+FROM AuditLog
+WHERE ISNULL(Deleted, 0) = 0
+  AND Action = 'POST'
+  AND Path = '/CandidateDetail'
+  AND (
+        Payload LIKE @CandidateIdPayload
+        OR Payload LIKE @CandidateIdLowerPayload
+        OR Payload LIKE @RelIdPayload
+        OR Payload LIKE @RelIdLowerPayload
+      )
+ORDER BY CreateAt DESC;";
+
+            using (var con = GetConnection())
+            {
+                var result = await con.QueryAsync<AuditLog>(sql, new
+                {
+                    Top = top,
+                    CandidateIdPayload = $"%\"CandidateId\":\"{candidateId}\"%",
+                    CandidateIdLowerPayload = $"%\"candidateId\":\"{candidateId}\"%",
+                    RelIdPayload = $"%\"RelId\":\"{candidateId}\"%",
+                    RelIdLowerPayload = $"%\"relId\":\"{candidateId}\"%"
+                });
+
+                return result.ToList();
+            }
+        }
     }
 }

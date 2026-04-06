@@ -9,5 +9,6 @@ namespace VS.Human.Business
             int? statusCode, int? durationMs, string? clientIp, string? userAgent);
 
         Task<AuditLogStats> GetTodayStatsAsync(DateTime? date = null);
+        Task<IReadOnlyList<AuditLog>> GetCandidateActivityAsync(int candidateId, int top = 20);
     }
 }

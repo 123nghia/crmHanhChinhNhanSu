@@ -1,14 +1,175 @@
 @page
 @model CandidateDetailModel
 @{
-    ViewData["Title"] = Model.TitlePage;   
+    ViewData["Title"] = Model.TitlePage;
     var itemResult = Model.ResultModel;
     var dataSchedulelist = Model.DataHistory;
     var dataFile = Model.DataFile;
 
+    string ResolveMasterDataName(int typeData, int? selectedCode, bool skipApplyFor = false)
+    {
+        if (!selectedCode.HasValue)
+        {
+            return "Chưa cập nhật";
+        }
+
+        var selectedCodeText = selectedCode.Value.ToString();
+        foreach (var item in Model.DataDepartment)
+        {
+            if (item.TypeData != typeData)
+            {
+                continue;
+            }
+
+            if (skipApplyFor && item.ApplyFor == 1)
+            {
+                continue;
+            }
+
+            if (item.Code == selectedCodeText)
+            {
+                return item.Name;
+            }
+        }
+
+        return "Chưa cập nhật";
+    }
+
+    string ResolveSemanticTone(string? text)
+    {
+        var normalized = (text ?? string.Empty).ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return "info";
+        }
+
+        if (normalized.Contains("đã") || normalized.Contains("ok") || normalized.Contains("pass") || normalized.Contains("hoàn") || normalized.Contains("đủ"))
+        {
+            return "success";
+        }
+
+        if (normalized.Contains("chờ") || normalized.Contains("đang") || normalized.Contains("hold") || normalized.Contains("xử lý"))
+        {
+            return "warning";
+        }
+
+        if (normalized.Contains("fail") || normalized.Contains("lỗi") || normalized.Contains("từ chối") || normalized.Contains("thiếu"))
+        {
+            return "danger";
+        }
+
+        return "info";
+    }
+
+    string ResolveActivityHandler(string? queryString)
+    {
+        var normalized = (queryString ?? string.Empty).ToLowerInvariant();
+        if (normalized.Contains("handler=update"))
+        {
+            return "update";
+        }
+        if (normalized.Contains("handler=adddocument"))
+        {
+            return "document";
+        }
+        if (normalized.Contains("handler=addschedule"))
+        {
+            return "schedule";
+        }
+        if (normalized.Contains("handler=onboard"))
+        {
+            return "onboard";
+        }
+        if (normalized.Contains("handler=delete"))
+        {
+            return "delete";
+        }
+
+        return "activity";
+    }
+
+    string ResolveActivityTitle(VS.Human.Rep.Model.AuditLog activity)
+    {
+        return ResolveActivityHandler(activity.QueryString) switch
+        {
+            "update" => "Cập nhật hồ sơ ứng viên",
+            "document" => "Cập nhật chứng từ",
+            "schedule" => "Tạo hoặc cập nhật lịch phỏng vấn",
+            "onboard" => "Onboard ứng viên",
+            "delete" => "Thao tác xóa dữ liệu",
+            _ => "Thao tác trên hồ sơ"
+        };
+    }
+
+    string ResolveActivityIcon(string handler)
+    {
+        return handler switch
+        {
+            "update" => "bi-pencil-square",
+            "document" => "bi-folder-check",
+            "schedule" => "bi-calendar2-check",
+            "onboard" => "bi-person-up",
+            "delete" => "bi-trash",
+            _ => "bi-clock-history"
+        };
+    }
+
+    string ResolveActivityTone(VS.Human.Rep.Model.AuditLog activity)
+    {
+        if (activity.StatusCode.HasValue && activity.StatusCode.Value >= 400)
+        {
+            return "danger";
+        }
+
+        return ResolveActivityHandler(activity.QueryString) switch
+        {
+            "document" => "info",
+            "schedule" => "warning",
+            "onboard" => "success",
+            "delete" => "danger",
+            _ => "info"
+        };
+    }
+
+    var candidatePositionText = ResolveMasterDataName(2, itemResult.Position);
+    var candidateStatusText = ResolveMasterDataName(9, itemResult.Status, true);
+    var documentStatusText = ResolveMasterDataName(8, itemResult.StatusHuman, true);
+    var candidateActivities = Model.CandidateActivities ?? new List<VS.Human.Rep.Model.AuditLog>();
+    var priorityFieldTotal = 5;
+    var priorityFieldCompleted = 0;
+
+    if (!string.IsNullOrWhiteSpace(itemResult.Name))
+    {
+        priorityFieldCompleted++;
+    }
+    if (!string.IsNullOrWhiteSpace(itemResult.Phone))
+    {
+        priorityFieldCompleted++;
+    }
+    if (!string.IsNullOrWhiteSpace(itemResult.Email))
+    {
+        priorityFieldCompleted++;
+    }
+    if (!string.IsNullOrWhiteSpace(itemResult.NationalId))
+    {
+        priorityFieldCompleted++;
+    }
+    if (!string.IsNullOrWhiteSpace(itemResult.CVLink))
+    {
+        priorityFieldCompleted++;
+    }
+
+    var priorityLabel = priorityFieldCompleted >= 5 ? "Sẵn sàng" : priorityFieldCompleted >= 3 ? "Đang xử lý" : "Ưu tiên cao";
+    var priorityTone = priorityFieldCompleted >= 5 ? "success" : priorityFieldCompleted >= 3 ? "warning" : "danger";
+    var candidateStatusTone = ResolveSemanticTone(candidateStatusText);
+    var documentStatusTone = ResolveSemanticTone(documentStatusText);
+
 }
-<div class="pagetitle">
-    <h1>@Model.TitlePage</h1>
+<div class="pagetitle candidate-page-title">
+    <div>
+        <h1>@Model.TitlePage</h1>
+        <p class="page-subtitle">Tập trung thông tin quan trọng, chứng từ và lịch phỏng vấn trong một màn hình để nhập liệu nhanh và rà soát ít thao tác hơn.</p>
+    </div>
     <nav>
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/">Home</a></li>
@@ -18,73 +179,164 @@
     </nav>
 </div><!-- End Page Title -->
 
-<section class="section">
+<section class="section candidate-detail-page">
     <div class="row">
-        <div class="col-lg-12">
-            <div class="card">
+        <div class="col-12">
+            <div class="card candidate-detail-card">
                 <div class="card-body">
+                    <div class="candidate-hero">
+                        <div class="candidate-hero-copy">
+                            <span class="candidate-hero-kicker">Hồ sơ ứng viên</span>
+                            <h2>@itemResult.Name</h2>
+                            <p>Rõ thông tin quan trọng, dễ quét trạng thái và thao tác nhanh hơn khi HR phải xử lý nhiều hồ sơ liên tục.</p>
+                            <div class="candidate-hero-pills">
+                                <span class="candidate-hero-pill">
+                                    <i class="bi bi-telephone"></i>
+                                    @(string.IsNullOrWhiteSpace(itemResult.Phone) ? "Chưa có số điện thoại" : itemResult.Phone)
+                                </span>
+                                <span class="candidate-hero-pill">
+                                    <i class="bi bi-person-badge"></i>
+                                    @(string.IsNullOrWhiteSpace(itemResult.UserName) ? "Chưa tạo username" : itemResult.UserName)
+                                </span>
+                                <span class="candidate-hero-pill">
+                                    <i class="bi bi-briefcase"></i>
+                                    @candidatePositionText
+                                </span>
+                            </div>
+                        </div>
+                        <div class="candidate-hero-stats">
+                            <div class="candidate-stat-card candidate-stat-card--priority">
+                                <span>Ưu tiên xử lý</span>
+                                <strong>@priorityFieldCompleted/@priorityFieldTotal</strong>
+                                <small>Dữ liệu trọng yếu đã hoàn thiện</small>
+                                <span id="heroPriorityBadge" class="candidate-status-badge candidate-status-badge--@priorityTone">@priorityLabel</span>
+                            </div>
+                            <div class="candidate-stat-card candidate-stat-card--editable">
+                                <div class="candidate-stat-card-headline">
+                                    <span>Chứng từ</span>
+                                    <span id="heroStatusHumanBadge" class="candidate-status-badge candidate-status-badge--@documentStatusTone">@documentStatusText</span>
+                                </div>
+                                <label class="form-label" for="heroStatusHuman">Trạng thái chứng từ</label>
+                                <select id="heroStatusHuman" class="form-select candidate-quick-select" data-sync-target="cbStatusHuman" aria-label="Trạng thái chứng từ nhanh">
+                                    @foreach (var item in Model.DataDepartment)
+                                    {
+                                        var itemMasterData = item;
+                                        if (itemMasterData.TypeData != 8 || itemMasterData.ApplyFor == 1)
+                                        {
+                                            continue;
+                                        }
+
+                                        var documentStatusCheckText = itemResult.StatusHuman.HasValue ? itemResult.StatusHuman.Value.ToString() : "-1";
+                                        if (itemMasterData.Code == documentStatusCheckText)
+                                        {
+                                            <option selected value="@itemMasterData.Code">@itemMasterData.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@itemMasterData.Code">@itemMasterData.Name</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="candidate-stat-card candidate-stat-card--editable">
+                                <div class="candidate-stat-card-headline">
+                                    <span>Ứng viên</span>
+                                    <span id="heroStatusBadge" class="candidate-status-badge candidate-status-badge--@candidateStatusTone">@candidateStatusText</span>
+                                </div>
+                                <label class="form-label" for="heroStatus">Trạng thái ứng viên</label>
+                                <select id="heroStatus" class="form-select candidate-quick-select" data-sync-target="cbStatus" aria-label="Trạng thái ứng viên nhanh">
+                                    @foreach (var item in Model.DataDepartment)
+                                    {
+                                        var itemMasterData = item;
+                                        if (itemMasterData.TypeData != 9 || itemMasterData.ApplyFor == 1)
+                                        {
+                                            continue;
+                                        }
+
+                                        var candidateStatusCheckText = itemResult.Status.HasValue ? itemResult.Status.Value.ToString() : "-1";
+                                        if (itemMasterData.Code == candidateStatusCheckText)
+                                        {
+                                            <option selected value="@itemMasterData.Code">@itemMasterData.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@itemMasterData.Code">@itemMasterData.Name</option>
+                                        }
+                                    }
+                                </select>
+                                <div class="candidate-inline-date @(itemResult.Status == 92 || itemResult.Status == 93 ? string.Empty : "is-hidden")" id="heroExpectedOnboardWrap">
+                                    <label class="form-label" for="heroExpectedOnboardDate">Ngày dự kiến onboard</label>
+                                    <input type="date" id="heroExpectedOnboardDate" class="form-control" value="@itemResult.ExpectedOnboardDateDisplay" data-sync-target="txtExpectedOnboardDate" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
 
-                     <ul class="nav nav-tabs d-flex" id="myTabjustified" role="tablist">
+                     <ul class="nav nav-tabs d-flex candidate-detail-tabs" id="myTabjustified" role="tablist">
                 <li class="nav-item flex-fill" role="presentation">
-                  <button class="nav-link w-100 active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-justified" type="button" role="tab" aria-controls="home" aria-selected="true">Thông tin Ứng viên</button>
+                  <button class="nav-link w-100 active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-justified" type="button" role="tab" aria-controls="home" aria-selected="true">Thông tin ứng viên</button>
                 </li>
                 <li class="nav-item flex-fill" role="presentation">
-                  <button class="nav-link w-100" id="infomationDocument-tab" data-bs-toggle="tab" data-bs-target="#infomationDocument" type="button" role="tab" aria-controls="infomationDocument" aria-selected="false">thông tin chứng từ</button>
+                  <button class="nav-link w-100" id="infomationDocument-tab" data-bs-toggle="tab" data-bs-target="#infomationDocument" type="button" role="tab" aria-controls="infomationDocument" aria-selected="false">Thông tin chứng từ</button>
                 </li>
                 <li class="nav-item flex-fill" role="presentation">
                   <button class="nav-link w-100" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-justified" type="button" role="tab" aria-controls="contact" aria-selected="false">Lịch phỏng vấn</button>
                 </li>
+                <li class="nav-item flex-fill" role="presentation">
+                  <button class="nav-link w-100" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-justified" type="button" role="tab" aria-controls="history" aria-selected="false">Lịch sử</button>
+                </li>
                 
               </ul>
-              <div class="tab-content pt-2" >
+              <div class="tab-content pt-2 candidate-detail-tab-content">
                 <div class="tab-pane fade show active" id="home-justified" role="tabpanel" aria-labelledby="home-tab">
                   
-                        <input type="hidden" value="@itemResult.Id" name="id" id ="inputId"   class="form-control" required placeholder="" />
+                        <input type="hidden" value="@itemResult.Id" name="id" id="inputId" />
 
-                                  <div class="col-12 ">
-                             <div class="form-group">
+                                  <div class="col-12 candidate-primary-grid">
+                             <div class="form-group form-group-card form-group-important is-required">
                                 <label class="form-label">Tên ứng cử viên</label>
-                                <input type="text" value="@itemResult.Name" name="fullName" id="txtFullName" class="form-control" required placeholder="" />
+                                <input type="text" value="@itemResult.Name" name="fullName" id="txtFullName" class="form-control" required autocomplete="name" />
                                 <div class="invalid-feedback-cs">
                                 </div>
 
                             </div>
-                            <div class="form-group">
+                            <div class="form-group form-group-card">
                                 <label class="form-label">Username</label>
                                 <input type="text" value="@itemResult.UserName" name="userName" id="txtUserName" class="form-control" readonly />
                                 <div class="invalid-feedback-cs">
                                 </div>
+                                <small class="form-helper-text">Tài khoản đăng nhập được giữ cố định để tránh nhầm hồ sơ.</small>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group form-group-card is-required">
                                 <label class="form-label">Ngày sinh</label>
-                                <input type="date" value="@itemResult.DayOfBirthDisplay" name="dob" id="dob" class="form-control" required placeholder="" />
+                                <input type="date" value="@itemResult.DayOfBirthDisplay" name="dob" id="dob" class="form-control" required autocomplete="bday" />
                                 <div class="invalid-feedback-cs">
                                 </div>
                             </div>
-                            <div class=" form-group ">
+                            <div class="form-group form-group-card form-group-important is-required">
                                 <label class="form-label">Số điện thoại</label>
-                                <input type="text" value="@itemResult.Phone" name="txtPhone" id="txtPhone" class="form-control phonecall" required placeholder="" />
+                                <input type="text" value="@itemResult.Phone" name="txtPhone" id="txtPhone" class="form-control phonecall" required inputmode="tel" autocomplete="tel" />
                                 <div class="invalid-feedback-cs">
                                 </div>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group form-group-card">
                                 <label class="form-label">CCCD</label>
-                                <input type="text" value="@itemResult.NationalId" name="NationalId" id="txtNationalId" class="form-control" placeholder="" />
+                                <input type="text" value="@itemResult.NationalId" name="NationalId" id="txtNationalId" class="form-control" inputmode="numeric" maxlength="12" />
                                 <div class="invalid-feedback-cs">
                                 </div>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group form-group-card">
                                 <label class="form-label">Địa chỉ</label>
-                                <input type="text" value="@itemResult.Address" name="Address" id="txtAddress" class="form-control" placeholder="" />
+                                <input type="text" value="@itemResult.Address" name="Address" id="txtAddress" class="form-control" autocomplete="street-address" />
                                 <div class="invalid-feedback-cs">
                                 </div>
                             </div>
 
                             
-                            <div class="form-group">
+                            <div class="form-group form-group-card">
                                 <label class="form-label">Người hướng dẫn</label>
                                 <select name="Manager" class="form-select" id="cbManager" aria-label="">
                                     @foreach (var item in Model.DataLead.Data)
@@ -106,7 +358,7 @@
                                 </div>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group form-group-card">
                                 <label class="form-label">Phòng ban</label>
                                 <select name="DepartmentId" class="form-select" id="cbDepartmentId" aria-label="">
                                     @foreach (var item in Model.DataDepartment)
@@ -141,7 +393,7 @@
                             </div>
 
 
-                            <div class="form-group">
+                            <div class="form-group form-group-card">
                                 <label class="form-label">Vị trí</label>
                                 <select name="position" id="cbPosition" class="form-select"  aria-label="">
                                     @foreach (var item in Model.DataDepartment)
@@ -172,22 +424,23 @@
                                 </div>
                             </div>
                           
-                            <div class=" form-group">
+                            <div class="form-group form-group-card is-required">
                                 <label class="form-label">Email</label>
-                                <input type="text" value="@itemResult.Email" name="email" id="txtEmail" class="form-control" required placeholder="" />
+                                <input type="email" value="@itemResult.Email" name="email" id="txtEmail" class="form-control" required autocomplete="email" />
                                 <div class="invalid-feedback-cs">
                                 </div>
 
                             </div>
 
-                               <div class=" form-group">
+                               <div class="form-group form-group-card">
                                 <label class="form-label">Người giới thiệu</label>
-                                <input type="text" value="@itemResult.Referrer" name="referrer" id="txtReferrer" class="form-control" required placeholder="" />
+                                <input type="text" value="@itemResult.Referrer" name="referrer" id="txtReferrer" class="form-control" />
                                 <div class="invalid-feedback-cs">
                                 </div>
 
                             </div>
 
+                                <div class="candidate-inline-upload">
                                 @{
                                 Html.RenderPartial("ControlForm/FileInputCs",new
                                 {
@@ -198,11 +451,19 @@
 
                                 });
                                 }
-                            <div class=" form-group">
+                                </div>
+                            @if (!string.IsNullOrWhiteSpace(itemResult.CVLink))
+                            {
+                                <div class="candidate-file-actions">
+                                    <button type="button" class="btn btn-outline-secondary" data-cv-preview="@itemResult.CVLink" onclick="openCvPreview(this.dataset.cvPreview)">Xem trước CV</button>
+                                    <a class="btn btn-outline-primary" href="@itemResult.CVLink" target="_blank" rel="noopener noreferrer">Mở file gốc</a>
+                                </div>
+                            }
+                            <div class="form-group form-group-card candidate-note-field">
                             <label for="inputAddress2" class="form-label">Ghi chú ứng cử viên</label>
-                            <textarea name="noted" id="txtNotedCand"  class="form-control" style="height: 50px">@itemResult.Noted</textarea>
+                            <textarea name="noted" id="txtNotedCand"  class="form-control candidate-note-input">@itemResult.Noted</textarea>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group form-group-card">
                                 <label class="form-label">Trạng thái chứng từ</label>
                                 <select name="StatusHuman" id="cbStatusHuman" class="form-select" aria-label="">
                                     @foreach (var item in Model.DataDepartment)
@@ -238,7 +499,7 @@
                                     Please choose a username.
                                 </div>
                             </div>
-                          <div class="form-group">
+                          <div class="form-group form-group-card">
                                 <label class="form-label">Trạng thái ứng viên</label>
                                 <select name="Status" id="cbStatus" class="form-select" aria-label="">
                                     @foreach (var item in Model.DataDepartment)
@@ -276,58 +537,60 @@
                                     Please choose a username.
                                 </div>
                             </div>
-                            <div class="form-group" id="divExpectedOnboardDate" style="@(itemResult.Status == 92 || itemResult.Status == 93 ? "" : "display:none")">
-                                <label class="form-label text-primary fw-bold">Ngày dự kiến onboard</label>
-                                <input type="date" value="@itemResult.ExpectedOnboardDateDisplay" name="ExpectedOnboardDate" id="txtExpectedOnboardDate" class="form-control border-primary" />
+                            <div class="form-group form-group-card candidate-onboard-field @(itemResult.Status == 92 || itemResult.Status == 93 ? string.Empty : "is-hidden")" id="divExpectedOnboardDate">
+                                <label class="form-label">Ngày dự kiến onboard</label>
+                                <input type="date" value="@itemResult.ExpectedOnboardDateDisplay" name="ExpectedOnboardDate" id="txtExpectedOnboardDate" class="form-control" />
                                 <div class="invalid-feedback-cs">
                                 </div>
                             </div>
                    
-               <br />
-                  <br />
-             <button type="button" onclick="saveCanddiateDetail(@itemResult.Id)" class="btn btn-primary">Lưu thông tin </button>
-             @if (itemResult.IsEmployee == null || itemResult.IsEmployee != 1)
-             {
-                 <button type="button" onclick="onboardCandidate(@itemResult.Id)" class="btn btn-success ms-2">Onboard</button>
-             }
+             <div class="candidate-action-bar">
+                 <button type="button" onclick="saveCanddiateDetail(@itemResult.Id)" class="btn btn-primary">Lưu thông tin</button>
+                 @if (itemResult.IsEmployee == null || itemResult.IsEmployee != 1)
+                 {
+                     <button type="button" onclick="onboardCandidate(@itemResult.Id)" class="btn btn-outline-primary">Onboard ứng viên</button>
+                 }
+             </div>
 </div>
 
 
                 </div>
 
-                <div class="tab-pane fade" id="contact-justified" role="tabpanel" aria-labelledby="contact-tab">
-                 
-                
-                                                        @{
-                                var candidatePositionText = "";
-                                var positionCode = itemResult.Position.HasValue ? itemResult.Position.Value.ToString() : "-1";
-                                foreach (var item in Model.DataDepartment)
-                                {
-                                    if (item.TypeData != 2)
-                                    {
-                                        continue;
-                                    }
-                                    if (item.Code == positionCode)
-                                    {
-                                        candidatePositionText = item.Name;
-                                        break;
-                                    }
-                                }
-                                Html.RenderPartial("ControlForm/InterviewScheduleForm", new
-                                {
-                                    CandidateId = itemResult.Id,
-                                    CandidateName = itemResult.Name,
-                                    CandidatePositionText = candidatePositionText,
-                                    CandidateEmail = itemResult.Email,
-                                    ShowCandidateSelect = false,
-                                    InterviewerList = Model.DataInterviewer,
-                                    HandlerUrl = "/CandidateDetail?handler=AddSchedule",
-                                    ButtonText = "Lên lịch phỏng vấn"
-                                });
-                            }
-                            <div class="form-group">
-               
-              <table class="table table-striped">
+                <div class="tab-pane fade candidate-interview-tab" id="contact-justified" role="tabpanel" aria-labelledby="contact-tab">
+                  <div class="candidate-tab-panel">
+                      <div class="candidate-tab-panel-head">
+                          <div>
+                              <span class="candidate-tab-kicker">Phỏng vấn</span>
+                              <h3>Lên lịch nhanh cho ứng viên</h3>
+                              <p>Giữ form tạo lịch và lịch sử xử lý trên cùng một tab để không phải chuyển qua nhiều màn hình.</p>
+                          </div>
+                      </div>
+                      <div class="candidate-schedule-form-shell">
+                          @{
+                              Html.RenderPartial("ControlForm/InterviewScheduleForm", new
+                              {
+                                  CandidateId = itemResult.Id,
+                                  CandidateName = itemResult.Name,
+                                  CandidatePositionText = candidatePositionText,
+                                  CandidateEmail = itemResult.Email,
+                                  ShowCandidateSelect = false,
+                                  InterviewerList = Model.DataInterviewer,
+                                  HandlerUrl = "/CandidateDetail?handler=AddSchedule",
+                                  ButtonText = "Lên lịch phỏng vấn"
+                              });
+                          }
+                      </div>
+                  </div>
+                  <div class="candidate-tab-panel candidate-table-panel">
+                      <div class="candidate-tab-panel-head">
+                          <div>
+                              <span class="candidate-tab-kicker">Lịch sử</span>
+                              <h3>Các lịch phỏng vấn đã tạo</h3>
+                              <p>Theo dõi nhanh địa điểm, ghi chú và kết quả từng vòng phỏng vấn.</p>
+                          </div>
+                      </div>
+                      <div class="table-responsive">
+              <table class="table table-striped candidate-interview-table">
                 <thead>
                   <tr>
                     <th scope="col">#</th>
@@ -352,12 +615,14 @@
                             <td>@(itemDraw.InterviewResult == 1 ? "Pass" : itemDraw.InterviewResult == 2 ? "Fail" : itemDraw.InterviewResult == 3 ? "Hold" : "")</td>
                             <td>@itemDraw.CreateAtDisplay</td>
                             <td>
-                                <button type="button" class="btn btn-sm btn-warning" onclick="editSchedule(@itemDraw.Id)" title="Sửa">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="deleteSchedule(@itemDraw.Id)" title="Xóa">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                <div class="candidate-table-actions">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="editSchedule(@itemDraw.Id)" title="Sửa">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deleteSchedule(@itemDraw.Id)" title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                             </tr>
                             rowIndex++;
@@ -369,6 +634,7 @@
                  
                 </tbody>
               </table>
+                      </div>
               <!-- End Table with stripped rows -->
 
                                
@@ -377,20 +643,25 @@
                 </div>
 
 
-              
-
-                <div class="tab-pane fade" id="infomationDocument" role="tabpanel" aria-labelledby="infomationDocument-tab">
-    <div class="floatRight">
-        <button type="button" class=" btn btn-primary" 
-        data-bs-toggle="modal" 
-        data-bs-target="#verticalycentered">
-        Thêm file
-        <i class="fa fa-cloud-upload"></i>
-
-        </button>
-     </div>
+                <div class="tab-pane fade candidate-document-tab" id="infomationDocument" role="tabpanel" aria-labelledby="infomationDocument-tab">
+    <div class="candidate-tab-panel">
+        <div class="candidate-tab-panel-head candidate-tab-panel-head--spread">
+            <div>
+                <span class="candidate-tab-kicker">Chứng từ</span>
+                <h3>Quản lý file hồ sơ</h3>
+                <p>Tạo thêm loại chứng từ và cập nhật tài liệu ngay trong một không gian gọn, dễ quét hơn.</p>
+            </div>
+            <div class="candidate-document-actions">
+                <button type="button" class="btn btn-outline-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#verticalycentered">
+                    Thêm loại chứng từ
+                </button>
+                <button type="button" onclick="AddDocument(@itemResult.Id,1)" class="btn btn-primary">Cập nhật chứng từ</button>
+            </div>
+        </div>
   
-                    <div id ="documnetList">
+                    <div id ="documnetList" class="candidate-documents-grid">
 
  @foreach (var item in Model.DataFile.Data)
 {
@@ -408,17 +679,9 @@
                 
                                          
 
-    <div class="divblock">
+                    </div>
 
-          <button type="button" onclick = "AddDocument(@itemResult.Id,1)"  class="btn btn-primary"> Câp nhật chứng từ</button>     
-    </div>
-
-                                      
-      
- 
-
-                                          <div class="card">
-            <div class="card-body">
+                    <div class="candidate-document-modal-shell">
 
               <!-- Vertically centered Modal -->
              
@@ -477,13 +740,72 @@
               </div><!-- End Vertically centered Modal-->
 
             </div>
-          </div>
         
                            
                  </div>
             
               
               </div>
+
+                <div class="tab-pane fade candidate-history-tab" id="history-justified" role="tabpanel" aria-labelledby="history-tab">
+                    <div class="candidate-tab-panel">
+                        <div class="candidate-tab-panel-head">
+                            <div>
+                                <span class="candidate-tab-kicker">Timeline</span>
+                                <h3>Lịch sử thao tác</h3>
+                                <p>Hiển thị ai đã cập nhật hồ sơ, chứng từ hoặc lịch phỏng vấn và thời điểm thao tác gần nhất.</p>
+                            </div>
+                        </div>
+
+                        @if (candidateActivities.Count > 0)
+                        {
+                            <div class="candidate-activity-timeline">
+                                @foreach (var activity in candidateActivities)
+                                {
+                                    var activityHandler = ResolveActivityHandler(activity.QueryString);
+                                    var activityTone = ResolveActivityTone(activity);
+                                    var actorName = string.IsNullOrWhiteSpace(activity.FullName) ? (string.IsNullOrWhiteSpace(activity.UserName) ? "Hệ thống" : activity.UserName) : activity.FullName;
+                                    <div class="candidate-activity-item">
+                                        <div class="candidate-activity-icon candidate-status-badge--@activityTone">
+                                            <i class="bi @ResolveActivityIcon(activityHandler)"></i>
+                                        </div>
+                                        <div class="candidate-activity-body">
+                                            <div class="candidate-activity-head">
+                                                <strong>@ResolveActivityTitle(activity)</strong>
+                                                <span class="candidate-status-badge candidate-status-badge--@activityTone">@(activity.StatusCode.HasValue ? $"HTTP {activity.StatusCode}" : "Đã ghi nhận")</span>
+                                            </div>
+                                            <div class="candidate-activity-meta">
+                                                <span>@actorName</span>
+                                                <span>@activity.CreateAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                @if (activity.DurationMs.HasValue)
+                                                {
+                                                    <span>@activity.DurationMs.Value ms</span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(activity.Payload))
+                                            {
+                                                <details class="candidate-activity-details">
+                                                    <summary>Xem payload</summary>
+                                                    <pre>@activity.Payload</pre>
+                                                </details>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="candidate-empty-state">
+                                <i class="bi bi-clock-history"></i>
+                                <div>
+                                    <strong>Chưa có dữ liệu lịch sử phù hợp.</strong>
+                                    <span>Timeline sẽ hiện khi có thao tác cập nhật hồ sơ, chứng từ, lịch phỏng vấn hoặc onboard được ghi vào audit log.</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
             
 
                 
@@ -498,21 +820,211 @@
     </div>
 </section>
 
+<div class="candidate-sticky-actions">
+    <div class="candidate-sticky-meta">
+        <strong>@itemResult.Name</strong>
+        <span class="candidate-status-badge candidate-status-badge--@candidateStatusTone">@candidateStatusText</span>
+    </div>
+    <div class="candidate-sticky-buttons">
+        @if (!string.IsNullOrWhiteSpace(itemResult.CVLink))
+        {
+            <button type="button" class="btn btn-outline-secondary" data-cv-preview="@itemResult.CVLink" onclick="openCvPreview(this.dataset.cvPreview)">Xem trước CV</button>
+        }
+        @if (itemResult.IsEmployee == null || itemResult.IsEmployee != 1)
+        {
+            <button type="button" onclick="onboardCandidate(@itemResult.Id)" class="btn btn-outline-primary">Onboard</button>
+        }
+        <button type="button" onclick="saveCanddiateDetail(@itemResult.Id)" class="btn btn-primary">Lưu hồ sơ</button>
+    </div>
+</div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const cbStatus = document.getElementById('cbStatus');
         const divExpected = document.getElementById('divExpectedOnboardDate');
-        
-        if (cbStatus && divExpected) {
-            cbStatus.addEventListener('change', function() {
-                const status = this.value;
-                if (status == '92' || status == '93') {
-                    divExpected.style.display = '';
-                } else {
-                    divExpected.style.display = 'none';
+        const candidateValidators = [
+            {
+                id: 'txtFullName',
+                validate: function (value) {
+                    return value ? '' : 'Vui lòng nhập tên ứng viên';
+                }
+            },
+            {
+                id: 'txtPhone',
+                validate: function (value) {
+                    if (!value) {
+                        return 'Vui lòng nhập số điện thoại';
+                    }
+
+                    const normalized = value.replace(/[^\d+]/g, '');
+                    return /^(0|\+84)\d{8,10}$/.test(normalized) ? '' : 'Số điện thoại chưa đúng định dạng';
+                }
+            },
+            {
+                id: 'dob',
+                validate: function (value) {
+                    return value ? '' : 'Vui lòng chọn ngày sinh';
+                }
+            },
+            {
+                id: 'txtEmail',
+                validate: function (value) {
+                    if (!value) {
+                        return 'Vui lòng nhập email';
+                    }
+
+                    return /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(value) ? '' : 'Email chưa đúng định dạng';
+                }
+            },
+            {
+                id: 'txtNationalId',
+                validate: function (value) {
+                    if (!value) {
+                        return '';
+                    }
+
+                    return /^\d{9,12}$/.test(value) ? '' : 'CCCD phải gồm 9 đến 12 chữ số';
+                }
+            }
+        ];
+        const mirroredFields = [
+            { sourceId: 'heroStatusHuman', targetId: 'cbStatusHuman', eventName: 'change' },
+            { sourceId: 'heroStatus', targetId: 'cbStatus', eventName: 'change' },
+            { sourceId: 'heroExpectedOnboardDate', targetId: 'txtExpectedOnboardDate', eventName: 'input' }
+        ];
+
+        function toggleExpectedOnboardDate() {
+            if (!cbStatus || !divExpected) {
+                return;
+            }
+
+            const shouldShow = cbStatus.value === '92' || cbStatus.value === '93';
+            divExpected.classList.toggle('is-hidden', !shouldShow);
+            document.getElementById('heroExpectedOnboardWrap')?.classList.toggle('is-hidden', !shouldShow);
+        }
+
+        function resolveToneClass(text) {
+            const normalized = (text || '').toLowerCase();
+            if (!normalized) {
+                return 'candidate-status-badge--info';
+            }
+            if (normalized.includes('đã') || normalized.includes('ok') || normalized.includes('pass') || normalized.includes('hoàn') || normalized.includes('đủ')) {
+                return 'candidate-status-badge--success';
+            }
+            if (normalized.includes('chờ') || normalized.includes('đang') || normalized.includes('hold') || normalized.includes('xử lý')) {
+                return 'candidate-status-badge--warning';
+            }
+            if (normalized.includes('fail') || normalized.includes('lỗi') || normalized.includes('từ chối') || normalized.includes('thiếu')) {
+                return 'candidate-status-badge--danger';
+            }
+            return 'candidate-status-badge--info';
+        }
+
+        function updateQuickBadge(selectId, badgeId) {
+            const select = document.getElementById(selectId);
+            const badge = document.getElementById(badgeId);
+            if (!select || !badge) {
+                return;
+            }
+
+            const optionText = select.options[select.selectedIndex]?.text || '';
+            badge.textContent = optionText;
+            badge.className = `candidate-status-badge ${resolveToneClass(optionText)}`;
+        }
+
+        function syncFieldValue(sourceId, targetId) {
+            const source = document.getElementById(sourceId);
+            const target = document.getElementById(targetId);
+            if (!source || !target) {
+                return;
+            }
+
+            target.value = source.value;
+            if (targetId === 'cbStatus') {
+                toggleExpectedOnboardDate();
+                updateQuickBadge('heroStatus', 'heroStatusBadge');
+            }
+            if (targetId === 'cbStatusHuman') {
+                updateQuickBadge('heroStatusHuman', 'heroStatusHumanBadge');
+            }
+        }
+
+        function runCandidateFieldValidation(fieldConfig) {
+            const input = document.getElementById(fieldConfig.id);
+            if (!input) {
+                return true;
+            }
+
+            const value = (input.value || '').trim();
+            const message = fieldConfig.validate(value);
+            if (message) {
+                addError(fieldConfig.id, message);
+                return false;
+            }
+
+            removeError(fieldConfig.id);
+            return true;
+        }
+
+        window.validateCandidateDetailForm = function () {
+            let isValid = true;
+
+            candidateValidators.forEach(function (fieldConfig) {
+                if (!runCandidateFieldValidation(fieldConfig)) {
+                    isValid = false;
                 }
             });
+
+            return isValid;
+        };
+
+        candidateValidators.forEach(function (fieldConfig) {
+            const input = document.getElementById(fieldConfig.id);
+            if (!input) {
+                return;
+            }
+
+            input.addEventListener('blur', function () {
+                runCandidateFieldValidation(fieldConfig);
+            });
+
+            input.addEventListener('input', function () {
+                if (input.closest('.form-group')?.classList.contains('hasError')) {
+                    runCandidateFieldValidation(fieldConfig);
+                }
+            });
+        });
+
+        if (cbStatus && divExpected) {
+            cbStatus.addEventListener('change', toggleExpectedOnboardDate);
         }
+
+        mirroredFields.forEach(function (field) {
+            const source = document.getElementById(field.sourceId);
+            const target = document.getElementById(field.targetId);
+            if (!source || !target) {
+                return;
+            }
+
+            source.addEventListener(field.eventName, function () {
+                syncFieldValue(field.sourceId, field.targetId);
+            });
+
+            target.addEventListener(field.eventName, function () {
+                source.value = target.value;
+                if (field.targetId === 'cbStatus') {
+                    toggleExpectedOnboardDate();
+                    updateQuickBadge('heroStatus', 'heroStatusBadge');
+                }
+                if (field.targetId === 'cbStatusHuman') {
+                    updateQuickBadge('heroStatusHuman', 'heroStatusHumanBadge');
+                }
+            });
+        });
+
+        toggleExpectedOnboardDate();
+        updateQuickBadge('heroStatus', 'heroStatusBadge');
+        updateQuickBadge('heroStatusHuman', 'heroStatusHumanBadge');
     });
 </script>
 
@@ -653,7 +1165,57 @@
             alert(message);
         }
     }
+
+    function openCvPreview(fileUrl) {
+        if (!fileUrl) {
+            return;
+        }
+
+        const modalElement = document.getElementById('cvPreviewModal');
+        const modalTitle = document.getElementById('cvPreviewTitle');
+        const modalBody = document.getElementById('cvPreviewBody');
+        if (!modalElement || !modalTitle || !modalBody) {
+            window.open(fileUrl, '_blank', 'noopener');
+            return;
+        }
+
+        const normalizedUrl = fileUrl.split('?')[0].toLowerCase();
+        const isPdf = normalizedUrl.endsWith('.pdf');
+        const isImage = normalizedUrl.endsWith('.png')
+            || normalizedUrl.endsWith('.jpg')
+            || normalizedUrl.endsWith('.jpeg')
+            || normalizedUrl.endsWith('.gif')
+            || normalizedUrl.endsWith('.webp');
+
+        modalTitle.textContent = isPdf ? 'Xem trước CV PDF' : 'Xem trước CV';
+
+        if (isPdf) {
+            modalBody.innerHTML = `<iframe src="${fileUrl}" title="CV preview"></iframe>`;
+        } else if (isImage) {
+            modalBody.innerHTML = `<img src="${fileUrl}" alt="CV preview" />`;
+        } else {
+            window.open(fileUrl, '_blank', 'noopener');
+            return;
+        }
+
+        const previewModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        previewModal.show();
+    }
 </script>
+
+<div class="modal fade" id="cvPreviewModal" tabindex="-1" aria-labelledby="cvPreviewTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cvPreviewTitle">Xem trước CV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="cvPreviewBody" class="candidate-cv-preview-body"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="modal fade" id="formModal" tabindex="-1" >
     <div class="modal-dialog  modal-dialog-centered modal-lg" >

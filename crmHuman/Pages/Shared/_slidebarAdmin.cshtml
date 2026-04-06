@@ -1,12 +1,12 @@
 @model crmHuman.Pages.BaseModel2
-<aside id="sidebar" class="sidebar">
+<aside id="sidebar" class="sidebar sidebar-admin">
 
-    <ul class="sidebar-nav" id="sidebar-nav">
+    <ul class="sidebar-nav sidebar-nav-enhanced" id="sidebar-nav">
 
         @if (Model.HasViewPermission("Dashboard"))
         {
             <li class="nav-item">
-                <a class="nav-link " href="/">
+                <a class="nav-link collapsed" href="/">
                     <i class="bi bi-pie-chart-fill"></i>
                     <span>Dashboard</span>
                 </a>
@@ -310,3 +310,63 @@
     </ul>
 
 </aside>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const sidebarNav = document.getElementById('sidebar-nav');
+        if (!sidebarNav) {
+            return;
+        }
+
+        const currentPath = window.location.pathname.toLowerCase();
+        const currentUrl = `${window.location.pathname.toLowerCase()}${window.location.search.toLowerCase()}`;
+        const routeAliases = {
+            '/candidatedetail': '/candidate',
+            '/editorupdatecandidate': '/candidate',
+            '/editorupdatecandidatectv': '/candidate',
+            '/editorupdatecandidatemar': '/candidate',
+            '/formimportcandidate': '/candidate',
+            '/employeeinfo': '/employee',
+            '/employeedetail': '/employee',
+            '/editorupdateemployee': '/employee',
+            '/grouppage': '/grouppage'
+        };
+
+        const resolvedPath = routeAliases[currentPath] || currentPath;
+        const resolvedUrl = currentUrl;
+
+        sidebarNav.querySelectorAll('a[href]').forEach(function (link) {
+            const href = link.getAttribute('href');
+            if (!href || href === '#' || href.startsWith('javascript:')) {
+                return;
+            }
+
+            const targetUrl = new URL(href, window.location.origin);
+            const targetPath = targetUrl.pathname.toLowerCase();
+            const targetFull = `${targetUrl.pathname.toLowerCase()}${targetUrl.search.toLowerCase()}`;
+
+            const isExactMatch = targetFull !== '/' && resolvedUrl === targetFull;
+            const isPathMatch = targetPath === '/'
+                ? currentPath === '/'
+                : resolvedPath === targetPath || resolvedPath.startsWith(`${targetPath}/`);
+
+            if (!isExactMatch && !isPathMatch) {
+                return;
+            }
+
+            link.classList.add('active');
+            link.classList.remove('collapsed');
+
+            const navContent = link.closest('.nav-content');
+            if (navContent) {
+                navContent.classList.add('show');
+                const toggleLink = navContent.previousElementSibling;
+                if (toggleLink && toggleLink.classList.contains('nav-link')) {
+                    toggleLink.classList.add('active');
+                    toggleLink.classList.remove('collapsed');
+                    toggleLink.setAttribute('aria-expanded', 'true');
+                }
+            }
+        });
+    });
+</script>

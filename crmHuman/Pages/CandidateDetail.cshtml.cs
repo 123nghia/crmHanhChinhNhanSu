@@ -18,6 +18,7 @@ namespace crmHuman.Pages
         private readonly ImasterDataBussiness _masterDataBussiness;
         private readonly IScheduleInterviewBussiness _scheduleInterviewBussiness;
         private readonly IDocumentDataBussiness _documentDataBussiness;
+        private readonly IAuditLogBusiness _auditLogBusiness;
 
         private readonly IEmpBusiness _empBusiness1;
         public List<string> TableColumnTextAdmin { get; set; }
@@ -41,6 +42,7 @@ namespace crmHuman.Pages
 
 
         public BaseList DataFile { get; set; }
+        public List<AuditLog> CandidateActivities { get; set; }
 
         public int TotalRecord
         {
@@ -56,6 +58,7 @@ namespace crmHuman.Pages
             ImasterDataBussiness masterDataBussiness,
             IScheduleInterviewBussiness scheduleInterviewBussiness,
             IDocumentDataBussiness documentDataBussiness,
+            IAuditLogBusiness auditLogBusiness,
             IEmpBusiness empBusiness1
             )
         {
@@ -68,8 +71,10 @@ namespace crmHuman.Pages
             DataDepartment = new List<DataMasterItem>();
             _scheduleInterviewBussiness = scheduleInterviewBussiness;
             _documentDataBussiness = documentDataBussiness;
+            _auditLogBusiness = auditLogBusiness;
             _empBusiness1 = empBusiness1;
             DataInterviewer = new BaseList();
+            CandidateActivities = new List<AuditLog>();
         }
 
         public async Task<IActionResult> OnPostAddSchedule(CandidateScheduleAdd request)
@@ -362,6 +367,7 @@ namespace crmHuman.Pages
             });
             DataLead = await _empBusiness1.GetAllManager();
             DataInterviewer = await BuildInterviewerListAsync();
+            CandidateActivities = (await _auditLogBusiness.GetCandidateActivityAsync(idInput)).ToList();
 
             return Page();
         }

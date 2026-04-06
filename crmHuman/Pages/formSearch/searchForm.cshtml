@@ -1,60 +1,75 @@
-<form class="row g-2 align-items-end" method="get" action="/Employee">
+<form class="employee-filter-form" method="get" action="/Employee">
     <input type="hidden" name="limit" value="@Model.RequestSearch.Limit">
 
-    <div class="col-12 col-md-6 col-lg-3">
-        <label class="form-label">Từ ngày</label>
-        <input value="@Model.RequestSearch.FromText" type="date" name="from" class="form-control">
+    <div class="employee-filter-grid">
+        <div class="employee-filter-field">
+            <label class="form-label">Từ ngày</label>
+            <input value="@Model.RequestSearch.FromText" type="date" name="from" class="form-control">
+        </div>
+
+        <div class="employee-filter-field">
+            <label class="form-label">Đến ngày</label>
+            <input value="@Model.RequestSearch.ToText" type="date" name="to" class="form-control">
+        </div>
+
+        <div class="employee-filter-field">
+            <label class="form-label">Từ khóa</label>
+            <input type="search"
+                   value="@Model.RequestSearch.Token"
+                   name="token"
+                   class="form-control"
+                   placeholder="Tên, tài khoản, số điện thoại...">
+        </div>
+
+        @if (Model.UserData.RoleCode == "1")
+        {
+            <div class="employee-filter-field">
+                <label class="form-label">Trạng thái chứng từ</label>
+                <select id="cbstatus"
+                        name="documentStatus"
+                        data-master-type="8"
+                        data-value-key="code"
+                        data-selected-value="@Model.RequestSearch.DocumentStatus"
+                        class="form-select"
+                        aria-label="">
+                    <option value="-1">Tất cả</option>
+                </select>
+            </div>
+
+            <div class="employee-filter-field">
+                <label class="form-label">Trạng thái làm việc</label>
+                <select id="cbStatusWorkSearch"
+                        name="statusWork"
+                        data-master-type="11"
+                        data-value-key="code"
+                        data-selected-value="@Model.RequestSearch.StatusWork"
+                        class="form-select"
+                        aria-label="">
+                    <option value="-1">Tất cả</option>
+                </select>
+            </div>
+
+            <div class="employee-filter-field">
+                <label class="form-label">Nhóm</label>
+                <select name="groupId" id="cbgroup" class="form-select" aria-label="">
+                    <option value="-1" selected>Tất cả</option>
+                </select>
+            </div>
+
+            <div class="employee-filter-field">
+                <label class="form-label">Thành viên</label>
+                <select name="memberId" id="cbmember" class="form-select" aria-label="">
+                    <option value="-1" selected>Tất cả</option>
+                </select>
+            </div>
+        }
     </div>
-    <div class="col-12 col-md-6 col-lg-3">
-        <label class="form-label">Đến ngày</label>
-        <input value="@Model.RequestSearch.ToText" type="date" name="to" class="form-control">
-    </div>
 
-    <div class="col-12 col-md-6 col-lg-3">
-        <label class="form-label">Từ khóa</label>
-        <input type="text" value="@Model.RequestSearch.Token" name="token" class="form-control">
-    </div>
-
-    @if (Model.UserData.RoleCode == "1")
-    {
-        <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Trạng thái</label>
-            <select id="cbstatus" name="documentStatus" data-master-type="8" data-value-key="code" data-selected-value="@Model.RequestSearch.DocumentStatus" class="form-select" aria-label="">
-                <option value="-1">Tất cả</option>
-            </select>
-        </div>
-
-        <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Trạng thái làm việc</label>
-            <select id="cbStatusWorkSearch" name="statusWork" data-master-type="11" data-value-key="code" data-selected-value="@Model.RequestSearch.StatusWork" class="form-select" aria-label="">
-                <option value="-1">Tất cả</option>
-            </select>
-        </div>
-
-        <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Nhóm</label>
-            <select name="groupId" id="cbgroup" class="form-select" aria-label="">
-                <option value="-1" selected>Tất cả</option>
-            </select>
-        </div>
-
-        <div class="col-12 col-md-6 col-lg-3">
-            <label class="form-label">Thành viên</label>
-            <select name="memberId" id="cbmember" class="form-select" aria-label="">
-                <option value="-1" selected>Tất cả</option>
-            </select>
-        </div>
-    }
-
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="d-flex justify-content-end gap-2 flex-wrap">
-            <button type="submit" class="btn btn-primary">Tìm kiếm</button>
-
-            @if (Model.Permision.Add == true)
-            {
-                <button type="button" class="btn btn-primary" onclick="OpenFormImportCandidate()">Import</button>
-                <button type="button" class="btn btn-primary" onclick="OpenCreateNew(-1, '@Model.KeyPage')">Thêm mới</button>
-            }
-        </div>
+    <div class="employee-filter-actions">
+        <a class="btn btn-outline-secondary" href="/Employee?limit=@Model.RequestSearch.Limit">Đặt lại</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-search"></i>
+            <span>Áp dụng bộ lọc</span>
+        </button>
     </div>
 </form>

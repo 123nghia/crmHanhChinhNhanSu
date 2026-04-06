@@ -2690,6 +2690,9 @@ function saveCanddiateOrder(idEmp) {
 
 
 function saveCanddiateDetail(idEmp) {
+    if (typeof window.validateCandidateDetailForm === "function" && !window.validateCandidateDetailForm()) {
+        return;
+    }
 
     var cbcandidateId = getValueControl("inputId");
     var txtFullName = getValueControl("txtFullName");

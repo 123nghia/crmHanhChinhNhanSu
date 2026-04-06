@@ -39,7 +39,7 @@ function showImportModal(options) {
 }
 
 function submitImportEmployee() {
-    const form = document.getElementById("formImportEmployee");
+    var form = document.getElementById("formImportEmployee");
     if (!form) {
         showImportModal({
             icon: "error",
@@ -48,7 +48,8 @@ function submitImportEmployee() {
         });
         return;
     }
-    const fileInput = form.querySelector("input[name='FileRequest']");
+
+    var fileInput = form.querySelector("input[name='FileRequest']");
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
         showImportModal({
             icon: "warning",
@@ -58,14 +59,14 @@ function submitImportEmployee() {
         return;
     }
 
-    const btnSubmit = form.closest(".modal-content")?.querySelector(".btn-primary");
-    const originalText = btnSubmit ? btnSubmit.innerHTML : "";
+    var btnSubmit = form.closest(".modal-content")?.querySelector(".btn-primary");
+    var originalText = btnSubmit ? btnSubmit.innerHTML : "";
     if (btnSubmit) {
         btnSubmit.disabled = true;
         btnSubmit.innerHTML = "<span class=\"spinner-border spinner-border-sm\" role=\"status\" aria-hidden=\"true\"></span> Đang xử lý...";
     }
 
-    const data = new FormData(form);
+    var data = new FormData(form);
     $.ajax({
         url: "/Employee?handler=ImportEmployee",
         type: "POST",
@@ -135,6 +136,7 @@ function submitImportEmployee() {
             } else if (xhr && xhr.responseText) {
                 fallbackMsg = xhr.responseText;
             }
+
             showImportModal({
                 icon: "error",
                 title: "Import thất bại",
@@ -149,6 +151,93 @@ var employeeFilterTimer = null;
 function normalizeFilterValue(value) {
     return String(value || "").toLowerCase().trim();
 }
+
+function normalizeEmployeeLabel(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+}
+
+function formatEmployeeBadgeLabel(value) {
+    var text = String(value || "").trim();
+    var normalized = normalizeEmployeeLabel(text);
+
+    if (!text) {
+        return "--";
+    }
+
+    if (normalized.indexOf("onboard") >= 0) {
+        return "Đã onboard";
+    }
+
+    if (normalized === "active") {
+        return "Đang hoạt động";
+    }
+
+    if (normalized === "inactive") {
+        return "Ngưng hoạt động";
+    }
+
+    return text;
+}
+
+function getEmployeeBadgeClass(value) {
+    var normalized = normalizeEmployeeLabel(value);
+
+    if (!normalized) {
+        return "status-neutral";
+    }
+
+    if (/(nghi viec|resign|offboard|inactive)/.test(normalized)) {
+        return "status-resigned";
+    }
+
+    if (/(thu viec|probation|pending|tam dung|pause|hold)/.test(normalized)) {
+        return "status-paused";
+    }
+
+    if (/(thieu|chua|tre|can bo sung|incomplete)/.test(normalized)) {
+        return "status-warning";
+    }
+
+    if (/(dang lam|active|chinh thuc|hoan tat|day du|approved|onboard)/.test(normalized)) {
+        return "status-working";
+    }
+
+    return "status-neutral";
+}
+
+function renderEmployeeCellValue(cell, rawValue, displayValue) {
+    if (!cell) {
+        return;
+    }
+
+    var field = cell.dataset ? cell.dataset.field : "";
+    var text = formatEmployeeBadgeLabel(displayValue || rawValue);
+    var safeText = escapeHtml(text);
+    var row = cell.closest("tr");
+    var rowId = row && row.dataset ? row.dataset.id : "";
+
+    if (field === "FullName") {
+        if (text !== "--" && rowId && rowId !== "-1") {
+            cell.innerHTML = '<a class="employee-name-link" href="/EmployeeInfo?id=' + escapeHtml(rowId) + '">' + safeText + '</a>';
+            return;
+        }
+        cell.textContent = text;
+        return;
+    }
+
+    if (field === "Status" || field === "StatusWork" || field === "DocumentStatus") {
+        cell.innerHTML = '<span class="status-badge ' + getEmployeeBadgeClass(text) + '">' + safeText + '</span>';
+        return;
+    }
+
+    cell.textContent = text;
+}
+
+window.renderEditableGridCellValue = renderEmployeeCellValue;
 
 function getCellFilterValue(cell) {
     if (!cell) {
@@ -176,6 +265,63 @@ function getEmployeeFilterControls() {
     return table.querySelectorAll("thead .table-filter-input, thead .table-filter-select");
 }
 
+function getAdvancedFilterControls() {
+    var form = document.querySelector('form[action="/Employee"]');
+    if (!form) {
+        return [];
+    }
+
+    return form.querySelectorAll("input, select");
+}
+
+function setBadgeValue(element, count) {
+    if (!element) {
+        return;
+    }
+
+    if (count > 0) {
+        element.textContent = String(count);
+        element.classList.add("has-value");
+    } else {
+        element.textContent = "";
+        element.classList.remove("has-value");
+    }
+}
+
+function countActiveControls(controls) {
+    var count = 0;
+
+    Array.from(controls || []).forEach(function (control) {
+        if (!control || !control.name || control.type === "hidden" || control.disabled) {
+            return;
+        }
+
+        var value = String(control.value || "").trim();
+        if (!value || value === "-1") {
+            return;
+        }
+
+        count += 1;
+    });
+
+    return count;
+}
+
+function updateEmployeeFilterBadges() {
+    var url = new URL(window.location.href);
+    var advancedKeys = ["from", "to", "token", "documentStatus", "statusWork", "groupId", "memberId"];
+    var advancedCount = advancedKeys.reduce(function (count, key) {
+        var value = url.searchParams.get(key);
+        if (!value || value === "-1") {
+            return count;
+        }
+        return count + 1;
+    }, 0);
+
+    setBadgeValue(document.getElementById("employeeAdvancedFilterBadge"), advancedCount);
+    setBadgeValue(document.getElementById("employeeColumnFilterBadge"), countActiveControls(getEmployeeFilterControls()));
+}
+
 function populateEmployeeFilterDropdowns() {
     var table = document.getElementById("employeeGrid");
     if (!table) {
@@ -196,7 +342,6 @@ function populateEmployeeFilterDropdowns() {
         }
 
         var selectedValue = select.dataset.selectedValue || select.value || "";
-
         var options = {};
 
         rows.forEach(function (row) {
@@ -237,9 +382,7 @@ function populateEmployeeFilterDropdowns() {
 
         var optionsHtml = '<option value="-1">Tất cả</option>';
         items.forEach(function (item) {
-            var safeValue = escapeHtml(item.value);
-            var safeLabel = escapeHtml(item.label);
-            optionsHtml += '<option value="' + safeValue + '">' + safeLabel + '</option>';
+            optionsHtml += '<option value="' + escapeHtml(item.value) + '">' + escapeHtml(item.label) + '</option>';
         });
 
         select.innerHTML = optionsHtml;
@@ -254,11 +397,14 @@ function populateEmployeeFilterDropdowns() {
             }
         }
     });
+
+    updateEmployeeFilterBadges();
 }
 
 function applyEmployeeHeaderFilters() {
     var url = new URL(window.location.href);
     var form = document.querySelector('form[action="/Employee"]');
+
     if (form) {
         var formData = new FormData(form);
         formData.forEach(function (value, key) {
@@ -279,16 +425,7 @@ function applyEmployeeHeaderFilters() {
         }
 
         var value = String(control.value || "").trim();
-        if (control.tagName === "SELECT") {
-            if (!value) {
-                url.searchParams.delete(key);
-            } else {
-                url.searchParams.set(key, value);
-            }
-            return;
-        }
-
-        if (!value) {
+        if (!value || value === "-1") {
             url.searchParams.delete(key);
         } else {
             url.searchParams.set(key, value);
@@ -307,13 +444,62 @@ function scheduleEmployeeHeaderFilters() {
 }
 
 function clearEmployeeHeaderFilters() {
-    var controls = getEmployeeFilterControls();
-
-    controls.forEach(function (control) {
+    Array.from(getEmployeeFilterControls()).forEach(function (control) {
         control.value = control.tagName === "SELECT" ? "-1" : "";
     });
 
+    updateEmployeeFilterBadges();
     applyEmployeeHeaderFilters();
+}
+
+function setAdvancedFilterPanel(open) {
+    var panel = document.getElementById("employeeFilterPanel");
+    var toggle = document.getElementById("toggleEmployeeFilters");
+
+    if (!panel || !toggle) {
+        return;
+    }
+
+    panel.classList.toggle("is-collapsed", !open);
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function setColumnFilterPanel(open) {
+    var shell = document.getElementById("employeeGridShell");
+    var toggle = document.getElementById("toggleColumnFilters");
+
+    if (!shell || !toggle) {
+        return;
+    }
+
+    shell.classList.toggle("show-column-filters", !!open);
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function bindEmployeePanels() {
+    var toggleAdvanced = document.getElementById("toggleEmployeeFilters");
+    var closeAdvanced = document.getElementById("closeEmployeeFilters");
+    var toggleColumns = document.getElementById("toggleColumnFilters");
+    var panel = document.getElementById("employeeFilterPanel");
+    var shell = document.getElementById("employeeGridShell");
+
+    if (toggleAdvanced && panel) {
+        toggleAdvanced.addEventListener("click", function () {
+            setAdvancedFilterPanel(panel.classList.contains("is-collapsed"));
+        });
+    }
+
+    if (closeAdvanced && panel) {
+        closeAdvanced.addEventListener("click", function () {
+            setAdvancedFilterPanel(false);
+        });
+    }
+
+    if (toggleColumns && shell) {
+        toggleColumns.addEventListener("click", function () {
+            setColumnFilterPanel(!shell.classList.contains("show-column-filters"));
+        });
+    }
 }
 
 function bindEmployeeFilterRefreshHooks() {
@@ -329,8 +515,10 @@ function bindEmployeeFilterRefreshHooks() {
         if (typeof previousCellUpdated === "function") {
             previousCellUpdated(cell);
         }
+
         if (cell && cell.closest && cell.closest("#employeeGrid")) {
             populateEmployeeFilterDropdowns();
+            updateEmployeeFilterBadges();
         }
     };
 
@@ -338,8 +526,10 @@ function bindEmployeeFilterRefreshHooks() {
         if (typeof previousRowUpdated === "function") {
             previousRowUpdated(row);
         }
+
         if (row && row.closest && row.closest("#employeeGrid")) {
             populateEmployeeFilterDropdowns();
+            updateEmployeeFilterBadges();
         }
     };
 }
@@ -350,13 +540,17 @@ function bindEmployeeHeaderFilters() {
         return;
     }
 
-    controls.forEach(function (control) {
+    Array.from(controls).forEach(function (control) {
         if (control.tagName === "SELECT") {
             control.addEventListener("change", applyEmployeeHeaderFilters);
             return;
         }
 
-        control.addEventListener("input", scheduleEmployeeHeaderFilters);
+        control.addEventListener("input", function () {
+            updateEmployeeFilterBadges();
+            scheduleEmployeeHeaderFilters();
+        });
+
         control.addEventListener("keydown", function (event) {
             if (event.key === "Enter") {
                 event.preventDefault();
@@ -365,7 +559,7 @@ function bindEmployeeHeaderFilters() {
         });
     });
 
-    var clearButton = document.querySelector("#employeeGrid .js-clear-header-filters");
+    var clearButton = document.querySelector(".js-clear-header-filters");
     if (clearButton) {
         clearButton.addEventListener("click", function (event) {
             event.preventDefault();
@@ -376,7 +570,8 @@ function bindEmployeeHeaderFilters() {
 
 document.addEventListener("DOMContentLoaded", function () {
     populateEmployeeFilterDropdowns();
+    bindEmployeePanels();
     bindEmployeeHeaderFilters();
     bindEmployeeFilterRefreshHooks();
+    updateEmployeeFilterBadges();
 });
-

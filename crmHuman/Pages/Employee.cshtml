@@ -1,594 +1,475 @@
-﻿@page
+@page
 @model EmployeeModel
 @{
-    ViewData["Title"] = Model.TitlePage;   
+    ViewData["Title"] = Model.TitlePage;
+
+    var hasAdvancedFilters =
+        Request.Query.ContainsKey("from")
+        || Request.Query.ContainsKey("to")
+        || Request.Query.ContainsKey("token")
+        || Request.Query.ContainsKey("statusWork")
+        || Request.Query.ContainsKey("documentStatus")
+        || Request.Query.ContainsKey("groupId")
+        || Request.Query.ContainsKey("memberId");
+
+    var hasColumnFilters =
+        !string.IsNullOrWhiteSpace(Model.RequestSearch?.FilterUserName)
+        || !string.IsNullOrWhiteSpace(Model.RequestSearch?.FilterFullName)
+        || !string.IsNullOrWhiteSpace(Model.RequestSearch?.FilterRoleCode)
+        || !string.IsNullOrWhiteSpace(Model.RequestSearch?.FilterPositionCode)
+        || !string.IsNullOrWhiteSpace(Model.RequestSearch?.FilterDepartmentCode)
+        || !string.IsNullOrWhiteSpace(Model.RequestSearch?.FilterStatus)
+        || !string.IsNullOrWhiteSpace(Model.RequestSearch?.FilterFingerprintCode);
+
+    var displayedCount = 0;
+    if (Model.DataAll?.Data != null)
+    {
+        foreach (var _ in Model.DataAll.Data)
+        {
+            displayedCount++;
+        }
+    }
+
+    string NormalizeValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var normalized = value.Normalize(global::System.Text.NormalizationForm.FormD);
+        var builder = new global::System.Text.StringBuilder(normalized.Length);
+
+        foreach (var ch in normalized)
+        {
+            if (global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != global::System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                builder.Append(char.ToLowerInvariant(ch));
+            }
+        }
+
+        return builder.ToString().Normalize(global::System.Text.NormalizationForm.FormC);
+    }
+
+    bool ContainsAny(string? value, params string[] keywords)
+    {
+        var normalized = NormalizeValue(value);
+        foreach (var keyword in keywords)
+        {
+            if (normalized.Contains(keyword))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    string NormalizeStatusText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "--";
+        }
+
+        if (ContainsAny(value, "onboard"))
+        {
+            return "Đã onboard";
+        }
+
+        if (ContainsAny(value, "active"))
+        {
+            return "Đang hoạt động";
+        }
+
+        if (ContainsAny(value, "inactive"))
+        {
+            return "Ngưng hoạt động";
+        }
+
+        return value.Trim();
+    }
+
+    string GetStatusBadgeClass(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "status-neutral";
+        }
+
+        if (ContainsAny(value, "nghi viec", "resign", "offboard", "inactive"))
+        {
+            return "status-resigned";
+        }
+
+        if (ContainsAny(value, "thu viec", "probation", "cho", "pending", "tam dung", "pause", "hold"))
+        {
+            return "status-paused";
+        }
+
+        if (ContainsAny(value, "thieu", "chua", "tre", "can bo sung", "incomplete"))
+        {
+            return "status-warning";
+        }
+
+        if (ContainsAny(value, "dang lam", "active", "chinh thuc", "hoan tat", "day du", "approved", "onboard"))
+        {
+            return "status-working";
+        }
+
+        return "status-neutral";
+    }
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/editable-grid.css" asp-append-version="true">
-    <style>
-        /* Extended grid scroll container */
-        .extended-scroll-container {
-            max-width: 100%;
-            overflow-x: auto;
-            overflow-y: visible;
-        }
-        .extended-scroll-container .table {
-            min-width: auto;
-        }
-        .extended-scroll-container.edit-mode .table {
-            min-width: 2500px; /* Rộng hơn khi edit mode */
-        }
-        .extended-scroll-container .table th,
-        .extended-scroll-container .table td {
-            white-space: nowrap;
-            min-width: 100px;
-        }
-        .extended-scroll-container .table th.col-narrow,
-        .extended-scroll-container .table td.col-narrow {
-            min-width: 50px;
-            max-width: 80px;
-        }
-        .extended-scroll-container .table th.col-wide,
-        .extended-scroll-container .table td.col-wide {
-            min-width: 180px;
-        }
-        /* Excel-like header + filter styling */
-        #employeeGrid {
-            --employee-header-bg: #e9edf4;
-            --employee-header-bg-2: #dee6f1;
-            --employee-header-border: #cfd7e3;
-            --employee-filter-bg: #f5f7fb;
-            --employee-grid-border: #e1e7f0;
-            --employee-filter-icon: #7d879a;
-        }
-        #employeeGrid thead tr:first-child th {
-            position: sticky;
-            top: 0;
-            z-index: 15;
-            background: linear-gradient(180deg, var(--employee-header-bg) 0%, var(--employee-header-bg-2) 100%);
-            color: #1f2a44;
-            border-bottom: 1px solid var(--employee-header-border);
-            line-height: 1.2;
-            padding: 6px 6px 8px;
-            vertical-align: bottom;
-        }
-        #employeeGrid thead tr:first-child th.filterable {
-            padding-right: 22px;
-            position: relative;
-        }
-        #employeeGrid thead tr:first-child th.filterable::after {
-            content: "\f3e1";
-            font-family: "bootstrap-icons";
-            font-size: 12px;
-            color: var(--employee-filter-icon);
-            position: absolute;
-            right: 6px;
-            top: 50%;
-            transform: translateY(-50%);
-            opacity: 0.9;
-        }
-        #employeeGrid thead th .header-cell {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            min-height: 44px;
-        }
-        #employeeGrid thead th.no-filter .header-cell {
-            min-height: auto;
-        }
-        #employeeGrid thead th .header-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #1f2a44;
-        }
-        #employeeGrid thead th .header-filter {
-            display: block;
-        }
-        #employeeGrid thead .table-filter-input,
-        #employeeGrid thead .table-filter-select {
-            width: 100%;
-            min-width: 80px;
-            height: 24px;
-            padding: 1px 6px;
-            font-size: 11px;
-            color: #1f2a44;
-            background-color: #fff;
-            border: 1px solid #cfd7e3;
-            border-radius: 6px;
-            box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
-        }
-        #employeeGrid thead .table-filter-input:focus,
-        #employeeGrid thead .table-filter-select:focus {
-            border-color: #6aa9ff;
-            box-shadow: 0 0 0 2px rgba(106, 169, 255, 0.2);
-        }
-        #employeeGrid thead .table-filter-input::placeholder {
-            color: #98a2b3;
-        }
-        #employeeGrid thead .col-narrow .table-filter-input,
-        #employeeGrid thead .col-narrow .table-filter-select {
-            min-width: 50px;
-        }
-        #employeeGrid thead .header-cell .btn {
-            width: 100%;
-            padding: 4px 8px;
-            font-size: 12px;
-            line-height: 1.2;
-            border-radius: 6px;
-            background-color: #f3f5f9;
-            border-color: #cfd7e3;
-            color: #48556a;
-        }
-        #employeeGrid thead th,
-        #employeeGrid tbody td {
-            border-color: var(--employee-grid-border);
-        }
-        /* Cột mở rộng - ẩn mặc định, hiển thị khi edit mode */
-        .extended-col {
-            display: none;
-        }
-        .extended-scroll-container.edit-mode .extended-col {
-            display: table-cell;
-        }
-    </style>
 }
+
 <div class="pagetitle">
     <h1>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
-            <li class="breadcrumb-item"><a href="/Employee">Nhân viên</a></li>
+            <li class="breadcrumb-item"><a href="/Employee">Nhân sự</a></li>
             <li class="breadcrumb-item active">Danh sách</li>
         </ol>
     </nav>
-</div><!-- End Page Title -->
+</div>
 
 <section class="section">
     <div class="row">
         <div class="col-lg-12">
             <div class="card">
-                <div class="card-body">
+                <div class="card-body employee-workspace">
                     @Html.AntiForgeryToken()
-                    <div class="d-flex justify-content-end mt-3 mb-2 gap-2">
-                        <button type="button" class="btn btn-outline-secondary" id="toggleEditMode" onclick="EditableGrid.toggleEditMode()">
-                            <i class="bi bi-pencil-square"></i> Bật chỉnh sửa
-                        </button>
-                        <button type="button" class="btn btn-primary" onclick="EditableGrid.addRowAtEnd()" style="display:none;" id="btnAddRow">
-                            <i class="bi bi-plus-lg"></i> Thêm mới
-                        </button>
-                        <button type="button" class="btn btn-success" onclick="openImportEmployee()">Import nhân viên</button>
-                        <button type="button" class="btn btn-outline-success" onclick="exportData()">
-                            <i class="bi bi-file-earmark-excel"></i> Export Excel
-                        </button>
+
+                    <div class="employee-toolbar">
+                        <div class="employee-toolbar-copy">
+                            <span class="employee-panel-kicker">Quản lý nhân sự</span>
+                            <h2 class="employee-section-heading">Bảng nhân viên</h2>
+                            <p class="employee-inline-note">Ưu tiên dữ liệu, giảm nhiễu thị giác và gom thao tác chính vào một thanh điều khiển rõ ràng.</p>
+                        </div>
+
+                        <div class="employee-toolbar-actions">
+                            <button type="button" class="btn btn-outline-secondary" id="toggleEditMode" onclick="EditableGrid.toggleEditMode()">
+                                <i class="bi bi-pencil-square"></i>
+                                <span>Bật chỉnh sửa</span>
+                            </button>
+
+                            <button type="button" class="btn btn-outline-primary" onclick="EditableGrid.addRowAtEnd()" style="display:none;" id="btnAddRow">
+                                <i class="bi bi-plus-lg"></i>
+                                <span>Thêm dòng</span>
+                            </button>
+
+                            @if (Model.Permision.Add == true)
+                            {
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-database"></i>
+                                        <span>Dữ liệu</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <button type="button" class="dropdown-item" onclick="openImportEmployee()">
+                                                <i class="bi bi-upload"></i>
+                                                <span>Import nhân viên</span>
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button type="button" class="dropdown-item" onclick="exportData()">
+                                                <i class="bi bi-file-earmark-excel"></i>
+                                                <span>Export Excel</span>
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            }
+
+                            <button type="button" class="btn btn-outline-secondary" id="toggleEmployeeFilters" aria-expanded="@(hasAdvancedFilters ? "true" : "false")">
+                                <i class="bi bi-sliders2"></i>
+                                <span>Bộ lọc</span>
+                                <span class="employee-filter-badge" id="employeeAdvancedFilterBadge"></span>
+                            </button>
+
+                            @if (Model.Permision.Add == true)
+                            {
+                                <button type="button" class="btn btn-primary" onclick="OpenCreateNew(-1, '@Model.KeyPage')">
+                                    <i class="bi bi-plus-lg"></i>
+                                    <span>Thêm nhân viên</span>
+                                </button>
+                            }
+                        </div>
                     </div>
-            
-                    @{
-                        Html.RenderPartial(partialViewName: "formSearch/searchForm", Model);
-                    }
-                    
-                    <div class="extended-scroll-container" id="gridContainer">
-                        <table class="table table-striped editable-grid" id="employeeGrid">
-                                                        <thead>
-                                <tr>
-                                    <!-- Cột cố định - luôn hiển thị -->
-                                    <th class="col-narrow no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">STT</span>
-                                        </div>
-                                    </th>
-                                    <th class="filterable">
-                                        <div class="header-cell">
-                                            <span class="header-label">UserName</span>
-                                            <div class="header-filter">
-                                                <input type="text" class="form-control table-filter-input" data-filter-key="filterUserName" value="@Model.RequestSearch.FilterUserName" placeholder="Lọc" />
-                                            </div>
-                                        </div>
-                                    </th>
-                                    <th class="col-wide filterable">
-                                        <div class="header-cell">
-                                            <span class="header-label">Họ tên</span>
-                                            <div class="header-filter">
-                                                <input type="text" class="form-control table-filter-input" data-filter-key="filterFullName" value="@Model.RequestSearch.FilterFullName" placeholder="Lọc" />
-                                            </div>
-                                        </div>
-                                    </th>
-                                    
-                                    <!-- Cột cơ bản - luôn hiển thị -->
-                                    <th class="filterable">
-                                        <div class="header-cell">
-                                            <span class="header-label">Vai trò</span>
-                                            <div class="header-filter">
-                                                <select class="form-select table-filter-select" data-filter-key="filterRoleCode" data-col-index="3" data-selected-value="@Model.RequestSearch.FilterRoleCode">
-                                                    <option value="-1">Tất cả</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </th>
-                                    <th class="filterable">
-                                        <div class="header-cell">
-                                            <span class="header-label">Vị trí</span>
-                                            <div class="header-filter">
-                                                <select class="form-select table-filter-select" data-filter-key="filterPositionCode" data-col-index="4" data-selected-value="@Model.RequestSearch.FilterPositionCode">
-                                                    <option value="-1">Tất cả</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </th>
-                                    <th class="filterable">
-                                        <div class="header-cell">
-                                            <span class="header-label">Phòng ban</span>
-                                            <div class="header-filter">
-                                                <select class="form-select table-filter-select" data-filter-key="filterDepartmentCode" data-col-index="5" data-selected-value="@Model.RequestSearch.FilterDepartmentCode">
-                                                    <option value="-1">Tất cả</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </th>
-                                    <th class="filterable">
-                                        <div class="header-cell">
-                                            <span class="header-label">Nhóm</span>
-                                            <div class="header-filter">
-                                                <select class="form-select table-filter-select" data-filter-key="groupId" data-col-index="6" data-selected-value="@Model.RequestSearch.GroupId">
-                                                    <option value="-1">Tất cả</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </th>
-                                    <th class="filterable">
-                                        <div class="header-cell">
-                                            <span class="header-label">Trạng thái</span>
-                                            <div class="header-filter">
-                                                <select class="form-select table-filter-select" data-filter-key="filterStatus" data-col-index="7" data-selected-value="@Model.RequestSearch.FilterStatus">
-                                                    <option value="-1">Tất cả</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </th>
-                                    <th class="filterable">
-                                        <div class="header-cell">
-                                            <span class="header-label">TT làm việc</span>
-                                            <div class="header-filter">
-                                                <select class="form-select table-filter-select" data-filter-key="statusWork" data-col-index="8" data-selected-value="@Model.RequestSearch.StatusWork">
-                                                    <option value="-1">Tất cả</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </th>
-                                    <th class="filterable">
-                                        <div class="header-cell">
-                                            <span class="header-label">TT chứng từ</span>
-                                            <div class="header-filter">
-                                                <select class="form-select table-filter-select" data-filter-key="documentStatus" data-col-index="9" data-selected-value="@Model.RequestSearch.DocumentStatus">
-                                                    <option value="-1">Tất cả</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </th>
-                                    
-                                    <th class="filterable">
-                                        <div class="header-cell">
-                                            <span class="header-label">Mã vân tay</span>
-                                            <div class="header-filter">
-                                                <input type="text" class="form-control table-filter-input" data-filter-key="filterFingerprintCode" value="@Model.RequestSearch.FilterFingerprintCode" placeholder="Lọc" />
-                                            </div>
-                                        </div>
-                                    </th>
-                                    <!-- Cột mở rộng - chỉ hiển thị khi edit mode -->
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Ngày sinh</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Giới tính</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col col-wide no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Nơi sinh</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">CCCD</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Ngày cấp</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col col-wide no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Nơi cấp</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">SĐT</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col col-wide no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">LH khẩn cấp</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Ngày Onboard</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Email (Cty)</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Email cá nhân</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col col-wide no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Địa chỉ thường trú</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col col-wide no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Địa chỉ hiện tại</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Trình độ</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Tôn giáo</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Hôn nhân</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Số TK</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Ngân hàng</span>
-                                        </div>
-                                    </th>
-                                    <th class="extended-col col-wide no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Chủ TK</span>
-                                        </div>
-                                    </th>
-                                    
-                                    <!-- Cột cuối - luôn hiển thị -->
-                                    <th class="no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Cập nhật</span>
-                                        </div>
-                                    </th>
-                                    <th class="no-filter">
-                                        <div class="header-cell">
-                                            <span class="header-label">Thao tác</span>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm js-clear-header-filters">Xóa lọc</button>
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @{
-                                    var pageIndex = Model.RequestSearch?.Page ?? 1;
-                                    var pageSize = Model.RequestSearch?.Limit ?? 10;
-                                    if (pageIndex < 1)
-                                    {
-                                        pageIndex = 1;
-                                    }
-                                    if (pageSize < 1)
-                                    {
-                                        pageSize = 10;
-                                    }
-                                    int i = (pageIndex - 1) * pageSize;
-                                }
-                                @foreach (var itemData in Model.DataAll.Data)
-                                {
-                                    i++;
-                                    var itemInfo = itemData as dynamic;
-                                    var datetimeCreate = "";
-                                    datetimeCreate = @itemInfo.CreateAt.ToString("dd/MM/yyyy");
-                                    var datetimeUpdate = "";
-                                    if (@itemInfo.UpdateAt != null)
-                                    {
-                                        datetimeUpdate = @itemInfo.UpdateAt.ToString("dd/MM/yyyy");
-                                        if (@itemInfo.UpdateAt > @itemInfo.CreateAt)
-                                        {
-                                            datetimeCreate = datetimeUpdate;
+
+                    <div class="employee-toolbar-summary">
+                        <span class="employee-summary-chip">
+                            <strong>@displayedCount</strong>
+                            <span>bản ghi trên trang</span>
+                        </span>
+                        <span class="employee-summary-chip employee-summary-chip-muted">
+                            <strong>@Model.DataAll.Total</strong>
+                            <span>nhân viên theo bộ lọc hiện tại</span>
+                        </span>
+                    </div>
+
+                    <div class="employee-filter-panel @(hasAdvancedFilters ? string.Empty : "is-collapsed")" id="employeeFilterPanel">
+                        <div class="employee-filter-header">
+                            <div>
+                                <span class="employee-panel-kicker">Tìm kiếm nâng cao</span>
+                                <h3>Bộ lọc danh sách</h3>
+                                <p>Giữ filter chính ở một nơi, tránh lặp với phần lọc nhanh theo cột.</p>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="closeEmployeeFilters">
+                                <i class="bi bi-x-lg"></i>
+                                <span>Ẩn</span>
+                            </button>
+                        </div>
+                        <div class="employee-filter-body">
+                            @{
+                                Html.RenderPartial(partialViewName: "formSearch/searchForm", Model);
+                            }
+                        </div>
+                    </div>
+
+                    <div class="employee-table-panel">
+                        <div class="employee-table-header">
+                            <div>
+                                <span class="employee-panel-kicker">Data first</span>
+                                <h3>Danh sách nhân viên</h3>
+                                <p>Lọc theo cột được ẩn mặc định để bảng dễ scan hơn, chỉ mở khi cần xử lý sâu.</p>
+                            </div>
+                            <div class="employee-table-tools">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleColumnFilters" aria-expanded="@(hasColumnFilters ? "true" : "false")">
+                                    <i class="bi bi-funnel"></i>
+                                    <span>Lọc cột</span>
+                                    <span class="employee-filter-badge" id="employeeColumnFilterBadge"></span>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm js-clear-header-filters">
+                                    <i class="bi bi-eraser"></i>
+                                    <span>Xóa lọc cột</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="employee-grid-shell @(hasColumnFilters ? "show-column-filters" : string.Empty)" id="employeeGridShell">
+                            <div class="extended-scroll-container" id="gridContainer">
+                                <table class="table table-striped editable-grid" id="employeeGrid">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-narrow no-filter"><div class="header-cell"><span class="header-label">STT</span></div></th>
+                                            <th class="filterable col-hide-lg"><div class="header-cell"><span class="header-label">UserName</span><div class="header-filter"><input type="text" class="form-control table-filter-input" data-filter-key="filterUserName" value="@Model.RequestSearch.FilterUserName" placeholder="Lọc" /></div></div></th>
+                                            <th class="col-wide filterable"><div class="header-cell"><span class="header-label">Họ tên</span><div class="header-filter"><input type="text" class="form-control table-filter-input" data-filter-key="filterFullName" value="@Model.RequestSearch.FilterFullName" placeholder="Lọc" /></div></div></th>
+                                            <th class="filterable col-hide-md"><div class="header-cell"><span class="header-label">Vai trò</span><div class="header-filter"><select class="form-select table-filter-select" data-filter-key="filterRoleCode" data-col-index="3" data-selected-value="@Model.RequestSearch.FilterRoleCode"><option value="-1">Tất cả</option></select></div></div></th>
+                                            <th class="filterable"><div class="header-cell"><span class="header-label">Vị trí</span><div class="header-filter"><select class="form-select table-filter-select" data-filter-key="filterPositionCode" data-col-index="4" data-selected-value="@Model.RequestSearch.FilterPositionCode"><option value="-1">Tất cả</option></select></div></div></th>
+                                            <th class="filterable"><div class="header-cell"><span class="header-label">Phòng ban</span><div class="header-filter"><select class="form-select table-filter-select" data-filter-key="filterDepartmentCode" data-col-index="5" data-selected-value="@Model.RequestSearch.FilterDepartmentCode"><option value="-1">Tất cả</option></select></div></div></th>
+                                            <th class="filterable col-hide-lg"><div class="header-cell"><span class="header-label">Nhóm</span><div class="header-filter"><select class="form-select table-filter-select" data-filter-key="groupId" data-col-index="6" data-selected-value="@Model.RequestSearch.GroupId"><option value="-1">Tất cả</option></select></div></div></th>
+                                            <th class="filterable"><div class="header-cell"><span class="header-label">Trạng thái</span><div class="header-filter"><select class="form-select table-filter-select" data-filter-key="filterStatus" data-col-index="7" data-selected-value="@Model.RequestSearch.FilterStatus"><option value="-1">Tất cả</option></select></div></div></th>
+                                            <th class="filterable"><div class="header-cell"><span class="header-label">TT làm việc</span><div class="header-filter"><select class="form-select table-filter-select" data-filter-key="statusWork" data-col-index="8" data-selected-value="@Model.RequestSearch.StatusWork"><option value="-1">Tất cả</option></select></div></div></th>
+                                            <th class="filterable col-hide-xl"><div class="header-cell"><span class="header-label">TT chứng từ</span><div class="header-filter"><select class="form-select table-filter-select" data-filter-key="documentStatus" data-col-index="9" data-selected-value="@Model.RequestSearch.DocumentStatus"><option value="-1">Tất cả</option></select></div></div></th>
+                                            <th class="filterable col-hide-xl"><div class="header-cell"><span class="header-label">Mã vân tay</span><div class="header-filter"><input type="text" class="form-control table-filter-input" data-filter-key="filterFingerprintCode" value="@Model.RequestSearch.FilterFingerprintCode" placeholder="Lọc" /></div></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Ngày sinh</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Giới tính</span></div></th>
+                                            <th class="extended-col col-wide no-filter"><div class="header-cell"><span class="header-label">Nơi sinh</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">CCCD</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Ngày cấp</span></div></th>
+                                            <th class="extended-col col-wide no-filter"><div class="header-cell"><span class="header-label">Nơi cấp</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">SĐT</span></div></th>
+                                            <th class="extended-col col-wide no-filter"><div class="header-cell"><span class="header-label">LH khẩn cấp</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Ngày Onboard</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Email (Cty)</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Email cá nhân</span></div></th>
+                                            <th class="extended-col col-wide no-filter"><div class="header-cell"><span class="header-label">Địa chỉ thường trú</span></div></th>
+                                            <th class="extended-col col-wide no-filter"><div class="header-cell"><span class="header-label">Địa chỉ hiện tại</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Trình độ</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Tôn giáo</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Hôn nhân</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Số TK</span></div></th>
+                                            <th class="extended-col no-filter"><div class="header-cell"><span class="header-label">Ngân hàng</span></div></th>
+                                            <th class="extended-col col-wide no-filter"><div class="header-cell"><span class="header-label">Chủ TK</span></div></th>
+                                            <th class="no-filter col-hide-xl"><div class="header-cell"><span class="header-label">Cập nhật</span></div></th>
+                                            <th class="no-filter"><div class="header-cell"><span class="header-label">Thao tác</span></div></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            var pageIndex = Model.RequestSearch?.Page ?? 1;
+                                            var pageSize = Model.RequestSearch?.Limit ?? 10;
+                                            if (pageIndex < 1)
+                                            {
+                                                pageIndex = 1;
+                                            }
+                                            if (pageSize < 1)
+                                            {
+                                                pageSize = 10;
+                                            }
+                                            int i = (pageIndex - 1) * pageSize;
                                         }
-                                    }
-                                    
-                                    // Get raw values for data attributes
-                                    string onboardDate = "";
-                                    if (itemInfo.Onboard != null)
-                                    {
-                                        try { onboardDate = ((DateTime)itemInfo.Onboard).ToString("yyyy-MM-dd"); } catch {}
-                                    }
-                                    
-                                    string dobDate = "";
-                                    if (itemInfo.Dob != null)
-                                    {
-                                        try { dobDate = ((DateTime)itemInfo.Dob).ToString("yyyy-MM-dd"); } catch {}
-                                    }
-                                    
-                                    string nationalDateStr = "";
-                                    if (itemInfo.NationalDate != null)
-                                    {
-                                        try { nationalDateStr = ((DateTime)itemInfo.NationalDate).ToString("yyyy-MM-dd"); } catch {}
-                                    }
-                                  
-                                    <tr data-id="@itemInfo.Id">
-                                        <!-- Cột cố định -->
-                                        <td class="col-narrow">@i</td>
-                                        <td>@itemInfo.UserName</td>
-                                        <td class="editable-cell col-wide" data-field="FullName" data-value="@itemInfo.FullName">
-                                            <a href="/EmployeeInfo?id=@itemInfo.Id">@itemInfo.FullName</a>
-                                        </td>
-                                        
-                                        <!-- Cột cơ bản -->
-                                        <td class="editable-cell" data-field="RoleCode" data-value="@itemInfo.RoleCode">
-                                            @Model.GetNameRoleCode(itemInfo.RoleCode)
-                                        </td>
-                                        <td class="editable-cell" data-field="PositionCode" data-value="@itemInfo.PositionCode">
-                                            @itemInfo.PositionText
-                                        </td>
-                                        <td class="editable-cell" data-field="DepartmentCode" data-value="@itemInfo.DepartmentCode">
-                                            @itemInfo.DepartmentText
-                                        </td>
-                                        <td class="editable-cell" data-field="GroupId" data-value="@itemInfo.GroupId">
-                                            @itemInfo.GroupName
-                                        </td>
-                                        <td class="editable-cell" data-field="Status" data-value="@itemInfo.Status">
-                                            @itemInfo.StatusText
-                                        </td>
-                                        <td class="editable-cell" data-field="StatusWork" data-value="@itemInfo.StatusWork">
-                                            @itemInfo.StatusWorkText
-                                        </td>
-                                        <td class="editable-cell" data-field="DocumentStatus" data-value="@itemInfo.DocumentStatus">
-                                            @itemInfo.DocumentStatusText
-                                        </td>
-                                        <td data-field="FingerprintCode" data-value="@itemInfo.FingerprintCode">
-                                            @(itemInfo.FingerprintCode ?? "--")
-                                        </td>
-                                        
-                                        <!-- Cột mở rộng - Thông tin cá nhân -->
-                                        <td class="editable-cell extended-col" data-field="Dob" data-value="@dobDate">
-                                            @(itemInfo.Dob != null ? ((DateTime)itemInfo.Dob).ToString("dd/MM/yyyy") : "--")
-                                        </td>
-                                        <td class="editable-cell extended-col" data-field="Gender" data-value="@itemInfo.Gender">
-                                            @(itemInfo.Gender ?? "--")
-                                        </td>
-                                        <td class="editable-cell extended-col col-wide" data-field="PlaceOfBirth" data-value="@itemInfo.PlaceOfBirth">
-                                            @(itemInfo.PlaceOfBirth ?? "--")
-                                        </td>
-                                        
-                                        <!-- CCCD -->
-                                        <td class="editable-cell extended-col" data-field="NationalId" data-value="@itemInfo.NationalId">
-                                            @(itemInfo.NationalId ?? "--")
-                                        </td>
-                                        <td class="editable-cell extended-col" data-field="NationalDate" data-value="@nationalDateStr">
-                                            @(itemInfo.NationalDate != null ? ((DateTime)itemInfo.NationalDate).ToString("dd/MM/yyyy") : "--")
-                                        </td>
-                                        <td class="editable-cell extended-col col-wide" data-field="NationalPlace" data-value="@itemInfo.NationalPlace">
-                                            @(itemInfo.NationalPlace ?? "--")
-                                        </td>
-                                        
-                                        <!-- Liên hệ -->
-                                        <td class="editable-cell extended-col" data-field="Phone" data-value="@itemInfo.Phone">
-                                            @(itemInfo.Phone ?? "--")
-                                        </td>
-                                        <td class="editable-cell extended-col col-wide" data-field="EmergencyContact" data-value="@itemInfo.EmergencyContact">
-                                            @(itemInfo.EmergencyContact ?? "--")
-                                        </td>
-                                        <td class="editable-cell extended-col" data-field="Onboard" data-value="@onboardDate">
-                                            @itemInfo.OnboardDateDisplay
-                                        </td>
-                                        <td class="editable-cell extended-col" data-field="Email" data-value="@itemInfo.Email">
-                                            @(itemInfo.Email ?? "--")
-                                        </td>
-                                        <td class="editable-cell extended-col" data-field="PersonalEmail" data-value="@itemInfo.PersonalEmail">
-                                            @(itemInfo.PersonalEmail ?? "--")
-                                        </td>
-                                        
-                                        <!-- Địa chỉ -->
-                                        <td class="editable-cell extended-col col-wide" data-field="PermanentAddress" data-value="@itemInfo.PermanentAddress">
-                                            @(itemInfo.PermanentAddress ?? "--")
-                                        </td>
-                                        <td class="editable-cell extended-col col-wide" data-field="TemporaryAddress" data-value="@itemInfo.TemporaryAddress">
-                                            @(itemInfo.TemporaryAddress ?? "--")
-                                        </td>
-                                        
-                                        <!-- Học vấn -->
-                                        <td class="editable-cell extended-col" data-field="EducationLevel" data-value="@itemInfo.EducationLevel">
-                                            @(itemInfo.EducationLevelText ?? "--")
-                                        </td>
-                                        <td class="editable-cell extended-col" data-field="Religion" data-value="@itemInfo.Religion">
-                                            @(itemInfo.ReligionText ?? "--")
-                                        </td>
-                                        <td class="editable-cell extended-col" data-field="Maritalstatus" data-value="@itemInfo.Maritalstatus">
-                                            @(itemInfo.MaritalstatusText ?? "--")
-                                        </td>
-                                        
-                                        <!-- Ngân hàng -->
-                                        <td class="editable-cell extended-col" data-field="BankAccount" data-value="@itemInfo.BankAccount">
-                                            @(itemInfo.BankAccount ?? "--")
-                                        </td>
-                                        <td class="editable-cell extended-col" data-field="BankName" data-value="@itemInfo.BankName">
-                                            @(itemInfo.BankName ?? "--")
-                                        </td>
-                                        <td class="editable-cell extended-col col-wide" data-field="BeneficiaryName" data-value="@itemInfo.BeneficiaryName">
-                                            @(itemInfo.BeneficiaryName ?? "--")
-                                        </td>
-                                        
-                                        <!-- Cột cuối -->
-                                        <td>@datetimeCreate</td>
-                                        <td>
-                                            <a href="/EmployeeInfo?id=@itemInfo.Id" title="Xem chi tiết">
-                                                <i class="bi bi-eye-fill text-primary"></i>
-                                            </a>
-
-                                            @if(@itemInfo.Deleted == true)
+                                        @foreach (var itemData in Model.DataAll.Data)
+                                        {
+                                            i++;
+                                            var itemInfo = itemData as dynamic;
+                                            var datetimeCreate = itemInfo.CreateAt.ToString("dd/MM/yyyy");
+                                            if (itemInfo.UpdateAt != null && itemInfo.UpdateAt > itemInfo.CreateAt)
                                             {
-                                                <a href="javascript:void(0)" onclick="reActive(@itemInfo.Id)" title="Khôi phục">
-                                                    <i class="bi bi-recycle"></i>
-                                               </a>
+                                                datetimeCreate = itemInfo.UpdateAt.ToString("dd/MM/yyyy");
                                             }
-                                            else  
-                                            {
-                                                <a href="javascript:void(0)" onclick="confirmDelete(@itemInfo.Id)" title="Xóa">
-                                                    <i class="bi bi-trash-fill"></i>
-                                               </a>
-                                            }
-                                       
 
-                                            <a href="javascript:void(0)" onclick="OpenChangPassword(@itemInfo.Id)" title="Đổi mật khẩu">
-                                                <i class="bi bi-compass-fill"></i>
-                                            </a>
-                                           
-                                    </td>
-                                    </tr>
-                                }
-                          
-                            
-                            
-                            </tbody>
-                        </table>
+                                            string onboardDate = "";
+                                            if (itemInfo.Onboard != null)
+                                            {
+                                                try { onboardDate = ((DateTime)itemInfo.Onboard).ToString("yyyy-MM-dd"); } catch { }
+                                            }
+
+                                            string dobDate = "";
+                                            if (itemInfo.Dob != null)
+                                            {
+                                                try { dobDate = ((DateTime)itemInfo.Dob).ToString("yyyy-MM-dd"); } catch { }
+                                            }
+
+                                            string nationalDateStr = "";
+                                            if (itemInfo.NationalDate != null)
+                                            {
+                                                try { nationalDateStr = ((DateTime)itemInfo.NationalDate).ToString("yyyy-MM-dd"); } catch { }
+                                            }
+
+                                            var statusText = Convert.ToString(itemInfo.StatusText);
+                                            var statusWorkText = Convert.ToString(itemInfo.StatusWorkText);
+                                            var documentStatusText = Convert.ToString(itemInfo.DocumentStatusText);
+
+                                            <tr data-id="@itemInfo.Id">
+                                                <td class="col-narrow">@i</td>
+                                                <td class="col-hide-lg text-muted-cell">@itemInfo.UserName</td>
+                                                <td class="editable-cell col-wide" data-field="FullName" data-value="@itemInfo.FullName">
+                                                    <a class="employee-name-link" href="/EmployeeInfo?id=@itemInfo.Id">@itemInfo.FullName</a>
+                                                </td>
+                                                <td class="editable-cell col-hide-md" data-field="RoleCode" data-value="@itemInfo.RoleCode">
+                                                    @Model.GetNameRoleCode(itemInfo.RoleCode)
+                                                </td>
+                                                <td class="editable-cell" data-field="PositionCode" data-value="@itemInfo.PositionCode">
+                                                    @itemInfo.PositionText
+                                                </td>
+                                                <td class="editable-cell" data-field="DepartmentCode" data-value="@itemInfo.DepartmentCode">
+                                                    @itemInfo.DepartmentText
+                                                </td>
+                                                <td class="editable-cell col-hide-lg" data-field="GroupId" data-value="@itemInfo.GroupId">
+                                                    @itemInfo.GroupName
+                                                </td>
+                                                <td class="editable-cell" data-field="Status" data-value="@itemInfo.Status">
+                                                    <span class="status-badge @GetStatusBadgeClass(statusText)">@NormalizeStatusText(statusText)</span>
+                                                </td>
+                                                <td class="editable-cell" data-field="StatusWork" data-value="@itemInfo.StatusWork">
+                                                    <span class="status-badge @GetStatusBadgeClass(statusWorkText)">@NormalizeStatusText(statusWorkText)</span>
+                                                </td>
+                                                <td class="editable-cell col-hide-xl" data-field="DocumentStatus" data-value="@itemInfo.DocumentStatus">
+                                                    <span class="status-badge @GetStatusBadgeClass(documentStatusText)">@NormalizeStatusText(documentStatusText)</span>
+                                                </td>
+                                                <td class="col-hide-xl text-muted-cell" data-field="FingerprintCode" data-value="@itemInfo.FingerprintCode">
+                                                    @(itemInfo.FingerprintCode ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="Dob" data-value="@dobDate">
+                                                    @(itemInfo.Dob != null ? ((DateTime)itemInfo.Dob).ToString("dd/MM/yyyy") : "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="Gender" data-value="@itemInfo.Gender">
+                                                    @(itemInfo.Gender ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col col-wide" data-field="PlaceOfBirth" data-value="@itemInfo.PlaceOfBirth">
+                                                    @(itemInfo.PlaceOfBirth ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="NationalId" data-value="@itemInfo.NationalId">
+                                                    @(itemInfo.NationalId ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="NationalDate" data-value="@nationalDateStr">
+                                                    @(itemInfo.NationalDate != null ? ((DateTime)itemInfo.NationalDate).ToString("dd/MM/yyyy") : "--")
+                                                </td>
+                                                <td class="editable-cell extended-col col-wide" data-field="NationalPlace" data-value="@itemInfo.NationalPlace">
+                                                    @(itemInfo.NationalPlace ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="Phone" data-value="@itemInfo.Phone">
+                                                    @(itemInfo.Phone ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col col-wide" data-field="EmergencyContact" data-value="@itemInfo.EmergencyContact">
+                                                    @(itemInfo.EmergencyContact ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="Onboard" data-value="@onboardDate">
+                                                    @itemInfo.OnboardDateDisplay
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="Email" data-value="@itemInfo.Email">
+                                                    @(itemInfo.Email ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="PersonalEmail" data-value="@itemInfo.PersonalEmail">
+                                                    @(itemInfo.PersonalEmail ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col col-wide" data-field="PermanentAddress" data-value="@itemInfo.PermanentAddress">
+                                                    @(itemInfo.PermanentAddress ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col col-wide" data-field="TemporaryAddress" data-value="@itemInfo.TemporaryAddress">
+                                                    @(itemInfo.TemporaryAddress ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="EducationLevel" data-value="@itemInfo.EducationLevel">
+                                                    @(itemInfo.EducationLevelText ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="Religion" data-value="@itemInfo.Religion">
+                                                    @(itemInfo.ReligionText ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="Maritalstatus" data-value="@itemInfo.Maritalstatus">
+                                                    @(itemInfo.MaritalstatusText ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="BankAccount" data-value="@itemInfo.BankAccount">
+                                                    @(itemInfo.BankAccount ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col" data-field="BankName" data-value="@itemInfo.BankName">
+                                                    @(itemInfo.BankName ?? "--")
+                                                </td>
+                                                <td class="editable-cell extended-col col-wide" data-field="BeneficiaryName" data-value="@itemInfo.BeneficiaryName">
+                                                    @(itemInfo.BeneficiaryName ?? "--")
+                                                </td>
+                                                <td class="col-hide-xl text-muted-cell">@datetimeCreate</td>
+                                                <td class="table-action-cell">
+                                                    <div class="table-actions">
+                                                        <a class="table-action-link" href="/EmployeeInfo?id=@itemInfo.Id" title="Xem chi tiết">
+                                                            <i class="bi bi-eye-fill"></i>
+                                                        </a>
+
+                                                        @if (itemInfo.Deleted == true)
+                                                        {
+                                                            <a class="table-action-link is-success" href="javascript:void(0)" onclick="reActive(@itemInfo.Id)" title="Khôi phục">
+                                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                                            </a>
+                                                        }
+                                                        else
+                                                        {
+                                                            <a class="table-action-link is-danger" href="javascript:void(0)" onclick="confirmDelete(@itemInfo.Id)" title="Xóa">
+                                                                <i class="bi bi-trash-fill"></i>
+                                                            </a>
+                                                        }
+
+                                                        <a class="table-action-link" href="javascript:void(0)" onclick="OpenChangPassword(@itemInfo.Id)" title="Đổi mật khẩu">
+                                                            <i class="bi bi-key-fill"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
+
                     @{
                         Html.RenderPartial("formSearch/pagination", Model);
                     }
-                        
-                    
                 </div>
             </div>
-
         </div>
     </div>
 </section>
 
-
-<div class="modal fade" id="formModal" tabindex="-1" >
-    <div class="modal-dialog  modal-dialog-centered modal-lg" >
+<div class="modal fade" id="formModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" id="contentModal">
         </div>
     </div>
-</div><!-- End Large Modal-->
+</div>
 
 <script>
     var groupSearch = "@Model.RequestSearch.GroupId";
@@ -603,20 +484,18 @@
         exportForm.target = "_blank";
         exportForm.style.display = "none";
 
-        // Copy search inputs
         if (searchForm) {
-            Array.from(searchForm.elements).forEach(function(element) {
+            Array.from(searchForm.elements).forEach(function (element) {
                 if (element.name) {
-                   var input = document.createElement("input");
-                   input.type = "hidden";
-                   input.name = element.name;
-                   input.value = element.value;
-                   exportForm.appendChild(input);
+                    var input = document.createElement("input");
+                    input.type = "hidden";
+                    input.name = element.name;
+                    input.value = element.value;
+                    exportForm.appendChild(input);
                 }
             });
         }
-        
-        // Add verification token
+
         var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
         if (tokenInput) {
             exportForm.appendChild(tokenInput.cloneNode(true));
@@ -624,14 +503,9 @@
 
         document.body.appendChild(exportForm);
         exportForm.submit();
-        setTimeout(function() { document.body.removeChild(exportForm); }, 1000);
+        setTimeout(function () { document.body.removeChild(exportForm); }, 1000);
     }
 </script>
 
 <script src="/js/editable-grid.js?v=@DateTime.Now.Ticks"></script>
 <script src="/js/pages/employee.js?v=@DateTime.Now.Ticks"></script>
-
-
-
-
-

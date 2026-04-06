@@ -55,5 +55,22 @@ namespace VS.Human.Business.Imp
                 return new AuditLogStats();
             }
         }
+
+        public async Task<IReadOnlyList<AuditLog>> GetCandidateActivityAsync(int candidateId, int top = 20)
+        {
+            try
+            {
+                if (candidateId <= 0)
+                {
+                    return Array.Empty<AuditLog>();
+                }
+
+                return await _unitOfWork.AuditLogRep.GetCandidateActivityAsync(candidateId, top);
+            }
+            catch
+            {
+                return Array.Empty<AuditLog>();
+            }
+        }
     }
 }

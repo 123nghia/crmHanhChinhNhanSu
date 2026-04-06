@@ -6,5 +6,6 @@ namespace VS.Human.Rep
     {
         Task<int> InsertAsync(AuditLog record);
         Task<AuditLogStats> GetTodayStatsAsync(DateTime start, DateTime end);
+        Task<IReadOnlyList<AuditLog>> GetCandidateActivityAsync(int candidateId, int top = 20);
     }
 }

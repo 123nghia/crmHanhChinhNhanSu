@@ -433,6 +433,20 @@ var EditableGrid = (function () {
         return select;
     }
 
+    function renderCellDisplay(cell, value, displayValue) {
+        if (!cell) {
+            return;
+        }
+
+        var formattedValue = displayValue || '--';
+        if (typeof window.renderEditableGridCellValue === 'function') {
+            window.renderEditableGridCellValue(cell, value, formattedValue);
+            return;
+        }
+
+        cell.textContent = formattedValue;
+    }
+
     /**
      * Finish editing - update UI only, NO AUTO SAVE
      */
@@ -461,7 +475,7 @@ var EditableGrid = (function () {
 
             var oldValue = cell.dataset.value;
             cell.dataset.value = newValue;
-            cell.textContent = displayValue || '--';
+            renderCellDisplay(cell, newValue, displayValue);
 
             // Check if value changed
             if (newValue !== oldValue) {
@@ -565,23 +579,23 @@ var EditableGrid = (function () {
                     var options = config.masterData[dataType] || [];
                     var matched = options.find(o => (o.Code || o.Id) == cell.dataset.value);
                     if (matched) {
-                        cell.textContent = matched.Name || matched.FullName;
+                        renderCellDisplay(cell, cell.dataset.value, matched.Name || matched.FullName);
                     } else if (field === 'DepartmentCode' && !cell.dataset.value) {
-                        cell.textContent = '-- Kh?ng thu?c ph?ng ban --';
+                        renderCellDisplay(cell, cell.dataset.value, '--');
                     } else {
-                        cell.textContent = '--';
+                        renderCellDisplay(cell, cell.dataset.value, '--');
                     }
                 } else if (fieldType === 'date') {
                     // Reformat date
                     if (cell.dataset.value) {
                         var parts = cell.dataset.value.split('-');
-                        if (parts.length === 3) cell.textContent = parts[2] + '/' + parts[1] + '/' + parts[0];
-                        else cell.textContent = cell.dataset.value;
+                        if (parts.length === 3) renderCellDisplay(cell, cell.dataset.value, parts[2] + '/' + parts[1] + '/' + parts[0]);
+                        else renderCellDisplay(cell, cell.dataset.value, cell.dataset.value);
                     } else {
-                        cell.textContent = '--';
+                        renderCellDisplay(cell, cell.dataset.value, '--');
                     }
                 } else {
-                    cell.textContent = cell.dataset.value || '--';
+                    renderCellDisplay(cell, cell.dataset.value, cell.dataset.value || '--');
                 }
             }
         });
@@ -747,9 +761,11 @@ var EditableGrid = (function () {
             return value == departmentCode;
         });
 
-        departmentCell.textContent = matchedDepartment
-            ? (matchedDepartment.Name || matchedDepartment.FullName)
-            : departmentCode;
+        renderCellDisplay(
+            departmentCell,
+            departmentCode,
+            matchedDepartment ? (matchedDepartment.Name || matchedDepartment.FullName) : departmentCode
+        );
     }
 
     /**
@@ -925,19 +941,38 @@ var EditableGrid = (function () {
         row.classList.add('row-dirty');
 
         row.innerHTML = `
-            <td>--</td>
-            <td>--</td>
-            <td class="editable-cell" data-field="FullName" data-value=""></td>
-            <td class="editable-cell" data-field="RoleCode" data-value=""></td>
+            <td class="col-narrow">--</td>
+            <td class="col-hide-lg text-muted-cell">--</td>
+            <td class="editable-cell col-wide" data-field="FullName" data-value=""></td>
+            <td class="editable-cell col-hide-md" data-field="RoleCode" data-value=""></td>
             <td class="editable-cell" data-field="PositionCode" data-value=""></td>
             <td class="editable-cell" data-field="DepartmentCode" data-value=""></td>
-            <td>--</td>
+            <td class="editable-cell col-hide-lg" data-field="GroupId" data-value=""></td>
             <td class="editable-cell" data-field="Status" data-value=""></td>
             <td class="editable-cell" data-field="StatusWork" data-value=""></td>
-            <td class="editable-cell" data-field="DocumentStatus" data-value=""></td>
-            <td class="editable-cell" data-field="Onboard" data-value=""></td>
-            <td>--</td>
-            <td>
+            <td class="editable-cell col-hide-xl" data-field="DocumentStatus" data-value=""></td>
+            <td class="col-hide-xl text-muted-cell">--</td>
+            <td class="editable-cell extended-col" data-field="Dob" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="Gender" data-value=""></td>
+            <td class="editable-cell extended-col col-wide" data-field="PlaceOfBirth" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="NationalId" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="NationalDate" data-value=""></td>
+            <td class="editable-cell extended-col col-wide" data-field="NationalPlace" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="Phone" data-value=""></td>
+            <td class="editable-cell extended-col col-wide" data-field="EmergencyContact" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="Onboard" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="Email" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="PersonalEmail" data-value=""></td>
+            <td class="editable-cell extended-col col-wide" data-field="PermanentAddress" data-value=""></td>
+            <td class="editable-cell extended-col col-wide" data-field="TemporaryAddress" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="EducationLevel" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="Religion" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="Maritalstatus" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="BankAccount" data-value=""></td>
+            <td class="editable-cell extended-col" data-field="BankName" data-value=""></td>
+            <td class="editable-cell extended-col col-wide" data-field="BeneficiaryName" data-value=""></td>
+            <td class="col-hide-xl text-muted-cell">--</td>
+            <td class="table-action-cell">
                 <div class="row-actions-edit">
                     <button class="btn btn-sm btn-success me-1" onclick="EditableGrid.saveRow(this)" title="Lưu"><i class="bi bi-check-lg"></i></button>
                     <button class="btn btn-sm btn-danger" onclick="EditableGrid.cancelRow(this)" title="Hủy"><i class="bi bi-x-lg"></i></button>
@@ -991,7 +1026,7 @@ var EditableGrid = (function () {
             var field = cell.dataset.field;
             if (copiedCells[field]) {
                 cell.dataset.value = copiedCells[field].value;
-                cell.textContent = copiedCells[field].text || '--';
+                renderCellDisplay(cell, copiedCells[field].value, copiedCells[field].text || '--');
             }
         });
 
