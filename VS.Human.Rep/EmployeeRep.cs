@@ -724,12 +724,13 @@ WHERE object_id = OBJECT_ID('dbo.sp_Employee_getAll_Extended')
             };
         }
 
-        public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? expiredLeaveDays, int userId)
+        public async Task<bool> UpdateLeaveBalance(int employeeId, decimal? allowedLeaveDays, decimal? carryOverLeaveDays, decimal? usedLeaveDays, decimal? expiredLeaveDays, int userId)
         {
             var p = new DynamicParameters();
             p.Add("@EmployeeId", employeeId);
             p.Add("@AllowedLeaveDays", allowedLeaveDays);
             p.Add("@CarryOverLeaveDays", carryOverLeaveDays);
+            p.Add("@UsedLeaveDays", usedLeaveDays);
             p.Add("@ExpiredLeaveDays", expiredLeaveDays);
             p.Add("@UpdatedBy", userId);
 

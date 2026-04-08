@@ -1,0 +1,151 @@
+@page
+@using global::System.Linq
+@using VS.Human.Item
+@model crmHuman.Pages.System.MailGroup.IndexModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+    var items = Model.GroupList?.Data?.OfType<MailGroupIndexModel>().ToList() ?? new List<MailGroupIndexModel>();
+}
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
+            <li class="breadcrumb-item"><a href="/setting">He thong</a></li>
+            <li class="breadcrumb-item active">Nhom mail</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    @Html.AntiForgeryToken()
+
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success mt-3">@TempData["SuccessMessage"]</div>
+                    }
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-3 mb-3">
+                        <form class="row g-3 flex-grow-1" method="get" action="/System/MailGroup">
+                            <div class="col-md-5">
+                                <label class="form-label">Tu khoa</label>
+                                <input type="text" name="token" value="@Model.RequestSearch.Token" class="form-control" placeholder="Ten nhom, mo ta">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Hien thi</label>
+                                <select name="limit" class="form-select">
+                                    <option value="10" selected="@(Model.RequestSearch.Limit == 10)">10</option>
+                                    <option value="20" selected="@(Model.RequestSearch.Limit == 20)">20</option>
+                                    <option value="50" selected="@(Model.RequestSearch.Limit == 50)">50</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">Tim kiem</button>
+                            </div>
+                        </form>
+
+                        @if (Model.CanCreate)
+                        {
+                            <a class="btn btn-primary" href="/System/MailGroup/Edit">
+                                <i class="bi bi-plus-lg me-1"></i>Them nhom mail
+                            </a>
+                        }
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Ten nhom</th>
+                                    <th>Mo ta</th>
+                                    <th class="text-center">Mail cong ty</th>
+                                    <th class="text-center">Mail ca nhan</th>
+                                    <th class="text-center">Trang thai</th>
+                                    <th class="text-center">So nguoi nhan</th>
+                                    <th class="text-center">Thao tac</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var index = (Model.RequestSearch.Page - 1) * Model.RequestSearch.Limit;
+                                }
+                                @foreach (var item in items)
+                                {
+                                    index++;
+                                    <tr>
+                                        <td>@index</td>
+                                        <td class="fw-semibold">@item.Name</td>
+                                        <td>@item.Description</td>
+                                        <td class="text-center">
+                                            @if (item.IncludeAllCompanyEmails)
+                                            {
+                                                <span class="badge bg-info text-dark">Co</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Khong</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (item.IncludeAllPersonalEmails)
+                                            {
+                                                <span class="badge bg-warning text-dark">Co</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Khong</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (item.IsBlocked)
+                                            {
+                                                <span class="badge bg-danger">Dang block</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">Hoat dong</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@item.RecipientCount</td>
+                                        <td class="text-center">
+                                            @if (Model.CanEdit)
+                                            {
+                                                <a class="btn btn-sm btn-primary" href="/System/MailGroup/Edit?Id=@item.Id" title="Chinh sua">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </a>
+                                            }
+                                            @if (Model.CanDelete)
+                                            {
+                                                <form method="post" asp-page-handler="Delete" asp-route-id="@item.Id" class="d-inline" onsubmit="return confirm('Xoa nhom mail nay?');">
+                                                    <button type="submit" class="btn btn-sm btn-danger ms-1" title="Xoa">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                @if (items.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="8" class="text-center">Khong co du lieu</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @{
+                        Html.RenderPartial("formSearch/pagination", Model);
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

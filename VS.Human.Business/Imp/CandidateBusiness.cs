@@ -28,11 +28,7 @@ namespace VS.Human.Business.Imp
                 return false;
             }
 
-            var userName = itemAdd.UserName;
-            if (string.IsNullOrWhiteSpace(userName))
-            {
-                userName = await BuildCandidateUserName(itemAdd);
-            }
+            var userName = await BuildCandidateUserName(itemAdd);
 
             var passwordPlain = string.IsNullOrWhiteSpace(itemAdd.Pass) ? DefaultCandidatePassword : itemAdd.Pass;
             var passwordHash = getMD5(passwordPlain);
@@ -266,7 +262,8 @@ namespace VS.Human.Business.Imp
                 return null;
             }
 
-            var existingEmployee = await _unitOfWork.EmployeeRep.GetByUserName(candidate.UserName);
+            var resolvedUserName = await ResolveOnboardUserName(candidate);
+            var existingEmployee = await _unitOfWork.EmployeeRep.GetByUserName(resolvedUserName);
             if (existingEmployee != null && existingEmployee.Id > 0)
             {
                 return null;
@@ -281,7 +278,7 @@ namespace VS.Human.Business.Imp
                 NationalId = candidate.NationalId,
                 PermanentAddress = candidate.Address,
                 Dob = candidate.Dob,
-                UserName = candidate.UserName,
+                UserName = resolvedUserName,
                 Pass = candidate.Pass,
                 RoleCode = "2",
                 Status = 1,
@@ -301,15 +298,16 @@ namespace VS.Human.Business.Imp
             var newEmployee = await _unitOfWork.EmployeeRep.GetLastByEmailOrPhone(candidate.Email ?? string.Empty, candidate.Phone ?? string.Empty);
             if (newEmployee == null || newEmployee.Id <= 0)
             {
-                newEmployee = await _unitOfWork.EmployeeRep.GetByUserName(candidate.UserName);
+                newEmployee = await _unitOfWork.EmployeeRep.GetByUserName(resolvedUserName);
             }
             if (newEmployee == null || newEmployee.Id <= 0)
             {
                 return null;
             }
 
-            await _unitOfWork.EmployeeRep.UpdateCredentials(newEmployee.Id, candidate.UserName, candidate.Pass);
+            await _unitOfWork.EmployeeRep.UpdateCredentials(newEmployee.Id, resolvedUserName, candidate.Pass);
 
+            candidate.UserName = resolvedUserName;
             candidate.IsEmployee = 1;
             candidate.EmployeeId = newEmployee.Id;
             candidate.IsActive = 0;
@@ -324,40 +322,29 @@ namespace VS.Human.Business.Imp
 
         private async Task<string> BuildCandidateUserName(CandidateAdd itemAdd)
         {
-            if (string.IsNullOrWhiteSpace(itemAdd.Name))
-            {
-                return itemAdd.Email?.Split('@')[0] ?? itemAdd.Phone ?? $"user{DateTime.Now.Ticks}";
-            }
+            return await BuildCandidateUserName(itemAdd.Name, itemAdd.Email, itemAdd.Phone);
+        }
 
-            // Normlize: Bỏ dấu tiếng Việt, Lowercase
-            string unSignName = VS.Human.Utility.Utils.ConvertToUnSign(itemAdd.Name).ToLower();
-            var parts = unSignName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            
-            string baseUserName = "";
-            if (parts.Length == 0)
+        private async Task<string> BuildCandidateUserName(string? fullName, string? email, string? phone, int ignoreCandidateId = 0)
+        {
+            var baseUserName = EmployeeMapper.GenerateUserName(email, phone, fullName);
+            if (string.IsNullOrWhiteSpace(baseUserName))
             {
-                baseUserName = itemAdd.Email?.Split('@')[0] ?? $"user{DateTime.Now.Ticks}";
-            }
-            else if (parts.Length == 1)
-            {
-                baseUserName = parts[0];
-            }
-            else
-            {
-                // Quy tắc: Tên + Họ (parts[last] + parts[0])
-                // Ví dụ: Nguyễn Văn Minh -> minhnguyen
-                baseUserName = parts[parts.Length - 1] + parts[0];
+                baseUserName = "user" + DateTime.Now.Ticks;
             }
 
             var finalUserName = baseUserName;
-            var counter = 1;
+            var counter = 2;
 
             while (true)
             {
                 var existingCandidate = await _unitOfWork.CandidateRep.GetByUserName(finalUserName);
                 var existingEmployee = await _unitOfWork.EmployeeRep.GetByUserName(finalUserName);
 
-                if ((existingCandidate == null || existingCandidate.Id <= 0) && (existingEmployee == null || existingEmployee.Id <= 0))
+                var candidateTaken = existingCandidate != null && existingCandidate.Id > 0 && existingCandidate.Id != ignoreCandidateId;
+                var employeeTaken = existingEmployee != null && existingEmployee.Id > 0;
+
+                if (!candidateTaken && !employeeTaken)
                 {
                     break;
                 }
@@ -369,6 +356,23 @@ namespace VS.Human.Business.Imp
             }
 
             return finalUserName;
+        }
+
+        private async Task<string> ResolveOnboardUserName(Candidate candidate)
+        {
+            var currentUserName = candidate.UserName?.Trim();
+            if (string.IsNullOrWhiteSpace(currentUserName))
+            {
+                return await BuildCandidateUserName(candidate.Name, candidate.Email, candidate.Phone, candidate.Id);
+            }
+
+            if (currentUserName.StartsWith("CA", StringComparison.OrdinalIgnoreCase)
+                || EmployeeMapper.IsLegacyAutoGeneratedUserName(currentUserName, candidate.Name))
+            {
+                return await BuildCandidateUserName(candidate.Name, candidate.Email, candidate.Phone, candidate.Id);
+            }
+
+            return currentUserName;
         }
 
     }

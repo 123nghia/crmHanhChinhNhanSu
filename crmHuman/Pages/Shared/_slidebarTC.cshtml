@@ -214,6 +214,16 @@
             </a>
         </li>
 
+        @if (Model.HasViewPermission("FormTemplate"))
+        {
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="/FormTemplate">
+                    <i class="bi bi-file-earmark-text"></i>
+                    <span>Bieu mau</span>
+                </a>
+            </li>
+        }
+
         @if (Model.HasViewPermission("CloudStorage"))
         {
             <li class="nav-item">

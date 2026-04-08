@@ -79,7 +79,7 @@ function getLeaveStatusInfo(status) {
         case 1:
             return { text: 'Chờ HCNS phê duyệt', className: 'bg-info text-dark' };
         case 2:
-            return { text: 'Chờ BGĐ phê duyệt', className: 'bg-primary' };
+            return { text: 'Chờ BGD phê duyệt', className: 'bg-primary' };
         case 3:
             return { text: 'Đã phê duyệt', className: 'bg-success' };
         case 4:
@@ -137,10 +137,12 @@ async function saveLeaveBalance() {
     var employeeId = parseInt($('#leaveBalanceEmployeeId').val(), 10);
     var allowedRaw = $('#allowedLeaveDays').val();
     var carryOverRaw = $('#carryOverLeaveDays').val();
+    var usedRaw = $('#usedLeaveDays').val();
     var expiredRaw = $('#expiredLeaveDays').val();
 
     var allowedLeaveDays = allowedRaw === '' ? null : parseFloat(allowedRaw);
     var carryOverLeaveDays = carryOverRaw === '' ? null : parseFloat(carryOverRaw);
+    var usedLeaveDays = usedRaw === '' ? null : parseFloat(usedRaw);
     var expiredLeaveDays = expiredRaw === '' ? null : parseFloat(expiredRaw);
 
     if (!employeeId || employeeId <= 0) {
@@ -158,6 +160,11 @@ async function saveLeaveBalance() {
         return;
     }
 
+    if (usedLeaveDays !== null && Number.isNaN(usedLeaveDays)) {
+        alert('Số ngày đã dùng không hợp lệ.');
+        return;
+    }
+
     if (expiredLeaveDays !== null && Number.isNaN(expiredLeaveDays)) {
         alert('Số ngày phép hết hạn không hợp lệ.');
         return;
@@ -167,6 +174,7 @@ async function saveLeaveBalance() {
         EmployeeId: employeeId,
         AllowedLeaveDays: allowedLeaveDays,
         CarryOverLeaveDays: carryOverLeaveDays,
+        UsedLeaveDays: usedLeaveDays,
         ExpiredLeaveDays: expiredLeaveDays
     };
 

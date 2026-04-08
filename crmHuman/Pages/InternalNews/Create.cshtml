@@ -1,16 +1,16 @@
 @page
 @model crmHuman.Pages.InternalNews.CreateModel
 @{
-    ViewData["Title"] = "Tạo tin nội bộ";
+    ViewData["Title"] = "Táº¡o tin ná»™i bá»™";
 }
 
 <div class="pagetitle">
-    <h1>Tạo tin nội bộ</h1>
+    <h1>Táº¡o tin ná»™i bá»™</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
-            <li class="breadcrumb-item"><a href="/InternalNews">Tin nội bộ</a></li>
-            <li class="breadcrumb-item active">Tạo mới</li>
+            <li class="breadcrumb-item"><a href="/">Trang chá»§</a></li>
+            <li class="breadcrumb-item"><a href="/InternalNews">Tin ná»™i bá»™</a></li>
+            <li class="breadcrumb-item active">Táº¡o má»›i</li>
         </ol>
     </nav>
 </div>
@@ -18,41 +18,59 @@
 <section class="section">
     <div class="row">
         <div class="col-lg-12">
-            <div class="card">
+            <div class="card border-0">
                 <div class="card-body">
-                    <h5 class="card-title">Thông tin bài đăng</h5>
+                    <h5 class="card-title">ThÃ´ng tin bÃ i Ä‘Äƒng</h5>
                     <form method="post" enctype="multipart/form-data">
                         @Html.AntiForgeryToken()
                         <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
                         <div class="mb-3">
-                            <label class="form-label" for="News_Title">Tiêu đề</label>
+                            <label class="form-label" for="News_Title">TiÃªu Ä‘á»</label>
                             <input class="form-control" asp-for="News.Title" maxlength="200" required />
                             <span asp-validation-for="News.Title" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" for="News_Content">Nội dung</label>
+                            <label class="form-label" for="News_Content">Ná»™i dung</label>
                             <textarea class="form-control tinymce-editor" asp-for="News.Content"></textarea>
                             <span asp-validation-for="News.Content" class="text-danger"></span>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label" for="AttachmentFiles">File đính kèm</label>
+                        <div class="row g-3">
+                            <div class="col-lg-6">
+                                <label class="form-label" for="News_MailGroupIds">NhÃ³m mail nháº­n tin</label>
+                                <select class="form-select" asp-for="News.MailGroupIds" multiple size="6">
+                                    @foreach (var group in Model.AvailableMailGroups)
+                                    {
+                                        <option value="@group.Id">@group.Name</option>
+                                    }
+                                </select>
+                                <div class="form-text">Giá»¯ `Ctrl` hoáº·c `Shift` Ä‘á»ƒ chá»n nhiá»u nhÃ³m.</div>
+                            </div>
+                            <div class="col-lg-6">
+                                <label class="form-label" for="News_DirectRecipientEmails">Mail nháº­n trá»±c tiáº¿p</label>
+                                <textarea class="form-control" asp-for="News.DirectRecipientEmails" rows="6" placeholder="Nháº­p email, phÃ¢n cÃ¡ch báº±ng dáº¥u pháº©y, cháº¥m pháº©y hoáº·c xuá»‘ng dÃ²ng"></textarea>
+                                <div class="form-text">CÃ³ thá»ƒ gá»­i Ä‘Æ¡n hoáº·c nhiá»u ngÆ°á»i nháº­n bá»• sung ngoÃ i nhÃ³m mail.</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 mt-3">
+                            <label class="form-label" for="AttachmentFiles">File Ä‘Ã­nh kÃ¨m</label>
                             <input class="form-control" type="file" id="AttachmentFiles" name="AttachmentFiles" multiple />
-                            <div class="form-text">Có thể chọn nhiều file.</div>
+                            <div class="form-text">CÃ³ thá»ƒ chá»n nhiá»u file.</div>
                         </div>
 
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" asp-for="News.IsSendMail" />
                             <label class="form-check-label" for="News_IsSendMail">
-                                Gửi mail thông báo (làm sau)
+                                Gá»­i mail thÃ´ng bÃ¡o ngay sau khi lÆ°u bÃ i Ä‘Äƒng
                             </label>
                         </div>
 
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">Lưu bài đăng</button>
-                            <a class="btn btn-outline-secondary" href="/InternalNews">Hủy</a>
+                            <button type="submit" class="btn btn-primary">LÆ°u bÃ i Ä‘Äƒng</button>
+                            <a class="btn btn-outline-secondary" href="/InternalNews">Há»§y</a>
                         </div>
                     </form>
                 </div>

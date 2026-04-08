@@ -47,6 +47,9 @@ namespace crmHuman.Pages
         public EmployeeDisplayEdit ResultModel { get; set; }
 
         public List<DataMasterItem> DataDepartment { get; set; }
+        public List<DataMasterItem> EthnicityOptions { get; set; }
+        public List<DataMasterItem> ReligionOptions { get; set; }
+        public List<DataMasterItem> MaritalStatusOptions { get; set; }
 
 
         public BaseList DataFile { get; set; }
@@ -81,6 +84,9 @@ namespace crmHuman.Pages
             _masterDataBussiness = masterDataBussiness;
             DataPostion = new BaseList();
             DataDepartment = new List<DataMasterItem>();
+            EthnicityOptions = new List<DataMasterItem>();
+            ReligionOptions = new List<DataMasterItem>();
+            MaritalStatusOptions = new List<DataMasterItem>();
             _scheduleInterviewBussiness = scheduleInterviewBussiness;
             _documentDataBussiness = documentDataBussiness;
             _employeeExtraBusiness = employeeExtraBusiness;
@@ -724,28 +730,10 @@ namespace crmHuman.Pages
             
             var dataAllMaster = await _masterDataBussiness.GetAll(new CommonRequest());
             DataMasterData = dataAllMaster ?? new BaseList { Data = new List<object>() };
-            if (DataDepartment == null)
-                DataDepartment = new List<DataMasterItem>();
-            
-            if (dataAllMaster?.Data != null)
-            {
-                foreach (var item in dataAllMaster.Data)
-                {
-                    var tempItem = item as dynamic;
-                    if (tempItem != null)
-                    {
-                        var itemInsert = new DataMasterItem()
-                        {
-                            Name = tempItem.Name ?? string.Empty,
-                            TypeData = tempItem.TypeData ?? 0,
-                            Code = tempItem.Code ?? string.Empty,
-                            ApplyFor = tempItem.ApplyFor ?? string.Empty,
-                            IsActive = tempItem.IsActive ?? false
-                        };
-                        DataDepartment.Add(itemInsert);
-                    }
-                }
-            }
+            DataDepartment = await LoadMasterDataItemsAsync(1, 2, 5, 7, 8, 11, 14);
+            ReligionOptions = await LoadMasterDataItemsAsync(20);
+            EthnicityOptions = await LoadMasterDataItemsAsync(21);
+            MaritalStatusOptions = await LoadMasterDataItemsAsync(13);
             DataPostion = dataAllMaster;
             if (idInput < 1)
             {
@@ -883,6 +871,47 @@ namespace crmHuman.Pages
 
             var result = await _empBusiness.Delete(Id, true);
             return ApiResponseHelper.SuccessResponse(new { success = result });
+        }
+
+        private async Task<List<DataMasterItem>> LoadMasterDataItemsAsync(params int[] typeDataValues)
+        {
+            var result = new List<DataMasterItem>();
+            if (typeDataValues == null || typeDataValues.Length == 0)
+            {
+                return result;
+            }
+
+            foreach (var typeData in typeDataValues.Distinct())
+            {
+                var items = await _masterDataBussiness.GetallByTypeData(typeData);
+                if (items == null || items.Count == 0)
+                {
+                    continue;
+                }
+
+                result.AddRange(items
+                    .Where(x => x != null && (x.IsActive ?? 0) > 0)
+                    .Select(x => new DataMasterItem()
+                    {
+                        Name = x.Name ?? string.Empty,
+                        TypeData = x.TypeData,
+                        Code = x.Code ?? string.Empty,
+                        ApplyFor = x.ApplyFor,
+                        IsActive = x.IsActive ?? 0
+                    }));
+            }
+
+            return result
+                .GroupBy(x => new
+                {
+                    x.TypeData,
+                    Code = (x.Code ?? string.Empty).Trim().ToLowerInvariant(),
+                    Name = (x.Name ?? string.Empty).Trim().ToLowerInvariant()
+                })
+                .Select(x => x.First())
+                .OrderBy(x => x.TypeData)
+                .ThenBy(x => x.Name)
+                .ToList();
         }
 
         private string? ResolveDocumentFilePath(string? fileUrl)

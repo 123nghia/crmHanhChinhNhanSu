@@ -37,6 +37,8 @@ namespace VS.Human.Business
             services.AddSingleton<ILeaveBusiness, LeaveBusiness>();
             services.AddSingleton<ILeaveBalanceBusiness, LeaveBalanceBusiness>();
             services.AddSingleton<IInternalNewsBusiness, InternalNewsBusiness>();
+            services.AddSingleton<IFormTemplateBusiness, FormTemplateBusiness>();
+            services.AddSingleton<IMailGroupBusiness, MailGroupBusiness>();
             services.AddSingleton<INotificationBusiness, NotificationBusiness>();
             services.AddSingleton<IAttendanceBusiness, AttendanceBusiness>();
             services.AddSingleton<IEmailConfigBusiness, EmailConfigBusiness>();

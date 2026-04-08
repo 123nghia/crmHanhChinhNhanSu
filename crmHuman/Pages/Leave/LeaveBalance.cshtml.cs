@@ -1,6 +1,6 @@
+using crmHuman.DisplayModel;
 using crmHuman.Helpers;
 using crmHuman.Model;
-using crmHuman.DisplayModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
@@ -74,7 +74,6 @@ namespace crmHuman.Pages.Leave
                 return Page();
             }
 
-            // Load master data for filters
             var masterDataResult = await _masterDataBusiness.GetAll(new CommonRequest());
             if (masterDataResult?.Data != null)
             {
@@ -162,6 +161,11 @@ namespace crmHuman.Pages.Leave
                 errors.Add(new { name = "carryOverLeaveDays", Content = "Số ngày phép tồn năm cũ không được nhỏ hơn 0" });
             }
 
+            if (request.UsedLeaveDays.HasValue && request.UsedLeaveDays.Value < 0)
+            {
+                errors.Add(new { name = "usedLeaveDays", Content = "Số ngày đã dùng không được nhỏ hơn 0" });
+            }
+
             if (request.ExpiredLeaveDays.HasValue && request.ExpiredLeaveDays.Value < 0)
             {
                 errors.Add(new { name = "expiredLeaveDays", Content = "Số ngày phép hết hạn không được nhỏ hơn 0" });
@@ -176,6 +180,7 @@ namespace crmHuman.Pages.Leave
                 request.EmployeeId,
                 request.AllowedLeaveDays,
                 request.CarryOverLeaveDays,
+                request.UsedLeaveDays,
                 request.ExpiredLeaveDays,
                 UserData.UserId);
 
@@ -219,6 +224,5 @@ namespace crmHuman.Pages.Leave
 
             return string.Empty;
         }
-
     }
 }

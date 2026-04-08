@@ -6,6 +6,9 @@
     var dataSchedulelist = Model.DataHistory;
     var dataFile = Model.DataFile;
     var dataDepartments = Model?.DataDepartment ?? new List<DisplayModel.DataMasterItem>();
+    var ethnicityOptions = Model?.EthnicityOptions ?? new List<DisplayModel.DataMasterItem>();
+    var religionOptions = Model?.ReligionOptions ?? new List<DisplayModel.DataMasterItem>();
+    var maritalStatusOptions = Model?.MaritalStatusOptions ?? new List<DisplayModel.DataMasterItem>();
     var dataRelation = itemResult.DataRelation;
     var hdld = itemResult?.HDLD??new VS.Human.Rep.Model.HDLD();
     var bhxhItem =  itemResult?.BHXHItem ?? new VS.Human.Rep.Model.BHXHItem();
@@ -402,14 +405,9 @@
                             <div class="form-group">
                                 <label class="form-label">Tôn giáo</label>
                                 <select name="religion" id="txtReligion" class="form-select" aria-label="">
-                                    @foreach (var item in dataDepartments)
+                                    @foreach (var item in religionOptions)
                                     {
                                         var itemMasterData = item;
-                                        if(itemMasterData.TypeData != 20)
-                                        {
-                                            continue;
-                                        }
-
                                         if(itemMasterData.ApplyFor == 0)
                                         {
                                             continue;
@@ -432,14 +430,9 @@
                             <div class="form-group">
                                 <label class="form-label">Dân tộc</label>
                                 <select name="Ethnicity" id="cbEthnicity" class="form-select" aria-label="">
-                                    @foreach (var item in dataDepartments)
+                                    @foreach (var item in ethnicityOptions)
                                     {
                                         var itemMasterData = item;
-                                        if(itemMasterData.TypeData != 21)
-                                        {
-                                            continue;
-                                        }
-
                                         if(itemMasterData.ApplyFor == 0)
                                         {
                                             continue;
@@ -464,15 +457,10 @@
                              <div class="form-group">
                                 <label class="form-label">Tình trạng hôn nhân</label>
                                 <select name="Maritalstatus" id="cBMaritalStatus" class="form-select" aria-label="">
-                                    @foreach (var item in dataDepartments)
+                                    @foreach (var item in maritalStatusOptions)
                                     {
                                        
                                          var itemMasterData = item;
-                                        if(itemMasterData.TypeData != 13)
-                                        {
-                                            continue;
-                                        }
-
                                           if(itemMasterData.ApplyFor == 0)
                                         {
                                             continue;

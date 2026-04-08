@@ -1,0 +1,402 @@
+@page
+@using global::System.Linq
+@using VS.Human.Item
+@model crmHuman.Pages.FormTemplate.IndexModel
+@{
+    ViewData["Title"] = "Biểu mẫu";
+
+    var items = Model.TemplateList?.Data?.OfType<FormTemplateIndexModel>().ToList() ?? new List<FormTemplateIndexModel>();
+    var isViewerMode = !Model.CanCreate && !Model.CanEdit && !Model.CanDelete;
+    var pageSize = Model.RequestSearch.Limit > 0 ? Model.RequestSearch.Limit : 10;
+    var requestedPage = Model.RequestSearch.Page > 0 ? Model.RequestSearch.Page : 1;
+    var totalRecord = Math.Max(Model.TotalRecord, 0);
+    var totalPages = totalRecord == 0 ? 1 : (int)Math.Ceiling(totalRecord / (double)pageSize);
+    var currentPage = Math.Min(requestedPage, totalPages);
+    var pageStart = Math.Max(1, currentPage - 2);
+    var pageEnd = Math.Min(totalPages, pageStart + 4);
+    pageStart = Math.Max(1, pageEnd - 4);
+
+    string BuildPageUrl(int page)
+    {
+        var query = new List<string>
+        {
+            $"Page={page}",
+            $"Limit={pageSize}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(Model.RequestSearch.Token))
+        {
+            query.Add($"Token={Uri.EscapeDataString(Model.RequestSearch.Token)}");
+        }
+
+        if (Model.RequestSearch.From.HasValue)
+        {
+            query.Add($"From={Model.RequestSearch.From.Value:yyyy-MM-dd}");
+        }
+
+        if (Model.RequestSearch.To.HasValue)
+        {
+            query.Add($"To={Model.RequestSearch.To.Value:yyyy-MM-dd}");
+        }
+
+        return $"/FormTemplate?{string.Join("&", query)}";
+    }
+}
+
+<div class="pagetitle">
+    <h1>Biểu mẫu</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Biểu mẫu</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+            }
+
+            @if (isViewerMode)
+            {
+                <div class="card border-0 shadow-sm form-template-view-card">
+                    <div class="card-body p-0">
+                        <div class="form-template-view-head">Tiêu đề</div>
+
+                        @if (items.Count == 0)
+                        {
+                            <div class="alert alert-info m-4 mb-0">Chưa có biểu mẫu nào.</div>
+                        }
+                        else
+                        {
+                            <ul class="form-template-view-list">
+                                @foreach (var item in items)
+                                {
+                                    <li class="form-template-view-item">
+                                        <a class="form-template-view-link" href="/FormTemplate/Detail?Id=@item.Id">
+                                            @item.Title
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        }
+
+                        @if (totalRecord > 0 && totalPages > 1)
+                        {
+                            <div class="form-template-view-footer">
+                                <nav aria-label="Phân trang biểu mẫu">
+                                    <ul class="form-template-view-pagination">
+                                        <li>
+                                            @if (currentPage > 1)
+                                            {
+                                                <a class="form-template-view-page form-template-view-page-arrow" href="@BuildPageUrl(currentPage - 1)" aria-label="Trang trước">
+                                                    <i class="bi bi-chevron-left"></i>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="form-template-view-page form-template-view-page-arrow disabled" aria-hidden="true">
+                                                    <i class="bi bi-chevron-left"></i>
+                                                </span>
+                                            }
+                                        </li>
+
+                                        @for (var pageNumber = pageStart; pageNumber <= pageEnd; pageNumber++)
+                                        {
+                                            if (pageNumber == currentPage)
+                                            {
+                                                <li><span class="form-template-view-page active">@pageNumber</span></li>
+                                            }
+                                            else
+                                            {
+                                                <li><a class="form-template-view-page" href="@BuildPageUrl(pageNumber)">@pageNumber</a></li>
+                                            }
+                                        }
+
+                                        <li>
+                                            @if (currentPage < totalPages)
+                                            {
+                                                <a class="form-template-view-page form-template-view-page-arrow" href="@BuildPageUrl(currentPage + 1)" aria-label="Trang sau">
+                                                    <i class="bi bi-chevron-right"></i>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="form-template-view-page form-template-view-page-arrow disabled" aria-hidden="true">
+                                                    <i class="bi bi-chevron-right"></i>
+                                                </span>
+                                            }
+                                        </li>
+                                    </ul>
+                                </nav>
+                                <div class="form-template-view-page-summary">
+                                    Trang @currentPage / @totalPages
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" class="row g-3 align-items-end mt-1">
+                            <div class="col-lg-4">
+                                <label class="form-label" for="Token">Từ khóa</label>
+                                <input class="form-control" type="text" id="Token" name="Token" value="@Model.RequestSearch.Token" placeholder="Tiêu đề biểu mẫu" />
+                            </div>
+                            <div class="col-lg-2 col-md-6">
+                                <label class="form-label" for="From">Từ ngày</label>
+                                <input class="form-control" type="date" id="From" name="From" value="@Model.RequestSearch.FromText" />
+                            </div>
+                            <div class="col-lg-2 col-md-6">
+                                <label class="form-label" for="To">Đến ngày</label>
+                                <input class="form-control" type="date" id="To" name="To" value="@Model.RequestSearch.ToText" />
+                            </div>
+                            <div class="col-lg-2 col-md-6">
+                                <label class="form-label" for="Limit">Hiển thị</label>
+                                <select class="form-select" id="Limit" name="Limit">
+                                    @foreach (var limit in new[] { 10, 20, 50, 100 })
+                                    {
+                                        if (limit == pageSize)
+                                        {
+                                            <option selected value="@limit">@limit</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@limit">@limit</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-lg-2 col-md-6 d-grid">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="bi bi-search me-1"></i>Tìm kiếm
+                                </button>
+                            </div>
+                        </form>
+
+                        @if (Model.CanCreate)
+                        {
+                            <div class="d-flex justify-content-end mt-3">
+                                <a class="btn btn-primary" href="/FormTemplate/Edit">
+                                    <i class="bi bi-plus-lg me-1"></i>Thêm mới biểu mẫu
+                                </a>
+                            </div>
+                        }
+
+                        @if (items.Count == 0)
+                        {
+                            <div class="alert alert-info mt-3 mb-0">Chưa có biểu mẫu nào.</div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive mt-3">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 70px;">#</th>
+                                            <th>Tiêu đề</th>
+                                            <th style="width: 220px;">File</th>
+                                            <th style="width: 180px;">Người tạo</th>
+                                            <th style="width: 150px;">Ngày tạo</th>
+                                            <th style="width: 170px;" class="text-center">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (var index = 0; index < items.Count; index++)
+                                        {
+                                            var item = items[index];
+                                            var rowNumber = ((currentPage - 1) * pageSize) + index + 1;
+                                            <tr>
+                                                <td>@rowNumber</td>
+                                                <td>
+                                                    <a class="fw-semibold text-decoration-none" href="/FormTemplate/Detail?Id=@item.Id">
+                                                        @item.Title
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrWhiteSpace(item.FilePath))
+                                                    {
+                                                        <a href="@item.FilePath" target="_blank">@item.FileName</a>
+                                                    }
+                                                </td>
+                                                <td>@item.AuthorName</td>
+                                                <td>@item.CreateAtDisplay</td>
+                                                <td class="text-center">
+                                                    <div class="d-inline-flex gap-2">
+                                                        <a class="btn btn-outline-primary btn-sm" href="/FormTemplate/Detail?Id=@item.Id" title="Chi tiết">
+                                                            <i class="bi bi-eye"></i>
+                                                        </a>
+                                                        @if (Model.CanEdit)
+                                                        {
+                                                            <a class="btn btn-outline-secondary btn-sm" href="/FormTemplate/Edit?Id=@item.Id" title="Chỉnh sửa">
+                                                                <i class="bi bi-pencil-square"></i>
+                                                            </a>
+                                                        }
+                                                        @if (Model.CanDelete)
+                                                        {
+                                                            <form method="post" asp-page-handler="Delete" asp-route-id="@item.Id" class="d-inline" onsubmit="return confirm('Xóa biểu mẫu này?');">
+                                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </form>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            @if (totalPages > 1)
+                            {
+                                <div class="form-template-admin-pagination">
+                                    <nav aria-label="Phân trang biểu mẫu quản trị">
+                                        <ul class="pagination justify-content-center mb-0">
+                                            <li class="page-item @(currentPage <= 1 ? "disabled" : string.Empty)">
+                                                <a class="page-link" href="@(currentPage <= 1 ? "#" : BuildPageUrl(currentPage - 1))">Trước</a>
+                                            </li>
+                                            @for (var pageNumber = pageStart; pageNumber <= pageEnd; pageNumber++)
+                                            {
+                                                <li class="page-item @(pageNumber == currentPage ? "active" : string.Empty)">
+                                                    <a class="page-link" href="@BuildPageUrl(pageNumber)">@pageNumber</a>
+                                                </li>
+                                            }
+                                            <li class="page-item @(currentPage >= totalPages ? "disabled" : string.Empty)">
+                                                <a class="page-link" href="@(currentPage >= totalPages ? "#" : BuildPageUrl(currentPage + 1))">Sau</a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@section Styles {
+    <style>
+        .form-template-view-card {
+            border-radius: 24px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .form-template-view-head {
+            padding: 18px 24px;
+            background: #eef2f7;
+            color: #194db6;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .form-template-view-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .form-template-view-item {
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .form-template-view-item:last-child {
+            border-bottom: none;
+        }
+
+        .form-template-view-link {
+            display: block;
+            padding: 18px 24px;
+            color: #0d4bd7;
+            font-size: 1.05rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .form-template-view-link:hover {
+            background: #f8fbff;
+            color: #0a3fb8;
+        }
+
+        .form-template-view-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 24px;
+            border-top: 1px solid #eef2f7;
+            flex-wrap: wrap;
+        }
+
+        .form-template-view-pagination {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .form-template-view-page {
+            width: 44px;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 1px solid #d6ddeb;
+            background: #fff;
+            color: #6c7b97;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .form-template-view-page:hover {
+            border-color: #1c63df;
+            color: #1c63df;
+        }
+
+        .form-template-view-page.active {
+            border-color: #1c63df;
+            background: #1c63df;
+            color: #fff;
+        }
+
+        .form-template-view-page.disabled {
+            opacity: 0.45;
+            pointer-events: none;
+        }
+
+        .form-template-view-page-summary {
+            color: #24324a;
+            font-weight: 600;
+        }
+
+        .form-template-admin-pagination {
+            padding-top: 20px;
+        }
+
+        @@media (max-width: 767.98px) {
+            .form-template-view-head,
+            .form-template-view-link,
+            .form-template-view-footer {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+
+            .form-template-view-footer {
+                justify-content: center;
+            }
+        }
+    </style>
+}

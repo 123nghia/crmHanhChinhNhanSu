@@ -17,124 +17,185 @@ namespace VS.Human.Rep
             sqlGetALl = "sp_InternalNews_getAll";
         }
 
-        private async Task<int> AddAndReturnId(InternalNewsItem item)
-        {
-            var parameter = new
-            {
-                item.Title,
-                item.Content,
-                item.IsSendMail,
-                item.CreatedBy
-            };
-            try
-            {
-                using (var con = GetConnection())
-                {
-                    var id = await con.ExecuteScalarAsync<decimal>(
-                        "sp_InternalNews_insert",
-                        parameter,
-                        commandType: CommandType.StoredProcedure
-                    );
-                    return Convert.ToInt32(id);
-                }
-            }
-            catch (Exception)
-            {
-                return -1;
-            }
-        }
-
-        private async Task<bool> Update(InternalNewsItem item)
-        {
-            var parameter = new
-            {
-                item.Id,
-                item.Title,
-                item.Content,
-                item.IsSendMail,
-                item.UpdatedBy
-            };
-            return await ExecuteSQL("sp_InternalNews_update", parameter);
-        }
-
-        private async Task<bool> AddAttachments(int newsId, IEnumerable<InternalNewsAttachment> attachments, int userId)
-        {
-            if (attachments == null)
-            {
-                return true;
-            }
-
-            foreach (var attachment in attachments)
-            {
-                if (attachment == null || string.IsNullOrWhiteSpace(attachment.FilePath))
-                {
-                    continue;
-                }
-
-                var parameter = new
-                {
-                    NewsId = newsId,
-                    attachment.FileName,
-                    attachment.FilePath,
-                    attachment.FileSize,
-                    CreatedBy = userId
-                };
-
-                var added = await ExecuteSQL("sp_InternalNewsAttachment_insert", parameter);
-                if (!added)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        private async Task<List<InternalNewsAttachment>> GetAttachmentsByNewsId(int newsId)
-        {
-            using (var con = GetConnection())
-            {
-                var result = await con.QueryAsync<InternalNewsAttachment>(
-                    "sp_InternalNewsAttachment_getAllByNewsId",
-                    new { NewsId = newsId },
-                    commandType: CommandType.StoredProcedure
-                );
-                return result.ToList();
-            }
-        }
-
         public async Task<bool> AddOrUpdate(InternalNewsItem item)
         {
-            if (item.Id > 0)
-            {
-                var updated = await Update(item);
-                if (!updated)
-                {
-                    return false;
-                }
-
-                if (item.Attachments != null && item.Attachments.Count > 0)
-                {
-                    var userId = item.UpdatedBy > 0 ? item.UpdatedBy : item.CreatedBy;
-                    return await AddAttachments(item.Id, item.Attachments, userId);
-                }
-
-                return true;
-            }
-
-            var newId = await AddAndReturnId(item);
-            if (newId <= 0)
+            if (item == null)
             {
                 return false;
             }
 
-            item.Id = newId;
-            if (item.Attachments != null && item.Attachments.Count > 0)
+            using var con = GetConnection();
+            using var tran = con.BeginTransaction();
+            try
             {
-                return await AddAttachments(newId, item.Attachments, item.CreatedBy);
-            }
+                if (item.Id > 0)
+                {
+                    const string updateSql = @"
+UPDATE InternalNews
+SET Title = @Title,
+    Content = @Content,
+    IsSendMail = @IsSendMail,
+    DirectRecipientEmails = @DirectRecipientEmails,
+    UpdatedBy = @UpdatedBy,
+    UpdateAt = GETDATE()
+WHERE Id = @Id
+  AND ISNULL(Deleted, 0) = 0;";
 
-            return true;
+                    var affected = await con.ExecuteAsync(updateSql, new
+                    {
+                        item.Id,
+                        item.Title,
+                        item.Content,
+                        item.IsSendMail,
+                        item.DirectRecipientEmails,
+                        item.UpdatedBy
+                    }, tran);
+
+                    if (affected <= 0)
+                    {
+                        tran.Rollback();
+                        return false;
+                    }
+                }
+                else
+                {
+                    const string insertSql = @"
+INSERT INTO InternalNews
+(
+    Title,
+    Content,
+    IsSendMail,
+    DirectRecipientEmails,
+    Deleted,
+    IsActive,
+    CreatedBy,
+    UpdatedBy,
+    CreateAt,
+    UpdateAt
+)
+VALUES
+(
+    @Title,
+    @Content,
+    @IsSendMail,
+    @DirectRecipientEmails,
+    0,
+    1,
+    @CreatedBy,
+    @UpdatedBy,
+    GETDATE(),
+    GETDATE()
+);
+SELECT CAST(SCOPE_IDENTITY() AS int);";
+
+                    item.Id = await con.ExecuteScalarAsync<int>(insertSql, new
+                    {
+                        item.Title,
+                        item.Content,
+                        item.IsSendMail,
+                        item.DirectRecipientEmails,
+                        item.CreatedBy,
+                        item.UpdatedBy
+                    }, tran);
+
+                    if (item.Id <= 0)
+                    {
+                        tran.Rollback();
+                        return false;
+                    }
+                }
+
+                if (item.Attachments != null && item.Attachments.Count > 0)
+                {
+                    const string attachmentSql = @"
+INSERT INTO InternalNewsAttachment
+(
+    NewsId,
+    FileName,
+    FilePath,
+    FileSize,
+    Deleted,
+    IsActive,
+    CreatedBy,
+    UpdatedBy,
+    CreateAt,
+    UpdateAt
+)
+VALUES
+(
+    @NewsId,
+    @FileName,
+    @FilePath,
+    @FileSize,
+    0,
+    1,
+    @CreatedBy,
+    @UpdatedBy,
+    GETDATE(),
+    GETDATE()
+);";
+
+                    foreach (var attachment in item.Attachments.Where(x => x != null && !string.IsNullOrWhiteSpace(x.FilePath)))
+                    {
+                        await con.ExecuteAsync(attachmentSql, new
+                        {
+                            NewsId = item.Id,
+                            attachment.FileName,
+                            attachment.FilePath,
+                            attachment.FileSize,
+                            CreatedBy = item.UpdatedBy > 0 ? item.UpdatedBy : item.CreatedBy,
+                            UpdatedBy = item.UpdatedBy > 0 ? item.UpdatedBy : item.CreatedBy
+                        }, tran);
+                    }
+                }
+
+                await con.ExecuteAsync("DELETE FROM InternalNewsMailGroups WHERE NewsId = @NewsId", new { NewsId = item.Id }, tran);
+                if (item.MailGroupIds != null && item.MailGroupIds.Count > 0)
+                {
+                    const string groupSql = @"
+INSERT INTO InternalNewsMailGroups
+(
+    NewsId,
+    MailGroupId,
+    Deleted,
+    IsActive,
+    CreatedBy,
+    UpdatedBy,
+    CreateAt,
+    UpdateAt
+)
+VALUES
+(
+    @NewsId,
+    @MailGroupId,
+    0,
+    1,
+    @CreatedBy,
+    @UpdatedBy,
+    GETDATE(),
+    GETDATE()
+);";
+
+                    foreach (var groupId in item.MailGroupIds.Where(x => x > 0).Distinct())
+                    {
+                        await con.ExecuteAsync(groupSql, new
+                        {
+                            NewsId = item.Id,
+                            MailGroupId = groupId,
+                            CreatedBy = item.UpdatedBy > 0 ? item.UpdatedBy : item.CreatedBy,
+                            UpdatedBy = item.UpdatedBy > 0 ? item.UpdatedBy : item.CreatedBy
+                        }, tran);
+                    }
+                }
+
+                tran.Commit();
+                return true;
+            }
+            catch
+            {
+                tran.Rollback();
+                return false;
+            }
         }
 
         public async Task<BaseList> GetAll(InternalNewsRequest request)
@@ -152,19 +213,43 @@ namespace VS.Human.Rep
 
         public async Task<InternalNewsItem> GetById(int id)
         {
-            var result = await GetFirstRecordBySql<InternalNewsItem>("sp_InternalNews_GetById", new { Id = id });
-            if (result == null || result.Id <= 0)
+            using var con = GetConnection();
+            const string sql = @"
+SELECT TOP 1
+    d.*,
+    u.FullName AS AuthorName
+FROM InternalNews d
+LEFT JOIN Employees u ON d.CreatedBy = u.Id
+WHERE d.Id = @Id
+  AND ISNULL(d.Deleted, 0) = 0;";
+
+            var result = await con.QueryFirstOrDefaultAsync<InternalNewsItem>(sql, new { Id = id });
+            if (result == null)
             {
                 return new InternalNewsItem { Id = -1 };
             }
 
-            result.Attachments = await GetAttachmentsByNewsId(result.Id);
+            const string attachmentSql = @"
+SELECT *
+FROM InternalNewsAttachment
+WHERE NewsId = @NewsId
+  AND ISNULL(Deleted, 0) = 0
+ORDER BY Id;";
+
+            const string groupSql = @"
+SELECT MailGroupId
+FROM InternalNewsMailGroups
+WHERE NewsId = @NewsId
+  AND ISNULL(Deleted, 0) = 0;";
+
+            result.Attachments = (await con.QueryAsync<InternalNewsAttachment>(attachmentSql, new { NewsId = result.Id })).ToList();
+            result.MailGroupIds = (await con.QueryAsync<int>(groupSql, new { NewsId = result.Id })).ToList();
             return result;
         }
 
-        public async Task<bool> Delete(int id)
+        public Task<bool> Delete(int id)
         {
-            return await DeleteBase(id, tableDelete: tableName);
+            return DeleteBase(id, tableDelete: tableName);
         }
     }
 }

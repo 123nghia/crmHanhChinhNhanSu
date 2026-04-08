@@ -36,6 +36,8 @@ namespace VS.Human.Rep
             services.AddSingleton<IPermissionRep, PermissionRep>();
             services.AddSingleton<ILeaveRep, LeaveRep>();
             services.AddSingleton<IInternalNewsRep, InternalNewsRep>();
+            services.AddSingleton<IFormTemplateRep, FormTemplateRep>();
+            services.AddSingleton<IMailGroupRep, MailGroupRep>();
             services.AddSingleton<INotificationRep, NotificationRep>();
             services.AddSingleton<IAttendanceRep, AttendanceRep>();
             services.AddSingleton<IEmailConfigRep, EmailConfigRep>();

@@ -1,4 +1,60 @@
 (function () {
+    function getStickyTableOffset() {
+        var header = document.getElementById("header");
+        var pageTitle = document.querySelector(".pagetitle");
+
+        var headerHeight = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+        var pageTitleHeight = pageTitle ? Math.ceil(pageTitle.getBoundingClientRect().height) : 0;
+
+        return headerHeight + pageTitleHeight;
+    }
+
+    function applyStickyTableHeaders() {
+        var stickyOffset = getStickyTableOffset();
+        document.documentElement.style.setProperty("--sticky-table-offset", stickyOffset + "px");
+
+        var tables = document.querySelectorAll("table.table");
+        tables.forEach(function (table) {
+            if (!table || !table.tHead || table.id === "employeeGrid" || table.closest(".modal")) {
+                return;
+            }
+
+            var wrapper = table.closest(".table-responsive");
+            var canUseSticky = window.innerWidth >= 992;
+
+            if (wrapper) {
+                wrapper.classList.toggle("table-sticky-host", canUseSticky);
+            }
+
+            table.classList.toggle("table-sticky-enabled", canUseSticky);
+
+            if (!canUseSticky) {
+                var clearRows = Array.prototype.slice.call(table.tHead.rows || []);
+                clearRows.forEach(function (row) {
+                    Array.prototype.forEach.call(row.cells, function (cell) {
+                        cell.style.top = "";
+                    });
+                });
+                return;
+            }
+
+            var runningTop = stickyOffset;
+            var rows = Array.prototype.slice.call(table.tHead.rows || []);
+
+            rows.forEach(function (row) {
+                var rowHeight = Math.ceil(row.getBoundingClientRect().height) || 0;
+                Array.prototype.forEach.call(row.cells, function (cell) {
+                    cell.style.top = runningTop + "px";
+                });
+                runningTop += rowHeight;
+            });
+        });
+    }
+
+    function queueStickyTableHeaders() {
+        window.requestAnimationFrame(applyStickyTableHeaders);
+    }
+
     function normalizePath(path) {
         if (!path) {
             return "/";
@@ -78,5 +134,12 @@
         activateSidebarLink(bestMatch);
     }
 
-    document.addEventListener("DOMContentLoaded", markSidebarActive);
+    document.addEventListener("DOMContentLoaded", function () {
+        markSidebarActive();
+        queueStickyTableHeaders();
+        setTimeout(queueStickyTableHeaders, 120);
+    });
+
+    window.addEventListener("load", queueStickyTableHeaders);
+    window.addEventListener("resize", queueStickyTableHeaders);
 })();

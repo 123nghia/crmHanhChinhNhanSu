@@ -7,7 +7,9 @@ namespace VS.Human.Rep.Model
         public string? Title { get; set; }
         public string? Content { get; set; }
         public bool IsSendMail { get; set; }
+        public string? DirectRecipientEmails { get; set; }
         public string? AuthorName { get; set; }
+        public List<int> MailGroupIds { get; set; } = new List<int>();
         public List<InternalNewsAttachment> Attachments { get; set; } = new List<InternalNewsAttachment>();
     }
 }

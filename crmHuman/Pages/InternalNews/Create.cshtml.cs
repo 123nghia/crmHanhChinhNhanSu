@@ -12,6 +12,7 @@ namespace crmHuman.Pages.InternalNews
     public class CreateModel : BaseModel2
     {
         private readonly IInternalNewsBusiness _newsBusiness;
+        private readonly IMailGroupBusiness _mailGroupBusiness;
         private readonly IWebHostEnvironment _hostingEnvironment;
 
         [BindProperty]
@@ -20,15 +21,18 @@ namespace crmHuman.Pages.InternalNews
         [BindProperty]
         public List<IFormFile> AttachmentFiles { get; set; } = new List<IFormFile>();
 
-        public CreateModel(IInternalNewsBusiness newsBusiness, IWebHostEnvironment hostingEnvironment)
+        public List<MailGroupItem> AvailableMailGroups { get; set; } = new List<MailGroupItem>();
+
+        public CreateModel(IInternalNewsBusiness newsBusiness, IMailGroupBusiness mailGroupBusiness, IWebHostEnvironment hostingEnvironment)
         {
             _newsBusiness = newsBusiness;
+            _mailGroupBusiness = mailGroupBusiness;
             _hostingEnvironment = hostingEnvironment;
-            TitlePage = "Tạo tin nội bộ";
+            TitlePage = "Táº¡o tin ná»™i bá»™";
             KeyPage = "InternalNews";
         }
 
-        public IActionResult OnGet()
+        public async Task<IActionResult> OnGet()
         {
             if (!HttpContext.User.Identity.IsAuthenticated)
             {
@@ -41,6 +45,7 @@ namespace crmHuman.Pages.InternalNews
                 return Redirect("/InternalNews");
             }
 
+            await LoadMailGroupsAsync();
             return Page();
         }
 
@@ -59,20 +64,21 @@ namespace crmHuman.Pages.InternalNews
 
             if (string.IsNullOrWhiteSpace(News.Title))
             {
-                ModelState.AddModelError("News.Title", "Vui lòng nhập tiêu đề.");
+                ModelState.AddModelError("News.Title", "Vui lÃ²ng nháº­p tiÃªu Ä‘á».");
             }
             else if (News.Title.Length > 200)
             {
-                ModelState.AddModelError("News.Title", "Tiêu đề tối đa 200 ký tự.");
+                ModelState.AddModelError("News.Title", "TiÃªu Ä‘á» tá»‘i Ä‘a 200 kÃ½ tá»±.");
             }
 
             if (string.IsNullOrWhiteSpace(News.Content))
             {
-                ModelState.AddModelError("News.Content", "Vui lòng nhập nội dung.");
+                ModelState.AddModelError("News.Content", "Vui lÃ²ng nháº­p ná»™i dung.");
             }
 
             if (!ModelState.IsValid)
             {
+                await LoadMailGroupsAsync();
                 return Page();
             }
 
@@ -116,6 +122,8 @@ namespace crmHuman.Pages.InternalNews
                 Title = News.Title?.Trim(),
                 Content = News.Content,
                 IsSendMail = News.IsSendMail,
+                DirectRecipientEmails = News.DirectRecipientEmails,
+                MailGroupIds = News.MailGroupIds ?? new List<int>(),
                 CreatedBy = UserData.UserId,
                 UpdatedBy = UserData.UserId,
                 Attachments = attachments
@@ -124,16 +132,51 @@ namespace crmHuman.Pages.InternalNews
             var result = await _newsBusiness.AddOrUpdate(item);
             if (!result)
             {
-                ModelState.AddModelError(string.Empty, "Không thể lưu bài đăng.");
+                ModelState.AddModelError(string.Empty, "KhÃ´ng thá»ƒ lÆ°u bÃ i Ä‘Äƒng.");
+                await LoadMailGroupsAsync();
                 return Page();
             }
 
-            return Redirect("/InternalNews");
+            await SendNotificationIfNeededAsync(item.Id);
+            return Redirect($"/InternalNews/Detail?Id={item.Id}");
         }
 
         private bool CanCreate()
         {
             return (Permision.Add ?? false) || UserData.RoleCode == "1";
+        }
+
+        private async Task LoadMailGroupsAsync()
+        {
+            AvailableMailGroups = await _mailGroupBusiness.GetSelectableGroupsAsync();
+        }
+
+        private async Task SendNotificationIfNeededAsync(int newsId)
+        {
+            if (!News.IsSendMail || newsId <= 0)
+            {
+                return;
+            }
+
+            var sendResult = await _newsBusiness.SendNotificationAsync(newsId, BuildDetailUrl(newsId), UserData.UserId);
+            if (sendResult.Success)
+            {
+                TempData["SuccessMessage"] = $"ÄÃ£ gá»­i mail tá»›i {sendResult.RecipientCount} ngÆ°á»i nháº­n.";
+                return;
+            }
+
+            TempData["WarningMessage"] = sendResult.Error ?? "BÃ i Ä‘Äƒng Ä‘Ã£ lÆ°u nhÆ°ng khÃ´ng thá»ƒ gá»­i mail.";
+        }
+
+        private string BuildDetailUrl(int newsId)
+        {
+            var absoluteUrl = Url.Page("/InternalNews/Detail", null, new { id = newsId }, Request.Scheme);
+            if (!string.IsNullOrWhiteSpace(absoluteUrl))
+            {
+                return absoluteUrl;
+            }
+
+            return $"{Request.Scheme}://{Request.Host}/InternalNews/Detail?Id={newsId}";
         }
     }
 }

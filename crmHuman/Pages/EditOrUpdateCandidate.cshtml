@@ -3,6 +3,7 @@
    var itemModel = Model.resultView;
    var dataLead = Model.DataManager.Data;
    var dataMaster = Model.DataMasterData;
+   var isCreateMode = itemModel.Id < 1;
     
 }
 
@@ -13,7 +14,7 @@
 
 
     
-    @if (0 < 1)
+    @if (isCreateMode)
     {
         <h5 class="modal-title">Thêm mới ứng cử viên</h5>
     }
@@ -35,10 +36,17 @@
                 <div class="row">
                     <input type="hidden" id ="cbcandidateId" value="">
                      <div class="col-12 ">
-                            <div class="form-group">
-                                <label class="form-label">Tên đăng nhập / UserName (Để trống sẽ tự động tạo)</label>
-                                <input type="text" value="" name="userName" id="txtUserName" class="form-control" placeholder="Tự động tạo nếu để trống" />
-                            </div>
+                            @if (!isCreateMode)
+                            {
+                                <div class="form-group">
+                                    <label class="form-label">Tên đăng nhập / UserName</label>
+                                    <input type="text" value="@itemModel.UserName" id="txtUserName" class="form-control" readonly placeholder="Hệ thống tự động tạo" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-text mb-3">Tên đăng nhập sẽ được hệ thống tự động tạo sau khi lưu ứng viên.</div>
+                            }
                             <div class="form-group">
                                 <label class="form-label">Tên ứng cử viên</label>
                                 <input type="text" value="" name="fullName" id="txtFullName" class="form-control" required placeholder="" />

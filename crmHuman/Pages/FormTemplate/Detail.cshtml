@@ -1,0 +1,178 @@
+@page
+@model crmHuman.Pages.FormTemplate.DetailModel
+@{
+    ViewData["Title"] = "Chi tiết biểu mẫu";
+    var isViewerMode = !Model.CanEdit && !Model.CanDelete;
+    var createdAt = Model.TemplateItem.CreateAt != default
+        ? Model.TemplateItem.CreateAt.ToString("dd/MM/yyyy")
+        : string.Empty;
+}
+
+<div class="pagetitle">
+    <h1>Biểu mẫu</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="/FormTemplate">Biểu mẫu</a></li>
+            <li class="breadcrumb-item active">Chi tiết</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row">
+        <div class="col-lg-12">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+            }
+
+            @if (isViewerMode)
+            {
+                <div class="card border-0 shadow-sm form-template-detail-card">
+                    <div class="card-body p-4 p-lg-5">
+                        <article class="form-template-detail-view">
+                            <h2 class="form-template-detail-title">@Model.TemplateItem.Title</h2>
+
+                            @if (!string.IsNullOrWhiteSpace(createdAt))
+                            {
+                                <div class="form-template-detail-meta">
+                                    <i class="bi bi-calendar3"></i>
+                                    <span>Được đăng: @createdAt</span>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(Model.TemplateItem.FilePath))
+                            {
+                                <div class="form-template-detail-file">
+                                    <div class="form-template-detail-file-label">Tệp biểu mẫu</div>
+                                    <a href="@Model.TemplateItem.FilePath" target="_blank">@(!string.IsNullOrWhiteSpace(Model.TemplateItem.FileName) ? Model.TemplateItem.FileName : Model.TemplateItem.Title)</a>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(Model.TemplateItem.Content))
+                            {
+                                <div class="template-content form-template-detail-content">
+                                    @Html.Raw(Model.TemplateItem.Content)
+                                </div>
+                            }
+
+                            <div class="mt-4">
+                                <a class="btn btn-outline-primary" href="/FormTemplate">Quay lại danh sách</a>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mt-3">
+                            <h4 class="mb-1">@Model.TemplateItem.Title</h4>
+                            <div class="text-muted small">
+                                @Model.TemplateItem.AuthorName
+                                @if (Model.TemplateItem.CreateAt != default)
+                                {
+                                    <span>- @Model.TemplateItem.CreateAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.TemplateItem.FilePath))
+                        {
+                            <div class="alert alert-light border mt-3 mb-3">
+                                <div class="fw-semibold mb-1">File đính kèm</div>
+                                <a href="@Model.TemplateItem.FilePath" target="_blank">@Model.TemplateItem.FileName</a>
+                            </div>
+                        }
+
+                        <div class="template-content">
+                            @Html.Raw(Model.TemplateItem.Content ?? string.Empty)
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            @if (Model.CanEdit)
+                            {
+                                <a class="btn btn-primary" href="/FormTemplate/Edit?Id=@Model.TemplateItem.Id">Chỉnh sửa</a>
+                            }
+                            @if (Model.CanDelete)
+                            {
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@Model.TemplateItem.Id" class="d-inline" onsubmit="return confirm('Xóa biểu mẫu này?');">
+                                    <button type="submit" class="btn btn-danger">Xóa</button>
+                                </form>
+                            }
+                            <a class="btn btn-outline-secondary" href="/FormTemplate">Quay lại</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@section Styles {
+    <style>
+        .form-template-detail-card {
+            border-radius: 24px;
+            background: #fff;
+        }
+
+        .form-template-detail-view {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        .form-template-detail-title {
+            color: #0d4bd7;
+            font-size: clamp(1.8rem, 3vw, 2.6rem);
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .form-template-detail-meta {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #2e3b54;
+            font-weight: 600;
+            margin-bottom: 28px;
+        }
+
+        .form-template-detail-file {
+            margin-bottom: 28px;
+        }
+
+        .form-template-detail-file-label {
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #22304a;
+        }
+
+        .form-template-detail-file a {
+            color: #0d4bd7;
+            font-size: 1.1rem;
+            text-decoration: none;
+        }
+
+        .form-template-detail-file a:hover {
+            text-decoration: underline;
+        }
+
+        .form-template-detail-content {
+            line-height: 1.7;
+            color: #24324a;
+        }
+
+        .template-content img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .template-content table {
+            max-width: 100%;
+        }
+    </style>
+}

@@ -147,6 +147,7 @@ function submitImportEmployee() {
 }
 
 var employeeFilterTimer = null;
+var employeeHeaderFrame = null;
 
 function normalizeFilterValue(value) {
     return String(value || "").toLowerCase().trim();
@@ -474,6 +475,7 @@ function setColumnFilterPanel(open) {
 
     shell.classList.toggle("show-column-filters", !!open);
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    queueEmployeeFloatingHeaderSync();
 }
 
 function bindEmployeePanels() {
@@ -568,10 +570,80 @@ function bindEmployeeHeaderFilters() {
     }
 }
 
+function getEmployeeStickyOffset() {
+    var stickyOffset = parseInt(
+        window.getComputedStyle(document.documentElement).getPropertyValue("--sticky-table-offset"),
+        10
+    );
+
+    if (!Number.isNaN(stickyOffset) && stickyOffset > 0) {
+        return stickyOffset;
+    }
+
+    var header = document.getElementById("header");
+    var pageTitle = document.querySelector(".pagetitle");
+    var headerHeight = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+    var pageTitleHeight = pageTitle ? Math.ceil(pageTitle.getBoundingClientRect().height) : 0;
+    return headerHeight + pageTitleHeight;
+}
+
+function syncEmployeeFloatingHeader() {
+    var table = document.getElementById("employeeGrid");
+    var shell = document.getElementById("employeeGridShell");
+
+    if (!table || !table.tHead || !table.tHead.rows.length || !shell) {
+        return;
+    }
+
+    var headerCells = Array.from(table.tHead.rows[0].cells || []);
+    if (!headerCells.length) {
+        return;
+    }
+
+    if (window.innerWidth < 992) {
+        headerCells.forEach(function (cell) {
+            cell.style.transform = "";
+        });
+        shell.classList.remove("is-header-floating");
+        return;
+    }
+
+    var tableRect = table.getBoundingClientRect();
+    var headerHeight = Math.ceil(table.tHead.rows[0].getBoundingClientRect().height) || 0;
+    var stickyOffset = getEmployeeStickyOffset();
+    var maxTranslate = Math.max(0, table.offsetHeight - headerHeight);
+    var translateY = Math.max(0, Math.min(stickyOffset - tableRect.top, maxTranslate));
+    var shouldFloat = translateY > 0 && tableRect.bottom > stickyOffset + headerHeight;
+
+    headerCells.forEach(function (cell) {
+        cell.style.transform = shouldFloat ? "translateY(" + translateY + "px)" : "";
+    });
+
+    shell.classList.toggle("is-header-floating", shouldFloat);
+}
+
+function queueEmployeeFloatingHeaderSync() {
+    if (employeeHeaderFrame !== null) {
+        window.cancelAnimationFrame(employeeHeaderFrame);
+    }
+
+    employeeHeaderFrame = window.requestAnimationFrame(function () {
+        employeeHeaderFrame = null;
+        syncEmployeeFloatingHeader();
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     populateEmployeeFilterDropdowns();
     bindEmployeePanels();
     bindEmployeeHeaderFilters();
     bindEmployeeFilterRefreshHooks();
     updateEmployeeFilterBadges();
+    queueEmployeeFloatingHeaderSync();
+    setTimeout(queueEmployeeFloatingHeaderSync, 120);
+    setTimeout(queueEmployeeFloatingHeaderSync, 360);
 });
+
+window.addEventListener("scroll", queueEmployeeFloatingHeaderSync, { passive: true });
+window.addEventListener("resize", queueEmployeeFloatingHeaderSync);
+window.addEventListener("load", queueEmployeeFloatingHeaderSync);

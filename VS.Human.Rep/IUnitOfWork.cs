@@ -36,6 +36,8 @@
         public IPermissionRep PermissionRep { get; set; }
         public ILeaveRep LeaveRep { get; set; }
         public IInternalNewsRep InternalNewsRep { get; set; }
+        public IFormTemplateRep FormTemplateRep { get; set; }
+        public IMailGroupRep MailGroupRep { get; set; }
         public INotificationRep NotificationRep { get; set; }
         public IAttendanceRep AttendanceRep { get; set; }
         public IEmailConfigRep EmailConfigRep { get; set; }
