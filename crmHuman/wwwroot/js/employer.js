@@ -391,7 +391,6 @@ function SaveEmployee(idEmp) {
     var fullNametext = getValueControl("txtFullName");
     var dobcb = getValueControl("dob");
     var dateOnboardTemp = getValueControl("dateOnboard");
-    var txtLineCodeTemp = getValueControl("txtLineCode");
     var phoneText = getValueControl("txtPhone");
     var passText = getValueControl("txtPass");
     var roleCodeText = getValueControl("txtRoleCode");
@@ -458,7 +457,6 @@ function SaveEmployee(idEmp) {
             phone: phoneText,
             Id: idEmp,
             Onboard: dateOnboardTemp,
-            LineCode: txtLineCodeTemp,
             RoleCode: roleCodeText,
             Noted: txtNotedText,
             ColorCode: txtColorCode,

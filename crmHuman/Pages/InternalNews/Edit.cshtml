@@ -8,9 +8,9 @@
     <h1>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang chá»§</a></li>
-            <li class="breadcrumb-item"><a href="/InternalNews">Tin ná»™i bá»™</a></li>
-            <li class="breadcrumb-item active">Chá»‰nh sá»­a</li>
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="/InternalNews">Tin nội bộ</a></li>
+            <li class="breadcrumb-item active">Chỉnh sửa</li>
         </ol>
     </nav>
 </div>
@@ -20,46 +20,46 @@
         <div class="col-lg-12">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">ThÃ´ng tin bÃ i viáº¿t</h5>
+                    <h5 class="card-title">Thông tin bài viết</h5>
                     <form method="post" enctype="multipart/form-data">
                         @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="News.Id" />
                         <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
                         <div class="mb-3">
-                            <label class="form-label" for="News_Title">TiÃªu Ä‘á»</label>
+                            <label class="form-label" for="News_Title">Tiêu đề</label>
                             <input class="form-control" asp-for="News.Title" maxlength="200" required />
                             <span asp-validation-for="News.Title" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" for="News_Content">Ná»™i dung</label>
+                            <label class="form-label" for="News_Content">Nội dung</label>
                             <textarea class="form-control tinymce-editor" asp-for="News.Content"></textarea>
                             <span asp-validation-for="News.Content" class="text-danger"></span>
                         </div>
 
                         <div class="row g-3">
                             <div class="col-lg-6">
-                                <label class="form-label" for="News_MailGroupIds">NhÃ³m mail nháº­n tin</label>
+                                <label class="form-label" for="News_MailGroupIds">Nhóm mail nhận tin</label>
                                 <select class="form-select" asp-for="News.MailGroupIds" multiple size="6">
                                     @foreach (var group in Model.AvailableMailGroups)
                                     {
                                         <option value="@group.Id">@group.Name</option>
                                     }
                                 </select>
-                                <div class="form-text">Giá»¯ `Ctrl` hoáº·c `Shift` Ä‘á»ƒ chá»n nhiá»u nhÃ³m.</div>
+                                <div class="form-text">Giữ `Ctrl` hoặc `Shift` để chọn nhiều nhóm.</div>
                             </div>
                             <div class="col-lg-6">
-                                <label class="form-label" for="News_DirectRecipientEmails">Mail nháº­n trá»±c tiáº¿p</label>
-                                <textarea class="form-control" asp-for="News.DirectRecipientEmails" rows="6" placeholder="Nháº­p email, phÃ¢n cÃ¡ch báº±ng dáº¥u pháº©y, cháº¥m pháº©y hoáº·c xuá»‘ng dÃ²ng"></textarea>
-                                <div class="form-text">CÃ³ thá»ƒ gá»­i Ä‘Æ¡n hoáº·c nhiá»u ngÆ°á»i nháº­n bá»• sung ngoÃ i nhÃ³m mail.</div>
+                                <label class="form-label" for="News_DirectRecipientEmails">Mail nhận trực tiếp</label>
+                                <textarea class="form-control" asp-for="News.DirectRecipientEmails" rows="6" placeholder="Nhập email, phân cách bằng dấu phẩy, chấm phẩy hoặc xuống dòng"></textarea>
+                                <div class="form-text">Có thể gửi đơn hoặc nhiều người nhận bổ sung ngoài nhóm mail.</div>
                             </div>
                         </div>
 
                         @if (Model.News.Attachments?.Count > 0)
                         {
                             <div class="mb-3 mt-3">
-                                <label class="form-label">File Ä‘Ã­nh kÃ¨m hiá»‡n táº¡i</label>
+                                <label class="form-label">File đính kèm hiện tại</label>
                                 <ul class="list-unstyled mb-0">
                                     @foreach (var attachment in Model.News.Attachments)
                                     {
@@ -73,21 +73,21 @@
                         }
 
                         <div class="mb-3">
-                            <label class="form-label" for="AttachmentFiles">ThÃªm file Ä‘Ã­nh kÃ¨m</label>
+                            <label class="form-label" for="AttachmentFiles">Thêm file đính kèm</label>
                             <input class="form-control" type="file" id="AttachmentFiles" name="AttachmentFiles" multiple />
-                            <div class="form-text">CÃ³ thá»ƒ chá»n nhiá»u file.</div>
+                            <div class="form-text">Có thể chọn nhiều file.</div>
                         </div>
 
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" asp-for="News.IsSendMail" />
                             <label class="form-check-label" for="News_IsSendMail">
-                                Gá»­i mail thÃ´ng bÃ¡o ngay sau khi lÆ°u bÃ i Ä‘Äƒng
+                                Gửi mail thông báo ngay sau khi lưu bài đăng
                             </label>
                         </div>
 
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">LÆ°u bÃ i viáº¿t</button>
-                            <a class="btn btn-outline-secondary" href="/InternalNews/Detail?Id=@Model.News.Id">Há»§y</a>
+                            <button type="submit" class="btn btn-primary">Lưu bài viết</button>
+                            <a class="btn btn-outline-secondary" href="/InternalNews/Detail?Id=@Model.News.Id">Hủy</a>
                         </div>
                     </form>
                 </div>

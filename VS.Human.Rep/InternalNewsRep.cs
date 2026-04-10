@@ -28,14 +28,27 @@ namespace VS.Human.Rep
             using var tran = con.BeginTransaction();
             try
             {
+                var hasDirectRecipientEmailsColumn = await ColumnExistsAsync(con, tran, "dbo.InternalNews", "DirectRecipientEmails");
+                var hasInternalNewsMailGroupsTable = await TableExistsAsync(con, tran, "dbo.InternalNewsMailGroups");
+
                 if (item.Id > 0)
                 {
-                    const string updateSql = @"
+                    var updateSql = hasDirectRecipientEmailsColumn
+                        ? @"
 UPDATE InternalNews
 SET Title = @Title,
     Content = @Content,
     IsSendMail = @IsSendMail,
     DirectRecipientEmails = @DirectRecipientEmails,
+    UpdatedBy = @UpdatedBy,
+    UpdateAt = GETDATE()
+WHERE Id = @Id
+  AND ISNULL(Deleted, 0) = 0;"
+                        : @"
+UPDATE InternalNews
+SET Title = @Title,
+    Content = @Content,
+    IsSendMail = @IsSendMail,
     UpdatedBy = @UpdatedBy,
     UpdateAt = GETDATE()
 WHERE Id = @Id
@@ -59,7 +72,8 @@ WHERE Id = @Id
                 }
                 else
                 {
-                    const string insertSql = @"
+                    var insertSql = hasDirectRecipientEmailsColumn
+                        ? @"
 INSERT INTO InternalNews
 (
     Title,
@@ -79,6 +93,32 @@ VALUES
     @Content,
     @IsSendMail,
     @DirectRecipientEmails,
+    0,
+    1,
+    @CreatedBy,
+    @UpdatedBy,
+    GETDATE(),
+    GETDATE()
+);
+SELECT CAST(SCOPE_IDENTITY() AS int);"
+                        : @"
+INSERT INTO InternalNews
+(
+    Title,
+    Content,
+    IsSendMail,
+    Deleted,
+    IsActive,
+    CreatedBy,
+    UpdatedBy,
+    CreateAt,
+    UpdateAt
+)
+VALUES
+(
+    @Title,
+    @Content,
+    @IsSendMail,
     0,
     1,
     @CreatedBy,
@@ -149,10 +189,12 @@ VALUES
                     }
                 }
 
-                await con.ExecuteAsync("DELETE FROM InternalNewsMailGroups WHERE NewsId = @NewsId", new { NewsId = item.Id }, tran);
-                if (item.MailGroupIds != null && item.MailGroupIds.Count > 0)
+                if (hasInternalNewsMailGroupsTable)
                 {
-                    const string groupSql = @"
+                    await con.ExecuteAsync("DELETE FROM InternalNewsMailGroups WHERE NewsId = @NewsId", new { NewsId = item.Id }, tran);
+                    if (item.MailGroupIds != null && item.MailGroupIds.Count > 0)
+                    {
+                        const string groupSql = @"
 INSERT INTO InternalNewsMailGroups
 (
     NewsId,
@@ -176,15 +218,16 @@ VALUES
     GETDATE()
 );";
 
-                    foreach (var groupId in item.MailGroupIds.Where(x => x > 0).Distinct())
-                    {
-                        await con.ExecuteAsync(groupSql, new
+                        foreach (var groupId in item.MailGroupIds.Where(x => x > 0).Distinct())
                         {
-                            NewsId = item.Id,
-                            MailGroupId = groupId,
-                            CreatedBy = item.UpdatedBy > 0 ? item.UpdatedBy : item.CreatedBy,
-                            UpdatedBy = item.UpdatedBy > 0 ? item.UpdatedBy : item.CreatedBy
-                        }, tran);
+                            await con.ExecuteAsync(groupSql, new
+                            {
+                                NewsId = item.Id,
+                                MailGroupId = groupId,
+                                CreatedBy = item.UpdatedBy > 0 ? item.UpdatedBy : item.CreatedBy,
+                                UpdatedBy = item.UpdatedBy > 0 ? item.UpdatedBy : item.CreatedBy
+                            }, tran);
+                        }
                     }
                 }
 
@@ -243,13 +286,31 @@ WHERE NewsId = @NewsId
   AND ISNULL(Deleted, 0) = 0;";
 
             result.Attachments = (await con.QueryAsync<InternalNewsAttachment>(attachmentSql, new { NewsId = result.Id })).ToList();
-            result.MailGroupIds = (await con.QueryAsync<int>(groupSql, new { NewsId = result.Id })).ToList();
+            if (await TableExistsAsync(con, null, "dbo.InternalNewsMailGroups"))
+            {
+                result.MailGroupIds = (await con.QueryAsync<int>(groupSql, new { NewsId = result.Id })).ToList();
+            }
+
             return result;
         }
 
         public Task<bool> Delete(int id)
         {
             return DeleteBase(id, tableDelete: tableName);
+        }
+
+        private static async Task<bool> TableExistsAsync(IDbConnection connection, IDbTransaction? transaction, string tableName)
+        {
+            const string sql = "SELECT CASE WHEN OBJECT_ID(@TableName, 'U') IS NULL THEN 0 ELSE 1 END";
+            var exists = await connection.ExecuteScalarAsync<int>(sql, new { TableName = tableName }, transaction);
+            return exists == 1;
+        }
+
+        private static async Task<bool> ColumnExistsAsync(IDbConnection connection, IDbTransaction? transaction, string tableName, string columnName)
+        {
+            const string sql = "SELECT CASE WHEN COL_LENGTH(@TableName, @ColumnName) IS NULL THEN 0 ELSE 1 END";
+            var exists = await connection.ExecuteScalarAsync<int>(sql, new { TableName = tableName, ColumnName = columnName }, transaction);
+            return exists == 1;
         }
     }
 }

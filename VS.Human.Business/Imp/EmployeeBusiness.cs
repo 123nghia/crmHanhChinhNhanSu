@@ -27,7 +27,7 @@ namespace VS.Human.Business.Imp
             item.FullName = itemAdd.FullName;
             item.Onboard = itemAdd.Onboard;
             item.ResignationDate = itemAdd.ResignationDate;
-            item.LineCode = itemAdd.LineCode;
+            item.LineCode = string.Empty;
 
             item.Phone = itemAdd.Phone;
             item.RoleCode = itemAdd.RoleCode;

@@ -13,10 +13,11 @@
     var hdld = itemResult?.HDLD??new VS.Human.Rep.Model.HDLD();
     var bhxhItem =  itemResult?.BHXHItem ?? new VS.Human.Rep.Model.BHXHItem();
     var taxtItem = itemResult?.TaxItem?? new VS.Human.Rep.Model.TaxItem();
+    var sipInfo = Model?.SipAccountInfo ?? new VS.Human.Rep.Model.EmployeeSipAccountView();
     var isSelfView = Model.IsSelfView;
     var isTcRole = Model.UserData?.RoleCode == "2";
     var canEdit = !isTcRole;
-    var showAccountTab = !isSelfView && !isTcRole;
+    var showAccountTab = itemResult.Id > 0;
     var canRequestDocumentSign = !isSelfView && (Model.UserData?.RoleCode == "1" || Model.UserData?.RoleCode == "8" || Model.UserData?.RoleCode == "9");
 
     var textTiltel  =  "Thông tin nhân viên";
@@ -718,47 +719,138 @@
                 @if (showAccountTab)
                 {
                 <div class="tab-pane fade" id="account_info" role="tabpanel" aria-labelledby="contact-tab">
-                 
-                
-                        
-<div class="form-group">
-    <label class="form-label">Tài đăng nhập</label>
-    <input type="text" value="@itemResult.UserName" name="ScheduleDate" id="txtUserName" class="form-control" required
-        placeholder="" />
-    <div class="invalid-feedback-cs">
-    </div>
-</div>
+                    <div class="form-group">
+                        <label class="form-label">Tài đăng nhập</label>
+                        <input type="text" value="@itemResult.UserName" name="ScheduleDate" id="txtUserName" class="form-control" required
+                               placeholder="" />
+                        <div class="invalid-feedback-cs">
+                        </div>
+                    </div>
 
-<div class="form-group">
-    <label class="form-label">Mật khẩu hiện tại </label>
-    <input type="password" value="" id="txtPasswordCurrent" class="form-control" required placeholder="" />
-    <div class="invalid-feedback-cs">
-    </div>
+                    @if (!isSelfView)
+                    {
+                        <div class="form-group">
+                            <label class="form-label">Mật khẩu hiện tại </label>
+                            <input type="password" value="" id="txtPasswordCurrent" class="form-control" required placeholder="" />
+                            <div class="invalid-feedback-cs">
+                            </div>
+                        </div>
 
-</div>
+                        <div class="form-group">
+                            <label class="form-label">Mật khẩu mới </label>
+                            <input type="password" value="" name="Noted" id="txtnewPassword" class="form-control" required placeholder="" />
+                            <div class="invalid-feedback-cs">
+                            </div>
+                        </div>
 
+                        <div class="form-group">
+                            <label class="form-label">Nhập lại mật khẩu mới </label>
+                            <input type="password" value="" name="Noted" id="txtRepeatPasswordNew" class="form-control" required
+                                   placeholder="" />
+                            <div class="invalid-feedback-cs">
+                            </div>
+                        </div>
 
-<div class="form-group">
-    <label class="form-label">Mật khẩu mới </label>
-    <input type="password" value="" name="Noted" id="txtnewPassword" class="form-control" required placeholder="" />
-    <div class="invalid-feedback-cs">
-    </div>
+                        <button type="button" onclick="changePassword(@itemResult.Id)" class="btn btn-primary">Thay dổi mật khẩu </button>
+                    }
 
-</div>
+                    <div class="mt-4">
+                        <h5 class="mb-3">Thông tin SIP account</h5>
 
-<div class="form-group">
-    <label class="form-label">Nhập lại mật khẩu mới </label>
-    <input type="password" value="" name="Noted" id="txtRepeatPasswordNew" class="form-control" required
-        placeholder="" />
-    <div class="invalid-feedback-cs">
-    </div>
+                        @if (!sipInfo.HasAssignedLine)
+                        {
+                            <div class="alert alert-warning">
+                                Chưa có line SIP nào được gán cho nhân viên này.
+                            </div>
+                        }
 
-</div>
+                        <div class="row">
+                            <div class="col-12 col-lg-6">
+                                <div class="form-group">
+                                    <label class="form-label">Line gọi</label>
+                                    <input type="text" value="@sipInfo.LineCode" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="form-group">
+                                    <label class="form-label">Tài khoản SIP</label>
+                                    <input type="text" value="@sipInfo.SipUserName" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="form-group">
+                                    <label class="form-label">Mật khẩu SIP</label>
+                                    <input type="text" value="@sipInfo.SipPassword" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="form-group">
+                                    <label class="form-label">Auth user</label>
+                                    <input type="text" value="@sipInfo.AuthUser" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="form-group">
+                                    <label class="form-label">Tên hiển thị</label>
+                                    <input type="text" value="@sipInfo.DisplayName" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="form-group">
+                                    <label class="form-label">Thời điểm gán line</label>
+                                    <input type="text" value="@sipInfo.AssignedAtDisplay" class="form-control" readonly />
+                                </div>
+                            </div>
+                        </div>
 
+                        <h5 class="mt-4 mb-3">Thông tin SIP server</h5>
 
-<button type="button" onclick="changePassword(@itemResult.Id)" class="btn btn-primary">Thay dổi mật khẩu </button>
-                          
+                        @if (string.IsNullOrWhiteSpace(sipInfo.ServerHost) && string.IsNullOrWhiteSpace(sipInfo.ServerName))
+                        {
+                            <div class="alert alert-secondary">
+                                Chưa có cấu hình SIP server khả dụng.
+                            </div>
+                        }
 
+                        <div class="row">
+                            <div class="col-12 col-lg-6">
+                                <div class="form-group">
+                                    <label class="form-label">Tên server</label>
+                                    <input type="text" value="@sipInfo.ServerName" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="form-group">
+                                    <label class="form-label">Host</label>
+                                    <input type="text" value="@sipInfo.ServerHost" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                <div class="form-group">
+                                    <label class="form-label">Port</label>
+                                    <input type="text" value="@((sipInfo.ServerPort ?? 0) > 0 ? sipInfo.ServerPort?.ToString() : string.Empty)" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                <div class="form-group">
+                                    <label class="form-label">Domain</label>
+                                    <input type="text" value="@sipInfo.ServerDomain" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                <div class="form-group">
+                                    <label class="form-label">Transport</label>
+                                    <input type="text" value="@sipInfo.ServerTransport" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="form-label">Outbound proxy</label>
+                                    <input type="text" value="@sipInfo.ServerOutboundProxy" class="form-control" readonly />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 }
                 <div class="tab-pane fade" id="contact-justified" role="tabpanel" aria-labelledby="contact-tab">

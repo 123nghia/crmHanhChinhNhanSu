@@ -301,6 +301,14 @@
                     </a>
                 </li>
             }
+            @if (Model.HasViewPermission("SipManagement"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link collapsed" href="/System/SipManagement">
+                        <i class="bi bi-telephone-forward"></i><span>Cấu hình SIP</span>
+                    </a>
+                </li>
+            }
         }
 
         @if (Model.HasViewPermission("MailGroup"))

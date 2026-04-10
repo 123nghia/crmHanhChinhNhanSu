@@ -79,7 +79,7 @@
                     <div class="mt-3 d-flex gap-2 flex-wrap">
                         @if (Model.CanEdit)
                         {
-                            <a class="btn btn-primary btn-sm" href="/InternalNews/Edit?Id=@Model.NewsItem?.Id">Chinh sua</a>
+                            <a class="btn btn-primary btn-sm" href="/InternalNews/Edit?Id=@Model.NewsItem?.Id">Chỉnh sửa</a>
                         }
                         @if (Model.CanDelete)
                         {
@@ -87,7 +87,7 @@
                                 <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
                             </form>
                         }
-                        <a class="btn btn-outline-secondary btn-sm" href="/InternalNews">Quay lai</a>
+                        <a class="btn btn-outline-secondary btn-sm" href="/InternalNews">Quay lại</a>
                     </div>
                 </div>
             </div>
@@ -117,6 +117,7 @@
             max-width: 100%;
             height: auto;
         }
+
         .internal-news-detail-content table {
             max-width: 100%;
         }
@@ -156,4 +157,3 @@
         }
     </style>
 }
-

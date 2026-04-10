@@ -1,0 +1,616 @@
+@page
+@model crmHuman.Pages.System.SipManagementModel
+@using global::System.Linq
+@using global::System.Text.Json
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = Model.TitlePage;
+    var canManage = Model.UserData?.RoleCode == "1"
+        || (Model.Permision.Add ?? false)
+        || (Model.Permision.Edit ?? false)
+        || (Model.Permision.Delete ?? false);
+    var initialServerId = Model.CurrentServer?.Id ?? Model.Servers.FirstOrDefault()?.Id ?? 0;
+}
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item">System</li>
+            <li class="breadcrumb-item active">SIP</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="card">
+        <div class="card-body">
+            @Html.AntiForgeryToken()
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3">
+                <div>
+                    <h5 class="card-title mb-1">Quan ly SIP server va line goi</h5>
+                    <div class="text-muted small">
+                        Admin cau hinh server, tao line moi, gan line cho nhan vien va thu hoi khi can.
+                    </div>
+                </div>
+                <div class="alert alert-light border mb-0 py-2 px-3 small">
+                    Nhan vien xem SIP account cua minh tai trang thong tin nhan vien.
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1">
+                <div class="col-12 col-xl-5">
+                    <div class="card border shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <strong>Cau hinh SIP server</strong>
+                        </div>
+                        <div class="card-body">
+                            <input type="hidden" id="sipServerId" value="@Model.CurrentServer?.Id" />
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">Ten server</label>
+                                    <input type="text" class="form-control" id="serverName" value="@Model.CurrentServer?.Name" @(canManage ? null : "readonly") />
+                                </div>
+                                <div class="col-12 col-md-8">
+                                    <label class="form-label">Host</label>
+                                    <input type="text" class="form-control" id="serverHost" value="@Model.CurrentServer?.Host" @(canManage ? null : "readonly") />
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label">Port</label>
+                                    <input type="number" class="form-control" id="serverPort" value="@(Model.CurrentServer?.Port > 0 ? Model.CurrentServer.Port : 5060)" @(canManage ? null : "readonly") />
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Domain</label>
+                                    <input type="text" class="form-control" id="serverDomain" value="@Model.CurrentServer?.Domain" @(canManage ? null : "readonly") />
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Transport</label>
+                                    <select class="form-select" id="serverTransport" @(canManage ? null : "disabled")>
+                                        @{
+                                            var serverTransport = string.IsNullOrWhiteSpace(Model.CurrentServer?.Transport) ? "UDP" : Model.CurrentServer.Transport;
+                                        }
+                                        <option value="UDP" selected="@(serverTransport == "UDP")">UDP</option>
+                                        <option value="TCP" selected="@(serverTransport == "TCP")">TCP</option>
+                                        <option value="TLS" selected="@(serverTransport == "TLS")">TLS</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Outbound proxy</label>
+                                    <input type="text" class="form-control" id="serverOutboundProxy" value="@Model.CurrentServer?.OutboundProxy" @(canManage ? null : "readonly") />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Ghi chu</label>
+                                    <textarea class="form-control" id="serverNote" rows="3" @(canManage ? null : "readonly")>@Model.CurrentServer?.Note</textarea>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="serverIsActive" @(Model.CurrentServer?.IsActive == 1 ? "checked" : "") @(canManage ? null : "disabled") />
+                                        <label class="form-check-label" for="serverIsActive">Dat lam server dang hoat dong</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (canManage)
+                            {
+                                <div class="d-flex gap-2 mt-3">
+                                    <button type="button" class="btn btn-primary" onclick="saveSipServer()">Luu server</button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="resetServerForm()">Nhap moi</button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-7">
+                    <div class="card border shadow-sm h-100">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <strong>Danh sach SIP server</strong>
+                            <span class="badge bg-secondary">@Model.Servers.Count</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Server</th>
+                                            <th>Host</th>
+                                            <th class="text-center">Port</th>
+                                            <th class="text-center">Transport</th>
+                                            <th class="text-center">Trang thai</th>
+                                            @if (canManage)
+                                            {
+                                                <th class="text-end">Thao tac</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.Servers.Count == 0)
+                                        {
+                                            <tr>
+                                                <td colspan="@(canManage ? 6 : 5)" class="text-center text-muted py-4">Chua co SIP server.</td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var item in Model.Servers)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <strong>@item.Name</strong>
+                                                        @if (!string.IsNullOrWhiteSpace(item.Domain))
+                                                        {
+                                                            <div class="small text-muted">@item.Domain</div>
+                                                        }
+                                                    </td>
+                                                    <td>@item.Host</td>
+                                                    <td class="text-center">@item.Port</td>
+                                                    <td class="text-center">@item.Transport</td>
+                                                    <td class="text-center">
+                                                        @if (item.IsActive == 1)
+                                                        {
+                                                            <span class="badge bg-success">Dang dung</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary">Du phong</span>
+                                                        }
+                                                    </td>
+                                                    @if (canManage)
+                                                    {
+                                                        <td class="text-end">
+                                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editSipServer(@item.Id)">Sua</button>
+                                                        </td>
+                                                    }
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1">
+                <div class="col-12 col-xl-5">
+                    <div class="card border shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <strong>Thong tin SIP line</strong>
+                        </div>
+                        <div class="card-body">
+                            <input type="hidden" id="sipLineId" value="0" />
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">SIP server</label>
+                                    <select class="form-select" id="lineServerId" @(canManage ? null : "disabled")>
+                                        <option value="0">-- Chon SIP server --</option>
+                                        @foreach (var item in Model.Servers)
+                                        {
+                                            <option value="@item.Id" selected="@(item.Id == initialServerId)">@item.Name (@item.Host:@item.Port)</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Line goi</label>
+                                    <input type="text" class="form-control" id="lineCode" @(canManage ? null : "readonly") />
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Tai khoan SIP</label>
+                                    <input type="text" class="form-control" id="sipUserName" @(canManage ? null : "readonly") />
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Mat khau SIP</label>
+                                    <input type="text" class="form-control" id="sipPassword" @(canManage ? null : "readonly") />
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Auth user</label>
+                                    <input type="text" class="form-control" id="authUser" @(canManage ? null : "readonly") />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Ten hien thi</label>
+                                    <input type="text" class="form-control" id="displayName" @(canManage ? null : "readonly") />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Ghi chu</label>
+                                    <textarea class="form-control" id="lineNote" rows="3" @(canManage ? null : "readonly")></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="lineIsActive" checked @(canManage ? null : "disabled") />
+                                        <label class="form-check-label" for="lineIsActive">Line dang hoat dong</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (canManage)
+                            {
+                                <div class="alert alert-light border small mt-3 mb-3">
+                                    Khi gan line moi cho mot nhan vien, he thong se tu dong thu hoi line cu cua nhan vien do.
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary" onclick="saveSipLine()">Luu line</button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="resetSipLineForm()">Nhap moi</button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-7">
+                    <div class="card border shadow-sm h-100">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <strong>Danh sach line goi</strong>
+                            <span class="badge bg-secondary">@Model.Lines.Count</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Line</th>
+                                            <th>Thong tin SIP</th>
+                                            <th>Server</th>
+                                            <th>Nhan vien</th>
+                                            <th class="text-center">Trang thai</th>
+                                            <th class="text-center">Gan luc</th>
+                                            @if (canManage)
+                                            {
+                                                <th class="text-end">Thao tac</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.Lines.Count == 0)
+                                        {
+                                            <tr>
+                                                <td colspan="@(canManage ? 7 : 6)" class="text-center text-muted py-4">Chua co line SIP.</td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var item in Model.Lines)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <strong>@item.LineCode</strong>
+                                                        @if (!string.IsNullOrWhiteSpace(item.DisplayName))
+                                                        {
+                                                            <div class="small text-muted">@item.DisplayName</div>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <div>@item.SipUserName</div>
+                                                        @if (!string.IsNullOrWhiteSpace(item.AuthUser))
+                                                        {
+                                                            <div class="small text-muted">Auth: @item.AuthUser</div>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <div>@item.ServerName</div>
+                                                        <div class="small text-muted">@item.ServerHost:@item.ServerPort</div>
+                                                    </td>
+                                                    <td>
+                                                        @if (item.IsAssigned)
+                                                        {
+                                                            <div>@item.EmployeeName</div>
+                                                            <div class="small text-muted">@item.EmployeeUserName</div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">Chua gan</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if (item.IsActive == 1)
+                                                        {
+                                                            <span class="badge bg-success">Hoat dong</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary">Ngung dung</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-center">@item.AssignedAtDisplay</td>
+                                                    @if (canManage)
+                                                    {
+                                                        <td class="text-end">
+                                                            <div class="d-flex justify-content-end flex-wrap gap-2">
+                                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editSipLine(@item.Id)">Sua</button>
+                                                                <button type="button" class="btn btn-sm btn-outline-success" onclick="openAssignModal(@item.Id)">
+                                                                    @(item.IsAssigned ? "Doi gan" : "Gan line")
+                                                                </button>
+                                                                @if (item.IsAssigned)
+                                                                {
+                                                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="revokeSipLine(@item.Id)">Thu hoi</button>
+                                                                }
+                                                            </div>
+                                                        </td>
+                                                    }
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (canManage)
+{
+    <div class="modal fade" id="assignSipLineModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Gan line cho nhan vien</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="assignLineId" value="0" />
+                    <div class="mb-3">
+                        <label class="form-label">Line dang chon</label>
+                        <input type="text" class="form-control" id="assignLineDisplay" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nhan vien</label>
+                        <select class="form-select" id="assignEmployeeId">
+                            <option value="0">-- Chon nhan vien --</option>
+                            @foreach (var item in Model.Employees)
+                            {
+                                <option value="@item.Id">@item.FullName (@item.UserName)</option>
+                            }
+                        </select>
+                        <div class="form-text">Nhan vien chi xem SIP account cua chinh minh o trang thong tin ca nhan.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Dong</button>
+                    <button type="button" class="btn btn-primary" onclick="assignSipLine()">Luu gan line</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        const sipServers = @Html.Raw(JsonSerializer.Serialize(Model.Servers));
+        const sipLines = @Html.Raw(JsonSerializer.Serialize(Model.Lines));
+        const initialServerId = @initialServerId;
+        let assignModal = null;
+
+        function getRequestVerificationToken() {
+            const tokenField = document.getElementsByName('__RequestVerificationToken')[0];
+            return tokenField ? tokenField.value : '';
+        }
+
+        function showSipToast(success, message) {
+            if (window.Swal) {
+                return Swal.fire({
+                    icon: success ? 'success' : 'error',
+                    title: success ? 'Thanh cong' : 'Khong thanh cong',
+                    text: message || '',
+                    timer: success ? 1500 : undefined,
+                    showConfirmButton: !success
+                });
+            }
+
+            alert(message || (success ? 'Thanh cong' : 'Khong thanh cong'));
+            return Promise.resolve();
+        }
+
+        async function postJson(url, payload) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getRequestVerificationToken()
+                },
+                body: JSON.stringify(payload || {})
+            });
+
+            let data = null;
+            try {
+                data = await response.json();
+            } catch (error) {
+                data = null;
+            }
+
+            if (!response.ok) {
+                throw new Error((data && data.message) || 'Yeu cau khong thanh cong.');
+            }
+
+            if (data && data.success === false) {
+                throw new Error(data.message || 'Thao tac khong thanh cong.');
+            }
+
+            return data;
+        }
+
+        function resetServerForm() {
+            document.getElementById('sipServerId').value = '0';
+            document.getElementById('serverName').value = '';
+            document.getElementById('serverHost').value = '';
+            document.getElementById('serverPort').value = '5060';
+            document.getElementById('serverDomain').value = '';
+            document.getElementById('serverTransport').value = 'UDP';
+            document.getElementById('serverOutboundProxy').value = '';
+            document.getElementById('serverNote').value = '';
+            document.getElementById('serverIsActive').checked = sipServers.length === 0;
+        }
+
+        function editSipServer(id) {
+            const server = sipServers.find(item => item.Id === id);
+            if (!server) {
+                return;
+            }
+
+            document.getElementById('sipServerId').value = server.Id || 0;
+            document.getElementById('serverName').value = server.Name || '';
+            document.getElementById('serverHost').value = server.Host || '';
+            document.getElementById('serverPort').value = server.Port || 5060;
+            document.getElementById('serverDomain').value = server.Domain || '';
+            document.getElementById('serverTransport').value = server.Transport || 'UDP';
+            document.getElementById('serverOutboundProxy').value = server.OutboundProxy || '';
+            document.getElementById('serverNote').value = server.Note || '';
+            document.getElementById('serverIsActive').checked = server.IsActive === 1;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function saveSipServer() {
+            const payload = {
+                Id: parseInt(document.getElementById('sipServerId').value || '0', 10) || 0,
+                Name: document.getElementById('serverName').value,
+                Host: document.getElementById('serverHost').value,
+                Port: parseInt(document.getElementById('serverPort').value || '0', 10) || 0,
+                Domain: document.getElementById('serverDomain').value,
+                Transport: document.getElementById('serverTransport').value,
+                OutboundProxy: document.getElementById('serverOutboundProxy').value,
+                Note: document.getElementById('serverNote').value,
+                IsActive: document.getElementById('serverIsActive').checked ? 1 : 0
+            };
+
+            if (payload.Id <= 0) {
+                delete payload.Id;
+            }
+
+            try {
+                const result = await postJson('?handler=SaveServer', payload);
+                await showSipToast(true, result.message || 'Da luu SIP server.');
+                window.location.reload();
+            } catch (error) {
+                await showSipToast(false, error.message);
+            }
+        }
+
+        function resetSipLineForm() {
+            document.getElementById('sipLineId').value = '0';
+            document.getElementById('lineServerId').value = initialServerId > 0 ? String(initialServerId) : '0';
+            document.getElementById('lineCode').value = '';
+            document.getElementById('sipUserName').value = '';
+            document.getElementById('sipPassword').value = '';
+            document.getElementById('authUser').value = '';
+            document.getElementById('displayName').value = '';
+            document.getElementById('lineNote').value = '';
+            document.getElementById('lineIsActive').checked = true;
+        }
+
+        function editSipLine(id) {
+            const line = sipLines.find(item => item.Id === id);
+            if (!line) {
+                return;
+            }
+
+            document.getElementById('sipLineId').value = line.Id || 0;
+            document.getElementById('lineServerId').value = line.SipServerId ? String(line.SipServerId) : '0';
+            document.getElementById('lineCode').value = line.LineCode || '';
+            document.getElementById('sipUserName').value = line.SipUserName || '';
+            document.getElementById('sipPassword').value = line.SipPassword || '';
+            document.getElementById('authUser').value = line.AuthUser || '';
+            document.getElementById('displayName').value = line.DisplayName || '';
+            document.getElementById('lineNote').value = line.Note || '';
+            document.getElementById('lineIsActive').checked = line.IsActive === 1;
+            document.getElementById('lineCode').focus();
+        }
+
+        async function saveSipLine() {
+            const payload = {
+                Id: parseInt(document.getElementById('sipLineId').value || '0', 10) || 0,
+                SipServerId: parseInt(document.getElementById('lineServerId').value || '0', 10) || 0,
+                LineCode: document.getElementById('lineCode').value,
+                SipUserName: document.getElementById('sipUserName').value,
+                SipPassword: document.getElementById('sipPassword').value,
+                AuthUser: document.getElementById('authUser').value,
+                DisplayName: document.getElementById('displayName').value,
+                Note: document.getElementById('lineNote').value,
+                IsActive: document.getElementById('lineIsActive').checked ? 1 : 0
+            };
+
+            if (payload.Id <= 0) {
+                delete payload.Id;
+            }
+
+            try {
+                const result = await postJson('?handler=SaveLine', payload);
+                await showSipToast(true, result.message || 'Da luu SIP line.');
+                window.location.reload();
+            } catch (error) {
+                await showSipToast(false, error.message);
+            }
+        }
+
+        function openAssignModal(lineId) {
+            const line = sipLines.find(item => item.Id === lineId);
+            if (!line) {
+                return;
+            }
+
+            document.getElementById('assignLineId').value = String(line.Id || 0);
+            document.getElementById('assignLineDisplay').value = `${line.LineCode || ''} - ${line.SipUserName || ''}`;
+            document.getElementById('assignEmployeeId').value = line.EmployeeId ? String(line.EmployeeId) : '0';
+
+            if (!assignModal) {
+                assignModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('assignSipLineModal'));
+            }
+
+            assignModal.show();
+        }
+
+        async function assignSipLine() {
+            const payload = {
+                LineId: parseInt(document.getElementById('assignLineId').value || '0', 10) || 0,
+                EmployeeId: parseInt(document.getElementById('assignEmployeeId').value || '0', 10) || 0
+            };
+
+            try {
+                const result = await postJson('?handler=AssignLine', payload);
+                if (assignModal) {
+                    assignModal.hide();
+                }
+                await showSipToast(true, result.message || 'Da gan line SIP.');
+                window.location.reload();
+            } catch (error) {
+                await showSipToast(false, error.message);
+            }
+        }
+
+        async function revokeSipLine(lineId) {
+            const line = sipLines.find(item => item.Id === lineId);
+            const lineLabel = line && line.LineCode ? line.LineCode : 'line da chon';
+
+            let confirmed = true;
+            if (window.Swal) {
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Thu hoi line SIP',
+                    text: `Ban co chac muon thu hoi ${lineLabel}?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Thu hoi',
+                    cancelButtonText: 'Huy'
+                });
+                confirmed = !!result.isConfirmed;
+            } else {
+                confirmed = window.confirm(`Ban co chac muon thu hoi ${lineLabel}?`);
+            }
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const result = await postJson('?handler=RevokeLine', { LineId: lineId });
+                await showSipToast(true, result.message || 'Da thu hoi line SIP.');
+                window.location.reload();
+            } catch (error) {
+                await showSipToast(false, error.message);
+            }
+        }
+    </script>
+}

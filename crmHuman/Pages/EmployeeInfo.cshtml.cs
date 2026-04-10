@@ -27,6 +27,7 @@ namespace crmHuman.Pages
         private readonly ImasterDataBussiness _masterDataBussiness;
         private readonly IScheduleInterviewBussiness _scheduleInterviewBussiness;
         private readonly IDocumentDataBussiness _documentDataBussiness;
+        private readonly ISipBusiness _sipBusiness;
         public readonly IEmployeeExtraBusiness _employeeExtraBusiness;
         private readonly IWebHostEnvironment _hostingEnvironment;
 
@@ -53,6 +54,7 @@ namespace crmHuman.Pages
 
 
         public BaseList DataFile { get; set; }
+        public EmployeeSipAccountView SipAccountInfo { get; set; }
 
         public bool IsSelfView { get; set; }
 
@@ -72,7 +74,7 @@ namespace crmHuman.Pages
             ImasterDataBussiness masterDataBussiness,
             IScheduleInterviewBussiness scheduleInterviewBussiness,
             IDocumentDataBussiness documentDataBussiness,
-            IEmpBusiness empBusiness1,
+            ISipBusiness sipBusiness,
             IEmployeeExtraBusiness employeeExtraBusiness,
             IWebHostEnvironment hostingEnvironment
             )
@@ -89,8 +91,10 @@ namespace crmHuman.Pages
             MaritalStatusOptions = new List<DataMasterItem>();
             _scheduleInterviewBussiness = scheduleInterviewBussiness;
             _documentDataBussiness = documentDataBussiness;
+            _sipBusiness = sipBusiness;
             _employeeExtraBusiness = employeeExtraBusiness;
             _hostingEnvironment = hostingEnvironment;
+            SipAccountInfo = new EmployeeSipAccountView();
 
 
 
@@ -801,6 +805,7 @@ namespace crmHuman.Pages
 
 
             ResultModel = resultView;
+            SipAccountInfo = await _sipBusiness.GetEmployeeSipInfo(itemInfo.Id) ?? new EmployeeSipAccountView();
             var dataAllHistory = await _scheduleInterviewBussiness.GetAll(new ScheduleInterviewRquest()
             {
                 UserId = UserData.UserId,

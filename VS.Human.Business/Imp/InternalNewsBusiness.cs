@@ -10,8 +10,8 @@ namespace VS.Human.Business.Imp
 {
     public class InternalNewsBusiness : BaseBusiness, IInternalNewsBusiness
     {
-        private const string OldDashboardNoticeText = "CÃ i Ä‘áº·t hiá»ƒn thá»‹ thÃ´ng bÃ¡o má»›i ngay giao diá»‡n mÃ n hÃ¬nh chÃ­nh khi Ä‘Äƒng nháº­p";
-        private const string NewDashboardNoticeText = "CÃ i Ä‘áº·t hiá»ƒn thá»‹ thÃ´ng bÃ¡o má»›i ngay trÃªn mÃ n hÃ¬nh chÃ­nh khi Ä‘Äƒng nháº­p";
+        private const string OldDashboardNoticeText = "CÃƒÂ i Ã„â€˜Ã¡ÂºÂ·t hiÃ¡Â»Æ’n thÃ¡Â»â€¹ thÃƒÂ´ng bÃƒÂ¡o mÃ¡Â»â€ºi ngay giao diÃ¡Â»â€¡n mÃƒÂ n hÃƒÂ¬nh chÃƒÂ­nh khi Ã„â€˜Ã„Æ’ng nhÃ¡ÂºÂ­p";
+        private const string NewDashboardNoticeText = "Cài đặt hiển thị thông báo mới ngay trên màn hình chính khi đăng nhập";
         private const string InternalNewsEmailEntityType = "INTERNAL_NEWS";
 
         private readonly IEmailService _emailService;
@@ -45,7 +45,7 @@ namespace VS.Human.Business.Imp
             var item = await GetById(newsId);
             if (item == null || item.Id <= 0)
             {
-                return (false, "KhÃ´ng tÃ¬m tháº¥y bÃ i viáº¿t Ä‘á»ƒ gá»­i mail.", 0);
+                return (false, "Không tìm thấy bài viết để gửi mail.", 0);
             }
 
             var recipients = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -62,7 +62,7 @@ namespace VS.Human.Business.Imp
 
             if (recipients.Count == 0)
             {
-                return (false, "ChÆ°a cÃ³ ngÆ°á»i nháº­n há»£p lá»‡ trong nhÃ³m mail hoáº·c danh sÃ¡ch nháº­p tay.", 0);
+                return (false, "Chưa có người nhận hợp lệ trong nhóm mail hoặc danh sách nhập tay.", 0);
             }
 
             var createdAtText = item.CreateAt == default ? DateTime.Now.ToString("dd/MM/yyyy HH:mm") : item.CreateAt.ToString("dd/MM/yyyy HH:mm");

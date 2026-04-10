@@ -10,13 +10,16 @@ namespace crmHuman.Pages
     {
         private readonly ILogger<CallModel> _logger;
         private readonly ICallBussiness _empBusiness;
+        private readonly IEmpBusiness _employeeBusiness;
         public CallModel(ILogger<CallModel> logger,
-            ICallBussiness empBusiness
+            ICallBussiness empBusiness,
+            IEmpBusiness employeeBusiness
 
             )
         {
             _logger = logger;
             _empBusiness = empBusiness;
+            _employeeBusiness = employeeBusiness;
 
 
 
@@ -57,14 +60,21 @@ namespace crmHuman.Pages
                 };
             }
             GetInfoUser();
-            if (string.IsNullOrEmpty(UserData.LineCode))
+            var currentEmployee = await _employeeBusiness.GetById(UserData.UserId);
+            var currentLineCode = currentEmployee?.LineCode?.Trim();
+            if (string.IsNullOrEmpty(currentLineCode))
             {
+                listEror.Add(new
+                {
+                    name = "LineCode",
+                    Content = "Nhan vien chua duoc gan line SIP."
+                });
                 return new JsonResult(listEror)
                 {
                     StatusCode = StatusCodes.Status400BadRequest
                 };
             }
-            var result = await _empBusiness.MakeCall(request.Phonecall, request.Typecall, request.Idrel, UserData.LineCode, UserData.UserId);
+            var result = await _empBusiness.MakeCall(request.Phonecall, request.Typecall, request.Idrel, currentLineCode, UserData.UserId);
 
             var dataReponse = new
             {

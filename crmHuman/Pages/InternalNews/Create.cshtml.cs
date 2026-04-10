@@ -28,7 +28,7 @@ namespace crmHuman.Pages.InternalNews
             _newsBusiness = newsBusiness;
             _mailGroupBusiness = mailGroupBusiness;
             _hostingEnvironment = hostingEnvironment;
-            TitlePage = "Táº¡o tin ná»™i bá»™";
+            TitlePage = "Tạo tin nội bộ";
             KeyPage = "InternalNews";
         }
 
@@ -64,16 +64,16 @@ namespace crmHuman.Pages.InternalNews
 
             if (string.IsNullOrWhiteSpace(News.Title))
             {
-                ModelState.AddModelError("News.Title", "Vui lÃ²ng nháº­p tiÃªu Ä‘á».");
+                ModelState.AddModelError("News.Title", "Vui lòng nhập tiêu đề.");
             }
             else if (News.Title.Length > 200)
             {
-                ModelState.AddModelError("News.Title", "TiÃªu Ä‘á» tá»‘i Ä‘a 200 kÃ½ tá»±.");
+                ModelState.AddModelError("News.Title", "Tiêu đề tối đa 200 ký tự.");
             }
 
             if (string.IsNullOrWhiteSpace(News.Content))
             {
-                ModelState.AddModelError("News.Content", "Vui lÃ²ng nháº­p ná»™i dung.");
+                ModelState.AddModelError("News.Content", "Vui lòng nhập nội dung.");
             }
 
             if (!ModelState.IsValid)
@@ -132,7 +132,7 @@ namespace crmHuman.Pages.InternalNews
             var result = await _newsBusiness.AddOrUpdate(item);
             if (!result)
             {
-                ModelState.AddModelError(string.Empty, "KhÃ´ng thá»ƒ lÆ°u bÃ i Ä‘Äƒng.");
+                ModelState.AddModelError(string.Empty, "Không thể lưu bài đăng.");
                 await LoadMailGroupsAsync();
                 return Page();
             }
@@ -161,11 +161,11 @@ namespace crmHuman.Pages.InternalNews
             var sendResult = await _newsBusiness.SendNotificationAsync(newsId, BuildDetailUrl(newsId), UserData.UserId);
             if (sendResult.Success)
             {
-                TempData["SuccessMessage"] = $"ÄÃ£ gá»­i mail tá»›i {sendResult.RecipientCount} ngÆ°á»i nháº­n.";
+                TempData["SuccessMessage"] = $"Đã gửi mail tới {sendResult.RecipientCount} người nhận.";
                 return;
             }
 
-            TempData["WarningMessage"] = sendResult.Error ?? "BÃ i Ä‘Äƒng Ä‘Ã£ lÆ°u nhÆ°ng khÃ´ng thá»ƒ gá»­i mail.";
+            TempData["WarningMessage"] = sendResult.Error ?? "Bài đăng đã lưu nhưng không thể gửi mail.";
         }
 
         private string BuildDetailUrl(int newsId)
