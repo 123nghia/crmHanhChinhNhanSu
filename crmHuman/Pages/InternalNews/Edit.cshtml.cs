@@ -177,7 +177,7 @@ namespace crmHuman.Pages.InternalNews
 
         private bool CanEdit()
         {
-            return (Permision.Edit ?? false) || UserData.RoleCode == "1";
+            return (Permision.Edit ?? false) || (UserData?.RoleCode == "1");
         }
 
         private async Task LoadExistingAttachments()

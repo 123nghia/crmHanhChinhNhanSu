@@ -28,5 +28,6 @@ namespace VS.Human.Rep.Model
         public decimal? TotalHours { get; set; }
         public string? SourceFile { get; set; }
         public int? RowIndex { get; set; }
+        public bool IsLocked { get; set; }
     }
 }

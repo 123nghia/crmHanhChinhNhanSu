@@ -174,6 +174,7 @@ namespace VS.Human.Business
         };
 
         private readonly IConfiguration _configuration;
+        private static readonly TimeZoneInfo AttendanceTimeZone = ResolveAttendanceTimeZone();
 
         public AttendanceBusiness(IUnitOfWork unitOfWork, IHttpContextAccessor contextAccessor, IConfiguration configuration)
             : base(unitOfWork, contextAccessor)
@@ -431,6 +432,7 @@ namespace VS.Human.Business
                     if (saved)
                     {
                         result.TotalSuccess++;
+                        MarkChangedWorkDate(result, record.WorkDate);
                         minWorkDate = !minWorkDate.HasValue || record.WorkDate < minWorkDate.Value
                             ? record.WorkDate
                             : minWorkDate;
@@ -458,7 +460,7 @@ namespace VS.Human.Business
         }
 
         [SupportedOSPlatform("windows")]
-        public async Task<AttendanceImportResult> SyncFromAccessAsync(DateTime fromDate, DateTime toDate, int userId)
+        public async Task<AttendanceImportResult> SyncFromAccessAsync(DateTime fromDate, DateTime toDate, int userId, bool evaluateAttendance = true)
         {
             if (!OperatingSystem.IsWindows())
             {
@@ -627,6 +629,7 @@ namespace VS.Human.Business
                     if (saved)
                     {
                         result.TotalSuccess++;
+                        MarkChangedWorkDate(result, record.WorkDate);
                     }
                     else
                     {
@@ -635,7 +638,7 @@ namespace VS.Human.Business
                 }
             }
 
-            if (result.TotalSuccess > 0)
+            if (evaluateAttendance && result.TotalSuccess > 0)
             {
                 await EvaluateAttendanceRangeAsync(fromDate.Date, toDate.Date, userId);
             }
@@ -643,7 +646,7 @@ namespace VS.Human.Business
             return result;
         }
 
-        public async Task<AttendanceImportResult> SyncFromDirectSqlAsync(DateTime fromDate, DateTime toDate, int userId)
+        public async Task<AttendanceImportResult> SyncFromDirectSqlAsync(DateTime fromDate, DateTime toDate, int userId, bool evaluateAttendance = true)
         {
             var result = new AttendanceImportResult();
             var options = GetMachineOptions();
@@ -803,6 +806,7 @@ ORDER BY RecordTime;", connection))
                 if (saved)
                 {
                     result.TotalSuccess++;
+                    MarkChangedWorkDate(result, record.WorkDate);
                 }
                 else
                 {
@@ -810,7 +814,7 @@ ORDER BY RecordTime;", connection))
                 }
             }
 
-            if (result.TotalSuccess > 0)
+            if (evaluateAttendance && result.TotalSuccess > 0)
             {
                 await EvaluateAttendanceRangeAsync(fromDate.Date, toDate.Date, userId);
             }
@@ -818,7 +822,7 @@ ORDER BY RecordTime;", connection))
             return result;
         }
 
-        public async Task<AttendanceImportResult> SyncFromDeviceAsync(DateTime fromDate, DateTime toDate, int userId)
+        public async Task<AttendanceImportResult> SyncFromDeviceAsync(DateTime fromDate, DateTime toDate, int userId, bool evaluateAttendance = true)
         {
             var result = new AttendanceImportResult();
             var options = GetMachineOptions();
@@ -893,7 +897,7 @@ ORDER BY RecordTime;", connection))
 
             await SaveAggregatesAsync(aggregates, result, GetDirectDeviceSourceName(options), userId);
 
-            if (result.TotalSuccess > 0)
+            if (evaluateAttendance && result.TotalSuccess > 0)
             {
                 await EvaluateAttendanceRangeAsync(fromDate.Date, toDate.Date, userId);
             }
@@ -1443,10 +1447,27 @@ ORDER BY RecordTime;", connection))
             result.Errors.Add(new AttendanceImportError { Row = row, Content = message });
         }
 
+        private static void MarkChangedWorkDate(AttendanceImportResult result, DateTime workDate)
+        {
+            var date = workDate.Date;
+            if (date >= GetAttendanceToday())
+            {
+                return;
+            }
+
+            if (!result.ChangedWorkDates.Any(item => item.Date == date))
+            {
+                result.ChangedWorkDates.Add(date);
+            }
+        }
+
         private AttendanceMachineOptions GetMachineOptions()
         {
             var options = new AttendanceMachineOptions();
             _configuration.GetSection("AttendanceMachine").Bind(options);
+            options.UseAccessRealtime = false;
+            options.UseDirectSqlRealtime = false;
+            options.UseDirectDeviceRealtime = true;
             try
             {
                 var resolvedSource = AttendanceMachinePathResolver.Resolve(options.DbUrl, options.DbPath);
@@ -1474,11 +1495,26 @@ ORDER BY RecordTime;", connection))
                 ? 120
                 : options.DeviceTimeoutSeconds;
             options.RealtimeSyncIntervalSeconds = options.RealtimeSyncIntervalSeconds <= 0
-                ? 10
+                ? 60
                 : options.RealtimeSyncIntervalSeconds;
             options.RealtimeSyncLookbackDays = options.RealtimeSyncLookbackDays <= 0
-                ? 2
+                ? 30
                 : options.RealtimeSyncLookbackDays;
+            options.SchedulerPollIntervalSeconds = options.SchedulerPollIntervalSeconds <= 0
+                ? 60
+                : options.SchedulerPollIntervalSeconds;
+            options.RealtimeSyncTimes = string.IsNullOrWhiteSpace(options.RealtimeSyncTimes)
+                ? "12:30,20:30"
+                : options.RealtimeSyncTimes.Trim();
+            options.DailyEvaluationTime = string.IsNullOrWhiteSpace(options.DailyEvaluationTime)
+                ? "21:00"
+                : options.DailyEvaluationTime.Trim();
+            options.HistoricalSyncLookbackDays = options.HistoricalSyncLookbackDays < 0
+                ? 30
+                : options.HistoricalSyncLookbackDays;
+            options.MonthlyResyncTime = string.IsNullOrWhiteSpace(options.MonthlyResyncTime)
+                ? "01:00"
+                : options.MonthlyResyncTime.Trim();
             options.DirectSqlConnectionString = string.IsNullOrWhiteSpace(options.DirectSqlConnectionString)
                 ? null
                 : options.DirectSqlConnectionString.Trim();
@@ -1969,6 +2005,7 @@ ORDER BY RecordTime;", connection))
                 if (saved)
                 {
                     result.TotalSuccess++;
+                    MarkChangedWorkDate(result, record.WorkDate);
                 }
                 else
                 {
@@ -2432,7 +2469,8 @@ WHERE DeviceIp = @DeviceIp
         private bool CanFinalizeAttendanceDate(DateTime workDate)
         {
             var targetDate = workDate.Date;
-            var today = DateTime.Today;
+            var now = GetAttendanceNow();
+            var today = now.Date;
             if (targetDate < today)
             {
                 return true;
@@ -2443,16 +2481,56 @@ WHERE DeviceIp = @DeviceIp
                 return false;
             }
 
-            var cutoffHour = GetDailyEvaluationHour();
-            return DateTime.Now.Hour >= cutoffHour;
+            var cutoffTime = GetDailyEvaluationTime();
+            return now.TimeOfDay >= cutoffTime;
         }
 
-        private int GetDailyEvaluationHour()
+        private TimeSpan GetDailyEvaluationTime()
         {
+            var evaluationTime = _configuration.GetValue<string>("AttendanceMachine:DailyEvaluationTime");
+            if (TryParseClockTime(evaluationTime, out var parsedTime))
+            {
+                return parsedTime;
+            }
+
             var evaluationHour = _configuration.GetValue<int?>("AttendanceMachine:DailyEvaluationHour") ?? 21;
-            return evaluationHour < 0 || evaluationHour > 23
-                ? 21
-                : evaluationHour;
+            return new TimeSpan(evaluationHour < 0 || evaluationHour > 23 ? 21 : evaluationHour, 0, 0);
+        }
+
+        private static bool TryParseClockTime(string? value, out TimeSpan time)
+        {
+            time = default;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            var parts = value.Trim().Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2 || parts.Length > 3)
+            {
+                return false;
+            }
+
+            if (!int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var hour) ||
+                !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var minute))
+            {
+                return false;
+            }
+
+            var second = 0;
+            if (parts.Length == 3 &&
+                !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out second))
+            {
+                return false;
+            }
+
+            if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59)
+            {
+                return false;
+            }
+
+            time = new TimeSpan(hour, minute, second);
+            return true;
         }
 
         private static bool IsScheduledOffDate(DateTime workDate)
@@ -2487,6 +2565,32 @@ WHERE DeviceIp = @DeviceIp
         private static string BuildDateKey(DateTime workDate)
         {
             return workDate.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        private static DateTime GetAttendanceNow()
+        {
+            return TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, AttendanceTimeZone).DateTime;
+        }
+
+        private static DateTime GetAttendanceToday()
+        {
+            return GetAttendanceNow().Date;
+        }
+
+        private static TimeZoneInfo ResolveAttendanceTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+            }
         }
 
         private static bool IsValidDepartmentRule(AttendanceDepartmentRuleModel rule)

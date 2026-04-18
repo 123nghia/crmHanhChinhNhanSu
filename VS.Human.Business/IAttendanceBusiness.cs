@@ -15,9 +15,9 @@ namespace VS.Human.Business
         Task<bool> DeleteHolidayAsync(int id, int userId);
         Task<int> EvaluateAttendanceRangeAsync(DateTime fromDate, DateTime toDate, int userId);
         Task<AttendanceImportResult> ImportAsync(IFormFile file, int userId);
-        Task<AttendanceImportResult> SyncFromAccessAsync(DateTime fromDate, DateTime toDate, int userId);
-        Task<AttendanceImportResult> SyncFromDeviceAsync(DateTime fromDate, DateTime toDate, int userId);
-        Task<AttendanceImportResult> SyncFromDirectSqlAsync(DateTime fromDate, DateTime toDate, int userId);
+        Task<AttendanceImportResult> SyncFromAccessAsync(DateTime fromDate, DateTime toDate, int userId, bool evaluateAttendance = true);
+        Task<AttendanceImportResult> SyncFromDeviceAsync(DateTime fromDate, DateTime toDate, int userId, bool evaluateAttendance = true);
+        Task<AttendanceImportResult> SyncFromDirectSqlAsync(DateTime fromDate, DateTime toDate, int userId, bool evaluateAttendance = true);
     }
 
     public class AttendanceImportResult
@@ -26,6 +26,7 @@ namespace VS.Human.Business
         public int TotalSuccess { get; set; }
         public int TotalError { get; set; }
         public List<AttendanceImportError> Errors { get; set; } = new List<AttendanceImportError>();
+        public List<DateTime> ChangedWorkDates { get; set; } = new List<DateTime>();
     }
 
     public class AttendanceImportError

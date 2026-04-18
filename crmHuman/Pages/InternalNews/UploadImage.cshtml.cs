@@ -28,7 +28,7 @@ namespace crmHuman.Pages.InternalNews
             }
 
             GetInfoUser();
-            var canUpload = (Permision.Add ?? false) || (Permision.Edit ?? false) || UserData.RoleCode == "1";
+            var canUpload = (Permision.Add ?? false) || (Permision.Edit ?? false) || (UserData?.RoleCode == "1");
             if (!canUpload)
             {
                 return Forbid();

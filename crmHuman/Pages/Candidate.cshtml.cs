@@ -1,7 +1,9 @@
-﻿using crmHuman.DisplayModel;
+using crmHuman.DisplayModel;
 using crmHuman.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using System.Linq;
 using VS.Human.Business;
 using VS.Human.Business.Model;
 using VS.Human.Item;
@@ -14,35 +16,45 @@ namespace crmHuman.Pages
     {
         private readonly ILogger<CandidateModel> _logger;
         private readonly ICandidateBusiness _empBusiness;
-
         private readonly IEmpBusiness _iempl;
+        private readonly ImasterDataBussiness _masterDataBussiness;
+        private readonly INotificationBusiness _notificationBusiness;
+        private readonly ISipBusiness _sipBusiness;
+        private readonly IReoportBussiness _reportBusiness;
+        private readonly IConfiguration _configuration;
+
         public List<string> TableColumnTextAdmin { get; set; }
         public CandidateRequest RequestSearch { get; set; }
         public BaseList DataAll { get; set; }
         public List<DataMasterItem> DataMasterData { get; set; }
-        private readonly ImasterDataBussiness _masterDataBussiness;
-        private readonly INotificationBusiness _notificationBusiness;
         public BaseList DataManager { get; set; }
+        public EmployeeSipAccountView CurrentUserSipInfo { get; set; }
+
         public int TotalRecord
         {
-
             get
             {
                 return DataAll.Total;
-
             }
         }
-        public CandidateModel(ILogger<CandidateModel> logger,
+
+        public CandidateModel(
+            ILogger<CandidateModel> logger,
             ICandidateBusiness empBusiness,
             IEmpBusiness empBusiness1,
             ImasterDataBussiness imasterDataBussiness,
-            INotificationBusiness notificationBusiness
-            )
+            INotificationBusiness notificationBusiness,
+            ISipBusiness sipBusiness,
+            IReoportBussiness reportBusiness,
+            IConfiguration configuration)
         {
             _logger = logger;
             _empBusiness = empBusiness;
             _masterDataBussiness = imasterDataBussiness;
             _notificationBusiness = notificationBusiness;
+            _sipBusiness = sipBusiness;
+            _reportBusiness = reportBusiness;
+            _configuration = configuration;
             TitlePage = "Danh sách ứng viên";
             KeyPage = "Candidate";
             _iempl = empBusiness1;
@@ -62,11 +74,13 @@ namespace crmHuman.Pages
                 "Cập nhật gần nhất","Người tạo","Thao tác"
             };
             DataMasterData = new List<DataMasterItem>();
-
+            DataManager = new BaseList();
+            DataAll = new BaseList();
+            RequestSearch = new CandidateRequest();
+            CurrentUserSipInfo = new EmployeeSipAccountView();
         }
 
-        public async Task<IActionResult> OnPostAdd
-            (CandidateAdd request)
+        public async Task<IActionResult> OnPostAdd(CandidateAdd request)
         {
             GetInfoUser();
             var canEdit = (Permision != null && (Permision.Add == true || Permision.Edit == true)) || CanManageRecruitmentData();
@@ -123,7 +137,6 @@ namespace crmHuman.Pages
                 }
                 if (result)
                 {
-                    // Get the newly created candidate to find their ID
                     var candidates = await _empBusiness.GetAll(new CandidateRequest
                     {
                         Token = request.Phone,
@@ -150,7 +163,6 @@ namespace crmHuman.Pages
                         }
                     }
                 }
-
             }
             else
             {
@@ -162,8 +174,6 @@ namespace crmHuman.Pages
             };
             return ApiResponseHelper.SuccessResponse(dataReponse);
         }
-
-
 
         public async Task<ActionResult> OnGet([FromQuery] CandidateRequest request)
         {
@@ -182,7 +192,6 @@ namespace crmHuman.Pages
             });
             foreach (var item in temp.Data)
             {
-
                 var tempItem = item as dynamic;
 
                 var itemInsert = new DataMasterItem()
@@ -196,6 +205,7 @@ namespace crmHuman.Pages
                 DataMasterData.Add(itemInsert);
             }
             DataManager = await _iempl.GetAllManager();
+            CurrentUserSipInfo = await _sipBusiness.GetEmployeeSipInfo(UserData.UserId) ?? new EmployeeSipAccountView();
             return await GetAll(request);
         }
 
@@ -221,34 +231,30 @@ namespace crmHuman.Pages
             if (UserData.RoleCode == "6")
             {
                 TableColumnText = new List<string>()
-                    {
-                        "STT","Họ tên","Tài khoản","Vai trò","Nhóm", "Ngày Onboard","Cập nhật gần nhất","Thao tác"
-                    };
+                {
+                    "STT","Họ tên","Tài khoản","Vai trò","Nhóm", "Ngày Onboard","Cập nhật gần nhất","Thao tác"
+                };
 
                 TableColumnTextAdmin = new List<string>()
-                    {
-                        "STT","Họ tên","Tài khoản","Vai trò","Nhóm","Trạng thái", "Ngày Onboard","Cập nhật gần nhất","Thao tác"
-                    };
+                {
+                    "STT","Họ tên","Tài khoản","Vai trò","Nhóm","Trạng thái", "Ngày Onboard","Cập nhật gần nhất","Thao tác"
+                };
             }
             return Page();
         }
 
         public virtual async Task<PartialViewResult> OnGetFormEdit(int id)
-
         {
             GetInfoUser();
             var resultView = new VS.Human.Rep.Model.Candidate()
             {
                 Id = id,
-
                 IsActive = 1,
                 Phone = "",
                 Status = 1,
                 CVLink = "",
-
                 Deleted = false,
                 Noted = ""
-
             };
 
             var temp = await _masterDataBussiness.GetAll(new CommonRequest()
@@ -258,7 +264,6 @@ namespace crmHuman.Pages
 
             foreach (var item in temp.Data)
             {
-
                 var tempItem = item as dynamic;
 
                 var itemInsert = new DataMasterItem()
@@ -280,7 +285,6 @@ namespace crmHuman.Pages
                 DataMasterData
             };
 
-
             if (id < 1)
             {
                 return Partial("EditOrUpdateCandidate", resultModel);
@@ -296,9 +300,7 @@ namespace crmHuman.Pages
         }
 
         public virtual async Task<PartialViewResult> OnGetFormChangePassword(int id)
-
         {
-
             var resultView = new
             {
                 Id = id
@@ -307,7 +309,6 @@ namespace crmHuman.Pages
         }
 
         public virtual async Task<PartialViewResult> OnGetFormImportCandidate()
-
         {
             GetInfoUser();
             var dataCandidate = await _empBusiness.GetAll(new CandidateRequest()
@@ -323,8 +324,78 @@ namespace crmHuman.Pages
             return Partial("FormImportCandidate", resultView);
         }
 
-        public async Task<IActionResult> OnPostDelete
-      (int Id = -1)
+        public async Task<IActionResult> OnGetCallWorkspace(int candidateId, string? phone)
+        {
+            GetInfoUser();
+
+            if (!await _empBusiness.HasViewAccess(candidateId, UserData.UserId, UserData.RoleCode))
+            {
+                return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
+            }
+
+            var candidate = await _empBusiness.GetById(candidateId);
+            if (candidate == null || candidate.Id <= 0)
+            {
+                return ApiResponseHelper.NotFound("Khong tim thay ung vien.");
+            }
+
+            var sipInfo = await _sipBusiness.GetEmployeeSipInfo(UserData.UserId) ?? new EmployeeSipAccountView();
+            var dialPhone = NormalizePhoneForTelephony(string.IsNullOrWhiteSpace(phone) ? candidate.Phone : phone);
+
+            var history = new List<object>();
+            if (!string.IsNullOrWhiteSpace(dialPhone))
+            {
+                var historyResult = await _reportBusiness.GetAllRecordingFile(new ReportCDRequest
+                {
+                    UserId = UserData.UserId.ToString(),
+                    PhoneLog = dialPhone,
+                    Limit = 10,
+                    Page = 1,
+                    TimeTalkBegin = -1,
+                    TimeTalkEnd = -1
+                });
+
+                history = (historyResult.Data?.OfType<ReportCDRItem>() ?? Enumerable.Empty<ReportCDRItem>())
+                    .Select(item => new
+                    {
+                        callDate = item.Calldate,
+                        callDateText = item.Calldate.HasValue ? item.Calldate.Value.ToString("dd/MM/yyyy HH:mm") : string.Empty,
+                        disposition = item.Disposition ?? string.Empty,
+                        durationText = FormatDuration(item.DurationReal > 0 ? item.DurationReal : 0),
+                        lineCode = item.LineCode ?? string.Empty,
+                        userName = item.UserName ?? string.Empty,
+                        recordingUrl = BuildRecordingPlaybackUrl(item.Recordingfile),
+                        recordingFile = item.Recordingfile ?? string.Empty
+                    })
+                    .Cast<object>()
+                    .ToList();
+            }
+
+            return ApiResponseHelper.Success(new
+            {
+                candidate = new
+                {
+                    id = candidate.Id,
+                    name = candidate.Name ?? string.Empty,
+                    userName = candidate.UserName ?? string.Empty,
+                    candidatePhone = candidate.Phone ?? string.Empty,
+                    dialPhone
+                },
+                sip = new
+                {
+                    hasAssignedLine = sipInfo.HasAssignedLine,
+                    lineCode = sipInfo.LineCode ?? string.Empty,
+                    sipUserName = sipInfo.SipUserName ?? string.Empty,
+                    displayName = sipInfo.DisplayName ?? string.Empty,
+                    serverName = sipInfo.ServerName ?? string.Empty,
+                    serverHost = sipInfo.ServerHost ?? string.Empty,
+                    serverPort = sipInfo.ServerPort ?? 0
+                },
+                history
+            });
+        }
+
+        public async Task<IActionResult> OnPostDelete(int Id = -1)
         {
             GetInfoUser();
 
@@ -338,7 +409,6 @@ namespace crmHuman.Pages
                     Content = "Thiếu thông tin cần xoá"
                 };
                 listEror.Add(itemError);
-
             }
             if (listEror.Count > 0)
             {
@@ -353,24 +423,18 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
 
-            var result = true;
-
-            result = await _empBusiness.Delete(Id);
+            var result = await _empBusiness.Delete(Id);
             var dataReponse = new
             {
                 success = result,
-
             };
             return new JsonResult(dataReponse)
             {
                 StatusCode = StatusCodes.Status200OK
-
             };
         }
 
-
-        public async Task<IActionResult> OnPostReactive
-     (int Id = -1)
+        public async Task<IActionResult> OnPostReactive(int Id = -1)
         {
             GetInfoUser();
 
@@ -384,7 +448,6 @@ namespace crmHuman.Pages
                     Content = "Thiếu thông tin cần xoá"
                 };
                 listEror.Add(itemError);
-
             }
             if (listEror.Count > 0)
             {
@@ -399,23 +462,16 @@ namespace crmHuman.Pages
                 return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
 
-            var result = true;
-
-            result = await _empBusiness.Delete(Id, true);
+            var result = await _empBusiness.Delete(Id, true);
             var dataReponse = new
             {
                 success = result,
-
             };
             return new JsonResult(dataReponse)
             {
                 StatusCode = StatusCodes.Status200OK
-
             };
         }
-
-
-
 
         public async Task<IActionResult> OnPostApprovePass(int Id)
         {
@@ -424,7 +480,10 @@ namespace crmHuman.Pages
             {
                 return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
-            if (Id < 0) return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
+            if (Id < 0)
+            {
+                return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
+            }
             var result = await _empBusiness.ApprovePassInterview(Id);
             return new JsonResult(new { success = result }) { StatusCode = StatusCodes.Status200OK };
         }
@@ -436,7 +495,10 @@ namespace crmHuman.Pages
             {
                 return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
-            if (Id < 0) return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
+            if (Id < 0)
+            {
+                return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
+            }
             var result = await _empBusiness.ApprovePendingEmployee(Id);
             return new JsonResult(new { success = result }) { StatusCode = StatusCodes.Status200OK };
         }
@@ -448,7 +510,10 @@ namespace crmHuman.Pages
             {
                 return ApiResponseHelper.Error("Access denied", StatusCodes.Status403Forbidden);
             }
-            if (Id < 0) return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
+            if (Id < 0)
+            {
+                return new JsonResult(new { success = false }) { StatusCode = StatusCodes.Status400BadRequest };
+            }
             var emp = await _empBusiness.Onboard(Id);
             var result = emp != null;
             return new JsonResult(new { success = result }) { StatusCode = StatusCodes.Status200OK };
@@ -460,5 +525,52 @@ namespace crmHuman.Pages
             return roleCode == "1" || roleCode == "3" || roleCode == "6" || roleCode == "8" || roleCode == "9";
         }
 
+        private static string NormalizePhoneForTelephony(string? phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                return string.Empty;
+            }
+
+            var normalized = new string(phone.Where(ch => char.IsDigit(ch)).ToArray());
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return string.Empty;
+            }
+
+            if (normalized.StartsWith("84") && normalized.Length >= 10)
+            {
+                normalized = "0" + normalized.Substring(2);
+            }
+
+            return normalized;
+        }
+
+        private string? BuildRecordingPlaybackUrl(string? filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return null;
+            }
+
+            var playbackBaseUrl = _configuration["Telephony:RecordingPlaybackBaseUrl"]?.Trim();
+            if (string.IsNullOrWhiteSpace(playbackBaseUrl))
+            {
+                playbackBaseUrl = "http://192.168.1.3:7224/api/file/getaudio9";
+            }
+
+            var separator = playbackBaseUrl.Contains('?') ? "&" : "?";
+            return $"{playbackBaseUrl}{separator}filePath={Uri.EscapeDataString(filePath)}";
+        }
+
+        private static string FormatDuration(double seconds)
+        {
+            if (seconds <= 0)
+            {
+                return "00:00";
+            }
+
+            return TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
+        }
     }
 }

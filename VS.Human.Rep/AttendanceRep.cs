@@ -489,8 +489,16 @@ SET WorkDay = @WorkDay,
     ShiftName = COALESCE(@ShiftName, ShiftName),
     UpdatedBy = @UserId,
     UpdateAt = GETDATE()
-WHERE Id = @Id;";
-
+WHERE Id = @Id
+  AND ISNULL(IsLocked, 0) = 0
+  AND NOT EXISTS (
+      SELECT 1
+      FROM AttendanceLocks l
+      WHERE l.IsLocked = 1
+        AND ISNULL(l.Deleted, 0) = 0
+        AND AttendanceRecords.WorkDate >= l.RangeFrom
+        AND AttendanceRecords.WorkDate <= l.RangeTo
+  );";
             return await ExecuteSQL(sql, new
             {
                 update.Id,

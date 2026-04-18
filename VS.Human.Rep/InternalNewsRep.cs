@@ -285,10 +285,31 @@ FROM InternalNewsMailGroups
 WHERE NewsId = @NewsId
   AND ISNULL(Deleted, 0) = 0;";
 
-            result.Attachments = (await con.QueryAsync<InternalNewsAttachment>(attachmentSql, new { NewsId = result.Id })).ToList();
-            if (await TableExistsAsync(con, null, "dbo.InternalNewsMailGroups"))
+            try
             {
-                result.MailGroupIds = (await con.QueryAsync<int>(groupSql, new { NewsId = result.Id })).ToList();
+                var attachments = await con.QueryAsync<InternalNewsAttachment>(attachmentSql, new { NewsId = result.Id });
+                result.Attachments = attachments?.ToList() ?? new List<InternalNewsAttachment>();
+            }
+            catch (Exception)
+            {
+                result.Attachments = new List<InternalNewsAttachment>();
+            }
+
+            try
+            {
+                if (await TableExistsAsync(con, null, "dbo.InternalNewsMailGroups"))
+                {
+                    var mailGroups = await con.QueryAsync<int>(groupSql, new { NewsId = result.Id });
+                    result.MailGroupIds = mailGroups?.ToList() ?? new List<int>();
+                }
+                else
+                {
+                    result.MailGroupIds = new List<int>();
+                }
+            }
+            catch (Exception)
+            {
+                result.MailGroupIds = new List<int>();
             }
 
             return result;

@@ -15,9 +15,9 @@ namespace crmHuman.Pages.InternalNews
 
         public int TotalRecord => NewsList?.Total ?? 0;
 
-        public bool CanCreate => (Permision.Add ?? false) || UserData.RoleCode == "1";
-        public bool CanEdit => (Permision.Edit ?? false) || UserData.RoleCode == "1";
-        public bool CanDelete => (Permision.Delete ?? false) || UserData.RoleCode == "1";
+        public bool CanCreate => (Permision.Add ?? false) || (UserData?.RoleCode == "1");
+        public bool CanEdit => (Permision.Edit ?? false) || (UserData?.RoleCode == "1");
+        public bool CanDelete => (Permision.Delete ?? false) || (UserData?.RoleCode == "1");
 
         public IndexModel(IInternalNewsBusiness newsBusiness)
         {
@@ -38,7 +38,7 @@ namespace crmHuman.Pages.InternalNews
             GetInfoUser();
             RequestSearch = request;
 
-            var canView = (Permision.View ?? false) || UserData.RoleCode == "1";
+            var canView = (Permision.View ?? false) || (UserData?.RoleCode == "1");
             if (!canView)
             {
                 NewsList = new BaseList { Data = new List<object>(), Total = 0 };

@@ -1,7 +1,8 @@
-﻿@page
+@page
 @model CandidateModel
 @{
-    ViewData["Title"] = Model.TitlePage;   
+    ViewData["Title"] = Model.TitlePage;
+    var canQuickCall = Model.CurrentUserSipInfo?.HasAssignedLine ?? false;
 }
 <div class="pagetitle">
     <h1>@Model.TitlePage</h1>
@@ -19,19 +20,36 @@
         <div class="col-lg-12">
             <div class="card">
                 <div class="card-body">
-            
+                    @if (canQuickCall)
+                    {
+                        <div class="alert alert-success mt-3 mb-3">
+                            Dang su dung line SIP <strong>@Model.CurrentUserSipInfo.LineCode</strong>
+                            @if (!string.IsNullOrWhiteSpace(Model.CurrentUserSipInfo.SipUserName))
+                            {
+                                <span>(@Model.CurrentUserSipInfo.SipUserName)</span>
+                            }.
+                            Ban co the goi nhanh, quay so va xem lich su ghi am ngay tren danh sach ung vien.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning mt-3 mb-3">
+                            Tai khoan nay chua duoc gan line SIP. Ban van mo duoc khung quay so va lich su goi, nhung khong the goi cho den khi duoc gan line.
+                        </div>
+                    }
+
                     @{
                         Html.RenderPartial("formSearch/searchFormCandidatev2", Model);
                     }
                     @{
                         var columnText = Model.TableColumnText;
-                        if(Model.UserData.RoleCode =="1")
+                        if (Model.UserData.RoleCode == "1")
                         {
                             columnText = Model.TableColumnTextAdmin;
-                            }
+                        }
                     }
-                   
-                    <table class="table  table-striped">
+
+                    <table class="table table-striped">
                         <thead>
                             <tr>
                                 @foreach (var item in columnText)
@@ -39,7 +57,7 @@
                                     <th>
                                         @item
                                     </th>
-                                }     
+                                }
                             </tr>
                         </thead>
                         <tbody>
@@ -50,7 +68,7 @@
                             {
                                 var itemInfo = itemData as dynamic;
                                 var datetimeCreate = "";
-                                datetimeCreate  =@itemInfo.CreateAt.ToString("dd/MM/yyyy");
+                                datetimeCreate = @itemInfo.CreateAt.ToString("dd/MM/yyyy");
                                 var datetimeUpdate = "";
                                 if (@itemInfo.UpdateAt != null)
                                 {
@@ -61,7 +79,8 @@
                                     }
                                 }
 
-                                var onBoardext = "";
+                                var candidatePhone = itemInfo.Phone != null ? itemInfo.Phone.ToString() : string.Empty;
+                                var allowQuickCall = canQuickCall && !string.IsNullOrWhiteSpace(candidatePhone);
                                 i++;
                                 <tr>
                                     <td>@i</td>
@@ -73,30 +92,25 @@
                                     <td>@itemInfo.StatusName</td>
                                     <td>@itemInfo.DocumentStatusText</td>
                                     <td>@datetimeCreate</td>
-                                      <td>@itemInfo.AuthorName</td>
-                                    <td>
-                                        @if(@itemInfo.Deleted == true)
+                                    <td>@itemInfo.AuthorName</td>
+                                    <td class="text-nowrap">
+                                        @if (@itemInfo.Deleted == true)
                                         {
                                             <a href="javascript:void(0)" onclick="reActive(@itemInfo.Id, 'Candidate')">
-                                                                                    <i class="bi bi-recycle"></i>
-
-                                           </a>
+                                                <i class="bi bi-recycle"></i>
+                                            </a>
                                         }
-                                        else  
+                                        else
                                         {
-                                        <a href="javascript:void(0)" onclick="confirmDelete(@itemInfo.Id, 'Candidate')">
-                                                                                    <i class="bi bi-trash-fill">
-
-                                                                            </i>
-                                           </a>
+                                            <a href="javascript:void(0)" onclick="confirmDelete(@itemInfo.Id, 'Candidate')">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </a>
                                         }
                                         <a href="javascript:void(0)" onclick="OpenChangPassword(@itemInfo.Id)">
-                                            <i class="bi bi-compass-fill">
-
-                                            </i>
+                                            <i class="bi bi-compass-fill"></i>
                                         </a>
 
-                                         @if (itemInfo.Status == 91 || itemInfo.Status == 1)
+                                        @if (itemInfo.Status == 91 || itemInfo.Status == 1)
                                         {
                                             <a href="javascript:void(0)" onclick="approvePass(@itemInfo.Id)" title="Đậu phỏng vấn" class="text-success ms-2">
                                                 <i class="bi bi-check-circle-fill"></i>
@@ -114,20 +128,33 @@
                                                 <i class="bi bi-person-badge-fill"></i>
                                             </a>
                                         }
-                                       
-                                </td>
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-success ms-2"
+                                                title="Gọi nhanh"
+                                                data-phone="@candidatePhone"
+                                                onclick="callFrom('Candidate', @itemInfo.Id, this)"
+                                                @(allowQuickCall ? null : "disabled")>
+                                            <i class="bi bi-telephone-forward-fill"></i>
+                                        </button>
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary ms-1"
+                                                title="Quay số và lịch sử gọi"
+                                                data-candidate-id="@itemInfo.Id"
+                                                data-candidate-name="@itemInfo.Name"
+                                                data-candidate-phone="@candidatePhone"
+                                                onclick="openCandidateCallWorkspace(this)">
+                                            <i class="bi bi-headset"></i>
+                                        </button>
+                                    </td>
                                 </tr>
                             }
-                      
-                            
-                            
                         </tbody>
                     </table>
                     @{
                         Html.RenderPartial("formSearch/pagination", Model);
                     }
-                        
-                    
                 </div>
             </div>
 
@@ -135,36 +162,329 @@
     </div>
 </section>
 
-<div class="modal fade" id="formModal" tabindex="-1" >
-    <div class="modal-dialog  modal-dialog-centered modal-lg" >
+<div class="modal fade" id="formModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" id="contentModal">
         </div>
     </div>
 </div><!-- End Large Modal-->
 
+<div class="modal fade" id="candidateCallWorkspaceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1">Call Workspace</h5>
+                    <div class="small text-muted">Goi nhanh, quay so tay va nghe file ghi am theo so dien thoai ung vien.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="candidateCallCandidateId" value="0" />
 
+                <div class="row g-3">
+                    <div class="col-12 col-lg-6">
+                        <label class="form-label">Ung vien</label>
+                        <input type="text" id="candidateCallCandidateName" class="form-control" readonly />
+                    </div>
+                    <div class="col-12 col-lg-6">
+                        <label class="form-label">Line SIP hien tai</label>
+                        <input type="text" id="candidateCallSipLine" class="form-control" readonly />
+                    </div>
+                    <div class="col-12 col-lg-8">
+                        <label class="form-label">So can goi</label>
+                        <div class="input-group">
+                            <input type="text"
+                                   id="candidateCallDialPhone"
+                                   class="form-control phonecall"
+                                   placeholder="Nhap so dien thoai can goi" />
+                            <button type="button"
+                                    class="btn btn-success"
+                                    id="candidateCallDialButton"
+                                    data-phone-target="#candidateCallDialPhone"
+                                    onclick="callCandidateFromWorkspace()">
+                                Goi
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <label class="form-label">Server</label>
+                        <input type="text" id="candidateCallServer" class="form-control" readonly />
+                    </div>
+                </div>
+
+                <div id="candidateCallSipNotice" class="alert alert-warning mt-3 d-none"></div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-2 gap-2 flex-wrap">
+                    <div>
+                        <h6 class="mb-1">Lich su goi va ghi am</h6>
+                        <div class="small text-muted" id="candidateCallHistoryHint">He thong loc theo so dien thoai dang nhap.</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshCandidateCallWorkspace()">
+                        Tai lai lich su
+                    </button>
+                </div>
+
+                <div id="candidateCallHistoryLoading" class="small text-muted d-none">Dang tai du lieu goi...</div>
+                <div id="candidateCallHistoryEmpty" class="alert alert-light border">Chua co du lieu goi cho so nay.</div>
+
+                <div class="table-responsive d-none" id="candidateCallHistoryTableWrap">
+                    <table class="table table-sm table-striped align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Thoi gian</th>
+                                <th>Trang thai</th>
+                                <th>Thoi luong</th>
+                                <th>Line goi</th>
+                                <th>Nguoi goi</th>
+                                <th>Audio</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidateCallHistoryBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script>
+        let candidateCallWorkspaceModal = null;
+
+        function normalizeCandidateDialPhone(value) {
+            if (!value) {
+                return '';
+            }
+
+            let normalized = value.toString().replace(/[^\d+]/g, '');
+            if (normalized.startsWith('+84')) {
+                normalized = `0${normalized.substring(3)}`;
+            } else if (normalized.startsWith('84') && normalized.length >= 10) {
+                normalized = `0${normalized.substring(2)}`;
+            }
+
+            return normalized;
+        }
+
+        function getCandidateCallWorkspaceModal() {
+            if (!candidateCallWorkspaceModal) {
+                candidateCallWorkspaceModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('candidateCallWorkspaceModal'));
+            }
+
+            return candidateCallWorkspaceModal;
+        }
+
+        function setCandidateCallWorkspaceLoading(isLoading) {
+            const loading = document.getElementById('candidateCallHistoryLoading');
+            if (!loading) {
+                return;
+            }
+
+            loading.classList.toggle('d-none', !isLoading);
+        }
+
+        function resetCandidateCallWorkspace() {
+            document.getElementById('candidateCallCandidateId').value = '0';
+            document.getElementById('candidateCallCandidateName').value = '';
+            document.getElementById('candidateCallSipLine').value = '';
+            document.getElementById('candidateCallDialPhone').value = '';
+            document.getElementById('candidateCallServer').value = '';
+            document.getElementById('candidateCallHistoryHint').textContent = 'He thong loc theo so dien thoai dang nhap.';
+            document.getElementById('candidateCallHistoryBody').innerHTML = '';
+            document.getElementById('candidateCallHistoryEmpty').classList.remove('d-none');
+            document.getElementById('candidateCallHistoryTableWrap').classList.add('d-none');
+            document.getElementById('candidateCallSipNotice').classList.add('d-none');
+            document.getElementById('candidateCallSipNotice').textContent = '';
+        }
+
+        function resolveCandidateCallErrorMessage(error) {
+            const response = error?.jqXHR?.responseJSON;
+            if (response?.message) {
+                return response.message;
+            }
+
+            if (Array.isArray(response) && response.length > 0) {
+                return response[0]?.Content || 'Khong the tai du lieu cuoc goi.';
+            }
+
+            return error?.message || 'Khong the tai du lieu cuoc goi.';
+        }
+
+        function candidateCallBadgeClass(disposition) {
+            const normalized = (disposition || '').toString().toUpperCase();
+            if (normalized === 'ANSWERED') {
+                return 'bg-success';
+            }
+            if (normalized === 'BUSY') {
+                return 'bg-warning text-dark';
+            }
+            if (normalized === 'NO ANSWER' || normalized === 'NOANSWER') {
+                return 'bg-secondary';
+            }
+            if (normalized === 'FAILED' || normalized === 'CANCEL') {
+                return 'bg-danger';
+            }
+
+            return 'bg-info text-dark';
+        }
+
+        function renderCandidateCallHistory(items) {
+            const body = document.getElementById('candidateCallHistoryBody');
+            const empty = document.getElementById('candidateCallHistoryEmpty');
+            const tableWrap = document.getElementById('candidateCallHistoryTableWrap');
+            if (!body || !empty || !tableWrap) {
+                return;
+            }
+
+            body.innerHTML = '';
+            if (!Array.isArray(items) || items.length === 0) {
+                empty.classList.remove('d-none');
+                tableWrap.classList.add('d-none');
+                return;
+            }
+
+            empty.classList.add('d-none');
+            tableWrap.classList.remove('d-none');
+
+            items.forEach(function (item) {
+                const row = document.createElement('tr');
+                const audioHtml = item.recordingUrl
+                    ? `<audio controls preload="none" src="${item.recordingUrl}" style="max-width: 240px;"></audio>`
+                    : '<span class="text-muted small">Khong co file</span>';
+
+                row.innerHTML = `
+                    <td>${item.callDateText || ''}</td>
+                    <td><span class="badge ${candidateCallBadgeClass(item.disposition)}">${item.disposition || ''}</span></td>
+                    <td>${item.durationText || '00:00'}</td>
+                    <td>${item.lineCode || ''}</td>
+                    <td>${item.userName || ''}</td>
+                    <td>${audioHtml}</td>
+                `;
+                body.appendChild(row);
+            });
+        }
+
+        async function loadCandidateCallWorkspace(candidateId, phoneOverride) {
+            resetCandidateCallWorkspace();
+            document.getElementById('candidateCallCandidateId').value = String(candidateId || 0);
+            setCandidateCallWorkspaceLoading(true);
+
+            try {
+                const response = await BaseService.getJSON('/Candidate?handler=CallWorkspace', {
+                    candidateId: candidateId,
+                    phone: phoneOverride || ''
+                });
+
+                const payload = response?.data || {};
+                const candidate = payload.candidate || {};
+                const sip = payload.sip || {};
+                const history = Array.isArray(payload.history) ? payload.history : [];
+
+                document.getElementById('candidateCallCandidateName').value =
+                    [candidate.name || '', candidate.userName ? `(${candidate.userName})` : '']
+                        .filter(Boolean)
+                        .join(' ');
+
+                document.getElementById('candidateCallDialPhone').value =
+                    normalizeCandidateDialPhone(phoneOverride || candidate.dialPhone || candidate.candidatePhone || '');
+
+                document.getElementById('candidateCallSipLine').value = sip.hasAssignedLine
+                    ? [sip.lineCode || '', sip.sipUserName || ''].filter(Boolean).join(' / ')
+                    : 'Chua duoc gan line SIP';
+
+                document.getElementById('candidateCallServer').value =
+                    [sip.serverName || '', sip.serverHost ? `${sip.serverHost}${sip.serverPort ? `:${sip.serverPort}` : ''}` : '']
+                        .filter(Boolean)
+                        .join(' / ');
+
+                const hintText = document.getElementById('candidateCallHistoryHint');
+                if (hintText) {
+                    hintText.textContent = document.getElementById('candidateCallDialPhone').value
+                        ? `Dang loc theo so ${document.getElementById('candidateCallDialPhone').value}.`
+                        : 'Chua co so dien thoai de loc lich su.';
+                }
+
+                const notice = document.getElementById('candidateCallSipNotice');
+                if (notice) {
+                    if (sip.hasAssignedLine) {
+                        notice.classList.add('d-none');
+                        notice.textContent = '';
+                    } else {
+                        notice.classList.remove('d-none');
+                        notice.textContent = 'Tai khoan hien tai chua duoc gan line SIP. Ban co the xem lich su, nhung nut Goi se chua hoat dong duoc.';
+                    }
+                }
+
+                renderCandidateCallHistory(history);
+            } catch (error) {
+                const empty = document.getElementById('candidateCallHistoryEmpty');
+                if (empty) {
+                    empty.classList.remove('d-none');
+                    empty.textContent = resolveCandidateCallErrorMessage(error);
+                }
+            } finally {
+                setCandidateCallWorkspaceLoading(false);
+            }
+        }
+
+        async function openCandidateCallWorkspace(button) {
+            const candidateId = parseInt(button?.dataset?.candidateId || '0', 10) || 0;
+            if (candidateId <= 0) {
+                return;
+            }
+
+            getCandidateCallWorkspaceModal().show();
+            await loadCandidateCallWorkspace(candidateId, normalizeCandidateDialPhone(button?.dataset?.candidatePhone || ''));
+        }
+
+        async function refreshCandidateCallWorkspace() {
+            const candidateId = parseInt(document.getElementById('candidateCallCandidateId').value || '0', 10) || 0;
+            if (candidateId <= 0) {
+                return;
+            }
+
+            const phone = normalizeCandidateDialPhone(document.getElementById('candidateCallDialPhone').value || '');
+            document.getElementById('candidateCallDialPhone').value = phone;
+            await loadCandidateCallWorkspace(candidateId, phone);
+        }
+
+        async function callCandidateFromWorkspace() {
+            const candidateId = parseInt(document.getElementById('candidateCallCandidateId').value || '0', 10) || 0;
+            if (candidateId <= 0) {
+                return;
+            }
+
+            const phoneInput = document.getElementById('candidateCallDialPhone');
+            const dialButton = document.getElementById('candidateCallDialButton');
+            const normalizedPhone = normalizeCandidateDialPhone(phoneInput.value || '');
+            phoneInput.value = normalizedPhone;
+
+            const result = await callFrom('Candidate', candidateId, dialButton);
+            if (result && result.success) {
+                window.setTimeout(refreshCandidateCallWorkspace, 2500);
+            }
+        }
+
         function approvePass(id) {
             if (!confirm('Xác nhận ứng viên đậu phỏng vấn?')) return;
             $.post('/Candidate?handler=ApprovePass', { Id: id, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val() }, function (res) {
                 if (res.success) location.reload(); else alert('Có lỗi xảy ra');
-            }).fail(function() { alert('Lỗi kết nối'); });
+            }).fail(function () { alert('Lỗi kết nối'); });
         }
 
         function approvePending(id) {
             if (!confirm('Xác nhận chuyển sang nhân viên chờ?')) return;
             $.post('/Candidate?handler=ApprovePending', { Id: id, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val() }, function (res) {
                 if (res.success) location.reload(); else alert('Có lỗi xảy ra');
-            }).fail(function() { alert('Lỗi kết nối'); });
+            }).fail(function () { alert('Lỗi kết nối'); });
         }
 
         function onboard(id) {
             if (!confirm('Xác nhận nhận việc chính thức (Onboard)?')) return;
             $.post('/Candidate?handler=Onboard', { Id: id, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val() }, function (res) {
                 if (res.success) location.reload(); else alert('Có lỗi xảy ra. Kiểm tra xem ứng viên đã có Username/Pass chưa hoặc đã là NV chưa.');
-            }).fail(function() { alert('Lỗi kết nối'); });
+            }).fail(function () { alert('Lỗi kết nối'); });
         }
     </script>
 }

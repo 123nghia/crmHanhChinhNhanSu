@@ -143,7 +143,7 @@ namespace crmHuman.Pages.InternalNews
 
         private bool CanCreate()
         {
-            return (Permision.Add ?? false) || UserData.RoleCode == "1";
+            return (Permision.Add ?? false) || (UserData?.RoleCode == "1");
         }
 
         private async Task LoadMailGroupsAsync()

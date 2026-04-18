@@ -15,8 +15,8 @@ namespace crmHuman.Pages.InternalNews
 
         public InternalNewsItem NewsItem { get; set; }
         public List<InternalNewsIndexModel> RelatedNews { get; set; } = new List<InternalNewsIndexModel>();
-        public bool CanEdit => (Permision.Edit ?? false) || UserData.RoleCode == "1";
-        public bool CanDelete => (Permision.Delete ?? false) || UserData.RoleCode == "1";
+        public bool CanEdit => (Permision.Edit ?? false) || (UserData?.RoleCode == "1");
+        public bool CanDelete => (Permision.Delete ?? false) || (UserData?.RoleCode == "1");
 
         public DetailModel(IInternalNewsBusiness newsBusiness)
         {
@@ -34,7 +34,7 @@ namespace crmHuman.Pages.InternalNews
             }
 
             GetInfoUser();
-            var canView = (Permision.View ?? false) || UserData.RoleCode == "1";
+            var canView = (Permision.View ?? false) || (UserData?.RoleCode == "1");
             if (!canView)
             {
                 return Redirect("/");

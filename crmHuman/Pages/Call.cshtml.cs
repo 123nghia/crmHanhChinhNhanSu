@@ -79,7 +79,9 @@ namespace crmHuman.Pages
             var dataReponse = new
             {
                 success = result,
-
+                message = result
+                    ? "Da kich hoat client goi."
+                    : "Khong the kich hoat client goi. Kiem tra cau hinh SIP va dich vu quay so."
             };
             return new JsonResult(dataReponse)
             {

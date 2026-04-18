@@ -20,6 +20,7 @@ namespace crmHuman.Pages.Attendance
     {
         private readonly IAttendanceBusiness _attendanceBusiness;
         private readonly ILogger<IndexModel> _logger;
+        private readonly IConfiguration _configuration;
         private readonly DirectAttendanceReader _directReader;
 
         public IndexModel(
@@ -29,6 +30,7 @@ namespace crmHuman.Pages.Attendance
         {
             _attendanceBusiness = attendanceBusiness;
             _logger = logger;
+            _configuration = configuration;
             _directReader = new DirectAttendanceReader(configuration);
             KeyPage = "Attendance";
             TitlePage = "Quản lý chấm công";
@@ -194,6 +196,74 @@ namespace crmHuman.Pages.Attendance
             }
         }
 
+        public async Task<IActionResult> OnPostSyncRange([FromForm] DateTime fromDate, [FromForm] DateTime toDate, [FromForm] bool evaluateAttendance = true)
+        {
+            GetInfoUser();
+            if (!(Permision.Add ?? false))
+            {
+                return ApiResponseHelper.Error("No permission");
+            }
+
+            if (fromDate == DateTime.MinValue || toDate == DateTime.MinValue)
+            {
+                return ApiResponseHelper.Error("Khoang ngay khong hop le.");
+            }
+
+            if (fromDate.Date > toDate.Date)
+            {
+                (fromDate, toDate) = (toDate.Date, fromDate.Date);
+            }
+
+            try
+            {
+                var result = await SyncAttendanceRangeAsync(fromDate.Date, toDate.Date, evaluateAttendance);
+                return ApiResponseHelper.SuccessResponse(new
+                {
+                    result.Total,
+                    result.TotalSuccess,
+                    result.TotalError,
+                    errors = result.Errors.Select(error => new { error.Row, error.Content }).ToList()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Manual attendance sync failed for range {FromDate:yyyy-MM-dd} -> {ToDate:yyyy-MM-dd}.", fromDate, toDate);
+                return ApiResponseHelper.Error("Khong the dong bo cham cong theo khoang ngay.");
+            }
+        }
+
+        public async Task<IActionResult> OnPostRecalculateDate([FromForm] DateTime workDate)
+        {
+            GetInfoUser();
+            if (!(Permision.Edit ?? false))
+            {
+                return ApiResponseHelper.Error("No permission");
+            }
+
+            if (workDate == DateTime.MinValue)
+            {
+                return ApiResponseHelper.Error("Ngay tinh cong khong hop le.");
+            }
+
+            try
+            {
+                var updatedCount = await _attendanceBusiness.EvaluateAttendanceRangeAsync(
+                    workDate.Date,
+                    workDate.Date,
+                    UserData.UserId);
+                return ApiResponseHelper.SuccessResponse(new
+                {
+                    date = workDate.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    updatedCount
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Manual attendance recalculation failed for {WorkDate:yyyy-MM-dd}.", workDate);
+                return ApiResponseHelper.Error("Khong the tinh lai cong theo ngay.");
+            }
+        }
+
         public async Task<IActionResult> OnPostExport([FromForm] AttendanceRequest request)
         {
             GetInfoUser();
@@ -356,7 +426,10 @@ namespace crmHuman.Pages.Attendance
             return File(fileContents, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
-        
+        private async Task<AttendanceImportResult> SyncAttendanceRangeAsync(DateTime fromDate, DateTime toDate, bool evaluateAttendance)
+        {
+            return await _attendanceBusiness.SyncFromDeviceAsync(fromDate, toDate, UserData.UserId, evaluateAttendance);
+        }
 
         private bool IsFullAccessRole()
         {

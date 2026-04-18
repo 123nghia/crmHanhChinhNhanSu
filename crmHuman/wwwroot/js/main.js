@@ -621,23 +621,52 @@
             }
         },
 
+        normalizePhoneNumber(value) {
+            if (!value) {
+                return '';
+            }
+
+            let normalized = value.toString().replace(/[^\d+]/g, '');
+            if (normalized.startsWith('+84')) {
+                normalized = `0${normalized.substring(3)}`;
+            } else if (normalized.startsWith('84') && normalized.length >= 10) {
+                normalized = `0${normalized.substring(2)}`;
+            }
+
+            return normalized;
+        },
+
+        resolvePhoneNumber(elementClick) {
+            const selector = elementClick?.dataset?.phoneTarget;
+            if (selector) {
+                const input = document.querySelector(selector);
+                return CallCenter.normalizePhoneNumber(input?.value || '');
+            }
+
+            const phoneInput = elementClick?.closest('.input-group')?.querySelector('.phonecall');
+            if (phoneInput?.value) {
+                return CallCenter.normalizePhoneNumber(phoneInput.value);
+            }
+
+            return CallCenter.normalizePhoneNumber(elementClick?.dataset?.phone || '');
+        },
+
         async call(typeCall, idRel, elementClick) {
             if (!idRel || idRel === '-1') {
                 CallCenter.showAlert('Không có đối tượng để gọi, vui lòng tạo thông tin trước', '<a>Vi phạm gọi</a>');
-                return;
+                return null;
             }
 
             if (!typeCall) {
                 CallCenter.showAlert('Không có đối tượng để gọi', '<a>Có lỗi trong thao tác gọi</a>');
-                return;
+                return null;
             }
 
-            const phoneInput = elementClick?.closest('.input-group')?.querySelector('.phonecall');
-            const phoneNumber = phoneInput?.value || '';
+            const phoneNumber = CallCenter.resolvePhoneNumber(elementClick);
 
             if (phoneNumber.length < 10) {
                 CallCenter.showAlert('Số điện thoại không chính xác hoặc không có', '<a>Có lỗi số điện thoại</a>');
-                return;
+                return null;
             }
 
             if (global.Swal) {
@@ -652,11 +681,15 @@
             }
 
             try {
-                await CrmApi.makeCall({
+                const result = await CrmApi.makeCall({
                     typecall: typeCall,
                     phonecall: phoneNumber,
                     idrel: idRel
                 });
+
+                if (!result || result.success === false) {
+                    throw new Error(result?.message || 'Khong the kich hoat client goi.');
+                }
 
                 if (global.Swal) {
                     Swal.fire({
@@ -669,6 +702,8 @@
                         backdrop: 'rgba(0,0,123,0.4) left top no-repeat'
                     });
                 }
+
+                return result;
             } catch (error) {
                 if (global.Swal) {
                     Swal.fire({
@@ -680,6 +715,8 @@
                 } else {
                     ErrorHandler.notify(error);
                 }
+
+                return null;
             }
         }
     };
@@ -707,8 +744,11 @@
                 return;
             }
 
+            const playbackBaseUrl = global.crmAppSettings?.recordingPlaybackBaseUrl ||
+                'http://192.168.1.3:7224/api/file/getaudio9';
+            const separator = playbackBaseUrl.includes('?') ? '&' : '?';
             const anchor = document.createElement('a');
-            anchor.href = `http://192.168.1.3:7224/api/file/getaudio9?filePath=${filePath}`;
+            anchor.href = `${playbackBaseUrl}${separator}filePath=${encodeURIComponent(filePath)}`;
             anchor.target = '_blank';
             document.body.appendChild(anchor);
             anchor.click();
@@ -941,7 +981,7 @@
         },
 
         callFrom(typeCall, idRel, elementClick) {
-            CallCenter.call(typeCall, idRel, elementClick);
+            return CallCenter.call(typeCall, idRel, elementClick);
         },
 
         UploadImage(fileInput, type = 'candidate') {
