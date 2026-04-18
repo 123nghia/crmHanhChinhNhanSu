@@ -9,5 +9,6 @@ namespace VS.Human.Rep
         Task<bool> MarkAsRead(int id);
         Task<bool> MarkAllAsRead(int receiverId);
         Task<bool> Add(AppNotification item);
+        Task<int> InsertAsync(AppNotification item);
     }
 }

@@ -20,6 +20,7 @@ namespace crmHuman.Pages
         private readonly ImasterDataBussiness _masterDataBussiness;
         private readonly INotificationBusiness _notificationBusiness;
         private readonly ISipBusiness _sipBusiness;
+        private readonly ICallBussiness _callBusiness;
         private readonly IReoportBussiness _reportBusiness;
         private readonly IConfiguration _configuration;
 
@@ -45,6 +46,7 @@ namespace crmHuman.Pages
             ImasterDataBussiness imasterDataBussiness,
             INotificationBusiness notificationBusiness,
             ISipBusiness sipBusiness,
+            ICallBussiness callBusiness,
             IReoportBussiness reportBusiness,
             IConfiguration configuration)
         {
@@ -53,6 +55,7 @@ namespace crmHuman.Pages
             _masterDataBussiness = imasterDataBussiness;
             _notificationBusiness = notificationBusiness;
             _sipBusiness = sipBusiness;
+            _callBusiness = callBusiness;
             _reportBusiness = reportBusiness;
             _configuration = configuration;
             TitlePage = "Danh sách ứng viên";
@@ -343,6 +346,7 @@ namespace crmHuman.Pages
             var dialPhone = NormalizePhoneForTelephony(string.IsNullOrWhiteSpace(phone) ? candidate.Phone : phone);
 
             var history = new List<object>();
+            var crmCallHistory = await _callBusiness.GetCallHistory("Candidate", candidateId, 20);
             if (!string.IsNullOrWhiteSpace(dialPhone))
             {
                 var historyResult = await _reportBusiness.GetAllRecordingFile(new ReportCDRequest
@@ -391,7 +395,25 @@ namespace crmHuman.Pages
                     serverHost = sipInfo.ServerHost ?? string.Empty,
                     serverPort = sipInfo.ServerPort ?? 0
                 },
-                history
+                history = crmCallHistory.Select(item => new
+                {
+                    id = item.Id,
+                    callDate = item.StartTime ?? item.CreateAt,
+                    callDateText = (item.StartTime ?? item.CreateAt).ToString("dd/MM/yyyy HH:mm"),
+                    disposition = item.Status ?? string.Empty,
+                    durationText = FormatDuration(item.Duration.GetValueOrDefault()),
+                    lineCode = item.LineCode ?? item.Extension ?? string.Empty,
+                    userName = item.EmployeeName ?? string.Empty,
+                    recordingUrl = item.RecordingUrl,
+                    recordingFile = item.ProviderCallId ?? string.Empty,
+                    outcome = item.Outcome ?? string.Empty,
+                    notes = item.Notes ?? string.Empty,
+                    source = "CRM"
+                })
+                .Cast<object>()
+                .Concat(history.Select(item => item))
+                .Take(20)
+                .ToList()
             });
         }
 
@@ -556,7 +578,7 @@ namespace crmHuman.Pages
             var playbackBaseUrl = _configuration["Telephony:RecordingPlaybackBaseUrl"]?.Trim();
             if (string.IsNullOrWhiteSpace(playbackBaseUrl))
             {
-                playbackBaseUrl = "http://192.168.1.3:7224/api/file/getaudio9";
+                return null;
             }
 
             var separator = playbackBaseUrl.Contains('?') ? "&" : "?";

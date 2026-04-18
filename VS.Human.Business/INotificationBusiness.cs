@@ -9,5 +9,6 @@ namespace VS.Human.Business
         Task<bool> MarkAsRead(int id);
         Task<bool> MarkAllAsRead(int receiverId);
         Task<bool> CreateNotification(int receiverId, string message, string? link = null, string? type = null, int? senderId = null);
+        Task<int> CreateNotificationWithId(AppNotification notification);
     }
 }

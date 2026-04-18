@@ -30,6 +30,8 @@ namespace crmHuman.Pages
         private readonly IScheduleInterviewBussiness _scheduleInterviewBussiness;
         private readonly ILogHistoryBusiness _logHistoryBusiness;
         private readonly INotificationBusiness _notificationBusiness;
+        private readonly IWorkflowTimelineBusiness _workflowTimelineBusiness;
+        private readonly ICallBussiness _callBusiness;
 
         public BaseList TopOrder;
         public BaseList TopImpact;
@@ -51,6 +53,8 @@ namespace crmHuman.Pages
         public BaseList UpcomingInterviews { get; set; } = new BaseList();
         public List<AppNotification> Notifications { get; set; } = new List<AppNotification>();
         public int UnreadNotificationCount { get; set; }
+        public WorkflowActionCenterSummary ActionCenter { get; set; } = new WorkflowActionCenterSummary();
+        public TelephonyDashboardSnapshot TelephonyDashboard { get; set; } = new TelephonyDashboardSnapshot();
         public List<CommonIndexModel> InterviewRoundOptions { get; set; } = new List<CommonIndexModel>();
         public List<CommonIndexModel> InterviewModeOptions { get; set; } = new List<CommonIndexModel>();
         public DashboardExtendedStats ExtendedStats { get; set; } = new DashboardExtendedStats();
@@ -71,7 +75,7 @@ namespace crmHuman.Pages
 
         public IndexModel(ILogger<IndexModel> logger, IDashboardBusinness dashboardBusinness, ImasterDataBussiness imasterDataBussiness,
         IJobItemBusiness jobItemBusiness, IEmpBusiness empBusiness, ICandidateBusiness candidateBusiness, ILeaveBusiness leaveBusiness, IScheduleInterviewBussiness scheduleInterviewBussiness,
-        ILogHistoryBusiness logHistoryBusiness, INotificationBusiness notificationBusiness)
+        ILogHistoryBusiness logHistoryBusiness, INotificationBusiness notificationBusiness, IWorkflowTimelineBusiness workflowTimelineBusiness, ICallBussiness callBusiness)
         {
             _logger = logger;
             this.dashboardBusinness = dashboardBusinness;
@@ -87,6 +91,8 @@ namespace crmHuman.Pages
             _scheduleInterviewBussiness = scheduleInterviewBussiness;
             _logHistoryBusiness = logHistoryBusiness;
             _notificationBusiness = notificationBusiness;
+            _workflowTimelineBusiness = workflowTimelineBusiness;
+            _callBusiness = callBusiness;
             RecordSource = 10;
         }
 
@@ -123,25 +129,16 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostCall(CallRequest request)
         {
+            GetInfoUser();
             var userId = UserData.UserId;
-            var data = new StringContent(JsonConvert.SerializeObject(new
-            {
-                phoneNumber = request.Phone,
-                userId,
-                lineCode = UserData.LineCode
-            }));
-            data.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            var linkUrl = "http://192.168.1.9:3002";
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = new Uri(linkUrl);
-                var reponse = await client.PostAsync("api/client/makeCall", data);
-                var result = await reponse.Content.ReadAsStringAsync();
-            }
+            var result = await _callBusiness.MakeCallDetailed(request.Phone, "Dashboard", null, UserData.LineCode, userId, "Dashboard");
             var reponseResult = new
             {
-                Success = true,
-                Data = true
+                Success = result.Success,
+                Data = result.Success,
+                result.CallLogId,
+                result.ProviderCallId,
+                Message = result.Success ? "Da kich hoat client goi." : result.Error
             };
             return new JsonResult(reponseResult) { StatusCode = StatusCodes.Status200OK };
         }
@@ -162,6 +159,8 @@ namespace crmHuman.Pages
             RequestPage = request;
             
             UserActive.DataActiveOnline.AddOrUpdate(UserData.UserId.ToString(), UserData.UserName, UserData.FullName);
+            ActionCenter = await _workflowTimelineBusiness.GetActionCenterAsync(UserData.UserId, UserData.RoleCode);
+            TelephonyDashboard = await _callBusiness.GetTelephonyDashboardSnapshot();
             
             RequestPage.UserId = UserData.UserId;
             RequestPage.RoleCode = UserData.RoleCode;

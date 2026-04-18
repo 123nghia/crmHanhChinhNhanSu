@@ -6,6 +6,6 @@ namespace VS.Human.Business
     {
         Task<bool> SendTemplateAsync(string templateCode, string toEmail, IDictionary<string, string> tokens, int? managerId = null, int? senderEmployeeId = null, EmailSendContext? sendContext = null);
         Task<bool> SendTemplateAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null, EmailSendContext? sendContext = null);
-        Task<(bool Success, string? Error)> SendTemplateWithErrorAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null, EmailSendContext? sendContext = null);
+        Task<(bool Success, string? Error, int? LogId)> SendTemplateWithErrorAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null, EmailSendContext? sendContext = null);
     }
 }

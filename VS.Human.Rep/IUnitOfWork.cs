@@ -42,6 +42,8 @@
         public IAttendanceRep AttendanceRep { get; set; }
         public IEmailConfigRep EmailConfigRep { get; set; }
         public IEmailSentLogRep EmailSentLogRep { get; set; }
+        public IWorkflowTimelineRep WorkflowTimelineRep { get; set; }
+        public ICallLogRep CallLogRep { get; set; }
         public ISipRep SipRep { get; set; }
         public IMeetingRoomRep MeetingRoomRep { get; set; }
         public ILateEarlyRep LateEarlyRep { get; set; }

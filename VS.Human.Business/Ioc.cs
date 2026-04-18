@@ -36,6 +36,7 @@ namespace VS.Human.Business
             services.AddSingleton<IPermissionBusiness, PermissionBusiness>();
             services.AddSingleton<ILeaveAttendanceImpactResolver, LeaveAttendanceImpactResolver>();
             services.AddSingleton<ILeaveAttendanceSyncService, LeaveAttendanceSyncService>();
+            services.AddSingleton<IWorkflowTimelineBusiness, WorkflowTimelineBusiness>();
             services.AddSingleton<ILeaveBusiness, LeaveBusiness>();
             services.AddSingleton<ILeaveBalanceBusiness, LeaveBalanceBusiness>();
             services.AddSingleton<IInternalNewsBusiness, InternalNewsBusiness>();

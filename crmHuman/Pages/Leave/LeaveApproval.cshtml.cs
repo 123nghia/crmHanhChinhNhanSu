@@ -11,6 +11,7 @@ namespace crmHuman.Pages.Leave
     public class LeaveApprovalModel : BaseModel2
     {
         private readonly ILeaveBusiness _leaveBusiness;
+        private readonly IWorkflowTimelineBusiness _workflowTimelineBusiness;
 
         private static bool IsApprovalRole(string? roleCode)
         {
@@ -88,9 +89,10 @@ namespace crmHuman.Pages.Leave
             return items.Any(item => item.Id == leave.Id);
         }
 
-        public LeaveApprovalModel(ILeaveBusiness leaveBusiness)
+        public LeaveApprovalModel(ILeaveBusiness leaveBusiness, IWorkflowTimelineBusiness workflowTimelineBusiness)
         {
             _leaveBusiness = leaveBusiness;
+            _workflowTimelineBusiness = workflowTimelineBusiness;
             KeyPage = "LeaveApproval";
             TitlePage = "Duyệt nghỉ phép";
         }
@@ -135,6 +137,41 @@ namespace crmHuman.Pages.Leave
             return new JsonResult(result);
         }
 
+        public async Task<IActionResult> OnGetWorkflowDetailAsync(int id)
+        {
+            GetInfoUser();
+            if (!(Permision.View ?? false) || !IsApprovalRole(UserData.RoleCode))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
+            var leave = await _leaveBusiness.GetLeaveById(id);
+            if (!await CanAccessApprovalAsync(leave))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
+            var history = await _leaveBusiness.GetLeaveHistory(id);
+            var timeline = await _workflowTimelineBusiness.GetByEntityAsync(WorkflowEntityTypes.Leave, id);
+            var dueAt = ResolveDueAt(leave.Status);
+            var canAct = (Permision.Approve ?? false)
+                && !((UserData.RoleCode == "1" || UserData.RoleCode == "8") && leave.EmployeeId == UserData.UserId)
+                && IsStatusAllowedForAction(UserData.RoleCode, "Agree", leave.Status);
+
+            return new JsonResult(new
+            {
+                success = true,
+                leave,
+                history,
+                timeline,
+                currentStep = ResolveStepText(leave.Status),
+                currentOwner = ResolveOwnerText(leave.Status),
+                dueAt,
+                isOverdue = dueAt.HasValue && dueAt.Value < global::System.DateTime.Now,
+                canAct
+            });
+        }
+
         public async Task<IActionResult> OnPostApproveAsync([FromBody] LeaveApproveRequest model)
         {
             GetInfoUser();
@@ -161,6 +198,44 @@ namespace crmHuman.Pages.Leave
 
             var result = await _leaveBusiness.ApproveWorkflow(model.Id, model.Action, UserData.UserId, UserData.RoleCode, model.Comment);
             return new JsonResult(new { success = result, message = result ? string.Empty : "Không thể xử lý đơn nghỉ phép." });
+        }
+        private static global::System.DateTime? ResolveDueAt(int status)
+        {
+            var hours = status switch
+            {
+                0 => 24,
+                1 => 12,
+                2 => 24,
+                _ => 0
+            };
+
+            return hours > 0 ? global::System.DateTime.Now.AddHours(hours) : null;
+        }
+
+        private static string ResolveStepText(int status)
+        {
+            return status switch
+            {
+                0 => "Manager",
+                1 => "HCNS",
+                2 => "BGD",
+                3 => "Final approved",
+                4 => "Final approved",
+                5 => "Rejected",
+                6 => "Cancelled",
+                _ => "Unknown"
+            };
+        }
+
+        private static string ResolveOwnerText(int status)
+        {
+            return status switch
+            {
+                0 => "Quan ly truc tiep",
+                1 => "Phong HCNS",
+                2 => "Ban Giam doc",
+                _ => string.Empty
+            };
         }
     }
 }

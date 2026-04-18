@@ -162,6 +162,99 @@ async function viewHistory(id) {
     }
 }
 
+function escapeWorkflowHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function formatWorkflowDate(value) {
+    if (!value) {
+        return '--';
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString();
+}
+
+async function viewWorkflowDetail(id) {
+    try {
+        const res = await fetch(`?handler=WorkflowDetail&id=${id}`);
+        const data = await res.json();
+        if (!data.success) {
+            alert(data.message || 'Forbidden');
+            return;
+        }
+
+        renderWorkflowDetail(data);
+        $('#workflowModal').modal('show');
+    } catch (error) {
+        console.error('Error fetching workflow detail:', error);
+        alert('Lá»—i há»‡ thá»‘ng.');
+    }
+}
+
+function renderWorkflowDetail(data) {
+    const leave = data.leave || {};
+    const statusBadge = data.isOverdue
+        ? '<span class="badge bg-danger">OVERDUE</span>'
+        : '<span class="badge bg-success">ON TRACK</span>';
+
+    $('#workflowRequestCode').text(`LEAVE-${leave.id}`);
+    $('#workflowTitle').text(`${leave.employeeName || ''} - ${leave.leaveTypeName || leave.leaveTypeCode || ''}`);
+    $('#workflowHeader').html(`
+        <div class="workflow-kpi"><div class="workflow-kpi-label">Status</div><div class="workflow-kpi-value">${escapeWorkflowHtml(data.currentStep)} ${statusBadge}</div></div>
+        <div class="workflow-kpi"><div class="workflow-kpi-label">Current owner</div><div class="workflow-kpi-value">${escapeWorkflowHtml(data.currentOwner || '--')}</div></div>
+        <div class="workflow-kpi"><div class="workflow-kpi-label">Deadline</div><div class="workflow-kpi-value">${formatWorkflowDate(data.dueAt)}</div></div>
+        <div class="workflow-kpi"><div class="workflow-kpi-label">Attendance sync</div><div class="workflow-kpi-value">${escapeWorkflowHtml(leave.attendanceSyncStatus || '--')}</div></div>
+    `);
+    $('#workflowActionArea').html('<span class="text-muted">Track status here. Approval action is available in the approval inbox.</span>');
+    $('#workflowBusinessInfo').html(`
+        <div><strong>Employee:</strong> ${escapeWorkflowHtml(leave.employeeName)}</div>
+        <div><strong>Range:</strong> ${formatWorkflowDate(leave.fromDate)} - ${formatWorkflowDate(leave.toDate)}</div>
+        <div><strong>Days:</strong> ${escapeWorkflowHtml(leave.numDays)}</div>
+        <div><strong>Reason:</strong> ${escapeWorkflowHtml(leave.reason)}</div>
+        <div><strong>Handover:</strong> ${escapeWorkflowHtml(leave.handoverEmployeeName || '--')}</div>
+    `);
+    $('#workflowAuditInfo').html(`
+        <div><strong>Last sync:</strong> ${formatWorkflowDate(leave.lastAttendanceSyncAt)}</div>
+        <div><strong>Sync error:</strong> ${escapeWorkflowHtml(leave.lastAttendanceSyncError || '--')}</div>
+        <div><strong>Sync attempts:</strong> ${escapeWorkflowHtml(leave.attendanceSyncAttemptCount ?? '--')}</div>
+    `);
+
+    const events = [...(data.timeline || [])];
+    if (events.length === 0) {
+        (data.history || []).forEach(item => {
+            events.push({
+                occurredAt: item.actionTime,
+                eventTitle: `${getActionText(item.action)} - ${item.actionByName || ''}`,
+                eventCode: item.action,
+                currentStatusText: item.statusAfter,
+                errorMessage: item.comment
+            });
+        });
+    }
+
+    const timelineHtml = events.length === 0
+        ? '<div class="text-muted">No timeline event yet.</div>'
+        : events.map(item => `
+            <div class="workflow-timeline-item">
+                <div class="fw-bold">${escapeWorkflowHtml(item.eventTitle || item.eventCode || '')}</div>
+                <div class="small text-muted">${formatWorkflowDate(item.occurredAt)} ${item.triggeredByName ? '- ' + escapeWorkflowHtml(item.triggeredByName) : ''}</div>
+                <div class="small">${escapeWorkflowHtml(item.currentStatusText || '')}</div>
+                ${item.emailSent ? '<span class="badge bg-success me-1">EMAIL SENT</span>' : ''}
+                ${item.emailFailed ? '<span class="badge bg-danger me-1">EMAIL FAIL</span>' : ''}
+                ${item.notificationCreated ? '<span class="badge bg-info text-dark me-1">NOTIFY</span>' : ''}
+                ${item.attendanceSyncStatus ? `<span class="badge bg-secondary me-1">${escapeWorkflowHtml(item.attendanceSyncStatus)}</span>` : ''}
+                ${item.errorMessage ? `<div class="text-danger small">${escapeWorkflowHtml(item.errorMessage)}</div>` : ''}
+            </div>
+        `).join('');
+    $('#workflowTimeline').html(timelineHtml);
+}
+
 function getActionBadge(action) {
     switch (action) {
         case 'Create': return 'bg-primary';
@@ -191,6 +284,6 @@ $(document).ready(function () {
 
     const leaveId = parseInt(new URLSearchParams(window.location.search).get('id') || '0', 10);
     if (leaveId > 0) {
-        openEditLeave(leaveId);
+        viewWorkflowDetail(leaveId);
     }
 });

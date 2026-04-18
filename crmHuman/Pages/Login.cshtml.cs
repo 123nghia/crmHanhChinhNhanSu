@@ -20,6 +20,8 @@ namespace crmHuman.Pages
         private readonly IBrandingBusiness _brandingBusiness;
 
         public string LogoPath { get; set; } = "/assets/img/logo.png";
+        [BindProperty(SupportsGet = true)]
+        public string? ReturnUrl { get; set; }
 
         public LoginModel(ILogger<LoginModel> logger, ILoginBussiness loginBussiness,
             IEmpBusiness empBusiness,
@@ -52,7 +54,7 @@ namespace crmHuman.Pages
             }
         }
 
-        private async Task<IActionResult> Login(string userName, string pass)
+        private async Task<IActionResult> Login(string userName, string pass, string? returnUrl)
         {
             await LoadBrandingAsync();
             var userProfile = await _empBusiness.Login(userName, pass);
@@ -104,7 +106,7 @@ namespace crmHuman.Pages
                 UserActive.DataActiveOnline.MarkLogin(account.id.ToString(), account.UserName, account.FullName);
                 await _logHistoryBusiness.LogLogin(account.id, account.UserName, account.FullName, account.RoleCode, "Employee");
                 await HttpContext.SignInAsync(principal);
-                return Redirect("/");
+                return Redirect(ResolveLocalReturnUrl(returnUrl, "/"));
             }
 
             var candidateProfile = await _candidateBusiness.Login(userName, pass);
@@ -143,7 +145,7 @@ namespace crmHuman.Pages
             UserActive.DataActiveOnline.MarkLogin(candidateAccount.id.ToString(), candidateAccount.UserName ?? string.Empty, candidateAccount.FullName ?? string.Empty);
             await _logHistoryBusiness.LogLogin(candidateAccount.id, candidateAccount.UserName, candidateAccount.FullName, candidateAccount.RoleCode, "Candidate");
             await HttpContext.SignInAsync(candidatePrincipal);
-            return Redirect("/Candidate/Dashboard");
+            return Redirect(ResolveLocalReturnUrl(returnUrl, "/Candidate/Dashboard"));
 
         }
 
@@ -153,12 +155,13 @@ namespace crmHuman.Pages
 
         }
 
-        public void OnGet()
+        public void OnGet(string? returnUrl = null)
         {
+            ReturnUrl = returnUrl;
             if (HttpContext.User.Identity.IsAuthenticated)
             {
 
-                HttpContext.Response.Redirect("/");
+                HttpContext.Response.Redirect(ResolveLocalReturnUrl(ReturnUrl, "/"));
                 return;
             }
 
@@ -166,6 +169,7 @@ namespace crmHuman.Pages
         }
         public async Task<IActionResult> OnPostLogin(LoginRequest request)
         {
+            ReturnUrl = Request.Form["ReturnUrl"].FirstOrDefault() ?? ReturnUrl;
             if (string.IsNullOrEmpty(request.UserName))
             {
                 var listError = new
@@ -181,9 +185,19 @@ namespace crmHuman.Pages
                 success = true,
 
             };
-            return await Login(request.UserName, request.Password);
+            return await Login(request.UserName, request.Password, ReturnUrl);
 
 
+        }
+
+        private string ResolveLocalReturnUrl(string? returnUrl, string fallback)
+        {
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return returnUrl;
+            }
+
+            return fallback;
         }
     }
 

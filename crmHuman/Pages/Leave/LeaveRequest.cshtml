@@ -145,7 +145,7 @@
                                         {
                                             <a href="javascript:void(0)" onclick="openEditLeave(@info.Id)" class="me-2" title="Chỉnh sửa"><i class="bi bi-pencil-square"></i></a>
                                         }
-                                        <a href="javascript:void(0)" onclick="viewHistory(@info.Id)" class="me-2 text-info" title="Lịch sử"><i class="bi bi-clock-history"></i></a>
+                                        <a href="javascript:void(0)" onclick="viewWorkflowDetail(@info.Id)" class="me-2 text-info" title="Workflow detail"><i class="bi bi-diagram-3"></i></a>
                                         @if ((info.Status == 0 || info.Status == 1 || info.Status == 2) && (Model.Permision.Delete ?? false))
                                         {
                                             <a href="javascript:void(0)" onclick="deleteLeave(@info.Id)" class="text-danger" title="Xóa"><i class="bi bi-trash"></i></a>
@@ -251,6 +251,36 @@
     </div>
 </div>
 
+<div class="modal fade" id="workflowModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content workflow-detail-modal">
+            <div class="modal-header">
+                <div>
+                    <div class="text-muted small" id="workflowRequestCode">LEAVE</div>
+                    <h5 class="modal-title mb-0" id="workflowTitle">Workflow detail</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="workflowHeader" class="workflow-header-grid mb-3"></div>
+                <div id="workflowActionArea" class="workflow-action-area mb-3"></div>
+                <div class="row g-3">
+                    <div class="col-lg-7">
+                        <h6 class="fw-bold">Timeline</h6>
+                        <div id="workflowTimeline" class="workflow-timeline"></div>
+                    </div>
+                    <div class="col-lg-5">
+                        <h6 class="fw-bold">Business info</h6>
+                        <div id="workflowBusinessInfo" class="workflow-info"></div>
+                        <h6 class="fw-bold mt-3">Audit / sync</h6>
+                        <div id="workflowAuditInfo" class="workflow-info"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Styles {
     <style>
         .leave-balance-card {
@@ -266,6 +296,57 @@
             color: #1b4fb0;
             font-size: 1.4rem;
             font-weight: 700;
+        }
+        .workflow-header-grid {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+        .workflow-kpi {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: #fff;
+        }
+        .workflow-kpi-label {
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .workflow-kpi-value {
+            color: #111827;
+            font-weight: 700;
+        }
+        .workflow-action-area {
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            padding: 12px;
+            background: #eff6ff;
+        }
+        .workflow-timeline {
+            border-left: 3px solid #d1d5db;
+            padding-left: 14px;
+        }
+        .workflow-timeline-item {
+            position: relative;
+            padding: 0 0 14px 4px;
+        }
+        .workflow-timeline-item::before {
+            content: "";
+            position: absolute;
+            left: -23px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #2563eb;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 1px #2563eb;
+        }
+        .workflow-info {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            background: #fff;
         }
     </style>
 }

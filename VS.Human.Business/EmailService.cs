@@ -50,7 +50,7 @@ namespace VS.Human.Business
             return result.Success;
         }
 
-        public async Task<(bool Success, string? Error)> SendTemplateWithErrorAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null, EmailSendContext? sendContext = null)
+        public async Task<(bool Success, string? Error, int? LogId)> SendTemplateWithErrorAsync(string templateCode, IEnumerable<string> toEmails, IDictionary<string, string> tokens, IEnumerable<string>? ccEmails = null, IEnumerable<string>? bccEmails = null, int? managerId = null, int? senderEmployeeId = null, EmailSendContext? sendContext = null)
         {
             var normalizedTo = NormalizeEmails(toEmails).ToList();
             var normalizedCcInput = NormalizeEmails(ccEmails).ToList();
@@ -811,17 +811,17 @@ namespace VS.Human.Business
             };
         }
 
-        private async Task<(bool Success, string? Error)> FinalizeEmailResultAsync(EmailSentLog log, bool success, string? error)
+        private async Task<(bool Success, string? Error, int? LogId)> FinalizeEmailResultAsync(EmailSentLog log, bool success, string? error)
         {
-            await TryPersistEmailLogAsync(log, success, error);
-            return (success, error);
+            var logId = await TryPersistEmailLogAsync(log, success, error);
+            return (success, error, logId > 0 ? logId : null);
         }
 
-        private async Task TryPersistEmailLogAsync(EmailSentLog? log, bool success, string? error)
+        private async Task<int> TryPersistEmailLogAsync(EmailSentLog? log, bool success, string? error)
         {
             if (log == null)
             {
-                return;
+                return 0;
             }
 
             try
@@ -838,10 +838,11 @@ namespace VS.Human.Business
                     log.UpdatedBy = log.TriggeredByUserId.Value;
                 }
 
-                await _unitOfWork.EmailSentLogRep.InsertAsync(log);
+                return await _unitOfWork.EmailSentLogRep.InsertAsync(log);
             }
             catch
             {
+                return 0;
             }
         }
 

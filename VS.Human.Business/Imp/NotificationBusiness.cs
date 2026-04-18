@@ -43,7 +43,24 @@ namespace VS.Human.Business.Imp
                 IsRead = false,
                 CreateAt = DateTime.Now
             };
-            return await _unitOfWork.NotificationRep.Add(notification);
+            return await CreateNotificationWithId(notification) > 0;
+        }
+
+        public async Task<int> CreateNotificationWithId(AppNotification notification)
+        {
+            if (notification == null || notification.ReceiverId <= 0 || string.IsNullOrWhiteSpace(notification.Message))
+            {
+                return 0;
+            }
+
+            notification.IsRead = false;
+            notification.CreateAt = DateTime.Now;
+            if (!string.IsNullOrWhiteSpace(notification.RelatedEntityType))
+            {
+                notification.RelatedEntityType = notification.RelatedEntityType.Trim().ToUpperInvariant();
+            }
+
+            return await _unitOfWork.NotificationRep.InsertAsync(notification);
         }
     }
 }

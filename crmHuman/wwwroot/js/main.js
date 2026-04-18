@@ -744,8 +744,10 @@
                 return;
             }
 
-            const playbackBaseUrl = global.crmAppSettings?.recordingPlaybackBaseUrl ||
-                'http://192.168.1.3:7224/api/file/getaudio9';
+            const playbackBaseUrl = global.crmAppSettings?.recordingPlaybackBaseUrl || '';
+            if (!playbackBaseUrl) {
+                return;
+            }
             const separator = playbackBaseUrl.includes('?') ? '&' : '?';
             const anchor = document.createElement('a');
             anchor.href = `${playbackBaseUrl}${separator}filePath=${encodeURIComponent(filePath)}`;

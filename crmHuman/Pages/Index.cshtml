@@ -73,6 +73,127 @@
 </div><!-- End Page Title -->
 
 <section class="section dashboard">
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card action-center-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+                        <div>
+                            <h5 class="card-title mb-0">Action Center</h5>
+                            <div class="text-muted small">Viec can xu ly, bottleneck va loi van hanh dang anh huong workflow.</div>
+                        </div>
+                        <a class="btn btn-sm btn-primary" href="/Leave/LeaveApproval">Mo approval inbox</a>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-lg-3 col-md-6">
+                            <a class="action-tile" href="/Leave/LeaveApproval">
+                                <span class="action-tile-label">Cho toi xu ly</span>
+                                <strong>@(Model.ActionCenter?.MyTasks?.Count ?? 0)</strong>
+                                <small>@((Model.ActionCenter?.MyTasks?.Count(x => x.IsOverdue) ?? 0)) overdue</small>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a class="action-tile" href="/Leave/LeaveApproval?overdue=1">
+                                <span class="action-tile-label">Sap/da qua SLA</span>
+                                <strong>@(Model.ActionCenter?.WorkflowHealth?.Sum(x => x.OverdueCount) ?? 0)</strong>
+                                <small>theo Manager / HCNS / BGD</small>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a class="action-tile" href="/Leave/LeaveApproval?issue=attendance-sync">
+                                <span class="action-tile-label">System issues</span>
+                                <strong>@(Model.ActionCenter?.SystemIssues?.Sum(x => x.Count) ?? 0)</strong>
+                                <small>mail / attendance sync</small>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a class="action-tile" href="/Candidate">
+                                <span class="action-tile-label">Calls today</span>
+                                <strong>@(Model.TelephonyDashboard?.TotalToday ?? 0)</strong>
+                                <small>@(Model.TelephonyDashboard?.SuccessToday ?? 0) success / @(Model.TelephonyDashboard?.FailedToday ?? 0) failed</small>
+                            </a>
+                        </div>
+                    </div>
+                    @if (Model.ActionCenter?.MyTasks?.Any() == true)
+                    {
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Request</th>
+                                        <th>Step</th>
+                                        <th>Owner</th>
+                                        <th>Waiting</th>
+                                        <th>SLA</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var task in Model.ActionCenter.MyTasks.Take(6))
+                                    {
+                                        <tr class="@(task.IsOverdue ? "table-warning" : "")">
+                                            <td>
+                                                <div class="fw-semibold">@task.RequestCode</div>
+                                                <div class="text-muted small">@task.Title</div>
+                                            </td>
+                                            <td>@task.CurrentStep</td>
+                                            <td>@(task.CurrentOwnerName ?? "--")</td>
+                                            <td>@task.WaitingHours h</td>
+                                            <td>
+                                                @if (task.IsOverdue)
+                                                {
+                                                    <span class="badge bg-danger">OVERDUE</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">ON TRACK</span>
+                                                }
+                                            </td>
+                                            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="@task.Url">Xu ly</a></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    <div class="row g-3 mt-1">
+                        <div class="col-lg-6">
+                            <div class="mini-panel">
+                                <div class="fw-semibold mb-2">Workflow health</div>
+                                @foreach (var item in Model.ActionCenter?.WorkflowHealth ?? new List<VS.Human.Rep.Model.WorkflowHealthItem>())
+                                {
+                                    <div class="d-flex justify-content-between small py-1">
+                                        <span>@item.StepName</span>
+                                        <span>@item.PendingCount pending / @item.OverdueCount overdue</span>
+                                    </div>
+                                }
+                                @if (Model.ActionCenter?.WorkflowHealth?.Any() != true)
+                                {
+                                    <div class="text-muted small">No pending workflow bottleneck.</div>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="mini-panel">
+                                <div class="fw-semibold mb-2">Recent timeline</div>
+                                @foreach (var item in Model.ActionCenter?.RecentTimeline?.Take(5) ?? new List<VS.Human.Rep.Model.WorkflowTimelineEvent>())
+                                {
+                                    <div class="small py-1">
+                                        <span class="fw-semibold">@item.EventCode</span>
+                                        <span class="text-muted">@item.EventTitle</span>
+                                    </div>
+                                }
+                                @if (Model.ActionCenter?.RecentTimeline?.Any() != true)
+                                {
+                                    <div class="text-muted small">Timeline will appear after new workflow events.</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <div class="row">
         @if (showFilters)
@@ -1009,6 +1130,48 @@
         </div>
     </div>
 }
+
+<style>
+    .action-center-card {
+        border: 1px solid #e5e7eb;
+    }
+    .action-tile {
+        display: block;
+        height: 100%;
+        min-height: 112px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 14px;
+        color: #111827;
+        background: #fff;
+    }
+    .action-tile:hover {
+        border-color: #2563eb;
+        color: #111827;
+        text-decoration: none;
+    }
+    .action-tile-label {
+        display: block;
+        color: #6b7280;
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+    .action-tile strong {
+        display: block;
+        font-size: 28px;
+        line-height: 1;
+    }
+    .action-tile small {
+        color: #6b7280;
+    }
+    .mini-panel {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px;
+        height: 100%;
+        background: #fff;
+    }
+</style>
 
 <script>
    var groupSearch = "@Model.RequestPage.GroupId";

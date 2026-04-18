@@ -237,6 +237,8 @@
                                 <th>Thoi luong</th>
                                 <th>Line goi</th>
                                 <th>Nguoi goi</th>
+                                <th>Outcome</th>
+                                <th>Ghi chu</th>
                                 <th>Audio</th>
                             </tr>
                         </thead>
@@ -352,6 +354,19 @@
                 const audioHtml = item.recordingUrl
                     ? `<audio controls preload="none" src="${item.recordingUrl}" style="max-width: 240px;"></audio>`
                     : '<span class="text-muted small">Khong co file</span>';
+                const outcomeHtml = item.id
+                    ? `<select class="form-select form-select-sm" onchange="updateCandidateCallOutcome(${item.id}, this.value)">
+                        <option value="">--</option>
+                        <option value="Khong nghe may" ${item.outcome === 'Khong nghe may' ? 'selected' : ''}>Khong nghe may</option>
+                        <option value="May ban" ${item.outcome === 'May ban' ? 'selected' : ''}>May ban</option>
+                        <option value="Sai so" ${item.outcome === 'Sai so' ? 'selected' : ''}>Sai so</option>
+                        <option value="Da lien he" ${item.outcome === 'Da lien he' ? 'selected' : ''}>Da lien he</option>
+                        <option value="Hen goi lai" ${item.outcome === 'Hen goi lai' ? 'selected' : ''}>Hen goi lai</option>
+                        <option value="Quan tam" ${item.outcome === 'Quan tam' ? 'selected' : ''}>Quan tam</option>
+                        <option value="Tu choi" ${item.outcome === 'Tu choi' ? 'selected' : ''}>Tu choi</option>
+                        <option value="Chot lich" ${item.outcome === 'Chot lich' ? 'selected' : ''}>Chot lich</option>
+                    </select>`
+                    : (item.outcome || '');
 
                 row.innerHTML = `
                     <td>${item.callDateText || ''}</td>
@@ -359,10 +374,28 @@
                     <td>${item.durationText || '00:00'}</td>
                     <td>${item.lineCode || ''}</td>
                     <td>${item.userName || ''}</td>
+                    <td>${outcomeHtml}</td>
+                    <td>${item.notes || ''}</td>
                     <td>${audioHtml}</td>
                 `;
                 body.appendChild(row);
             });
+        }
+
+        async function updateCandidateCallOutcome(callLogId, outcome) {
+            if (!callLogId) {
+                return;
+            }
+
+            try {
+                await fetch('/Call?handler=Outcome', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: callLogId, outcome: outcome || '' })
+                });
+            } catch (error) {
+                console.error('Cannot update call outcome', error);
+            }
         }
 
         async function loadCandidateCallWorkspace(candidateId, phoneOverride) {

@@ -32,8 +32,10 @@ namespace VS.Human.Business
         private readonly INotificationBusiness _notificationBusiness;
         private readonly ILeaveAttendanceImpactResolver _attendanceImpactResolver;
         private readonly ILeaveAttendanceSyncService _leaveAttendanceSyncService;
+        private readonly IWorkflowTimelineBusiness _workflowTimelineBusiness;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<LeaveBusiness> _logger;
+        private static readonly AsyncLocal<LeaveNotificationContext?> LeaveNotificationContextCurrent = new();
 
         public LeaveBusiness(
             IUnitOfWork unitOfWork,
@@ -43,6 +45,7 @@ namespace VS.Human.Business
             INotificationBusiness notificationBusiness,
             ILeaveAttendanceImpactResolver attendanceImpactResolver,
             ILeaveAttendanceSyncService leaveAttendanceSyncService,
+            IWorkflowTimelineBusiness workflowTimelineBusiness,
             ILogger<LeaveBusiness> logger) : base(unitOfWork, contextAccessor)
         {
             _emailConfigBusiness = emailConfigBusiness;
@@ -50,6 +53,7 @@ namespace VS.Human.Business
             _notificationBusiness = notificationBusiness;
             _attendanceImpactResolver = attendanceImpactResolver;
             _leaveAttendanceSyncService = leaveAttendanceSyncService;
+            _workflowTimelineBusiness = workflowTimelineBusiness;
             _httpContextAccessor = contextAccessor;
             _logger = logger;
         }
@@ -95,6 +99,14 @@ namespace VS.Human.Business
             if (savedId > 0)
             {
                 var after = await _unitOfWork.LeaveRep.GetById(savedId);
+                if (after != null && after.Id > 0)
+                {
+                    await TrackLeaveEventAsync(
+                        after,
+                        isNew ? WorkflowEventCodes.Created : WorkflowEventCodes.Updated,
+                        isNew ? "Leave request created" : "Leave request updated",
+                        userId);
+                }
                 await ProcessLeaveAttendanceImpactAsync(before, after, isNew ? "Create" : "Update", userId);
 
                 if (isNew)
@@ -133,6 +145,20 @@ namespace VS.Human.Business
             if (result)
             {
                 var after = await _unitOfWork.LeaveRep.GetById(id);
+                if (after != null && after.Id > 0)
+                {
+                    await TrackLeaveEventAsync(
+                        after,
+                        action.Equals("Reject", StringComparison.OrdinalIgnoreCase) ? WorkflowEventCodes.Rejected : WorkflowEventCodes.Approved,
+                        $"Leave workflow action: {action}",
+                        approverId,
+                        new
+                        {
+                            action,
+                            roleCode,
+                            comment
+                        });
+                }
                 await ProcessLeaveAttendanceImpactAsync(before, after, action, approverId);
                 await TrySendLeaveEmailAsync(id, action, approverId, roleCode, comment);
                 await TryCreateLeaveNotificationsAsync(id, action, approverId, roleCode, comment);
@@ -157,6 +183,11 @@ namespace VS.Human.Business
             if (result)
             {
                 await ProcessLeaveAttendanceImpactAsync(before, null, "Delete", userId);
+                if (before != null && before.Id > 0)
+                {
+                    before.Status = 6;
+                    await TrackLeaveEventAsync(before, WorkflowEventCodes.Cancelled, "Leave request cancelled", userId);
+                }
             }
 
             return result;
@@ -182,7 +213,43 @@ namespace VS.Human.Business
                 return;
             }
 
+            var trackedLeave = after ?? before;
+            if (trackedLeave != null && trackedLeave.Id > 0)
+            {
+                await TrackLeaveEventAsync(
+                    trackedLeave,
+                    WorkflowEventCodes.AttendanceSyncPending,
+                    "Attendance sync queued",
+                    userId,
+                    new
+                    {
+                        action,
+                        impact = impact.Kind,
+                        rangeFrom = impact.RangeFrom,
+                        rangeTo = impact.RangeTo
+                    },
+                    attendanceSyncStatus: "Pending");
+            }
+
             var syncResult = await _leaveAttendanceSyncService.SyncAsync(impact, userId);
+            if (trackedLeave != null && trackedLeave.Id > 0)
+            {
+                await TrackLeaveEventAsync(
+                    trackedLeave,
+                    syncResult.Success ? WorkflowEventCodes.AttendanceSyncCompleted : WorkflowEventCodes.AttendanceSyncFailed,
+                    syncResult.Success ? "Attendance sync completed" : "Attendance sync failed",
+                    userId,
+                    new
+                    {
+                        action,
+                        impact = impact.Kind,
+                        updatedCount = syncResult.UpdatedCount,
+                        attempts = syncResult.AttemptCount
+                    },
+                    syncResult.Error,
+                    attendanceSyncStatus: syncResult.Success ? "Completed" : "Failed");
+            }
+
             if (!syncResult.Success)
             {
                 _logger.LogWarning(
@@ -265,6 +332,23 @@ namespace VS.Human.Business
                         string.Join(", ", emailPlan.CcEmails),
                         sendResult.Error ?? "Unknown error");
                 }
+
+                await TrackLeaveEventAsync(
+                    leave,
+                    sendResult.Success ? WorkflowEventCodes.EmailSent : WorkflowEventCodes.EmailFailed,
+                    sendResult.Success ? "Leave email sent" : "Leave email failed",
+                    approverId > 0 ? approverId : employee.Id,
+                    new
+                    {
+                        template = emailPlan.TemplateCode,
+                        to = emailPlan.ToEmails,
+                        cc = emailPlan.CcEmails,
+                        action
+                    },
+                    sendResult.Error,
+                    emailSent: sendResult.Success,
+                    emailFailed: !sendResult.Success,
+                    emailLogId: sendResult.LogId);
             }
             catch (Exception ex)
             {
@@ -452,6 +536,11 @@ namespace VS.Human.Business
                 var isApprove = action.Equals("Agree", StringComparison.OrdinalIgnoreCase);
                 var employeeName = leave.EmployeeName ?? employee.FullName ?? "Nhan vien";
                 var actorName = actor?.FullName ?? "He thong";
+                LeaveNotificationContextCurrent.Value = new LeaveNotificationContext
+                {
+                    Leave = leave,
+                    Action = action
+                };
 
                 if (isCreate)
                 {
@@ -617,6 +706,12 @@ namespace VS.Human.Business
 
         private async Task NotifyUsersAsync(IEnumerable<int> receiverIds, string message, string link, int? senderId, params int?[] excludedIds)
         {
+            var notificationContext = LeaveNotificationContextCurrent.Value;
+            var leave = notificationContext?.Leave;
+            var effectiveLink = leave != null && leave.Id > 0 && link.StartsWith("/Leave/", StringComparison.OrdinalIgnoreCase) && !link.Contains("?", StringComparison.Ordinal)
+                ? BuildLeaveRelativeUrl(link, leave.Id)
+                : link;
+            var dueAt = leave != null ? ResolveDueAt(leave.Status) : null;
             var excluded = new HashSet<int>(excludedIds.Where(x => x.HasValue && x.Value > 0).Select(x => x!.Value));
             var distinctReceiverIds = receiverIds
                 .Where(id => id > 0 && !excluded.Contains(id))
@@ -625,8 +720,130 @@ namespace VS.Human.Business
 
             foreach (var receiverId in distinctReceiverIds)
             {
-                await _notificationBusiness.CreateNotification(receiverId, message, link, "LeaveRequest", senderId);
+                var category = ResolveNotificationCategory(effectiveLink, leave, receiverId);
+                var notificationId = await _notificationBusiness.CreateNotificationWithId(new AppNotification
+                {
+                    ReceiverId = receiverId,
+                    SenderId = senderId,
+                    Message = message,
+                    Link = effectiveLink,
+                    Type = "LeaveRequest",
+                    Category = category,
+                    RelatedEntityType = leave != null ? WorkflowEntityTypes.Leave : null,
+                    RelatedEntityId = leave?.Id,
+                    EventCode = WorkflowEventCodes.NotificationCreated,
+                    DueAt = category == "ACTION_REQUIRED" ? dueAt : null
+                });
+
+                if (leave != null && leave.Id > 0)
+                {
+                    await TrackLeaveEventAsync(
+                        leave,
+                        WorkflowEventCodes.NotificationCreated,
+                        $"Leave notification created for user {receiverId}",
+                        senderId,
+                        new
+                        {
+                            receiverId,
+                            category,
+                            link = effectiveLink,
+                            action = notificationContext?.Action
+                        },
+                        notificationCreated: notificationId > 0,
+                        notificationId: notificationId > 0 ? notificationId : null);
+                }
             }
+        }
+
+        private async Task TrackLeaveEventAsync(
+            LeaveIndexModel leave,
+            string eventCode,
+            string eventTitle,
+            int? triggeredBy,
+            object? metadata = null,
+            string? errorMessage = null,
+            bool emailSent = false,
+            bool emailFailed = false,
+            int? emailLogId = null,
+            bool notificationCreated = false,
+            int? notificationId = null,
+            string? attendanceSyncStatus = null)
+        {
+            if (leave == null || leave.Id <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var actorName = await ResolveEmployeeDisplayNameAsync(triggeredBy.GetValueOrDefault());
+                await _workflowTimelineBusiness.TrackLeaveAsync(
+                    leave,
+                    eventCode,
+                    eventTitle,
+                    triggeredBy,
+                    actorName,
+                    metadata == null ? null : System.Text.Json.JsonSerializer.Serialize(metadata),
+                    errorMessage,
+                    emailSent,
+                    emailFailed,
+                    emailLogId,
+                    notificationCreated,
+                    notificationId,
+                    attendanceSyncStatus);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Unable to write workflow timeline event. LeaveId={LeaveId}, EventCode={EventCode}", leave.Id, eventCode);
+            }
+        }
+
+        private async Task<string?> ResolveEmployeeDisplayNameAsync(int employeeId)
+        {
+            if (employeeId <= 0)
+            {
+                return null;
+            }
+
+            var employee = await _unitOfWork.EmployeeRep.GetById(employeeId);
+            return employee != null && employee.Id > 0
+                ? employee.FullName ?? employee.UserName
+                : null;
+        }
+
+        private static DateTime? ResolveDueAt(int status)
+        {
+            var hours = status switch
+            {
+                0 => 24,
+                1 => 12,
+                2 => 24,
+                _ => 0
+            };
+
+            return hours > 0 ? DateTime.Now.AddHours(hours) : null;
+        }
+
+        private static string ResolveNotificationCategory(string link, LeaveIndexModel? leave, int receiverId)
+        {
+            if (leave == null || leave.Id <= 0)
+            {
+                return "FYI";
+            }
+
+            if (link.StartsWith("/Leave/LeaveApproval", StringComparison.OrdinalIgnoreCase)
+                && leave.Status is 0 or 1 or 2
+                && receiverId != leave.EmployeeId)
+            {
+                return "ACTION_REQUIRED";
+            }
+
+            return "FYI";
+        }
+
+        private static string BuildLeaveRelativeUrl(string path, int leaveId)
+        {
+            return $"{path}?id={leaveId}";
         }
 
         private async Task<List<int>> GetRoleUserIdsAsync(params string[] roleCodes)
@@ -651,6 +868,8 @@ namespace VS.Human.Business
             tokens["LeaveRequestUrl"] = requestUrl;
             tokens["LeaveDetailUrl"] = actionNeedsApprovalPage ? approvalUrl : requestUrl;
             tokens["LeaveUrl"] = tokens["LeaveDetailUrl"];
+            tokens["LeaveApproveUrl"] = $"{approvalUrl}&action=Agree";
+            tokens["LeaveRejectUrl"] = $"{approvalUrl}&action=Reject";
         }
 
         private string BuildLeaveUrl(string path, int leaveId)
@@ -948,6 +1167,12 @@ namespace VS.Human.Business
             public List<string> ToEmails { get; } = new List<string>();
             public List<string> CcEmails { get; } = new List<string>();
             public int? ManagerId { get; set; }
+        }
+
+        private sealed class LeaveNotificationContext
+        {
+            public LeaveIndexModel? Leave { get; set; }
+            public string? Action { get; set; }
         }
     }
 }

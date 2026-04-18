@@ -21,6 +21,7 @@ namespace crmHuman.Pages
         private readonly IJobItemBusiness _jobItemBusiness;
         private readonly ILogHistoryBusiness _logHistoryBusiness;
         private readonly IAuditLogBusiness _auditLogBusiness;
+        private readonly ICallBussiness _callBusiness;
 
         public BaseList TopOrder;
         public BaseList TopImpact;
@@ -45,7 +46,8 @@ namespace crmHuman.Pages
         ImasterDataBussiness imasterDataBussiness,
         IJobItemBusiness jobItemBusiness,
         ILogHistoryBusiness logHistoryBusiness,
-        IAuditLogBusiness auditLogBusiness
+        IAuditLogBusiness auditLogBusiness,
+        ICallBussiness callBusiness
             )
         {
             _logger = logger;
@@ -58,6 +60,7 @@ namespace crmHuman.Pages
             _jobItemBusiness = jobItemBusiness;
             _logHistoryBusiness = logHistoryBusiness;
             _auditLogBusiness = auditLogBusiness;
+            _callBusiness = callBusiness;
         }
 
         public async Task<IActionResult> OnPostLogOut(LoginRequest request)
@@ -93,27 +96,16 @@ namespace crmHuman.Pages
 
         public async Task<IActionResult> OnPostCall(CallRequest request)
         {
-            List<Claim> roleClaims = HttpContext.User.FindAll(ClaimTypes.Role).ToList();
+            GetInfoUser();
             var userId = UserData.UserId;
-
-            var data = new StringContent(JsonConvert.SerializeObject(new
-            {
-                phoneNumber = request.Phone,
-                userId,
-                lineCode = UserData.LineCode
-            }));
-            data.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            var linkUrl = "http://192.168.1.9:3002";
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = new Uri(linkUrl);
-                var reponse = await client.PostAsync("api/client/makeCall", data);
-                var result = await reponse.Content.ReadAsStringAsync();
-            }
+            var result = await _callBusiness.MakeCallDetailed(request.Phone, "Dashboard", null, UserData.LineCode, userId, "IndexAdmin");
             var reponseResult = new
             {
-                Success = true,
-                Data = true
+                Success = result.Success,
+                Data = result.Success,
+                result.CallLogId,
+                result.ProviderCallId,
+                Message = result.Success ? "Da kich hoat client goi." : result.Error
 
 
             };

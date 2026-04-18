@@ -14,13 +14,15 @@ namespace crmHuman.Pages.Leave
     public class LeaveRequestModel : BaseModel2
     {
         private readonly ILeaveBusiness _leaveBusiness;
+        private readonly IWorkflowTimelineBusiness _workflowTimelineBusiness;
         private readonly ImasterDataBussiness _masterDataBusiness;
         private readonly IEmpBusiness _employeeBusiness;
         private const string RoleHcns = "9";
 
-        public LeaveRequestModel(ILeaveBusiness leaveBusiness, ImasterDataBussiness masterDataBusiness, IEmpBusiness employeeBusiness)
+        public LeaveRequestModel(ILeaveBusiness leaveBusiness, IWorkflowTimelineBusiness workflowTimelineBusiness, ImasterDataBussiness masterDataBusiness, IEmpBusiness employeeBusiness)
         {
             _leaveBusiness = leaveBusiness;
+            _workflowTimelineBusiness = workflowTimelineBusiness;
             _masterDataBusiness = masterDataBusiness;
             _employeeBusiness = employeeBusiness;
             KeyPage = "LeaveRequest";
@@ -181,6 +183,37 @@ namespace crmHuman.Pages.Leave
 
             var result = await _leaveBusiness.GetLeaveHistory(id);
             return new JsonResult(result);
+        }
+
+        public async Task<IActionResult> OnGetWorkflowDetailAsync(int id)
+        {
+            GetInfoUser();
+            if (!(Permision.View ?? false))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
+            var leave = await _leaveBusiness.GetLeaveById(id);
+            if (!await CanAccessLeaveAsync(leave))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
+            var history = await _leaveBusiness.GetLeaveHistory(id);
+            var timeline = await _workflowTimelineBusiness.GetByEntityAsync(WorkflowEntityTypes.Leave, id);
+            var dueAt = ResolveDueAt(leave.Status);
+            return new JsonResult(new
+            {
+                success = true,
+                leave,
+                history,
+                timeline,
+                currentStep = ResolveStepText(leave.Status),
+                currentOwner = ResolveOwnerText(leave.Status),
+                dueAt,
+                isOverdue = dueAt.HasValue && dueAt.Value < DateTime.Now,
+                canAct = false
+            });
         }
 
         public async Task<IActionResult> OnPostSaveAsync([FromBody] LeaveAddUpdate model)
@@ -350,6 +383,44 @@ namespace crmHuman.Pages.Leave
                 5 => "Từ chối",
                 6 => "Đã hủy",
                 _ => "Không xác định"
+            };
+        }
+        private static DateTime? ResolveDueAt(int status)
+        {
+            var hours = status switch
+            {
+                0 => 24,
+                1 => 12,
+                2 => 24,
+                _ => 0
+            };
+
+            return hours > 0 ? DateTime.Now.AddHours(hours) : null;
+        }
+
+        private static string ResolveStepText(int status)
+        {
+            return status switch
+            {
+                0 => "Manager",
+                1 => "HCNS",
+                2 => "BGD",
+                3 => "Final approved",
+                4 => "Final approved",
+                5 => "Rejected",
+                6 => "Cancelled",
+                _ => "Unknown"
+            };
+        }
+
+        private static string ResolveOwnerText(int status)
+        {
+            return status switch
+            {
+                0 => "Quan ly truc tiep",
+                1 => "Phong HCNS",
+                2 => "Ban Giam doc",
+                _ => string.Empty
             };
         }
     }

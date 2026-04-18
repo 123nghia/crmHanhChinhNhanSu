@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using VS.Human.Business;
 using VS.Human.Business.Model;
+using VS.Human.Rep.Model;
 
 namespace crmHuman.Pages
 {
@@ -74,20 +75,43 @@ namespace crmHuman.Pages
                     StatusCode = StatusCodes.Status400BadRequest
                 };
             }
-            var result = await _empBusiness.MakeCall(request.Phonecall, request.Typecall, request.Idrel, currentLineCode, UserData.UserId);
+            var result = await _empBusiness.MakeCallDetailed(
+                request.Phonecall,
+                request.Typecall,
+                request.Idrel,
+                currentLineCode,
+                UserData.UserId,
+                Request.Headers["Referer"].ToString());
 
             var dataReponse = new
             {
-                success = result,
-                message = result
+                success = result.Success,
+                callLogId = result.CallLogId,
+                providerCallId = result.ProviderCallId,
+                message = result.Success
                     ? "Da kich hoat client goi."
-                    : "Khong the kich hoat client goi. Kiem tra cau hinh SIP va dich vu quay so."
+                    : (result.Error ?? "Khong the kich hoat client goi. Kiem tra cau hinh SIP va dich vu quay so.")
             };
             return new JsonResult(dataReponse)
             {
                 StatusCode = StatusCodes.Status200OK
 
             };
+        }
+
+        public async Task<IActionResult> OnPostOutcome([FromBody] CallLogOutcomeUpdate request)
+        {
+            GetInfoUser();
+            if (request == null || request.Id <= 0)
+            {
+                return new JsonResult(new { success = false, message = "Missing call log." })
+                {
+                    StatusCode = StatusCodes.Status400BadRequest
+                };
+            }
+
+            var ok = await _empBusiness.UpdateCallOutcome(request, UserData.UserId);
+            return new JsonResult(new { success = ok });
         }
 
 

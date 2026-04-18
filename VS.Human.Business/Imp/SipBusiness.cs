@@ -339,6 +339,11 @@ namespace VS.Human.Business.Imp
             };
             client.DefaultRequestHeaders.Add("x-user-id", GetUserId().ToString());
             client.DefaultRequestHeaders.Add("x-user-role", "admin");
+            var apiKey = _configuration["Telephony:ApiKey"]?.Trim();
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                client.DefaultRequestHeaders.Add("x-api-key", apiKey);
+            }
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             using var request = new HttpRequestMessage(method, path)
@@ -375,7 +380,7 @@ namespace VS.Human.Business.Imp
                 ?? _configuration["Telephony:CallServiceBaseUrl"]?.Trim();
             if (string.IsNullOrWhiteSpace(configuredUrl))
             {
-                configuredUrl = "http://192.168.1.9:3000/";
+                throw new InvalidOperationException("Telephony:FreePbxServiceBaseUrl is not configured.");
             }
 
             if (!configuredUrl.EndsWith("/", StringComparison.Ordinal))

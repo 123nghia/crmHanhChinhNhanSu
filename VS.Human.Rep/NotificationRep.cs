@@ -57,13 +57,39 @@ namespace VS.Human.Rep
 
         public async Task<bool> Add(AppNotification item)
         {
+            return await InsertAsync(item) > 0;
+        }
+
+        public async Task<int> InsertAsync(AppNotification item)
+        {
             using (var con = GetConnection())
             {
                 var sql = @"
-                    INSERT INTO AppNotifications (ReceiverId, SenderId, Message, Link, Type, IsRead, CreateAt)
-                    VALUES (@ReceiverId, @SenderId, @Message, @Link, @Type, 0, GETDATE())";
-                var affected = await con.ExecuteAsync(sql, item);
-                return affected > 0;
+DECLARE @HasCategory bit = CASE WHEN COL_LENGTH('dbo.AppNotifications', 'Category') IS NULL THEN 0 ELSE 1 END;
+
+IF @HasCategory = 1
+BEGIN
+    INSERT INTO AppNotifications
+    (
+        ReceiverId, SenderId, Message, Link, Type, Category,
+        RelatedEntityType, RelatedEntityId, EventCode, DueAt,
+        IsRead, CreateAt
+    )
+    VALUES
+    (
+        @ReceiverId, @SenderId, @Message, @Link, @Type, @Category,
+        @RelatedEntityType, @RelatedEntityId, @EventCode, @DueAt,
+        0, GETDATE()
+    );
+END
+ELSE
+BEGIN
+    INSERT INTO AppNotifications (ReceiverId, SenderId, Message, Link, Type, IsRead, CreateAt)
+    VALUES (@ReceiverId, @SenderId, @Message, @Link, @Type, 0, GETDATE());
+END
+
+SELECT CAST(SCOPE_IDENTITY() AS int);";
+                return await con.ExecuteScalarAsync<int>(sql, item);
             }
         }
     }
