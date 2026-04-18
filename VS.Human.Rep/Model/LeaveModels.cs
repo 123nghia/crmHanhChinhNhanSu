@@ -64,6 +64,13 @@ namespace VS.Human.Rep.Model
         public string ApproverName { get; set; }
         public string Comment { get; set; }
         public DateTime? ApproveAt { get; set; }
+
+        public string? AttendanceSyncStatus { get; set; }
+        public DateTime? LastAttendanceSyncAt { get; set; }
+        public string? LastAttendanceSyncError { get; set; }
+        public DateTime? LastAttendanceSyncRangeFrom { get; set; }
+        public DateTime? LastAttendanceSyncRangeTo { get; set; }
+        public int? AttendanceSyncAttemptCount { get; set; }
         public DateTime CreateAt { get; set; }
     }
 

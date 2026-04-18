@@ -30,6 +30,9 @@ namespace VS.Human.Business
         private readonly IEmailConfigBusiness _emailConfigBusiness;
         private readonly IEmailService _emailService;
         private readonly INotificationBusiness _notificationBusiness;
+        private readonly ILeaveAttendanceImpactResolver _attendanceImpactResolver;
+        private readonly ILeaveAttendanceSyncService _leaveAttendanceSyncService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<LeaveBusiness> _logger;
 
         public LeaveBusiness(
@@ -38,11 +41,16 @@ namespace VS.Human.Business
             IEmailConfigBusiness emailConfigBusiness,
             IEmailService emailService,
             INotificationBusiness notificationBusiness,
+            ILeaveAttendanceImpactResolver attendanceImpactResolver,
+            ILeaveAttendanceSyncService leaveAttendanceSyncService,
             ILogger<LeaveBusiness> logger) : base(unitOfWork, contextAccessor)
         {
             _emailConfigBusiness = emailConfigBusiness;
             _emailService = emailService;
             _notificationBusiness = notificationBusiness;
+            _attendanceImpactResolver = attendanceImpactResolver;
+            _leaveAttendanceSyncService = leaveAttendanceSyncService;
+            _httpContextAccessor = contextAccessor;
             _logger = logger;
         }
 
@@ -81,12 +89,19 @@ namespace VS.Human.Business
             }
 
             var isNew = model.Id <= 0;
+            var before = isNew ? null : await _unitOfWork.LeaveRep.GetById(model.Id);
             var savedId = await _unitOfWork.LeaveRep.Save(model, userId);
 
-            if (savedId > 0 && isNew)
+            if (savedId > 0)
             {
-                await TrySendLeaveEmailAsync(savedId, "Create", userId, string.Empty, null);
-                await TryCreateLeaveNotificationsAsync(savedId, "Create", userId, string.Empty, null);
+                var after = await _unitOfWork.LeaveRep.GetById(savedId);
+                await ProcessLeaveAttendanceImpactAsync(before, after, isNew ? "Create" : "Update", userId);
+
+                if (isNew)
+                {
+                    await TrySendLeaveEmailAsync(savedId, "Create", userId, string.Empty, null);
+                    await TryCreateLeaveNotificationsAsync(savedId, "Create", userId, string.Empty, null);
+                }
             }
 
             return savedId;
@@ -113,9 +128,12 @@ namespace VS.Human.Business
                 return false;
             }
 
+            var before = leave;
             var result = await _unitOfWork.LeaveRep.ApproveWorkflow(id, action, approverId, roleCode, comment);
             if (result)
             {
+                var after = await _unitOfWork.LeaveRep.GetById(id);
+                await ProcessLeaveAttendanceImpactAsync(before, after, action, approverId);
                 await TrySendLeaveEmailAsync(id, action, approverId, roleCode, comment);
                 await TryCreateLeaveNotificationsAsync(id, action, approverId, roleCode, comment);
             }
@@ -134,7 +152,47 @@ namespace VS.Human.Business
 
         public async Task<bool> DeleteLeave(int id, int userId)
         {
-            return await _unitOfWork.LeaveRep.Delete(id, userId);
+            var before = await _unitOfWork.LeaveRep.GetById(id);
+            var result = await _unitOfWork.LeaveRep.Delete(id, userId);
+            if (result)
+            {
+                await ProcessLeaveAttendanceImpactAsync(before, null, "Delete", userId);
+            }
+
+            return result;
+        }
+
+        private async Task ProcessLeaveAttendanceImpactAsync(LeaveIndexModel? before, LeaveIndexModel? after, string action, int userId)
+        {
+            var impact = _attendanceImpactResolver.Resolve(before, after, action);
+            var leaveId = impact.LeaveId;
+
+            _logger.LogInformation(
+                "[Leave] Attendance impact resolved (leaveId={LeaveId}, action={Action}, impact={Impact}, range={FromDate}->{ToDate}, beforeStatus={BeforeStatus}, afterStatus={AfterStatus})",
+                leaveId,
+                action,
+                impact.Kind,
+                impact.RangeFrom?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "n/a",
+                impact.RangeTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "n/a",
+                before?.Status,
+                after?.Status);
+
+            if (!impact.RequiresAttendanceSync)
+            {
+                return;
+            }
+
+            var syncResult = await _leaveAttendanceSyncService.SyncAsync(impact, userId);
+            if (!syncResult.Success)
+            {
+                _logger.LogWarning(
+                    "[Leave] Attendance sync failed (leaveId={LeaveId}, action={Action}, impact={Impact}, attempts={Attempts}, error={Error})",
+                    leaveId,
+                    action,
+                    impact.Kind,
+                    syncResult.AttemptCount,
+                    syncResult.Error ?? "Unknown error");
+            }
         }
 
         private async Task TrySendLeaveEmailAsync(int leaveId, string action, int approverId, string roleCode, string? comment)
@@ -217,6 +275,7 @@ namespace VS.Human.Business
         private async Task<LeaveEmailPlan?> BuildLeaveEmailPlanAsync(LeaveIndexModel leave, Employee employee, Employee? manager, Employee? approver, string action, string roleCode, string? comment)
         {
             var tokens = BuildLeaveTokens(leave, employee, manager, approver, action, roleCode, comment);
+            AddLeaveLinkTokens(tokens, leave, action);
             var plan = new LeaveEmailPlan
             {
                 Tokens = tokens,
@@ -578,6 +637,32 @@ namespace VS.Human.Business
                 .Select(employee => employee.Id)
                 .Distinct()
                 .ToList();
+        }
+
+        private void AddLeaveLinkTokens(Dictionary<string, string> tokens, LeaveIndexModel leave, string action)
+        {
+            var approvalUrl = BuildLeaveUrl("/Leave/LeaveApproval", leave.Id);
+            var requestUrl = BuildLeaveUrl("/Leave/LeaveRequest", leave.Id);
+            var actionNeedsApprovalPage =
+                action.Equals("Create", StringComparison.OrdinalIgnoreCase)
+                || (action.Equals("Agree", StringComparison.OrdinalIgnoreCase) && leave.Status is 1 or 2);
+
+            tokens["LeaveApprovalUrl"] = approvalUrl;
+            tokens["LeaveRequestUrl"] = requestUrl;
+            tokens["LeaveDetailUrl"] = actionNeedsApprovalPage ? approvalUrl : requestUrl;
+            tokens["LeaveUrl"] = tokens["LeaveDetailUrl"];
+        }
+
+        private string BuildLeaveUrl(string path, int leaveId)
+        {
+            var relativeUrl = $"{path}?id={leaveId}";
+            var request = _httpContextAccessor.HttpContext?.Request;
+            if (request == null)
+            {
+                return relativeUrl;
+            }
+
+            return $"{request.Scheme}://{request.Host}{request.PathBase}{relativeUrl}";
         }
 
         private static Dictionary<string, string> BuildLeaveTokens(LeaveIndexModel leave, Employee employee, Employee? manager, Employee? approver, string action, string roleCode, string? comment)

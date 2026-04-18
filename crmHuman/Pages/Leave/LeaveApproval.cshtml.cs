@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using VS.Human.Business;
 using VS.Human.Item;
@@ -38,6 +39,55 @@ namespace crmHuman.Pages.Leave
             };
         }
 
+        private static bool IsStatusAllowedForAction(string? roleCode, string? action, int status)
+        {
+            if (roleCode == "1")
+            {
+                return true;
+            }
+
+            if (string.Equals(action, "Reject", global::System.StringComparison.OrdinalIgnoreCase))
+            {
+                return roleCode switch
+                {
+                    "3" => status == 0,
+                    "9" => status == 1,
+                    "8" => status is 2 or 3 or 4,
+                    _ => false
+                };
+            }
+
+            if (string.Equals(action, "Acting", global::System.StringComparison.OrdinalIgnoreCase))
+            {
+                return roleCode == "9" && status is 1 or 2;
+            }
+
+            return roleCode switch
+            {
+                "3" => status == 0,
+                "9" => status == 1,
+                "8" => status == 2,
+                _ => false
+            };
+        }
+
+        private async Task<bool> CanAccessApprovalAsync(LeaveIndexModel? leave, string? action = null)
+        {
+            if (leave == null || leave.Id <= 0 || UserData?.UserId <= 0 || !IsApprovalRole(UserData.RoleCode))
+            {
+                return false;
+            }
+
+            if (!IsStatusAllowedForAction(UserData.RoleCode, action, leave.Status))
+            {
+                return false;
+            }
+
+            var leaveList = await _leaveBusiness.GetLeaveList(null, null, null, null, 1, 5000, UserData.UserId);
+            var items = leaveList.Data?.OfType<LeaveIndexModel>() ?? Enumerable.Empty<LeaveIndexModel>();
+            return items.Any(item => item.Id == leave.Id);
+        }
+
         public LeaveApprovalModel(ILeaveBusiness leaveBusiness)
         {
             _leaveBusiness = leaveBusiness;
@@ -69,6 +119,18 @@ namespace crmHuman.Pages.Leave
 
         public async Task<IActionResult> OnGetLeaveHistoryAsync(int id)
         {
+            GetInfoUser();
+            if (!(Permision.View ?? false) || !IsApprovalRole(UserData.RoleCode))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
+            var leave = await _leaveBusiness.GetLeaveById(id);
+            if (!await CanAccessApprovalAsync(leave))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
             var result = await _leaveBusiness.GetLeaveHistory(id);
             return new JsonResult(result);
         }
@@ -90,6 +152,11 @@ namespace crmHuman.Pages.Leave
             if (IsAdminOrBgdRole(UserData.RoleCode) && leave.EmployeeId == UserData.UserId)
             {
                 return new JsonResult(new { success = false, message = "Admin/BGĐ không được tự xử lý đơn của chính mình." });
+            }
+
+            if (!await CanAccessApprovalAsync(leave, model.Action))
+            {
+                return new JsonResult(new { success = false, message = "Ban khong co quyen xu ly don nghi phep nay." });
             }
 
             var result = await _leaveBusiness.ApproveWorkflow(model.Id, model.Action, UserData.UserId, UserData.RoleCode, model.Comment);

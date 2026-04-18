@@ -1,3 +1,5 @@
+let isSubmittingLeaveApproval = false;
+
 function approveLeave(id, action) {
     $('#approveId').val(id);
     $('#approveAction').val(action);
@@ -6,11 +8,17 @@ function approveLeave(id, action) {
 }
 
 async function submitApproval() {
+    if (isSubmittingLeaveApproval) {
+        return;
+    }
+
     const data = {
         Id: parseInt($('#approveId').val(), 10),
         Action: $('#approveAction').val(),
         Comment: $('#approveComment').val()
     };
+
+    isSubmittingLeaveApproval = true;
 
     try {
         const response = await fetch('?handler=Approve', {
@@ -32,6 +40,8 @@ async function submitApproval() {
     } catch (error) {
         console.error('Error:', error);
         alert('Lỗi hệ thống.');
+    } finally {
+        isSubmittingLeaveApproval = false;
     }
 }
 
@@ -78,3 +88,10 @@ function getActionText(action) {
         default: return action || '';
     }
 }
+
+$(document).ready(function () {
+    const leaveId = parseInt(new URLSearchParams(window.location.search).get('id') || '0', 10);
+    if (leaveId > 0) {
+        viewHistory(leaveId);
+    }
+});

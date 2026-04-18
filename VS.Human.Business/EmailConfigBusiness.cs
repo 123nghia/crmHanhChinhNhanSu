@@ -38,6 +38,11 @@ namespace VS.Human.Business
 
             foreach (var defaultTemplate in GetDefaultTemplates())
             {
+                if (IsLeaveTemplateCode(defaultTemplate.Code))
+                {
+                    defaultTemplate.Body = EnsureLeaveTemplateDeepLink(defaultTemplate.Body);
+                }
+
                 if (existingByCode.TryGetValue(defaultTemplate.Code, out var existing))
                 {
                     // Tự động fix lỗi thiếu dấu tiếng Việt và sai token trong các template cũ
@@ -45,6 +50,10 @@ namespace VS.Human.Business
                     var fixedSubject = FixTemplateVi(existing.Subject);
                     var fixedBody = FixTemplateVi(existing.Body);
                     var fixedName = FixTemplateVi(existing.Name);
+                    if (IsLeaveTemplateCode(defaultTemplate.Code))
+                    {
+                        fixedBody = EnsureLeaveTemplateDeepLink(fixedBody);
+                    }
 
                     if (existing.Subject != fixedSubject)
                     {
@@ -87,6 +96,34 @@ namespace VS.Human.Business
             text = text.Replace("vừa tạo một yêu cầu", "vừa gửi đơn xin");
             text = text.Replace("{{RequestType}}", "{{RequestTypeName}}");
             return text;
+        }
+
+        private static bool IsLeaveTemplateCode(string? code)
+        {
+            return !string.IsNullOrWhiteSpace(code)
+                && code.StartsWith("LEAVE_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? EnsureLeaveTemplateDeepLink(string? body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return body;
+            }
+
+            var result = body;
+            if (!result.Contains("{{StatusText}}", StringComparison.OrdinalIgnoreCase))
+            {
+                result += Environment.NewLine + "<p>Trang thai hien tai: {{StatusText}}</p>";
+            }
+
+            if (!result.Contains("{{LeaveUrl}}", StringComparison.OrdinalIgnoreCase)
+                && !result.Contains("{{LeaveDetailUrl}}", StringComparison.OrdinalIgnoreCase))
+            {
+                result += Environment.NewLine + "<p>Link he thong: <a href=\"{{LeaveUrl}}\">Mo don nghi phep</a></p>";
+            }
+
+            return result;
         }
 
         public async Task<bool> SaveSetting(EmailSetting setting, int userId)

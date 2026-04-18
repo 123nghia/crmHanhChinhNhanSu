@@ -17,5 +17,14 @@ namespace VS.Human.Rep
         Task<dynamic> GetLeaveSummary(int? employeeId, string roleCode);
         Task<LeaveBalanceIndexModel> GetEmployeeLeaveBalance(int employeeId);
         Task<bool> Delete(int id, int userId);
+        Task<bool> UpdateAttendanceSyncStatusAsync(
+            int leaveId,
+            string status,
+            DateTime? rangeFrom,
+            DateTime? rangeTo,
+            DateTime? syncedAt,
+            string? error,
+            int attemptCount,
+            int userId);
     }
 }

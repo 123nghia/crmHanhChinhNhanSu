@@ -188,4 +188,9 @@ function getActionText(action) {
 
 $(document).ready(function () {
     $('#leaveModal').on('hidden.bs.modal', resetLeaveSaveState);
+
+    const leaveId = parseInt(new URLSearchParams(window.location.search).get('id') || '0', 10);
+    if (leaveId > 0) {
+        openEditLeave(leaveId);
+    }
 });

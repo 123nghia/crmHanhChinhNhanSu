@@ -55,6 +55,28 @@ namespace crmHuman.Pages.Leave
             return (null, userId);
         }
 
+        private async Task<bool> CanAccessLeaveAsync(LeaveIndexModel? leave)
+        {
+            if (leave == null || leave.Id <= 0 || UserData?.UserId <= 0)
+            {
+                return false;
+            }
+
+            if (leave.EmployeeId == UserData.UserId || IsAdminRole(UserData.RoleCode))
+            {
+                return true;
+            }
+
+            if (!IsManagerRole(UserData.RoleCode))
+            {
+                return false;
+            }
+
+            var scoped = await _leaveBusiness.GetLeaveList(null, null, null, null, 1, 5000, UserData.UserId);
+            var items = scoped.Data?.OfType<LeaveIndexModel>() ?? Enumerable.Empty<LeaveIndexModel>();
+            return items.Any(item => item.Id == leave.Id);
+        }
+
         public async Task OnGetAsync(int page = 1, int limit = 20)
         {
             GetInfoUser();
@@ -128,12 +150,35 @@ namespace crmHuman.Pages.Leave
 
         public async Task<IActionResult> OnGetLeaveByIdAsync(int id)
         {
+            GetInfoUser();
+            if (!(Permision.View ?? false))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
             var result = await _leaveBusiness.GetLeaveById(id);
+            if (!await CanAccessLeaveAsync(result))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
             return new JsonResult(result);
         }
 
         public async Task<IActionResult> OnGetLeaveHistoryAsync(int id)
         {
+            GetInfoUser();
+            if (!(Permision.View ?? false))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
+            var leave = await _leaveBusiness.GetLeaveById(id);
+            if (!await CanAccessLeaveAsync(leave))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
             var result = await _leaveBusiness.GetLeaveHistory(id);
             return new JsonResult(result);
         }
@@ -151,10 +196,19 @@ namespace crmHuman.Pages.Leave
                 return new JsonResult(new { success = false, message = "Bạn không có quyền chỉnh sửa đơn nghỉ phép." });
             }
 
-            if (model.EmployeeId == 0)
+            var effectiveEmployeeId = UserData.UserId;
+            if (model.Id > 0)
             {
-                model.EmployeeId = UserData.UserId;
+                var existing = await _leaveBusiness.GetLeaveById(model.Id);
+                if (!await CanAccessLeaveAsync(existing))
+                {
+                    return new JsonResult(new { success = false, message = "Bạn không có quyền xử lý đơn nghỉ phép này." });
+                }
+
+                effectiveEmployeeId = existing.EmployeeId;
             }
+
+            model.EmployeeId = effectiveEmployeeId;
 
             var result = await _leaveBusiness.CreateOrUpdateLeave(model, UserData.UserId);
             if (result > 0)

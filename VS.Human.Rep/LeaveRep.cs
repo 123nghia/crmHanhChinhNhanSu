@@ -212,5 +212,44 @@ namespace VS.Human.Rep
             var affected = await ExecuteSQLScalar<int>("sp_Leave_Delete", p);
             return affected > 0;
         }
+
+        public async Task<bool> UpdateAttendanceSyncStatusAsync(
+            int leaveId,
+            string status,
+            DateTime? rangeFrom,
+            DateTime? rangeTo,
+            DateTime? syncedAt,
+            string? error,
+            int attemptCount,
+            int userId)
+        {
+            const string sql = @"
+IF COL_LENGTH('dbo.LeaveRequests', 'AttendanceSyncStatus') IS NOT NULL
+BEGIN
+    UPDATE dbo.LeaveRequests
+    SET AttendanceSyncStatus = @Status,
+        LastAttendanceSyncRangeFrom = @RangeFrom,
+        LastAttendanceSyncRangeTo = @RangeTo,
+        LastAttendanceSyncAt = @SyncedAt,
+        LastAttendanceSyncError = @Error,
+        AttendanceSyncAttemptCount = @AttemptCount,
+        UpdatedBy = @UserId,
+        UpdateAt = GETDATE()
+    WHERE Id = @LeaveId
+      AND ISNULL(Deleted, 0) = 0;
+END";
+
+            return await ExecuteSQL(sql, new
+            {
+                LeaveId = leaveId,
+                Status = status,
+                RangeFrom = rangeFrom?.Date,
+                RangeTo = rangeTo?.Date,
+                SyncedAt = syncedAt,
+                Error = error,
+                AttemptCount = attemptCount,
+                UserId = userId
+            }, CommandType.Text);
+        }
     }
 }
