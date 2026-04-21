@@ -1,0 +1,189 @@
+@page
+@model crmHuman.Pages.NotificationsModel
+@{
+    ViewData["Title"] = Model.TitlePage;
+}
+
+<div class="pagetitle">
+    <h1>@Model.TitlePage</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
+            <li class="breadcrumb-item active">Thong bao</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div>
+                            <h5 class="card-title mb-1">Trung tam thong bao</h5>
+                            <div class="small text-muted">Tap trung cac viec can xu ly, phan hoi he thong va tin noi bo.</div>
+                        </div>
+                        @if (Model.VisibleUnreadCount > 0)
+                        {
+                            <form method="post" asp-page-handler="MarkAllRead" class="d-inline">
+                                <input type="hidden" name="filter" value="@Model.CurrentFilter" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm">Danh dau da doc tat ca</button>
+                            </form>
+                        }
+                    </div>
+
+                    <div class="notification-filter-bar mb-3">
+                        <a class="btn btn-sm @(Model.CurrentFilter == "all" ? "btn-primary" : "btn-outline-primary")" href="/Notifications?filter=all">
+                            Tat ca
+                            <span class="ms-1">@Model.VisibleTotalCount</span>
+                        </a>
+                        <a class="btn btn-sm @(Model.CurrentFilter == "unread" ? "btn-primary" : "btn-outline-primary")" href="/Notifications?filter=unread">
+                            Chua doc
+                            <span class="ms-1">@Model.VisibleUnreadCount</span>
+                        </a>
+                        <a class="btn btn-sm @(Model.CurrentFilter == "action" ? "btn-primary" : "btn-outline-primary")" href="/Notifications?filter=action">
+                            Can xu ly
+                            <span class="ms-1">@Model.VisibleActionRequiredCount</span>
+                        </a>
+                        <a class="btn btn-sm @(Model.CurrentFilter == "news" ? "btn-primary" : "btn-outline-primary")" href="/Notifications?filter=news">
+                            Tin noi bo
+                            <span class="ms-1">@Model.VisibleNewsCount</span>
+                        </a>
+                        <a class="btn btn-sm @(Model.CurrentFilter == "feedback" ? "btn-primary" : "btn-outline-primary")" href="/Notifications?filter=feedback">
+                            Phan hoi
+                            <span class="ms-1">@Model.VisibleFeedbackCount</span>
+                        </a>
+                    </div>
+
+                    @if (Model.Notifications.Count == 0)
+                    {
+                        <div class="notification-empty-state">
+                            <div class="notification-empty-icon"><i class="bi bi-inbox"></i></div>
+                            <div class="fw-semibold">Khong co thong bao phu hop</div>
+                            <div class="text-muted small">Thu doi bo loc hoac quay lai sau.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group notification-center-list">
+                            @foreach (var notif in Model.Notifications)
+                            {
+                                var itemClass = notif.IsRead ? string.Empty : "notification-item-unread";
+                                <div class="list-group-item notification-center-item @itemClass">
+                                    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                                <span class="badge @Model.GetCategoryBadgeClass(notif)">@Model.GetCategoryLabel(notif)</span>
+                                                @if (Model.IsOverdue(notif))
+                                                {
+                                                    <span class="badge bg-danger">Qua han</span>
+                                                }
+                                                else if (notif.DueAt.HasValue)
+                                                {
+                                                    <span class="badge bg-warning text-dark">Due @notif.DueAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                                }
+                                                @if (!notif.IsRead)
+                                                {
+                                                    <span class="badge bg-primary">Moi</span>
+                                                }
+                                            </div>
+
+                                            <div class="notification-message">
+                                                @if (!string.IsNullOrWhiteSpace(notif.Link))
+                                                {
+                                                    <a href="/Notifications?handler=Open&id=@notif.Id&filter=@Model.CurrentFilter" class="notification-message-link">
+                                                        @notif.Message
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    @notif.Message
+                                                }
+                                            </div>
+
+                                            <div class="small text-muted mt-2">
+                                                <span>@notif.CreateAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex flex-row flex-lg-column align-items-stretch gap-2 notification-actions">
+                                            @if (!string.IsNullOrWhiteSpace(notif.Link))
+                                            {
+                                                <a href="/Notifications?handler=Open&id=@notif.Id&filter=@Model.CurrentFilter" class="btn btn-sm btn-primary">Mo</a>
+                                            }
+                                            @if (!notif.IsRead)
+                                            {
+                                                <form method="post" asp-page-handler="MarkRead">
+                                                    <input type="hidden" name="id" value="@notif.Id" />
+                                                    <input type="hidden" name="filter" value="@Model.CurrentFilter" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Da doc</button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .notification-filter-bar {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .notification-center-list {
+        gap: 0.85rem;
+    }
+
+    .notification-center-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 1rem 1.1rem;
+    }
+
+    .notification-item-unread {
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        border-color: #cfe2ff;
+    }
+
+    .notification-message {
+        color: #111827;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    .notification-message-link {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .notification-message-link:hover {
+        text-decoration: underline;
+    }
+
+    .notification-actions {
+        min-width: 110px;
+    }
+
+    .notification-empty-state {
+        border: 1px dashed #cbd5e1;
+        border-radius: 16px;
+        padding: 2rem 1rem;
+        text-align: center;
+        background: #f8fafc;
+    }
+
+    .notification-empty-icon {
+        font-size: 2rem;
+        color: #64748b;
+        margin-bottom: 0.5rem;
+    }
+</style>

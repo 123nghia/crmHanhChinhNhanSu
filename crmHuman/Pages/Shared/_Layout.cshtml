@@ -9,6 +9,8 @@
     var roleLabel = Model?.UserData?.UserName == "VS061" ? "HCNS" : Model?.UserData?.RoleName;
     var pageTitle = ViewData["Title"] as string ?? "crmHuman";
     var recordingPlaybackBaseUrl = Configuration["Telephony:RecordingPlaybackBaseUrl"] ?? string.Empty;
+    var canOpenLeaveApproval = Model != null && (Model.HasViewPermission("LeaveApproval") || Model.HasApprovePermission("LeaveApproval"));
+    var canOpenInternalNews = Model != null && Model.HasViewPermission("InternalNews");
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -40,12 +42,94 @@
             <span class="header-page-title">@pageTitle</span>
         </div>
 
+        <div class="header-shortcuts d-none d-xl-flex">
+            <a class="header-shortcut-link" href="/Notifications">
+                <i class="bi bi-bell"></i>
+                <span>Thong bao</span>
+                @if (Model.HeaderUnreadNotificationCount > 0)
+                {
+                    <strong class="header-shortcut-badge">@(Model.HeaderUnreadNotificationCount > 99 ? "99+" : Model.HeaderUnreadNotificationCount.ToString())</strong>
+                }
+            </a>
+            @if (canOpenLeaveApproval)
+            {
+                <a class="header-shortcut-link" href="/Leave/LeaveApproval">
+                    <i class="bi bi-check2-square"></i>
+                    <span>Approval inbox</span>
+                </a>
+            }
+            @if (canOpenInternalNews)
+            {
+                <a class="header-shortcut-link" href="/InternalNews">
+                    <i class="bi bi-megaphone"></i>
+                    <span>Tin noi bo</span>
+                </a>
+            }
+        </div>
+
         <nav class="header-nav ms-auto" aria-label="User navigation">
             <ul class="d-flex align-items-center mb-0">
                 <li class="nav-item d-block d-lg-none">
                     <a class="nav-link nav-icon search-bar-toggle" href="#" aria-label="Toggle search">
                         <i class="bi bi-search"></i>
                     </a>
+                </li>
+                <li class="nav-item dropdown notification-nav-item pe-3">
+                    <a class="nav-link nav-icon position-relative"
+                       href="#"
+                       data-bs-toggle="dropdown"
+                       aria-expanded="false"
+                       aria-label="Thong bao">
+                        <i class="bi bi-bell"></i>
+                        @if (Model.HeaderUnreadNotificationCount > 0)
+                        {
+                            <span class="badge rounded-pill bg-danger notification-counter">
+                                @(Model.HeaderUnreadNotificationCount > 99 ? "99+" : Model.HeaderUnreadNotificationCount.ToString())
+                            </span>
+                        }
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow notifications notification-dropdown">
+                        <li class="dropdown-header d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                                <strong>Thong bao</strong>
+                                <small class="d-block text-muted">@Model.HeaderUnreadNotificationCount chua doc</small>
+                            </div>
+                            <a class="btn btn-sm btn-outline-primary" href="/Notifications">Mo trung tam</a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        @if (Model.HeaderNotifications.Count == 0)
+                        {
+                            <li class="px-3 py-2 text-muted small">Chua co thong bao nao.</li>
+                        }
+                        else
+                        {
+                            foreach (var notif in Model.HeaderNotifications)
+                            {
+                                var isUnread = !notif.IsRead;
+                                var isActionRequired = string.Equals(notif.Category, "ACTION_REQUIRED", global::System.StringComparison.OrdinalIgnoreCase);
+                                var isInternalNews = string.Equals(notif.RelatedEntityType, "INTERNAL_NEWS", global::System.StringComparison.OrdinalIgnoreCase)
+                                    || (!string.IsNullOrWhiteSpace(notif.Link) && notif.Link.StartsWith("/InternalNews", global::System.StringComparison.OrdinalIgnoreCase));
+                                var badgeClass = isActionRequired ? "bg-danger" : isInternalNews ? "bg-info text-dark" : "bg-secondary";
+                                var badgeText = isActionRequired ? "Can xu ly" : isInternalNews ? "Tin noi bo" : "Thong bao";
+                                <li>
+                                    <a class="dropdown-item notification-dropdown-item @(isUnread ? "notification-dropdown-item-unread" : string.Empty)"
+                                       href="/Notifications?handler=Open&id=@notif.Id">
+                                        <div class="d-flex flex-column gap-1">
+                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                <span class="badge @badgeClass">@badgeText</span>
+                                                @if (notif.DueAt.HasValue)
+                                                {
+                                                    <span class="small text-muted">Due @notif.DueAt.Value.ToString("dd/MM HH:mm")</span>
+                                                }
+                                            </div>
+                                            <div class="small notification-dropdown-message">@notif.Message</div>
+                                            <div class="small text-muted">@notif.CreateAt.ToString("dd/MM/yyyy HH:mm")</div>
+                                        </div>
+                                    </a>
+                                </li>
+                            }
+                        }
+                    </ul>
                 </li>
                 <li class="nav-item dropdown pe-3">
                     <a class="nav-link nav-profile d-flex align-items-center pe-0"
@@ -100,6 +184,40 @@
             <span>Nền tảng quản trị nhân sự nội bộ</span>
         </div>
     </footer>
+
+    <style>
+        .notification-nav-item .nav-icon {
+            font-size: 1.1rem;
+        }
+
+        .notification-counter {
+            position: absolute;
+            top: 2px;
+            right: -6px;
+            font-size: 0.65rem;
+        }
+
+        .notification-dropdown {
+            width: min(420px, calc(100vw - 24px));
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .notification-dropdown-item {
+            white-space: normal;
+            padding-top: 0.85rem;
+            padding-bottom: 0.85rem;
+        }
+
+        .notification-dropdown-item-unread {
+            background: #f8fafc;
+        }
+
+        .notification-dropdown-message {
+            color: #111827;
+            line-height: 1.4;
+        }
+    </style>
 
     <a href="#" class="back-to-top d-flex align-items-center justify-content-center" aria-label="Back to top">
         <i class="bi bi-arrow-up-short"></i>

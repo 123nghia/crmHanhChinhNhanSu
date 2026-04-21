@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using VS.Human.Business;
 using VS.Human.Item;
@@ -13,14 +12,125 @@ namespace crmHuman.Pages.Leave
         private readonly ILeaveBusiness _leaveBusiness;
         private readonly IWorkflowTimelineBusiness _workflowTimelineBusiness;
 
+        public LeaveApprovalModel(ILeaveBusiness leaveBusiness, IWorkflowTimelineBusiness workflowTimelineBusiness)
+        {
+            _leaveBusiness = leaveBusiness;
+            _workflowTimelineBusiness = workflowTimelineBusiness;
+            KeyPage = "LeaveApproval";
+            TitlePage = "Duyet nghi phep";
+        }
+
+        public BaseList LeaveList { get; set; } = new BaseList
+        {
+            Data = new List<object>(),
+            Total = 0
+        };
+
+        public async Task OnGetAsync(int page = 1, int limit = 20, int? status = null)
+        {
+            GetInfoUser();
+            if (!(Permision.View ?? false) || !IsApprovalRole(UserData.RoleCode))
+            {
+                LeaveList = new BaseList { Data = new List<object>(), Total = 0 };
+                return;
+            }
+
+            var filterStatus = ResolveApprovalStatus(UserData.RoleCode, status);
+            LeaveList = await _leaveBusiness.GetLeaveList(null, filterStatus, null, null, page, limit, UserData.UserId);
+        }
+
+        public async Task<IActionResult> OnGetLeaveHistoryAsync(int id)
+        {
+            GetInfoUser();
+            if (!(Permision.View ?? false) || !IsApprovalRole(UserData.RoleCode))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
+            var access = await _leaveBusiness.GetApprovalAccessAsync(id, UserData.UserId, UserData.RoleCode);
+            if (!access.CanView)
+            {
+                return new JsonResult(new { success = false, message = access.Message ?? "Forbidden" });
+            }
+
+            var result = await _leaveBusiness.GetLeaveHistory(id);
+            return new JsonResult(result);
+        }
+
+        public async Task<IActionResult> OnGetWorkflowDetailAsync(int id)
+        {
+            GetInfoUser();
+            if (!(Permision.View ?? false) || !IsApprovalRole(UserData.RoleCode))
+            {
+                return new JsonResult(new { success = false, message = "Forbidden" });
+            }
+
+            var access = await _leaveBusiness.GetApprovalAccessAsync(id, UserData.UserId, UserData.RoleCode);
+            if (!access.CanView)
+            {
+                return new JsonResult(new { success = false, message = access.Message ?? "Forbidden" });
+            }
+
+            var leave = await _leaveBusiness.GetLeaveById(id);
+            if (leave == null || leave.Id <= 0)
+            {
+                return new JsonResult(new { success = false, message = "Khong tim thay don nghi phep." });
+            }
+
+            var history = await _leaveBusiness.GetLeaveHistory(id);
+            var timeline = await _workflowTimelineBusiness.GetByEntityAsync(WorkflowEntityTypes.Leave, id);
+            var dueAt = ResolveDueAt(leave.Status);
+
+            return new JsonResult(new
+            {
+                success = true,
+                leave,
+                history,
+                timeline,
+                currentStep = ResolveStepText(leave.Status),
+                currentOwner = access.AssignedApproverName ?? ResolveOwnerText(leave.Status),
+                dueAt,
+                isOverdue = dueAt.HasValue && dueAt.Value < global::System.DateTime.Now,
+                canView = access.CanView,
+                canApprove = (Permision.Approve ?? false) && access.CanApprove,
+                canReject = (Permision.Approve ?? false) && access.CanReject,
+                canActingApprove = (Permision.Approve ?? false) && access.CanActingApprove
+            });
+        }
+
+        public async Task<IActionResult> OnPostApproveAsync([FromBody] LeaveApproveRequest model)
+        {
+            GetInfoUser();
+            if (!(Permision.Approve ?? false))
+            {
+                return new JsonResult(new { success = false, message = "Ban khong co quyen phe duyet." });
+            }
+
+            var normalizedAction = ResolveApprovalAction(model.Action);
+            if (normalizedAction == null)
+            {
+                return new JsonResult(new { success = false, message = "Thao tac khong hop le." });
+            }
+
+            var leave = await _leaveBusiness.GetLeaveById(model.Id);
+            if (leave == null || leave.Id <= 0)
+            {
+                return new JsonResult(new { success = false, message = "Khong tim thay don nghi phep." });
+            }
+
+            var access = await _leaveBusiness.GetApprovalAccessAsync(model.Id, UserData.UserId, UserData.RoleCode);
+            if (!access.CanView || !IsAllowedAction(normalizedAction, access))
+            {
+                return new JsonResult(new { success = false, message = access.Message ?? "Ban khong co quyen xu ly don nghi phep nay." });
+            }
+
+            var result = await _leaveBusiness.ApproveWorkflow(model.Id, normalizedAction, UserData.UserId, UserData.RoleCode, model.Comment);
+            return new JsonResult(new { success = result, message = result ? string.Empty : "Khong the xu ly don nghi phep." });
+        }
+
         private static bool IsApprovalRole(string? roleCode)
         {
             return roleCode == "1" || roleCode == "3" || roleCode == "8" || roleCode == "9";
-        }
-
-        private static bool IsAdminOrBgdRole(string? roleCode)
-        {
-            return roleCode == "1" || roleCode == "8";
         }
 
         private static int? ResolveApprovalStatus(string? roleCode, int? requestedStatus)
@@ -40,165 +150,42 @@ namespace crmHuman.Pages.Leave
             };
         }
 
-        private static bool IsStatusAllowedForAction(string? roleCode, string? action, int status)
+        private static string? ResolveApprovalAction(string? action)
         {
-            if (roleCode == "1")
+            if (string.Equals(action, "Agree", global::System.StringComparison.OrdinalIgnoreCase))
             {
-                return true;
+                return "Agree";
             }
 
             if (string.Equals(action, "Reject", global::System.StringComparison.OrdinalIgnoreCase))
             {
-                return roleCode switch
-                {
-                    "3" => status == 0,
-                    "9" => status == 1,
-                    "8" => status is 2 or 3 or 4,
-                    _ => false
-                };
+                return "Reject";
             }
 
             if (string.Equals(action, "Acting", global::System.StringComparison.OrdinalIgnoreCase))
             {
-                return roleCode == "9" && status is 1 or 2;
+                return "Acting";
             }
 
-            return roleCode switch
+            return null;
+        }
+
+        private static bool IsAllowedAction(string? action, LeaveApprovalAccessResult access)
+        {
+            if (access == null)
             {
-                "3" => status == 0,
-                "9" => status == 1,
-                "8" => status == 2,
+                return false;
+            }
+
+            return action switch
+            {
+                "Agree" => access.CanApprove,
+                "Reject" => access.CanReject,
+                "Acting" => access.CanActingApprove,
                 _ => false
             };
         }
 
-        private async Task<bool> CanAccessApprovalAsync(LeaveIndexModel? leave, string? action = null)
-        {
-            if (leave == null || leave.Id <= 0 || UserData?.UserId <= 0 || !IsApprovalRole(UserData.RoleCode))
-            {
-                return false;
-            }
-
-            if (!IsStatusAllowedForAction(UserData.RoleCode, action, leave.Status))
-            {
-                return false;
-            }
-
-            var leaveList = await _leaveBusiness.GetLeaveList(null, null, null, null, 1, 5000, UserData.UserId);
-            var items = leaveList.Data?.OfType<LeaveIndexModel>() ?? Enumerable.Empty<LeaveIndexModel>();
-            return items.Any(item => item.Id == leave.Id);
-        }
-
-        public LeaveApprovalModel(ILeaveBusiness leaveBusiness, IWorkflowTimelineBusiness workflowTimelineBusiness)
-        {
-            _leaveBusiness = leaveBusiness;
-            _workflowTimelineBusiness = workflowTimelineBusiness;
-            KeyPage = "LeaveApproval";
-            TitlePage = "Duyệt nghỉ phép";
-        }
-
-        public BaseList LeaveList { get; set; }
-
-        public async Task OnGetAsync(int page = 1, int limit = 20, int? status = null)
-        {
-            GetInfoUser();
-            if (!(Permision.View ?? false))
-            {
-                LeaveList = new BaseList { Data = new List<object>(), Total = 0 };
-            }
-            else
-            {
-                if (!IsApprovalRole(UserData.RoleCode))
-                {
-                    LeaveList = new BaseList { Data = new List<object>(), Total = 0 };
-                    return;
-                }
-
-                int? filterStatus = ResolveApprovalStatus(UserData.RoleCode, status);
-                LeaveList = await _leaveBusiness.GetLeaveList(null, filterStatus, null, null, page, limit, UserData.UserId);
-            }
-        }
-
-        public async Task<IActionResult> OnGetLeaveHistoryAsync(int id)
-        {
-            GetInfoUser();
-            if (!(Permision.View ?? false) || !IsApprovalRole(UserData.RoleCode))
-            {
-                return new JsonResult(new { success = false, message = "Forbidden" });
-            }
-
-            var leave = await _leaveBusiness.GetLeaveById(id);
-            if (!await CanAccessApprovalAsync(leave))
-            {
-                return new JsonResult(new { success = false, message = "Forbidden" });
-            }
-
-            var result = await _leaveBusiness.GetLeaveHistory(id);
-            return new JsonResult(result);
-        }
-
-        public async Task<IActionResult> OnGetWorkflowDetailAsync(int id)
-        {
-            GetInfoUser();
-            if (!(Permision.View ?? false) || !IsApprovalRole(UserData.RoleCode))
-            {
-                return new JsonResult(new { success = false, message = "Forbidden" });
-            }
-
-            var leave = await _leaveBusiness.GetLeaveById(id);
-            if (!await CanAccessApprovalAsync(leave))
-            {
-                return new JsonResult(new { success = false, message = "Forbidden" });
-            }
-
-            var history = await _leaveBusiness.GetLeaveHistory(id);
-            var timeline = await _workflowTimelineBusiness.GetByEntityAsync(WorkflowEntityTypes.Leave, id);
-            var dueAt = ResolveDueAt(leave.Status);
-            var canAct = (Permision.Approve ?? false)
-                && !((UserData.RoleCode == "1" || UserData.RoleCode == "8") && leave.EmployeeId == UserData.UserId)
-                && IsStatusAllowedForAction(UserData.RoleCode, "Agree", leave.Status);
-
-            return new JsonResult(new
-            {
-                success = true,
-                leave,
-                history,
-                timeline,
-                currentStep = ResolveStepText(leave.Status),
-                currentOwner = ResolveOwnerText(leave.Status),
-                dueAt,
-                isOverdue = dueAt.HasValue && dueAt.Value < global::System.DateTime.Now,
-                canAct
-            });
-        }
-
-        public async Task<IActionResult> OnPostApproveAsync([FromBody] LeaveApproveRequest model)
-        {
-            GetInfoUser();
-            if (!(Permision.Approve ?? false))
-            {
-                return new JsonResult(new { success = false, message = "Bạn không có quyền phê duyệt." });
-            }
-
-            var leave = await _leaveBusiness.GetLeaveById(model.Id);
-            if (leave == null || leave.Id <= 0)
-            {
-                return new JsonResult(new { success = false, message = "Không tìm thấy đơn nghỉ phép." });
-            }
-
-            if (IsAdminOrBgdRole(UserData.RoleCode) && leave.EmployeeId == UserData.UserId)
-            {
-                return new JsonResult(new { success = false, message = "Admin/BGĐ không được tự xử lý đơn của chính mình." });
-            }
-
-            if (!await CanAccessApprovalAsync(leave, model.Action))
-            {
-                return new JsonResult(new { success = false, message = "Ban khong co quyen xu ly don nghi phep nay." });
-            }
-
-            var result = await _leaveBusiness.ApproveWorkflow(model.Id, model.Action, UserData.UserId, UserData.RoleCode, model.Comment);
-            return new JsonResult(new { success = result, message = result ? string.Empty : "Không thể xử lý đơn nghỉ phép." });
-        }
         private static global::System.DateTime? ResolveDueAt(int status)
         {
             var hours = status switch

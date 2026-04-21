@@ -201,7 +201,7 @@ namespace crmHuman.Pages.InternalNews
             var sendResult = await _newsBusiness.SendNotificationAsync(newsId, BuildDetailUrl(newsId), UserData.UserId);
             if (sendResult.Success)
             {
-                TempData["SuccessMessage"] = $"Đã gửi mail tới {sendResult.RecipientCount} người nhận.";
+                TempData["SuccessMessage"] = $"Đã gửi mail tới {sendResult.RecipientCount} người nhận và tạo thông báo trong hệ thống cho các tài khoản khớp nhân sự.";
                 return;
             }
 

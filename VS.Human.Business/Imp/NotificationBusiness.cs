@@ -16,14 +16,19 @@ namespace VS.Human.Business.Imp
             return await _unitOfWork.NotificationRep.GetByReceiverId(receiverId, limit);
         }
 
+        public async Task<AppNotification?> GetById(int id, int receiverId)
+        {
+            return await _unitOfWork.NotificationRep.GetById(id, receiverId);
+        }
+
         public async Task<int> GetUnreadCount(int receiverId)
         {
             return await _unitOfWork.NotificationRep.GetUnreadCount(receiverId);
         }
 
-        public async Task<bool> MarkAsRead(int id)
+        public async Task<bool> MarkAsRead(int id, int receiverId)
         {
-            return await _unitOfWork.NotificationRep.MarkAsRead(id);
+            return await _unitOfWork.NotificationRep.MarkAsRead(id, receiverId);
         }
 
         public async Task<bool> MarkAllAsRead(int receiverId)

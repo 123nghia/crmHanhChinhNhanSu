@@ -15,11 +15,13 @@ namespace VS.Human.Business.Imp
         private const string InternalNewsEmailEntityType = "INTERNAL_NEWS";
 
         private readonly IEmailService _emailService;
+        private readonly INotificationBusiness _notificationBusiness;
 
-        public InternalNewsBusiness(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor, IEmailService emailService)
+        public InternalNewsBusiness(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor, IEmailService emailService, INotificationBusiness notificationBusiness)
             : base(unitOfWork, httpContextAccessor)
         {
             _emailService = emailService;
+            _notificationBusiness = notificationBusiness;
         }
 
         public Task<BaseList> GetAll(InternalNewsRequest request)
@@ -89,6 +91,8 @@ namespace VS.Human.Business.Imp
                     RelatedEntityId = item.Id
                 });
 
+            await TryCreateAppNotificationsAsync(item, recipients, detailUrl, senderEmployeeId);
+
             return (sendResult.Success, sendResult.Error, recipients.Count);
         }
 
@@ -116,6 +120,63 @@ namespace VS.Human.Business.Imp
             {
                 recipients.Add(email.Trim());
             }
+        }
+
+        private async Task TryCreateAppNotificationsAsync(InternalNewsItem item, IEnumerable<string> recipients, string? detailUrl, int senderEmployeeId)
+        {
+            if (item == null || item.Id <= 0 || _notificationBusiness == null)
+            {
+                return;
+            }
+
+            var employees = await _unitOfWork.EmployeeRep.GetByEmails(recipients);
+            if (employees.Count == 0)
+            {
+                return;
+            }
+
+            var notificationLink = NormalizeNotificationLink(detailUrl);
+            var message = string.IsNullOrWhiteSpace(item.Title)
+                ? "Co tin noi bo moi."
+                : $"Tin noi bo moi: {item.Title.Trim()}";
+
+            foreach (var employee in employees.Where(x => x.Id > 0).GroupBy(x => x.Id).Select(x => x.First()))
+            {
+                await _notificationBusiness.CreateNotificationWithId(new AppNotification
+                {
+                    ReceiverId = employee.Id,
+                    SenderId = senderEmployeeId > 0 ? senderEmployeeId : item.CreatedBy,
+                    Message = message,
+                    Link = notificationLink,
+                    Type = "InternalNews",
+                    Category = "INFO",
+                    RelatedEntityType = InternalNewsEmailEntityType,
+                    RelatedEntityId = item.Id,
+                    EventCode = WorkflowEventCodes.NotificationCreated
+                });
+            }
+        }
+
+        private static string? NormalizeNotificationLink(string? detailUrl)
+        {
+            if (string.IsNullOrWhiteSpace(detailUrl))
+            {
+                return "/InternalNews";
+            }
+
+            if (detailUrl.StartsWith("/", StringComparison.Ordinal))
+            {
+                return detailUrl;
+            }
+
+            if (Uri.TryCreate(detailUrl, UriKind.Absolute, out var absoluteUri))
+            {
+                return string.IsNullOrWhiteSpace(absoluteUri.PathAndQuery)
+                    ? "/InternalNews"
+                    : absoluteUri.PathAndQuery;
+            }
+
+            return $"/{detailUrl.TrimStart('/')}";
         }
 
         private static void NormalizeContent(InternalNewsItem? item)

@@ -38,6 +38,9 @@ namespace crmHuman.Pages
         public string LogoPath { get; set; }
 
         private bool _hasLoadedUserInfo;
+        private bool _hasLoadedHeaderNotifications;
+        private List<AppNotification>? _headerNotifications;
+        private int _headerUnreadNotificationCount;
 
 
         public List<SelectDisplay> arrayRol =
@@ -197,6 +200,24 @@ namespace crmHuman.Pages
             return UserPermissions.Any(p => p.PageCode == pageCode && p.IsApprove);
         }
 
+        public List<AppNotification> HeaderNotifications
+        {
+            get
+            {
+                EnsureHeaderNotificationsLoaded();
+                return _headerNotifications ?? new List<AppNotification>();
+            }
+        }
+
+        public int HeaderUnreadNotificationCount
+        {
+            get
+            {
+                EnsureHeaderNotificationsLoaded();
+                return _headerUnreadNotificationCount;
+            }
+        }
+
         private void LoadAllPermissions()
         {
             var identity = HttpContext?.User?.Identity as ClaimsIdentity;
@@ -293,6 +314,115 @@ namespace crmHuman.Pages
 
             LoadThemeAndBranding();
         }
+
+        public bool CanViewNotification(AppNotification? notification)
+        {
+            if (notification == null)
+            {
+                return false;
+            }
+
+            var link = notification.Link?.Trim();
+            if (string.IsNullOrWhiteSpace(link))
+            {
+                return true;
+            }
+
+            if (link.StartsWith("/Leave/LeaveApproval", StringComparison.OrdinalIgnoreCase))
+            {
+                return IsLeaveApprovalRole(UserData?.RoleCode)
+                    && (HasViewPermission("LeaveApproval") || HasApprovePermission("LeaveApproval"));
+            }
+
+            if (link.StartsWith("/Leave/LeaveRequest", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("LeaveRequest");
+            }
+
+            if (link.StartsWith("/EmployeeInfo", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("Employee") || HasViewPermission("LeaveBalance");
+            }
+
+            if (link.StartsWith("/CandidateDetail", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("Candidate");
+            }
+
+            if (link.StartsWith("/ScheduleInterview", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("ScheduleInterview");
+            }
+
+            if (link.StartsWith("/Contract", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("Contract");
+            }
+
+            if (link.StartsWith("/InternalNews", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("InternalNews");
+            }
+
+            if (link.StartsWith("/SupportRequest/Processing", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("SupportRequestProcessing");
+            }
+
+            if (link.StartsWith("/SupportRequest/Request", StringComparison.OrdinalIgnoreCase))
+            {
+                return HasViewPermission("SupportRequest");
+            }
+
+            return true;
+        }
+
+        private void EnsureHeaderNotificationsLoaded()
+        {
+            if (_hasLoadedHeaderNotifications)
+            {
+                return;
+            }
+
+            _hasLoadedHeaderNotifications = true;
+            _headerNotifications = new List<AppNotification>();
+            _headerUnreadNotificationCount = 0;
+
+            if (!(HttpContext?.User?.Identity?.IsAuthenticated ?? false))
+            {
+                return;
+            }
+
+            if (!_hasLoadedUserInfo)
+            {
+                GetInfoUser();
+            }
+
+            if (UserData == null || UserData.UserId <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var notificationBusiness = HttpContext.RequestServices.GetService(typeof(INotificationBusiness)) as INotificationBusiness;
+                if (notificationBusiness == null)
+                {
+                    return;
+                }
+
+                var notifications = notificationBusiness.GetByReceiverId(UserData.UserId, 8).GetAwaiter().GetResult();
+                _headerNotifications = notifications
+                    .Where(CanViewNotification)
+                    .Take(6)
+                    .ToList();
+                _headerUnreadNotificationCount = notificationBusiness.GetUnreadCount(UserData.UserId).GetAwaiter().GetResult();
+            }
+            catch
+            {
+            }
+        }
+
         private void LoadThemeAndBranding()
         {
             try
@@ -339,6 +469,11 @@ namespace crmHuman.Pages
             catch
             {
             }
+        }
+
+        private static bool IsLeaveApprovalRole(string? roleCode)
+        {
+            return roleCode == "1" || roleCode == "3" || roleCode == "8" || roleCode == "9";
         }
 
 

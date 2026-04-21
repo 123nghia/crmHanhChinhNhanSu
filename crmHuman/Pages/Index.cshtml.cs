@@ -541,54 +541,7 @@ namespace crmHuman.Pages
 
         private bool CanViewNotification(AppNotification notification)
         {
-            if (notification == null)
-            {
-                return false;
-            }
-
-            var link = notification.Link?.Trim();
-            if (string.IsNullOrWhiteSpace(link))
-            {
-                return true;
-            }
-
-            if (link.StartsWith("/Leave/LeaveApproval", StringComparison.OrdinalIgnoreCase))
-            {
-                return IsLeaveApprovalRole(UserData?.RoleCode)
-                    && (HasViewPermission("LeaveApproval") || HasApprovePermission("LeaveApproval"));
-            }
-
-            if (link.StartsWith("/Leave/LeaveRequest", StringComparison.OrdinalIgnoreCase))
-            {
-                return HasViewPermission("LeaveRequest");
-            }
-
-            if (link.StartsWith("/EmployeeInfo", StringComparison.OrdinalIgnoreCase))
-            {
-                return HasViewPermission("Employee") || HasViewPermission("LeaveBalance");
-            }
-
-            if (link.StartsWith("/CandidateDetail", StringComparison.OrdinalIgnoreCase))
-            {
-                return HasViewPermission("Candidate");
-            }
-
-            if (link.StartsWith("/ScheduleInterview", StringComparison.OrdinalIgnoreCase))
-            {
-                return HasViewPermission("ScheduleInterview");
-            }
-
-            if (link.StartsWith("/Contract", StringComparison.OrdinalIgnoreCase))
-            {
-                return HasViewPermission("Contract");
-            }
-
-            return true;
-        }
-
-        private static bool IsLeaveApprovalRole(string? roleCode)
-        {
-            return roleCode == "1" || roleCode == "3" || roleCode == "8" || roleCode == "9";
+            return base.CanViewNotification(notification);
         }
 
         private static List<DashboardDetailItem> BuildEmployeeDetails(IEnumerable<EmployeeExtendedModel> employees, Func<EmployeeExtendedModel, string?> subTextSelector)

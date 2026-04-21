@@ -48,13 +48,17 @@ namespace VS.Human.Rep.Model
         public int Status { get; set; }
         
         public string? HandoverEmployeeName { get; set; }
+
+        public int? LeadApproverId { get; set; }
         
         public string? LeadApproverName { get; set; }
         public string? LeadComment { get; set; }
-        
+
+        public int? HCNSApproverId { get; set; }
         public string? HCNSApproverName { get; set; }
         public string? HCNSComment { get; set; }
-        
+
+        public int? BGDApproverId { get; set; }
         public string? BGDApproverName { get; set; }
         public string? BGDComment { get; set; }
         
@@ -72,6 +76,18 @@ namespace VS.Human.Rep.Model
         public DateTime? LastAttendanceSyncRangeTo { get; set; }
         public int? AttendanceSyncAttemptCount { get; set; }
         public DateTime CreateAt { get; set; }
+    }
+
+    public class LeaveApprovalAccessResult
+    {
+        public bool CanView { get; set; }
+        public bool CanApprove { get; set; }
+        public bool CanReject { get; set; }
+        public bool CanActingApprove { get; set; }
+        public int? AssignedApproverId { get; set; }
+        public string? AssignedApproverRoleCode { get; set; }
+        public string? AssignedApproverName { get; set; }
+        public string? Message { get; set; }
     }
 
     public class LeaveAddUpdate

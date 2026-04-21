@@ -20,9 +20,26 @@ namespace VS.Human.Rep
                     SELECT TOP (@limit) *
                     FROM AppNotifications
                     WHERE ReceiverId = @receiverId
-                    ORDER BY CreateAt DESC";
+                    ORDER BY
+                        CASE WHEN ISNULL(IsRead, 0) = 0 THEN 0 ELSE 1 END,
+                        CASE WHEN ISNULL(Category, '') = 'ACTION_REQUIRED' THEN 0 ELSE 1 END,
+                        CASE WHEN DueAt IS NULL THEN 1 ELSE 0 END,
+                        DueAt ASC,
+                        CreateAt DESC";
                 var result = await con.QueryAsync<AppNotification>(sql, new { receiverId, limit });
                 return result.ToList();
+            }
+        }
+
+        public async Task<AppNotification?> GetById(int id, int receiverId)
+        {
+            using (var con = GetConnection())
+            {
+                var sql = @"
+                    SELECT TOP 1 *
+                    FROM AppNotifications
+                    WHERE Id = @id AND ReceiverId = @receiverId";
+                return await con.QueryFirstOrDefaultAsync<AppNotification>(sql, new { id, receiverId });
             }
         }
 
@@ -35,12 +52,12 @@ namespace VS.Human.Rep
             }
         }
 
-        public async Task<bool> MarkAsRead(int id)
+        public async Task<bool> MarkAsRead(int id, int receiverId)
         {
             using (var con = GetConnection())
             {
-                var sql = "UPDATE AppNotifications SET IsRead = 1 WHERE Id = @id";
-                var affected = await con.ExecuteAsync(sql, new { id });
+                var sql = "UPDATE AppNotifications SET IsRead = 1 WHERE Id = @id AND ReceiverId = @receiverId";
+                var affected = await con.ExecuteAsync(sql, new { id, receiverId });
                 return affected > 0;
             }
         }

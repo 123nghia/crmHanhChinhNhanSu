@@ -197,6 +197,34 @@ namespace VS.Human.Rep
             return result ?? new List<Employee>();
         }
 
+        public async Task<List<Employee>> GetByEmails(IEnumerable<string> emails)
+        {
+            var normalizedEmails = emails?
+                .Where(email => !string.IsNullOrWhiteSpace(email))
+                .Select(email => email.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (normalizedEmails == null || normalizedEmails.Count == 0)
+            {
+                return new List<Employee>();
+            }
+
+            using (var con = GetConnection())
+            {
+                var sql = @"
+                    SELECT *
+                    FROM Employees
+                    WHERE ISNULL(Deleted, 0) = 0
+                      AND (
+                            NULLIF(LTRIM(RTRIM(Email)), '') IN @emails
+                            OR NULLIF(LTRIM(RTRIM(PersonalEmail)), '') IN @emails
+                          )";
+                var result = await con.QueryAsync<Employee>(sql, new { emails = normalizedEmails });
+                return result?.ToList() ?? new List<Employee>();
+            }
+        }
+
         public async Task<List<Employee>> GetByRoleCodes(IEnumerable<string> roleCodes)
         {
             var codes = roleCodes?

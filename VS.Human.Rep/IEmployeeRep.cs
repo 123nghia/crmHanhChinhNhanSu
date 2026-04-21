@@ -19,6 +19,7 @@ namespace VS.Human.Rep
         Task<Employee?> GetByFingerprintCode(string fingerprintCode);
         Task<Employee> GetLastByEmailOrPhone(string email, string phone);
         Task<List<Employee>> GetDuplicateSeeds();
+        Task<List<Employee>> GetByEmails(IEnumerable<string> emails);
         Task<List<Employee>> GetByRoleCodes(IEnumerable<string> roleCodes);
         Task<bool> IsPeopleManager(int employeeId);
         Task<Employee?> GetTeamLeadByDepartmentCode(string departmentCode);

@@ -140,6 +140,12 @@ namespace VS.Human.Business
                 return false;
             }
 
+            var access = await BuildApprovalAccessAsync(leave, approverId, roleCode);
+            if (!IsApprovalActionAllowed(action, access))
+            {
+                return false;
+            }
+
             var before = leave;
             var result = await _unitOfWork.LeaveRep.ApproveWorkflow(id, action, approverId, roleCode, comment);
             if (result)
@@ -176,6 +182,20 @@ namespace VS.Human.Business
             return await _unitOfWork.LeaveRep.GetEmployeeLeaveBalance(employeeId);
         }
 
+        public async Task<LeaveApprovalAccessResult> GetApprovalAccessAsync(int leaveId, int userId, string? roleCode)
+        {
+            if (leaveId <= 0)
+            {
+                return new LeaveApprovalAccessResult
+                {
+                    Message = "Khong tim thay don nghi phep."
+                };
+            }
+
+            var leave = await _unitOfWork.LeaveRep.GetById(leaveId);
+            return await BuildApprovalAccessAsync(leave, userId, roleCode);
+        }
+
         public async Task<bool> DeleteLeave(int id, int userId)
         {
             var before = await _unitOfWork.LeaveRep.GetById(id);
@@ -191,6 +211,150 @@ namespace VS.Human.Business
             }
 
             return result;
+        }
+
+        private async Task<LeaveApprovalAccessResult> BuildApprovalAccessAsync(LeaveIndexModel? leave, int userId, string? roleCode)
+        {
+            var result = new LeaveApprovalAccessResult
+            {
+                Message = "Ban khong co quyen xem hoac xu ly don nghi phep nay."
+            };
+
+            if (leave == null || leave.Id <= 0)
+            {
+                result.Message = "Khong tim thay don nghi phep.";
+                return result;
+            }
+
+            if (userId <= 0)
+            {
+                result.Message = "Vui long dang nhap lai de tiep tuc.";
+                return result;
+            }
+
+            var normalizedRoleCode = NormalizeApprovalRoleCode(roleCode);
+            var isAdmin = IsAdminRoleCode(normalizedRoleCode);
+            var isSelfLeave = leave.EmployeeId == userId;
+
+            var employee = await _unitOfWork.EmployeeRep.GetById(leave.EmployeeId);
+            Employee? manager = null;
+            if (employee != null && employee.Id > 0)
+            {
+                manager = await ResolveLeaveManagerAsync(employee);
+            }
+
+            var isAssignedManager = manager != null
+                && manager.Id == userId
+                && IsManagerRoleCode(normalizedRoleCode);
+            var isRecordedLeadApprover = leave.LeadApproverId == userId && IsManagerRoleCode(normalizedRoleCode);
+
+            var isHcnsRole = IsHcnsRoleCode(normalizedRoleCode);
+            var isCurrentHcnsQueue = isHcnsRole && leave.Status == 1;
+            var isRecordedHcnsApprover = leave.HCNSApproverId == userId && isHcnsRole;
+
+            var isBgdRole = IsBgdRoleCode(normalizedRoleCode);
+            var isCurrentBgdQueue = isBgdRole && leave.Status == 2 && !isSelfLeave;
+            var isRecordedBgdApprover = leave.BGDApproverId == userId && isBgdRole;
+
+            switch (leave.Status)
+            {
+                case 0:
+                    result.AssignedApproverId = manager?.Id;
+                    result.AssignedApproverRoleCode = NormalizeApprovalRoleCode(manager?.RoleCode);
+                    result.AssignedApproverName = manager?.FullName ?? manager?.UserName ?? "Quan ly truc tiep";
+                    result.CanApprove = isAssignedManager || (!isSelfLeave && isAdmin);
+                    result.CanReject = isAssignedManager || (!isSelfLeave && isAdmin);
+                    break;
+
+                case 1:
+                    result.AssignedApproverRoleCode = RoleHcns;
+                    result.AssignedApproverName = "Phong HCNS";
+                    result.CanApprove = isCurrentHcnsQueue || (!isSelfLeave && isAdmin);
+                    result.CanReject = isCurrentHcnsQueue || (!isSelfLeave && isAdmin);
+                    result.CanActingApprove = isHcnsRole || (!isSelfLeave && isAdmin);
+                    break;
+
+                case 2:
+                    result.AssignedApproverRoleCode = RoleBgd;
+                    result.AssignedApproverName = "Ban Giam doc";
+                    result.CanApprove = isCurrentBgdQueue || (!isSelfLeave && isAdmin);
+                    result.CanReject = isCurrentBgdQueue || (!isSelfLeave && isAdmin);
+                    result.CanActingApprove = isHcnsRole || (!isSelfLeave && isAdmin);
+                    break;
+
+                case 3:
+                case 4:
+                    result.AssignedApproverId = leave.ApproverId > 0 ? leave.ApproverId : leave.BGDApproverId;
+                    result.AssignedApproverRoleCode = leave.IsActingApproval ? RoleHcns : RoleBgd;
+                    result.AssignedApproverName =
+                        leave.ApproverName
+                        ?? leave.BGDApproverName
+                        ?? leave.HCNSApproverName
+                        ?? "Nguoi phe duyet";
+                    result.CanReject = isRecordedBgdApprover || (!isSelfLeave && isAdmin);
+                    break;
+
+                case 5:
+                case 6:
+                    result.AssignedApproverId =
+                        leave.BGDApproverId
+                        ?? leave.HCNSApproverId
+                        ?? leave.LeadApproverId
+                        ?? leave.ApproverId;
+                    result.AssignedApproverRoleCode =
+                        leave.BGDApproverId.HasValue ? RoleBgd :
+                        leave.HCNSApproverId.HasValue ? RoleHcns :
+                        leave.LeadApproverId.HasValue ? "3" :
+                        null;
+                    result.AssignedApproverName =
+                        leave.BGDApproverName
+                        ?? leave.HCNSApproverName
+                        ?? leave.LeadApproverName
+                        ?? leave.ApproverName
+                        ?? "Nguoi xu ly";
+                    break;
+            }
+
+            result.CanView =
+                (!isSelfLeave && isAdmin)
+                || result.CanApprove
+                || result.CanReject
+                || result.CanActingApprove
+                || isRecordedLeadApprover
+                || isRecordedHcnsApprover
+                || isRecordedBgdApprover;
+
+            if (result.CanView)
+            {
+                result.Message = null;
+            }
+
+            return result;
+        }
+
+        private static bool IsApprovalActionAllowed(string? action, LeaveApprovalAccessResult access)
+        {
+            if (access == null)
+            {
+                return false;
+            }
+
+            if (string.Equals(action, "Reject", StringComparison.OrdinalIgnoreCase))
+            {
+                return access.CanReject;
+            }
+
+            if (string.Equals(action, "Acting", StringComparison.OrdinalIgnoreCase))
+            {
+                return access.CanActingApprove;
+            }
+
+            if (string.Equals(action, "Agree", StringComparison.OrdinalIgnoreCase))
+            {
+                return access.CanApprove;
+            }
+
+            return false;
         }
 
         private async Task ProcessLeaveAttendanceImpactAsync(LeaveIndexModel? before, LeaveIndexModel? after, string action, int userId)
@@ -1048,6 +1212,42 @@ namespace VS.Human.Business
         {
             return string.Equals(roleCode, RoleHcns, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(roleCode, "HCNS", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeApprovalRoleCode(string? roleCode)
+        {
+            if (string.IsNullOrWhiteSpace(roleCode))
+            {
+                return string.Empty;
+            }
+
+            return roleCode.Trim().ToUpperInvariant() switch
+            {
+                "TL" => "3",
+                "HCNS" => RoleHcns,
+                "BGD" => RoleBgd,
+                _ => roleCode.Trim()
+            };
+        }
+
+        private static bool IsAdminRoleCode(string? roleCode)
+        {
+            return string.Equals(NormalizeApprovalRoleCode(roleCode), RoleAdmin, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsManagerRoleCode(string? roleCode)
+        {
+            return string.Equals(NormalizeApprovalRoleCode(roleCode), "3", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsHcnsRoleCode(string? roleCode)
+        {
+            return string.Equals(NormalizeApprovalRoleCode(roleCode), RoleHcns, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsBgdRoleCode(string? roleCode)
+        {
+            return string.Equals(NormalizeApprovalRoleCode(roleCode), RoleBgd, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsAdminOrBgdRole(string? roleCode)

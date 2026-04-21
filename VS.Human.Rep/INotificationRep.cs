@@ -5,8 +5,9 @@ namespace VS.Human.Rep
     public interface INotificationRep
     {
         Task<List<AppNotification>> GetByReceiverId(int receiverId, int limit = 20);
+        Task<AppNotification?> GetById(int id, int receiverId);
         Task<int> GetUnreadCount(int receiverId);
-        Task<bool> MarkAsRead(int id);
+        Task<bool> MarkAsRead(int id, int receiverId);
         Task<bool> MarkAllAsRead(int receiverId);
         Task<bool> Add(AppNotification item);
         Task<int> InsertAsync(AppNotification item);
