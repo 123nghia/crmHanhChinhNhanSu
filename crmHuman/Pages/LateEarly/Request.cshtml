@@ -1,7 +1,37 @@
-﻿@page
+@page
 @model crmHuman.Pages.LateEarly.RequestModel
 @{
     ViewData["Title"] = Model.TitlePage;
+    var totalRequests = 0;
+    var pendingRequests = 0;
+    var approvedRequests = 0;
+    var closedRequests = 0;
+
+    if (Model.RequestList?.Data != null)
+    {
+        foreach (var item in Model.RequestList.Data)
+        {
+            var info = item as dynamic;
+            if (info == null)
+            {
+                continue;
+            }
+
+            totalRequests++;
+            if (info.Status == 0 || info.Status == 1 || info.Status == 2 || info.Status == 3)
+            {
+                pendingRequests++;
+            }
+            else if (info.Status == 4)
+            {
+                approvedRequests++;
+            }
+            else if (info.Status == 5 || info.Status == 6)
+            {
+                closedRequests++;
+            }
+        }
+    }
 }
 
 @Html.AntiForgeryToken()
@@ -16,51 +46,86 @@
     </nav>
 </div>
 
-<section class="section">
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mt-3 mb-2">
-                        <h5 class="card-title">Danh sách yêu cầu</h5>
-                        @if (Model.Permision.Add ?? false)
-                        {
-                            <button type="button" class="btn btn-primary" onclick="openAddLateEarly()">Tạo yêu cầu</button>
-                        }
-                    </div>
+<section class="section admin-page-shell late-early-request-shell">
+    <div class="admin-kpi-strip">
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-label">Tổng yêu cầu</span>
+            <strong class="admin-kpi-value">@totalRequests</strong>
+            <span class="admin-kpi-meta">Tất cả yêu cầu đi trễ/về sớm hiện hiển thị</span>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-label">Đang chờ duyệt</span>
+            <strong class="admin-kpi-value">@pendingRequests</strong>
+            <span class="admin-kpi-meta">Bao gồm các bước quản lý, HCNS, BGĐ và luồng cũ</span>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-label">Đã duyệt</span>
+            <strong class="admin-kpi-value">@approvedRequests</strong>
+            <span class="admin-kpi-meta">Các yêu cầu đã hoàn tất phê duyệt</span>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-label">Đã đóng</span>
+            <strong class="admin-kpi-value">@closedRequests</strong>
+            <span class="admin-kpi-meta">Từ chối hoặc đã hủy</span>
+        </div>
+    </div>
 
-                    <table class="table table-striped">
-                        <thead>
+    <div class="card admin-list-card">
+        <div class="card-body">
+            <div class="admin-list-header">
+                <div class="admin-list-copy">
+                    <span class="admin-list-kicker">Yêu cầu cá nhân</span>
+                    <h5 class="admin-list-title">Danh sách yêu cầu đi trễ / về sớm</h5>
+                </div>
+                <div class="admin-list-actions">
+                    @if (Model.Permision.Add ?? false)
+                    {
+                        <button type="button" class="btn btn-primary" onclick="openAddLateEarly()">Tạo yêu cầu</button>
+                    }
+                </div>
+            </div>
+
+            <div class="table-responsive admin-table-scroll">
+                <table class="table table-striped table-admin-compact late-early-request-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nhân sự</th>
+                            <th>Yêu cầu</th>
+                            <th>Lý do</th>
+                            <th>Trạng thái</th>
+                            <th class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ int i = 0; }
+                        @foreach (var item in Model.RequestList.Data)
+                        {
+                            i++;
+                            var info = item as dynamic;
+                            var approverName = Convert.ToString(info.ApproverName);
                             <tr>
-                                <th>#</th>
-                                <th>Nhân viên</th>
-                                <th>Ngày tạo</th>
-                                <th>Loại yêu cầu</th>
-                                <th>Ngày</th>
-                                <th>Từ giờ</th>
-                                <th>Đến giờ</th>
-                                <th>Lý do</th>
-                                <th class="text-center">Trạng thái</th>
-                                <th>Người duyệt cuối</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{ int i = 0; }
-                            @foreach (var item in Model.RequestList.Data)
-                            {
-                                i++;
-                                var info = item as dynamic;
-                                <tr>
-                                    <td>@i</td>
-                                    <td>@info.EmployeeName</td>
-                                    <td>@info.CreateAt.ToString("dd/MM/yyyy")</td>
-                                    <td>@(info.RequestType == "LATE" ? "Đi trễ" : "Về sớm")</td>
-                                    <td>@info.RequestDate.ToString("dd/MM/yyyy")</td>
-                                    <td>@info.StartTime.ToString("HH:mm")</td>
-                                    <td>@info.EndTime.ToString("HH:mm")</td>
-                                    <td>@info.Reason</td>
-                                    <td class="text-center">
+                                <td class="text-nowrap">@i</td>
+                                <td>
+                                    <div class="table-stack">
+                                        <div class="table-stack-title">@info.EmployeeName</div>
+                                        <div class="table-stack-subtitle">Tạo ngày @info.CreateAt.ToString("dd/MM/yyyy")</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-stack">
+                                        <div class="table-stack-title">@(info.RequestType == "LATE" ? "Đi trễ" : "Về sớm")</div>
+                                        <div class="table-stack-subtitle">Ngày @info.RequestDate.ToString("dd/MM/yyyy")</div>
+                                        <div class="table-stack-meta">
+                                            <span class="table-info-chip is-primary">@info.StartTime.ToString("HH:mm") - @info.EndTime.ToString("HH:mm")</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-reason-block" title="@info.Reason">@info.Reason</div>
+                                </td>
+                                <td>
+                                    <div class="table-status-stack">
                                         @if (info.Status == 0)
                                         {
                                             <span class="badge bg-warning text-dark">Chờ quản lý duyệt</span>
@@ -89,30 +154,42 @@
                                         {
                                             <span class="badge bg-secondary">Đã hủy</span>
                                         }
-                                    </td>
-                                    <td>@info.ApproverName</td>
-                                    <td>
+
+                                        @if (!string.IsNullOrWhiteSpace(approverName))
+                                        {
+                                            <span class="table-info-chip">Duyệt cuối: @approverName</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="table-actions table-actions-compact justify-content-center">
                                         @if (info.Status == 0 && (Model.Permision.Edit ?? false))
                                         {
-                                            <a href="javascript:void(0)" onclick="openEditLateEarly(@info.Id)" class="me-2" title="Chỉnh sửa"><i class="bi bi-pencil-square"></i></a>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openEditLateEarly(@info.Id)" title="Chỉnh sửa">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
                                         }
-                                        <a href="javascript:void(0)" onclick="viewLateEarlyHistory(@info.Id)" class="me-2 text-info" title="Lịch sử"><i class="bi bi-clock-history"></i></a>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewLateEarlyHistory(@info.Id)" title="Lịch sử">
+                                            <i class="bi bi-clock-history"></i>
+                                        </button>
                                         @if ((info.Status == 0 || info.Status == 1 || info.Status == 2 || info.Status == 3) && (Model.Permision.Delete ?? false))
                                         {
-                                            <a href="javascript:void(0)" onclick="deleteLateEarly(@info.Id)" class="text-danger" title="Xóa"><i class="bi bi-trash"></i></a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteLateEarly(@info.Id)" title="Xóa">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
                                         }
-                                    </td>
-                                </tr>
-                            }
-                            @if (i == 0)
-                            {
-                                <tr>
-                                    <td colspan="11" class="text-center">Không có dữ liệu</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        @if (i == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center">Không có dữ liệu</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

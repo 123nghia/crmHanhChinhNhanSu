@@ -146,6 +146,7 @@ SET @EffectiveRoleCode = ISNULL(@EffectiveRoleCode, '');
       AND (@InterviewMode < 0 OR ISNULL(d.InterviewMode, -1) = @InterviewMode)
       AND (@FromDate IS NULL OR d.ScheduleDate >= @FromDate)
       AND (@ToDate IS NULL OR d.ScheduleDate <= @ToDate)
+      AND (@UpcomingOnly = 0 OR d.ScheduleDate >= GETDATE())
       AND (@Token = '' OR ISNULL(c.Name, '') LIKE N'%' + @Token + '%'
            OR ISNULL(c.Email, '') LIKE N'%' + @Token + '%'
            OR ISNULL(c.Phone, '') LIKE N'%' + @Token + '%')
@@ -166,7 +167,10 @@ SET @EffectiveRoleCode = ISNULL(@EffectiveRoleCode, '');
 )
 SELECT *
 FROM ScheduleSource
-ORDER BY UpdateAt DESC
+ORDER BY
+    CASE WHEN @OrderBy = 'schedule-asc' THEN ISNULL(ScheduleDate, CAST('9999-12-31' AS datetime)) END ASC,
+    CASE WHEN @OrderBy = 'schedule-desc' THEN ISNULL(ScheduleDate, CAST('1900-01-01' AS datetime)) END DESC,
+    UpdateAt DESC
 OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;";
 
             using var con = GetConnection();
@@ -181,6 +185,8 @@ OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;";
                 InterviewMode = request.InterviewMode ?? -1,
                 RelId = request.RelId ?? -1,
                 RelCode = request.RelCode ?? string.Empty,
+                UpcomingOnly = request.UpcomingOnly ? 1 : 0,
+                OrderBy = (request.OrderBy ?? string.Empty).Trim().ToLowerInvariant(),
                 UserId = request.UserId,
                 RoleCodeInput = string.Empty,
                 offset,

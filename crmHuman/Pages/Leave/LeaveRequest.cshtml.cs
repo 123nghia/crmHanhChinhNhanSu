@@ -33,10 +33,16 @@ namespace crmHuman.Pages.Leave
         public List<VS.Human.Rep.Model.MasterData> LeaveTypes { get; set; }
         public List<ManagerLeadIndex> EmployeeList { get; set; }
         public LeaveBalanceIndexModel LeaveBalance { get; set; }
+        public bool HideAnnualLeaveHandover { get; set; }
 
         private static bool IsManagerRole(string? roleCode)
         {
             return roleCode == "3";
+        }
+
+        private static bool IsAnnualLeave(string? leaveTypeCode)
+        {
+            return string.Equals(leaveTypeCode, "NP", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsAdminRole(string? roleCode)
@@ -79,9 +85,12 @@ namespace crmHuman.Pages.Leave
             return items.Any(item => item.Id == leave.Id);
         }
 
-        public async Task OnGetAsync(int page = 1, int limit = 20)
+        public async Task OnGetAsync(int page = 1, int limit = 20, int? id = null)
         {
             GetInfoUser();
+            HideAnnualLeaveHandover = UserData?.UserId > 0
+                && await _leaveBusiness.ShouldSkipAnnualLeaveHandoverAsync(UserData.UserId);
+
             if (!(Permision.View ?? false))
             {
                 LeaveList = new BaseList { Data = new List<object>(), Total = 0 };
@@ -89,7 +98,24 @@ namespace crmHuman.Pages.Leave
             else
             {
                 var scope = ResolveLeaveScope();
-                LeaveList = await _leaveBusiness.GetLeaveList(scope.employeeId, null, null, null, page, limit, scope.userId);
+                if (id.HasValue && id.Value > 0)
+                {
+                    var deepLinkList = await _leaveBusiness.GetLeaveList(scope.employeeId, null, null, null, 1, 5000, scope.userId);
+                    var items = deepLinkList.Data?.OfType<LeaveIndexModel>()
+                        .Where(x => x.Id == id.Value)
+                        .ToList()
+                        ?? new List<LeaveIndexModel>();
+
+                    LeaveList = new BaseList
+                    {
+                        Total = items.Count,
+                        Data = items
+                    };
+                }
+                else
+                {
+                    LeaveList = await _leaveBusiness.GetLeaveList(scope.employeeId, null, null, null, page, limit, scope.userId);
+                }
             }
 
             if (UserData.UserId > 0)
@@ -242,6 +268,11 @@ namespace crmHuman.Pages.Leave
             }
 
             model.EmployeeId = effectiveEmployeeId;
+            if (IsAnnualLeave(model.LeaveTypeCode)
+                && await _leaveBusiness.ShouldSkipAnnualLeaveHandoverAsync(effectiveEmployeeId))
+            {
+                model.HandoverEmployeeId = null;
+            }
 
             var result = await _leaveBusiness.CreateOrUpdateLeave(model, UserData.UserId);
             if (result > 0)
@@ -402,14 +433,14 @@ namespace crmHuman.Pages.Leave
         {
             return status switch
             {
-                0 => "Manager",
+                0 => "Chờ quản lý trực tiếp",
                 1 => "HCNS",
                 2 => "BGD",
-                3 => "Final approved",
-                4 => "Final approved",
-                5 => "Rejected",
-                6 => "Cancelled",
-                _ => "Unknown"
+                3 => "Đã phê duyệt",
+                4 => "Đã phê duyệt (duyệt thay)",
+                5 => "Từ chối",
+                6 => "Đã hủy",
+                _ => "Không xác định"
             };
         }
 
@@ -417,9 +448,9 @@ namespace crmHuman.Pages.Leave
         {
             return status switch
             {
-                0 => "Quan ly truc tiep",
-                1 => "Phong HCNS",
-                2 => "Ban Giam doc",
+                0 => "Quản lý trực tiếp",
+                1 => "Phòng HCNS",
+                2 => "Ban Giám đốc",
                 _ => string.Empty
             };
         }

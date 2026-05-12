@@ -1,7 +1,7 @@
 @page
 @model crmHuman.Pages.Candidate.DashboardModel
 @{
-    ViewData["Title"] = "Candidate Dashboard";
+    ViewData["Title"] = "Bảng điều khiển ứng viên";
     var candidate = Model.Candidate;
     var scheduleItems = (Model.ScheduleList?.Data ?? new List<object>()).Cast<dynamic>().ToList();
     dynamic nextSchedule = null;

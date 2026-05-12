@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using VS.Human.Business;
 using VS.Human.Item;
@@ -19,7 +21,7 @@ namespace crmHuman.Pages.LateEarly
 
         public BaseList RequestList { get; set; } = new BaseList();
 
-        public async Task OnGetAsync(int page = 1, int limit = 20)
+        public async Task OnGetAsync(int page = 1, int limit = 20, int? id = null)
         {
             GetInfoUser();
             if (!(Permision.View ?? false))
@@ -29,7 +31,23 @@ namespace crmHuman.Pages.LateEarly
             }
 
             var scope = ResolveScope();
-            RequestList = await _lateEarlyBusiness.GetList(scope.employeeId, null, null, null, page, limit);
+            if (id.HasValue && id.Value > 0)
+            {
+                var deepLinkList = await _lateEarlyBusiness.GetList(scope.employeeId, null, null, null, 1, 5000, scope.userId, UserData?.RoleCode);
+                var items = deepLinkList.Data?.OfType<LateEarlyIndexModel>()
+                    .Where(x => x.Id == id.Value)
+                    .ToList()
+                    ?? new List<LateEarlyIndexModel>();
+
+                RequestList = new BaseList
+                {
+                    Total = items.Count,
+                    Data = items
+                };
+                return;
+            }
+
+            RequestList = await _lateEarlyBusiness.GetList(scope.employeeId, null, null, null, page, limit, scope.userId, UserData?.RoleCode);
         }
 
         private (int? employeeId, int? userId) ResolveScope()

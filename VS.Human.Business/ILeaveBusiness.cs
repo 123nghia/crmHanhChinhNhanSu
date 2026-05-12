@@ -15,6 +15,7 @@ namespace VS.Human.Business
         Task<LeaveApprovalAccessResult> GetApprovalAccessAsync(int leaveId, int userId, string? roleCode);
         Task<List<LeaveHistory>> GetLeaveHistory(int leaveId);
         Task<LeaveBalanceIndexModel> GetEmployeeLeaveBalance(int employeeId);
+        Task<bool> ShouldSkipAnnualLeaveHandoverAsync(int employeeId);
         Task<bool> DeleteLeave(int id, int userId);
     }
 }

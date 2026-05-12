@@ -35,8 +35,22 @@
                         Admin cau hinh server, tao line moi, gan line cho nhan vien va thu hoi khi can.
                     </div>
                 </div>
-                <div class="alert alert-light border mb-0 py-2 px-3 small">
-                    Nhan vien xem SIP account cua minh tai trang thong tin nhan vien.
+                <div class="border rounded-3 bg-light px-3 py-2" id="sipServiceHealthPanel" style="min-width: min(100%, 440px);">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div>
+                            <div class="text-muted small">Trang thai link tong dai</div>
+                            <div class="fw-semibold" id="sipServiceHealthUrl">192.168.1.9:3000</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-secondary" id="sipServiceHealthBadge">Chua kiem tra</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="checkSipServiceHealthButton" onclick="checkSipServiceHealth()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Kiem tra
+                            </button>
+                        </div>
+                    </div>
+                    <div class="small text-muted mt-2" id="sipServiceHealthDetail">
+                        Kiem tra ket noi den service 192.168.1.9:3000 tu server web.
+                    </div>
                 </div>
             </div>
 
@@ -385,6 +399,7 @@
         const sipLines = @Html.Raw(JsonSerializer.Serialize(Model.Lines));
         const initialServerId = @initialServerId;
         let assignModal = null;
+        let sipServiceHealthRunning = false;
 
         function getRequestVerificationToken() {
             const tokenField = document.getElementsByName('__RequestVerificationToken')[0];
@@ -432,6 +447,104 @@
             }
 
             return data;
+        }
+
+        function readHealthValue(data, camelName, pascalName) {
+            if (!data) {
+                return null;
+            }
+
+            if (Object.prototype.hasOwnProperty.call(data, camelName)) {
+                return data[camelName];
+            }
+
+            return data[pascalName];
+        }
+
+        function formatSipHealthDate(value) {
+            if (!value) {
+                return '';
+            }
+
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return '';
+            }
+
+            return date.toLocaleString('vi-VN');
+        }
+
+        async function checkSipServiceHealth() {
+            if (sipServiceHealthRunning) {
+                return;
+            }
+
+            const badge = document.getElementById('sipServiceHealthBadge');
+            const detail = document.getElementById('sipServiceHealthDetail');
+            const urlText = document.getElementById('sipServiceHealthUrl');
+            const button = document.getElementById('checkSipServiceHealthButton');
+            if (!badge || !detail || !urlText || !button) {
+                return;
+            }
+
+            sipServiceHealthRunning = true;
+            button.disabled = true;
+            badge.className = 'badge bg-secondary';
+            badge.textContent = 'Dang kiem tra';
+            detail.textContent = 'Dang kiem tra ket noi den service tong dai...';
+
+            try {
+                const response = await fetch('?handler=ServiceHealth', {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                let result = null;
+                try {
+                    result = await response.json();
+                } catch (error) {
+                    result = null;
+                }
+
+                if (!response.ok || (result && result.success === false)) {
+                    throw new Error((result && result.message) || 'Khong kiem tra duoc trang thai server.');
+                }
+
+                const data = result ? result.data : null;
+                const isOnline = readHealthValue(data, 'isOnline', 'IsOnline') === true;
+                const url = readHealthValue(data, 'url', 'Url') || '192.168.1.9:3000';
+                const statusCode = readHealthValue(data, 'statusCode', 'StatusCode');
+                const statusText = readHealthValue(data, 'statusText', 'StatusText') || (isOnline ? 'Co phan hoi tu server' : 'Khong ket noi duoc');
+                const elapsedMs = readHealthValue(data, 'elapsedMs', 'ElapsedMs');
+                const checkedAt = formatSipHealthDate(readHealthValue(data, 'checkedAt', 'CheckedAt'));
+                const error = readHealthValue(data, 'error', 'Error');
+
+                urlText.textContent = url;
+                badge.className = isOnline ? 'badge bg-success' : 'badge bg-danger';
+                badge.textContent = isOnline ? 'Dang hoat dong' : 'Mat ket noi';
+
+                const details = [];
+                details.push(statusCode ? `${statusText} (${statusCode})` : statusText);
+                if (elapsedMs !== null && elapsedMs !== undefined) {
+                    details.push(`Thoi gian phan hoi ${elapsedMs}ms`);
+                }
+                if (checkedAt) {
+                    details.push(`Kiem tra luc ${checkedAt}`);
+                }
+                if (!isOnline && error) {
+                    details.push(`Loi: ${error}`);
+                }
+
+                detail.textContent = details.join('. ') + '.';
+            } catch (error) {
+                badge.className = 'badge bg-danger';
+                badge.textContent = 'Mat ket noi';
+                detail.textContent = error.message || 'Khong ket noi duoc service tong dai.';
+            } finally {
+                sipServiceHealthRunning = false;
+                button.disabled = false;
+            }
         }
 
         function resetServerForm() {
@@ -611,6 +724,12 @@
             } catch (error) {
                 await showSipToast(false, error.message);
             }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkSipServiceHealth);
+        } else {
+            checkSipServiceHealth();
         }
     </script>
 }

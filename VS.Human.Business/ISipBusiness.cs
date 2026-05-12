@@ -11,6 +11,7 @@ namespace VS.Human.Business
         Task<List<SipLineViewModel>> GetLines();
         Task<List<SipEmployeeOption>> GetAssignableEmployees();
         Task<EmployeeSipAccountView?> GetEmployeeSipInfo(int employeeId);
+        Task<Result<SipServiceHealthResult>> CheckServiceHealth();
 
         Task<Result<SipServer>> SaveServer(SipServerSaveRequest request);
         Task<Result<SipLine>> SaveLine(SipLineSaveRequest request);

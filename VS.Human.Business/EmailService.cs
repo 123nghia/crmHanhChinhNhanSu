@@ -23,6 +23,11 @@ namespace VS.Human.Business
             "(<img\\b[^>]*?\\bsrc\\s*=\\s*[\"'])(?<src>[^\"']+)([\"'][^>]*>)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly HashSet<string> BlockedRecipientEmails = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "nghiait06@gmail.com"
+        };
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IHostEnvironment _hostEnvironment;
@@ -253,7 +258,11 @@ namespace VS.Human.Business
             {
                 foreach (var email in ParseEmails(item))
                 {
-                    yield return email;
+                    var normalizedEmail = NormalizeEmail(email);
+                    if (!string.IsNullOrWhiteSpace(normalizedEmail))
+                    {
+                        yield return normalizedEmail;
+                    }
                 }
             }
         }
@@ -273,7 +282,9 @@ namespace VS.Human.Business
                     continue;
                 }
 
-                if (MailboxAddress.TryParse(trimmed, out var mailbox) && usedRecipients.Add(mailbox.Address))
+                if (MailboxAddress.TryParse(trimmed, out var mailbox)
+                    && !IsBlockedRecipientAddress(mailbox.Address)
+                    && usedRecipients.Add(mailbox.Address))
                 {
                     collection.Add(mailbox);
                 }
@@ -887,7 +898,18 @@ namespace VS.Human.Business
             }
 
             var trimmed = email.Trim();
-            return MailboxAddress.TryParse(trimmed, out var mailbox) ? mailbox.Address : null;
+            if (!MailboxAddress.TryParse(trimmed, out var mailbox))
+            {
+                return null;
+            }
+
+            return IsBlockedRecipientAddress(mailbox.Address) ? null : mailbox.Address;
+        }
+
+        private static bool IsBlockedRecipientAddress(string? email)
+        {
+            return !string.IsNullOrWhiteSpace(email)
+                && BlockedRecipientEmails.Contains(email.Trim());
         }
 
         private (int UserId, string? UserName, string? FullName) ResolveCurrentUserSnapshot()

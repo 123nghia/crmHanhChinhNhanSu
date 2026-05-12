@@ -126,23 +126,30 @@ namespace crmHuman.Pages.Attendance
             var (fromDate, toDate, _) = ResolveMonth(month);
             var details = await _attendanceBusiness.GetDetails(employeeId, fingerprintCode, fromDate, toDate, UserData.UserId);
 
-            var response = details.Select(item => new
+            var response = details.Select(item =>
             {
-                WorkDate = item.WorkDate,
-                item.DayName,
-                CheckIn = FormatTime(item.CheckIn),
-                CheckOut = FormatTime(item.CheckOut),
-                item.WorkDay,
-                item.WorkHours,
-                item.WorkDayPlus,
-                item.WorkHoursPlus,
-                item.LateMinutes,
-                item.EarlyMinutes,
-                item.ShiftName,
-                item.Symbol,
-                item.SymbolPlus,
-                item.TotalHours,
-                item.FingerprintCode
+                var noteItems = BuildAttendanceNoteItems(item);
+                return new
+                {
+                    WorkDate = item.WorkDate,
+                    item.DayName,
+                    CheckIn = FormatTime(item.CheckIn),
+                    CheckOut = FormatTime(item.CheckOut),
+                    item.WorkDay,
+                    item.WorkHours,
+                    item.WorkDayPlus,
+                    item.WorkHoursPlus,
+                    item.LateMinutes,
+                    item.EarlyMinutes,
+                    item.ShiftName,
+                    item.Symbol,
+                    item.SymbolPlus,
+                    item.TotalHours,
+                    item.FingerprintCode,
+                    item.IsScheduledOff,
+                    Note = BuildAttendanceNoteText(noteItems),
+                    NoteItems = noteItems.Select(note => new { note.Type, note.Text, note.Url }).ToList()
+                };
             }).ToList();
 
             return new JsonResult(response);
@@ -335,7 +342,8 @@ namespace crmHuman.Pages.Attendance
                 "T\u00EAn ca",
                 "K\u00FD hi\u1EC7u",
                 "K\u00FD hi\u1EC7u+",
-                "T\u1ED5ng gi\u1EDD"
+                "T\u1ED5ng gi\u1EDD",
+                "Ghi ch\u00FA"
             };
 
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
@@ -382,6 +390,7 @@ namespace crmHuman.Pages.Attendance
                     var lateMinutes = detail?.LateMinutes ?? 0;
                     var earlyMinutes = detail?.EarlyMinutes ?? 0;
                     var totalHours = detail?.TotalHours ?? detail?.WorkHours ?? 0;
+                    var noteText = detail == null ? string.Empty : BuildAttendanceNoteText(BuildAttendanceNoteItems(detail));
 
                     int col = 1;
                     worksheet.Cells[row, col++].Value = item.FingerprintCode;
@@ -405,6 +414,7 @@ namespace crmHuman.Pages.Attendance
                     worksheet.Cells[row, col++].Value = detail?.Symbol;
                     worksheet.Cells[row, col++].Value = detail?.SymbolPlus;
                     worksheet.Cells[row, col++].Value = totalHours;
+                    worksheet.Cells[row, col++].Value = noteText;
 
                     row++;
                 }
@@ -524,6 +534,154 @@ namespace crmHuman.Pages.Attendance
             }
 
             return items.FirstOrDefault();
+        }
+
+        private List<AttendanceNoteItemViewModel> BuildAttendanceNoteItems(AttendanceDetailModel item)
+        {
+            var notes = new List<AttendanceNoteItemViewModel>();
+            if (item == null)
+            {
+                return notes;
+            }
+
+            if (item.LeaveRequestId.GetValueOrDefault() > 0)
+            {
+                var leaveText = string.IsNullOrWhiteSpace(item.LeaveTypeName)
+                    ? "Nghi phep"
+                    : item.LeaveTypeName!.Trim();
+                if (!string.IsNullOrWhiteSpace(item.LeaveReason))
+                {
+                    leaveText += ": " + item.LeaveReason.Trim();
+                }
+
+                notes.Add(new AttendanceNoteItemViewModel
+                {
+                    Type = "leave",
+                    Text = leaveText,
+                    Url = ResolveLeaveLink(item.LeaveRequestId)
+                });
+            }
+
+            if (item.HolidayId.GetValueOrDefault() > 0)
+            {
+                notes.Add(new AttendanceNoteItemViewModel
+                {
+                    Type = "holiday",
+                    Text = string.IsNullOrWhiteSpace(item.HolidayName) ? "Nghi le" : item.HolidayName!.Trim()
+                });
+            }
+
+            if (item.IsScheduledOff)
+            {
+                notes.Add(new AttendanceNoteItemViewModel
+                {
+                    Type = "scheduled-off",
+                    Text = item.WorkDate.DayOfWeek == DayOfWeek.Sunday ? "Nghi Chu nhat" : "Nghi thu 7"
+                });
+            }
+
+            if (item.ApprovedLateRequestId.GetValueOrDefault() > 0)
+            {
+                notes.Add(new AttendanceNoteItemViewModel
+                {
+                    Type = "late-approval",
+                    Text = string.IsNullOrWhiteSpace(item.ApprovedLateNote) ? "Di tre co phep" : item.ApprovedLateNote!.Trim(),
+                    Url = ResolveLateEarlyLink(item.ApprovedLateRequestId)
+                });
+            }
+
+            if (item.ApprovedEarlyRequestId.GetValueOrDefault() > 0)
+            {
+                notes.Add(new AttendanceNoteItemViewModel
+                {
+                    Type = "early-approval",
+                    Text = string.IsNullOrWhiteSpace(item.ApprovedEarlyNote) ? "Ve som co phep" : item.ApprovedEarlyNote!.Trim(),
+                    Url = ResolveLateEarlyLink(item.ApprovedEarlyRequestId)
+                });
+            }
+
+            return notes
+                .GroupBy(note => $"{note.Type}|{note.Text}|{note.Url}", StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
+        }
+
+        private static string BuildAttendanceNoteText(IEnumerable<AttendanceNoteItemViewModel> notes)
+        {
+            return string.Join(" | ", notes
+                .Where(note => !string.IsNullOrWhiteSpace(note.Text))
+                .Select(note => note.Text.Trim()));
+        }
+
+        private string? ResolveLeaveLink(int? leaveRequestId)
+        {
+            if (!leaveRequestId.HasValue || leaveRequestId.Value <= 0)
+            {
+                return null;
+            }
+
+            if (CanOpenLeaveApproval())
+            {
+                return $"/Leave/LeaveApproval?id={leaveRequestId.Value}";
+            }
+
+            return HasViewPermission("LeaveRequest")
+                ? $"/Leave/LeaveRequest?id={leaveRequestId.Value}"
+                : null;
+        }
+
+        private string? ResolveLateEarlyLink(int? requestId)
+        {
+            if (!requestId.HasValue || requestId.Value <= 0)
+            {
+                return null;
+            }
+
+            if (CanOpenLateEarlyApproval())
+            {
+                return $"/LateEarly/Approval?id={requestId.Value}";
+            }
+
+            return HasViewPermission("LateEarlyRequest")
+                ? $"/LateEarly/Request?id={requestId.Value}"
+                : null;
+        }
+
+        private bool CanOpenLeaveApproval()
+        {
+            return IsLeaveApprovalRole(UserData?.RoleCode)
+                && (HasViewPermission("LeaveApproval") || HasApprovePermission("LeaveApproval"));
+        }
+
+        private bool CanOpenLateEarlyApproval()
+        {
+            return IsLateEarlyApprovalRole(UserData?.RoleCode)
+                && (HasViewPermission("LateEarlyApproval") || HasApprovePermission("LateEarlyApproval"));
+        }
+
+        private static bool IsLeaveApprovalRole(string? roleCode)
+        {
+            return roleCode == "1" || roleCode == "3" || roleCode == "8" || roleCode == "9";
+        }
+
+        private static bool IsLateEarlyApprovalRole(string? roleCode)
+        {
+            return roleCode == "1"
+                || roleCode == "2"
+                || roleCode == "3"
+                || roleCode == "8"
+                || roleCode == "9"
+                || roleCode == "TL"
+                || roleCode == "HCNS"
+                || roleCode == "BGD"
+                || roleCode == "ADMIN";
+        }
+
+        private sealed class AttendanceNoteItemViewModel
+        {
+            public string Type { get; set; } = string.Empty;
+            public string Text { get; set; } = string.Empty;
+            public string? Url { get; set; }
         }
     }
 }

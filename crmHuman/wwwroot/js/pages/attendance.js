@@ -324,6 +324,26 @@ function isLeaveRecord(item) {
 function normalizeAttendanceItem(item) {
     var date = getAttendanceDate(item.workDate || item.WorkDate);
     var symbol = item.symbol || item.Symbol || '';
+    var note = item.note || item.Note || '';
+    var noteItems = normalizeAttendanceNoteItems(item.noteItems || item.NoteItems || []);
+
+    if (!noteItems.length && note) {
+        noteItems.push({
+            type: 'note',
+            text: note,
+            url: ''
+        });
+    }
+
+    if (Boolean(item.isScheduledOff || item.IsScheduledOff) && date && !noteItems.some(function (noteItem) {
+        return (noteItem.type || '').toLowerCase() === 'scheduled-off';
+    })) {
+        noteItems.unshift({
+            type: 'scheduled-off',
+            text: getScheduledOffLabel(date),
+            url: ''
+        });
+    }
 
     return {
         workDate: date,
@@ -337,8 +357,55 @@ function normalizeAttendanceItem(item) {
         shiftName: item.shiftName || item.ShiftName || '',
         symbol: symbol,
         symbolPlus: item.symbolPlus || item.SymbolPlus || '',
-        isScheduledOff: Boolean(item.isScheduledOff || item.IsScheduledOff)
+        isScheduledOff: Boolean(item.isScheduledOff || item.IsScheduledOff),
+        note: note,
+        noteItems: noteItems
     };
+}
+
+function normalizeAttendanceNoteItems(items) {
+    if (!Array.isArray(items)) {
+        return [];
+    }
+
+    return items
+        .map(function (item) {
+            if (!item) {
+                return null;
+            }
+
+            var text = item.text || item.Text || '';
+            if (!text) {
+                return null;
+            }
+
+            return {
+                type: item.type || item.Type || 'note',
+                text: text,
+                url: item.url || item.Url || ''
+            };
+        })
+        .filter(function (item) {
+            return item !== null;
+        });
+}
+
+function renderAttendanceNoteItems(noteItems) {
+    if (!Array.isArray(noteItems) || noteItems.length === 0) {
+        return '<span class="attendance-note-empty">-</span>';
+    }
+
+    return '<div class="attendance-note-list">'
+        + noteItems.map(function (item) {
+            var text = escapeHtml(item.text || '');
+            var url = item.url || '';
+            if (url) {
+                return '<a class="attendance-note-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + text + '</a>';
+            }
+
+            return '<span class="attendance-note-chip">' + text + '</span>';
+        }).join('')
+        + '</div>';
 }
 
 function buildAttendanceDisplayData(data, month) {
@@ -401,7 +468,12 @@ function buildAttendanceDisplayData(data, month) {
             earlyMinutes: 0,
             shiftName: '',
             symbol: getScheduledOffLabel(date),
-            isScheduledOff: true
+            isScheduledOff: true,
+            noteItems: [{
+                type: 'scheduled-off',
+                text: getScheduledOffLabel(date),
+                url: ''
+            }]
         });
     }
 
@@ -493,7 +565,7 @@ function renderAttendanceTable(data) {
     if (!body) return;
 
     if (!Array.isArray(data) || data.length === 0) {
-        body.innerHTML = '<tr><td colspan="10" class="text-center">Không có dữ liệu</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="text-center">Không có dữ liệu</td></tr>';
         return;
     }
 
@@ -518,6 +590,7 @@ function renderAttendanceTable(data) {
         var isHoliday = isHolidayRecord(normalized);
         var isLeave = isLeaveRecord(normalized);
         var symbol = normalized.symbol || (isScheduledOff ? getScheduledOffLabel(normalized.workDate) : '');
+        var noteItems = normalized.noteItems || [];
         if (!symbol && isHalfDay) {
             symbol = getHalfDayLabel();
         }
@@ -539,39 +612,55 @@ function renderAttendanceTable(data) {
             rowClasses.push('attendance-row-holiday');
         }
 
-        var lateClass = lateMinutes > 0 ? 'attendance-cell-late' : '';
-        var earlyClass = earlyMinutes > 0 ? 'attendance-cell-early' : '';
-        var symbolClass = '';
-        if (isHoliday) {
-            symbolClass = 'attendance-cell-holiday';
-        } else if (isLeave) {
-            symbolClass = 'attendance-cell-leave';
-        } else if (symbol && !isHalfDay) {
-            symbolClass = 'attendance-cell-absent';
+        var attendanceMeta = [];
+        var attendanceTitle = '';
+        if (checkIn || checkOut) {
+            attendanceTitle = escapeHtml((checkIn || '--') + ' - ' + (checkOut || '--'));
+            attendanceMeta.push('<span class="table-info-chip is-primary">Vào ' + escapeHtml(checkIn || '--') + '</span>');
+            attendanceMeta.push('<span class="table-info-chip">Ra ' + escapeHtml(checkOut || '--') + '</span>');
+        } else {
+            attendanceTitle = 'Không có log vào/ra';
+            attendanceMeta.push('<span class="table-info-chip">Chưa ghi nhận máy chấm công</span>');
         }
-        if (isScheduledOff) {
-            symbolClass += (symbolClass ? ' ' : '') + 'attendance-cell-off';
+        if (shiftName) {
+            attendanceMeta.push('<span class="table-info-chip">' + escapeHtml(shiftName) + '</span>');
         }
-        var workDayClass = isHalfDay ? 'attendance-cell-half-day' : '';
-        if (isHalfDay) {
-            symbolClass += (symbolClass ? ' ' : '') + 'attendance-cell-half-day';
+
+        var statusChips = [];
+        if (lateMinutes > 0) {
+            statusChips.push('<span class="table-info-chip is-warning">Trễ ' + lateMinutes + ' phút</span>');
+        }
+        if (earlyMinutes > 0) {
+            statusChips.push('<span class="table-info-chip">Sớm ' + earlyMinutes + ' phút</span>');
+        }
+        if (symbol) {
+            var symbolChipClass = '';
+            if (isLeave) {
+                symbolChipClass = ' is-success';
+            } else if (isHoliday) {
+                symbolChipClass = ' is-primary';
+            } else if (isScheduledOff || isHalfDay) {
+                symbolChipClass = ' is-warning';
+            }
+            statusChips.push('<span class="table-info-chip' + symbolChipClass + '">' + escapeHtml(symbol) + '</span>');
+        }
+        if (!statusChips.length) {
+            statusChips.push('<span class="table-info-chip is-success">Đúng giờ</span>');
         }
 
         html += '<tr class="' + rowClasses.join(' ') + '">'
-            + '<td>' + dateText + '</td>'
-            + '<td>' + escapeHtml(dayName) + '</td>'
-            + '<td>' + escapeHtml(checkIn) + '</td>'
-            + '<td>' + escapeHtml(checkOut) + '</td>'
-            + '<td class="text-end ' + workDayClass + '">' + workDay + '</td>'
-            + '<td class="text-end">' + workHours + '</td>'
-            + '<td class="text-end ' + lateClass + '">' + lateMinutes + '</td>'
-            + '<td class="text-end ' + earlyClass + '">' + earlyMinutes + '</td>'
-            + '<td>' + escapeHtml(shiftName) + '</td>'
-            + '<td class="' + symbolClass + '">' + escapeHtml(symbol) + '</td>'
+            + '<td><div class="table-stack"><div class="table-stack-title">' + dateText + '</div><div class="table-stack-subtitle">' + escapeHtml(dayName) + '</div></div></td>'
+            + '<td><div class="table-stack"><div class="table-stack-title">' + attendanceTitle + '</div><div class="table-stack-meta">' + attendanceMeta.join('') + '</div></div></td>'
+            + '<td><div class="table-metric-group">'
+            + '<div class="table-metric-card"><strong>' + workDay + '</strong><span>Công</span></div>'
+            + '<div class="table-metric-card"><strong>' + workHours + '</strong><span>Giờ công</span></div>'
+            + '</div></td>'
+            + '<td><div class="table-stack"><div class="table-stack-meta">' + statusChips.join('') + '</div></div></td>'
+            + '<td>' + renderAttendanceNoteItems(noteItems) + '</td>'
             + '</tr>';
     });
 
-    body.innerHTML = html;
+    body.innerHTML = html || '<tr><td colspan="5" class="text-center">Không có dữ liệu</td></tr>';
 }
 
 function renderAttendanceCalendar(data, month) {
@@ -627,6 +716,7 @@ function renderAttendanceCalendar(data, month) {
             var lateMinutes = record.lateMinutes || 0;
             var earlyMinutes = record.earlyMinutes || 0;
             var symbol = record.symbol || '';
+            var noteItems = record.noteItems || [];
             if (!symbol && isHalfDay) {
                 symbol = getHalfDayLabel();
             }
@@ -658,6 +748,10 @@ function renderAttendanceCalendar(data, month) {
 
             if (earlyMinutes > 0) {
                 cellHtml += '<div class="attendance-badge bg-info text-dark mt-1">Sớm ' + earlyMinutes + 'p</div>';
+            }
+
+            if (noteItems.length > 0) {
+                cellHtml += '<div class="mt-1">' + renderAttendanceNoteItems(noteItems) + '</div>';
             }
         } else if (isScheduledOff) {
             cellHtml += '<div class="attendance-badge text-bg-danger mt-1">Ngày nghỉ</div>';

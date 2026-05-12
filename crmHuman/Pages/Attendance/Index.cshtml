@@ -6,6 +6,15 @@
     var summary = Model.SelectedSummary;
     var monthValue = Model.SelectedMonth;
     var isTcRole = Model.IsTcRole;
+    var employeeSummaryCount = 0;
+
+    if (Model.SummaryItems != null)
+    {
+        foreach (var _ in Model.SummaryItems)
+        {
+            employeeSummaryCount++;
+        }
+    }
 }
 
 @section Styles
@@ -147,6 +156,105 @@
             border-color: #93c5fd;
             box-shadow: inset 0 0 0 1px #bfdbfe;
         }
+
+        .attendance-note-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .attendance-note-chip,
+        .attendance-note-link {
+            display: inline-flex;
+            align-items: center;
+            max-width: 100%;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            line-height: 1.25;
+            text-decoration: none;
+        }
+
+        .attendance-note-chip {
+            background: #eef2ff;
+            color: #1e3a8a;
+        }
+
+        .attendance-note-link {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+
+        .attendance-note-link:hover {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .attendance-note-empty {
+            color: #9ca3af;
+            font-size: 0.78rem;
+        }
+
+        .attendance-summary-row.active > td {
+            background: #eef4ff !important;
+        }
+
+        .attendance-summary-row .table-metric-group {
+            gap: 6px;
+        }
+
+        .attendance-summary-row .table-metric-card {
+            min-width: 68px;
+            padding: 6px 8px;
+        }
+
+        .attendance-summary-row .table-metric-card strong {
+            font-size: 14px;
+        }
+
+        .attendance-detail-table .table-metric-group {
+            gap: 6px;
+        }
+
+        .attendance-detail-table .table-metric-card {
+            min-width: 62px;
+            padding: 6px 8px;
+        }
+
+        .attendance-detail-table .table-info-chip {
+            margin-right: 4px;
+        }
+
+        .attendance-summary-toolbar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        @@media (max-width: 768px) {
+            .attendance-col-shift {
+                display: none;
+            }
+
+            #attendanceDetailTableWrapper .table th,
+            #attendanceDetailTableWrapper .table td {
+                white-space: nowrap;
+                font-size: 0.82rem;
+                padding: 0.45rem;
+            }
+
+            #attendanceDetailTableWrapper .attendance-note-list {
+                min-width: 180px;
+            }
+
+            .attendance-day-cell {
+                min-height: 76px;
+                padding: 6px;
+            }
+        }
     </style>
 }
 
@@ -160,10 +268,45 @@
     </nav>
 </div>
 
-<section class="section">
+<section class="section admin-page-shell">
+    <div class="admin-hero-panel">
+        <div class="admin-hero-copy">
+            <span class="admin-hero-kicker">Chấm công</span>
+            <h2 class="admin-hero-title">Tổng hợp công theo nhóm thông tin, không còn bảng dài khó quét.</h2>
+            <p class="admin-hero-subtitle">Danh sách nhân sự được gom lại theo 5 nhóm chính: người, tổ chức, hiệu suất, vi phạm và thao tác. Phần chi tiết ngày công cũng được rút về các cụm dữ liệu dễ đọc hơn.</p>
+        </div>
+        <div class="admin-hero-side">
+            <div class="admin-hero-note">
+                <strong>Tháng theo dõi</strong>
+                <span>@monthValue và @employeeSummaryCount nhân sự đang có trong danh sách tổng hợp của bộ lọc hiện tại.</span>
+            </div>
+            @if (Model.SyncStatus?.HasData == true)
+            {
+                <div class="admin-hero-note">
+                    <strong>Đồng bộ gần nhất</strong>
+                    <span>@(Model.SyncStatus.LastSyncedAt.HasValue ? Model.SyncStatus.LastSyncedAt.Value.ToString("dd/MM/yyyy HH:mm:ss") : "Chưa có dữ liệu")</span>
+                </div>
+            }
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-body">
             @Html.AntiForgeryToken()
+
+            <div class="attendance-summary-toolbar mb-3">
+                <div class="admin-list-copy">
+                    <span class="admin-list-kicker">Bộ lọc tổng hợp</span>
+                    <h5 class="admin-list-title mb-0">Tra cứu nhanh chấm công</h5>
+                    <p class="admin-list-note">Chọn tháng, nhân sự hoặc từ khóa để rút bảng tổng hợp về đúng tập dữ liệu cần xem.</p>
+                </div>
+                <div class="admin-list-meta">
+                    <span class="admin-meta-chip">
+                        <strong>@employeeSummaryCount</strong>
+                        <span>nhân sự hiển thị</span>
+                    </span>
+                </div>
+            </div>
 
             <form class="row g-3 align-items-end" method="get">
                 <div class="col-md-3">
@@ -296,20 +439,15 @@
                 </div>
             </div>
 
-            <div class="table-responsive mt-4">
-                <table class="table table-striped" id="attendanceSummaryTable">
+            <div class="table-responsive admin-table-scroll mt-4">
+                <table class="table table-striped table-admin-compact" id="attendanceSummaryTable">
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Mã vân tay</th>
-                            <th>Họ tên</th>
-                            <th>Bộ phận</th>
-                            <th>Vị trí</th>
-                            <th class="text-end">Công</th>
-                            <th class="text-end">Nghỉ</th>
-                            <th class="text-end">Trễ</th>
-                            <th class="text-end">Sớm</th>
-                            <th class="text-end">Tổng giờ</th>
+                            <th>Nhân sự</th>
+                            <th>Tổ chức</th>
+                            <th>Hiệu suất</th>
+                            <th>Vi phạm và nghỉ</th>
                             <th class="text-center">Chi tiết</th>
                         </tr>
                     </thead>
@@ -325,7 +463,7 @@
                                 : Model.SelectedEmployeeId <= 0
                                     && !string.IsNullOrWhiteSpace(Model.SelectedFingerprintCode)
                                     && string.Equals(item.FingerprintCode, Model.SelectedFingerprintCode, StringComparison.OrdinalIgnoreCase);
-                            <tr class="attendance-summary-row @isActive"
+                            <tr class="attendance-summary-row @(isActive ? "active" : string.Empty)"
                                 data-employee-id="@item.EmployeeId"
                                 data-fingerprint="@item.FingerprintCode"
                                 data-full-name="@item.FullName"
@@ -337,16 +475,57 @@
                                 data-early-minutes="@item.EarlyMinutes"
                                 data-total-hours="@item.TotalHours"
                                 data-work-hours="@item.TotalWorkHours">
-                                <td>@index</td>
-                                <td>@item.FingerprintCode</td>
-                                <td>@item.FullName</td>
-                                <td>@item.DepartmentText</td>
-                                <td>@item.PositionText</td>
-                                <td class="text-end">@((item.TotalWorkDays ?? 0).ToString("0.##"))</td>
-                                <td class="text-end">@((item.OffCount ?? 0).ToString())</td>
-                                <td class="text-end">@((item.LateCount ?? 0).ToString())</td>
-                                <td class="text-end">@((item.EarlyCount ?? 0).ToString())</td>
-                                <td class="text-end">@((item.TotalHours ?? 0).ToString("0.##"))</td>
+                                <td class="text-nowrap">@index</td>
+                                <td>
+                                    <div class="table-stack">
+                                        <div class="table-stack-title">@item.FullName</div>
+                                        <div class="table-stack-subtitle">Mã vân tay: @(string.IsNullOrWhiteSpace(item.FingerprintCode) ? "Chưa cập nhật" : item.FingerprintCode)</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-stack">
+                                        <div class="table-stack-title">@(string.IsNullOrWhiteSpace(item.DepartmentText) ? "Chưa cập nhật bộ phận" : item.DepartmentText)</div>
+                                        <div class="table-stack-subtitle">@(string.IsNullOrWhiteSpace(item.PositionText) ? "Chưa cập nhật vị trí" : item.PositionText)</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-metric-group">
+                                        <div class="table-metric-card">
+                                            <strong>@((item.TotalWorkDays ?? 0).ToString("0.##"))</strong>
+                                            <span>Công</span>
+                                        </div>
+                                        <div class="table-metric-card">
+                                            <strong>@((item.TotalWorkHours ?? 0).ToString("0.##"))</strong>
+                                            <span>Giờ công</span>
+                                        </div>
+                                        <div class="table-metric-card">
+                                            <strong>@((item.TotalHours ?? 0).ToString("0.##"))</strong>
+                                            <span>Tổng giờ</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-stack">
+                                        <div class="table-metric-group">
+                                            <div class="table-metric-card">
+                                                <strong>@((item.OffCount ?? 0).ToString())</strong>
+                                                <span>Nghỉ</span>
+                                            </div>
+                                            <div class="table-metric-card">
+                                                <strong>@((item.LateCount ?? 0).ToString())</strong>
+                                                <span>Trễ</span>
+                                            </div>
+                                            <div class="table-metric-card">
+                                                <strong>@((item.EarlyCount ?? 0).ToString())</strong>
+                                                <span>Sớm</span>
+                                            </div>
+                                        </div>
+                                        <div class="table-stack-meta">
+                                            <span class="table-info-chip is-warning">Trễ @((item.LateMinutes ?? 0).ToString()) phút</span>
+                                            <span class="table-info-chip">Sớm @((item.EarlyMinutes ?? 0).ToString()) phút</span>
+                                        </div>
+                                    </div>
+                                </td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAttendanceEmployee(this)">Xem</button>
                                 </td>
@@ -355,7 +534,7 @@
                         @if (index == 0)
                         {
                             <tr>
-                                <td colspan="11" class="text-center">Không có dữ liệu</td>
+                                <td colspan="6" class="text-center">Không có dữ liệu</td>
                             </tr>
                         }
                     </tbody>
@@ -376,20 +555,15 @@
 
             <div id="attendanceDetailHint" class="text-muted mb-2">Chọn nhân viên để xem chi tiết.</div>
 
-            <div class="table-responsive d-none" id="attendanceDetailTableWrapper">
-                <table class="table table-sm table-striped">
+            <div class="table-responsive admin-table-scroll d-none" id="attendanceDetailTableWrapper">
+                <table class="table table-sm table-striped table-admin-compact attendance-detail-table">
                     <thead>
                         <tr>
                             <th>Ngày</th>
-                            <th>Thứ</th>
-                            <th>Vào</th>
-                            <th>Ra</th>
-                            <th class="text-end">Công</th>
-                            <th class="text-end">Giờ</th>
-                            <th class="text-end">Trễ (p)</th>
-                            <th class="text-end">Sớm (p)</th>
-                            <th>Ca</th>
-                            <th>Ký hiệu</th>
+                            <th>Chấm công</th>
+                            <th>Kết quả</th>
+                            <th>Vi phạm và ký hiệu</th>
+                            <th>Ghi chú</th>
                         </tr>
                     </thead>
                     <tbody id="attendanceDetailBody"></tbody>

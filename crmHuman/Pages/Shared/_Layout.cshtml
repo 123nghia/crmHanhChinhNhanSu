@@ -1,3 +1,4 @@
+@using global::System.Linq
 @using global::System.Text.Json
 @inject global::Microsoft.Extensions.Configuration.IConfiguration Configuration
 @model crmHuman.Pages.BaseModel2
@@ -10,7 +11,63 @@
     var pageTitle = ViewData["Title"] as string ?? "crmHuman";
     var recordingPlaybackBaseUrl = Configuration["Telephony:RecordingPlaybackBaseUrl"] ?? string.Empty;
     var canOpenLeaveApproval = Model != null && (Model.HasViewPermission("LeaveApproval") || Model.HasApprovePermission("LeaveApproval"));
+    var canOpenLeaveRequest = Model != null && Model.HasViewPermission("LeaveRequest");
+    var canOpenLateEarlyApproval = Model != null && Model.HasApprovePermission("LateEarlyApproval");
+    var canOpenAttendance = Model != null && Model.HasViewPermission("Attendance");
+    var canOpenEmployee = Model != null && Model.HasViewPermission("Employee");
+    var canOpenCandidate = Model != null && Model.HasViewPermission("Candidate");
     var canOpenInternalNews = Model != null && Model.HasViewPermission("InternalNews");
+    var canOpenCloudStorage = Model != null && Model.HasViewPermission("CloudStorage");
+    var unreadNotificationCount = Model?.HeaderUnreadNotificationCount ?? 0;
+
+    var headerShortcuts = new global::System.Collections.Generic.List<(string Href, string Icon, string Label, string ShortcutKey, string Badge)>();
+    headerShortcuts.Add(("/", "bi bi-grid-1x2", "Trang chủ", "1", string.Empty));
+    headerShortcuts.Add(("/Notifications", "bi bi-bell", "Thông báo", "2", unreadNotificationCount > 0 ? (unreadNotificationCount > 99 ? "99+" : unreadNotificationCount.ToString()) : string.Empty));
+
+    if (canOpenLeaveApproval)
+    {
+        headerShortcuts.Add(("/Leave/LeaveApproval", "bi bi-check2-square", "Hộp duyệt", "3", string.Empty));
+    }
+    else if (canOpenLeaveRequest)
+    {
+        headerShortcuts.Add(("/Leave/LeaveRequest", "bi bi-calendar2-plus", "Nghỉ phép", "3", string.Empty));
+    }
+
+    if (canOpenLateEarlyApproval)
+    {
+        headerShortcuts.Add(("/LateEarly/Approval", "bi bi-clock-history", "Duyệt công", "4", string.Empty));
+    }
+    else if (canOpenAttendance)
+    {
+        headerShortcuts.Add(("/Attendance", "bi bi-calendar3", "Chấm công", "4", string.Empty));
+    }
+
+    if (canOpenEmployee)
+    {
+        headerShortcuts.Add(("/Employee", "bi bi-people", "Nhân sự", "5", string.Empty));
+    }
+    else if (canOpenCandidate)
+    {
+        headerShortcuts.Add(("/Candidate", "bi bi-person-workspace", "Tuyển dụng", "5", string.Empty));
+    }
+
+    if (canOpenInternalNews)
+    {
+        headerShortcuts.Add(("/InternalNews", "bi bi-megaphone", "Tin nội bộ", "6", string.Empty));
+    }
+    else if (canOpenCloudStorage)
+    {
+        headerShortcuts.Add(("/Cloud/Storage", "bi bi-cloud-check", "Tài liệu", "6", string.Empty));
+    }
+
+    var headerPrimaryShortcuts = headerShortcuts.Take(4).ToList();
+    var headerOverflowShortcuts = headerShortcuts.Skip(4).ToList();
+    var headerShortcutConfig = headerShortcuts.Select(item => new
+    {
+        key = item.ShortcutKey,
+        href = item.Href,
+        label = item.Label
+    }).ToList();
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -42,33 +99,101 @@
             <span class="header-page-title">@pageTitle</span>
         </div>
 
-        <div class="header-shortcuts d-none d-xl-flex">
-            <a class="header-shortcut-link" href="/Notifications">
-                <i class="bi bi-bell"></i>
-                <span>Thong bao</span>
-                @if (Model.HeaderUnreadNotificationCount > 0)
+        @if (headerPrimaryShortcuts.Count > 0)
+        {
+            <div class="header-shortcuts d-none d-xl-flex">
+                @foreach (var shortcut in headerPrimaryShortcuts)
                 {
-                    <strong class="header-shortcut-badge">@(Model.HeaderUnreadNotificationCount > 99 ? "99+" : Model.HeaderUnreadNotificationCount.ToString())</strong>
+                    <a class="header-shortcut-link"
+                       href="@shortcut.Href"
+                       data-shortcut-key="@shortcut.ShortcutKey"
+                       title="@($"{shortcut.Label} (Alt+{shortcut.ShortcutKey})")">
+                        <i class="@shortcut.Icon"></i>
+                        <span>@shortcut.Label</span>
+                        <small class="header-shortcut-hint">Alt+@shortcut.ShortcutKey</small>
+                        @if (!string.IsNullOrWhiteSpace(shortcut.Badge))
+                        {
+                            <strong class="header-shortcut-badge">@shortcut.Badge</strong>
+                        }
+                    </a>
                 }
-            </a>
-            @if (canOpenLeaveApproval)
-            {
-                <a class="header-shortcut-link" href="/Leave/LeaveApproval">
-                    <i class="bi bi-check2-square"></i>
-                    <span>Approval inbox</span>
-                </a>
-            }
-            @if (canOpenInternalNews)
-            {
-                <a class="header-shortcut-link" href="/InternalNews">
-                    <i class="bi bi-megaphone"></i>
-                    <span>Tin noi bo</span>
-                </a>
-            }
-        </div>
+
+                @if (headerOverflowShortcuts.Count > 0)
+                {
+                    <div class="dropdown">
+                        <button class="btn btn-link header-shortcut-overflow"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                aria-label="Truy cập nhanh">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow quick-actions-dropdown">
+                            <li class="dropdown-header">
+                                <strong>Truy cập nhanh</strong>
+                                <small class="d-block text-muted">Mở nhanh các luồng hay dùng</small>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            @foreach (var shortcut in headerOverflowShortcuts)
+                            {
+                                <li>
+                                    <a class="dropdown-item quick-actions-item"
+                                       href="@shortcut.Href"
+                                       data-shortcut-key="@shortcut.ShortcutKey">
+                                        <i class="@shortcut.Icon"></i>
+                                        <span>@shortcut.Label</span>
+                                        <small class="quick-actions-hint">Alt+@shortcut.ShortcutKey</small>
+                                        @if (!string.IsNullOrWhiteSpace(shortcut.Badge))
+                                        {
+                                            <strong class="header-shortcut-badge">@shortcut.Badge</strong>
+                                        }
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+        }
 
         <nav class="header-nav ms-auto" aria-label="User navigation">
             <ul class="d-flex align-items-center mb-0">
+                @if (headerShortcuts.Count > 0)
+                {
+                    <li class="nav-item dropdown d-xl-none pe-2">
+                        <a class="nav-link nav-icon header-quick-actions-toggle"
+                           href="#"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false"
+                           aria-label="Truy cập nhanh">
+                            <i class="bi bi-grid"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow quick-actions-dropdown">
+                            <li class="dropdown-header">
+                                <strong>Truy cập nhanh</strong>
+                                <small class="d-block text-muted">Nhấn Alt + số để mở nhanh</small>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            @foreach (var shortcut in headerShortcuts)
+                            {
+                                <li>
+                                    <a class="dropdown-item quick-actions-item"
+                                       href="@shortcut.Href"
+                                       data-shortcut-key="@shortcut.ShortcutKey">
+                                        <i class="@shortcut.Icon"></i>
+                                        <span>@shortcut.Label</span>
+                                        <small class="quick-actions-hint">Alt+@shortcut.ShortcutKey</small>
+                                        @if (!string.IsNullOrWhiteSpace(shortcut.Badge))
+                                        {
+                                            <strong class="header-shortcut-badge">@shortcut.Badge</strong>
+                                        }
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </li>
+                }
+
                 <li class="nav-item d-block d-lg-none">
                     <a class="nav-link nav-icon search-bar-toggle" href="#" aria-label="Toggle search">
                         <i class="bi bi-search"></i>
@@ -79,27 +204,27 @@
                        href="#"
                        data-bs-toggle="dropdown"
                        aria-expanded="false"
-                       aria-label="Thong bao">
+                       aria-label="Thông báo">
                         <i class="bi bi-bell"></i>
-                        @if (Model.HeaderUnreadNotificationCount > 0)
+                        @if (unreadNotificationCount > 0)
                         {
                             <span class="badge rounded-pill bg-danger notification-counter">
-                                @(Model.HeaderUnreadNotificationCount > 99 ? "99+" : Model.HeaderUnreadNotificationCount.ToString())
+                                @(unreadNotificationCount > 99 ? "99+" : unreadNotificationCount.ToString())
                             </span>
                         }
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow notifications notification-dropdown">
                         <li class="dropdown-header d-flex justify-content-between align-items-start gap-3">
                             <div>
-                                <strong>Thong bao</strong>
-                                <small class="d-block text-muted">@Model.HeaderUnreadNotificationCount chua doc</small>
+                                <strong>Thông báo</strong>
+                                <small class="d-block text-muted">@unreadNotificationCount chưa đọc</small>
                             </div>
-                            <a class="btn btn-sm btn-outline-primary" href="/Notifications">Mo trung tam</a>
+                            <a class="btn btn-sm btn-outline-primary" href="/Notifications">Mở trung tâm</a>
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         @if (Model.HeaderNotifications.Count == 0)
                         {
-                            <li class="px-3 py-2 text-muted small">Chua co thong bao nao.</li>
+                            <li class="px-3 py-2 text-muted small">Chưa có thông báo nào.</li>
                         }
                         else
                         {
@@ -110,7 +235,7 @@
                                 var isInternalNews = string.Equals(notif.RelatedEntityType, "INTERNAL_NEWS", global::System.StringComparison.OrdinalIgnoreCase)
                                     || (!string.IsNullOrWhiteSpace(notif.Link) && notif.Link.StartsWith("/InternalNews", global::System.StringComparison.OrdinalIgnoreCase));
                                 var badgeClass = isActionRequired ? "bg-danger" : isInternalNews ? "bg-info text-dark" : "bg-secondary";
-                                var badgeText = isActionRequired ? "Can xu ly" : isInternalNews ? "Tin noi bo" : "Thong bao";
+                                var badgeText = isActionRequired ? "Cần xử lý" : isInternalNews ? "Tin nội bộ" : "Thông báo";
                                 <li>
                                     <a class="dropdown-item notification-dropdown-item @(isUnread ? "notification-dropdown-item-unread" : string.Empty)"
                                        href="/Notifications?handler=Open&id=@notif.Id">
@@ -119,7 +244,7 @@
                                                 <span class="badge @badgeClass">@badgeText</span>
                                                 @if (notif.DueAt.HasValue)
                                                 {
-                                                    <span class="small text-muted">Due @notif.DueAt.Value.ToString("dd/MM HH:mm")</span>
+                                                    <span class="small text-muted">Hạn @notif.DueAt.Value.ToString("dd/MM HH:mm")</span>
                                                 }
                                             </div>
                                             <div class="small notification-dropdown-message">@notif.Message</div>
@@ -226,7 +351,8 @@
     @await Html.PartialAsync("_LayoutScripts")
     <script>
         window.crmAppSettings = Object.assign({}, window.crmAppSettings, {
-            recordingPlaybackBaseUrl: @Html.Raw(JsonSerializer.Serialize(recordingPlaybackBaseUrl))
+            recordingPlaybackBaseUrl: @Html.Raw(JsonSerializer.Serialize(recordingPlaybackBaseUrl)),
+            headerShortcuts: @Html.Raw(JsonSerializer.Serialize(headerShortcutConfig))
         });
     </script>
     @await RenderSectionAsync("Scripts", required: false)

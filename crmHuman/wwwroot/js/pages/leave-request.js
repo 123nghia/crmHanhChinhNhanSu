@@ -16,11 +16,32 @@ function resetLeaveSaveState() {
     setLeaveSaveState(false);
 }
 
+function shouldHideHandoverForCurrentLeaveType() {
+    const handoverGroup = $('#handoverEmployeeGroup');
+    if (handoverGroup.length === 0) {
+        return false;
+    }
+
+    const hideAnnualLeaveHandover = String(handoverGroup.attr('data-hide-annual-leave-handover')).toLowerCase() === 'true';
+    return hideAnnualLeaveHandover && $('#leaveType').val() === 'NP';
+}
+
+function applyHandoverVisibility() {
+    const shouldHide = shouldHideHandoverForCurrentLeaveType();
+    $('#handoverEmployeeGroup').toggleClass('d-none', shouldHide);
+    $('#handoverEmployeeId').prop('disabled', shouldHide);
+
+    if (shouldHide) {
+        $('#handoverEmployeeId').val('');
+    }
+}
+
 function openAddLeave() {
     $('#leaveId').val(0);
     $('#leaveForm')[0].reset();
     $('#leaveModalTitle').text('Đăng ký nghỉ phép');
     resetLeaveSaveState();
+    applyHandoverVisibility();
     $('#leaveModal').modal('show');
 }
 
@@ -45,6 +66,11 @@ async function saveLeave() {
         return;
     }
 
+    const shouldHideHandover = shouldHideHandoverForCurrentLeaveType();
+    const handoverEmployeeId = shouldHideHandover || !$('#handoverEmployeeId').val()
+        ? null
+        : parseInt($('#handoverEmployeeId').val(), 10);
+
     const data = {
         Id: parseInt($('#leaveId').val(), 10),
         LeaveTypeCode: $('#leaveType').val(),
@@ -52,7 +78,7 @@ async function saveLeave() {
         ToDate: $('#toDate').val(),
         NumDays: parseFloat($('#numDays').val()),
         Reason: $('#reason').val(),
-        HandoverEmployeeId: $('#handoverEmployeeId').val() ? parseInt($('#handoverEmployeeId').val(), 10) : null
+        HandoverEmployeeId: handoverEmployeeId
     };
 
     if (!data.FromDate || !data.ToDate || data.NumDays <= 0 || !data.Reason) {
@@ -138,6 +164,7 @@ function openEditLeave(id) {
             $('#reason').val(data.reason);
             $('#handoverEmployeeId').val(data.handoverEmployeeId || '');
             $('#leaveModalTitle').text('Chỉnh sửa nghỉ phép');
+            applyHandoverVisibility();
             $('#leaveModal').modal('show');
         });
 }
@@ -281,6 +308,8 @@ function getActionText(action) {
 
 $(document).ready(function () {
     $('#leaveModal').on('hidden.bs.modal', resetLeaveSaveState);
+    $('#leaveType').on('change', applyHandoverVisibility);
+    applyHandoverVisibility();
 
     const leaveId = parseInt(new URLSearchParams(window.location.search).get('id') || '0', 10);
     if (leaveId > 0) {

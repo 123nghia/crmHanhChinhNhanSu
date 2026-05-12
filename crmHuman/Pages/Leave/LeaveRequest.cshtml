@@ -2,6 +2,36 @@
 @model crmHuman.Pages.Leave.LeaveRequestModel
 @{
     ViewData["Title"] = Model.TitlePage;
+    var totalRequests = 0;
+    var pendingRequests = 0;
+    var approvedRequests = 0;
+    var closedRequests = 0;
+
+    if (Model.LeaveList?.Data != null)
+    {
+        foreach (var item in Model.LeaveList.Data)
+        {
+            var info = item as dynamic;
+            if (info == null)
+            {
+                continue;
+            }
+
+            totalRequests++;
+            if (info.Status == 0 || info.Status == 1 || info.Status == 2)
+            {
+                pendingRequests++;
+            }
+            else if (info.Status == 3 || info.Status == 4)
+            {
+                approvedRequests++;
+            }
+            else if (info.Status == 5 || info.Status == 6)
+            {
+                closedRequests++;
+            }
+        }
+    }
 }
 
 <div class="pagetitle">
@@ -14,7 +44,7 @@
     </nav>
 </div>
 
-<section class="section">
+<section class="section admin-page-shell">
     @if (Model.UserData?.RoleCode == "4" && Model.LeaveBalance != null)
     {
         var allowedLeave = Model.LeaveBalance.AllowedLeaveDays ?? 0m;
@@ -22,94 +52,148 @@
         var expiredLeave = Model.LeaveBalance.ExpiredLeaveDays ?? 0m;
         var usedLeave = Model.LeaveBalance.UsedLeaveDays ?? 0m;
         var remainingLeave = Model.LeaveBalance.RemainingLeaveDays ?? (allowedLeave + carryOverLeave - expiredLeave - usedLeave);
-        <div class="row mb-3">
-            <div class="col-lg-12">
-                <div class="card leave-balance-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Thông tin phép của bạn</h5>
-                        <div class="row text-center">
-                            <div class="col-md col-6">
-                                <div class="leave-balance-label">Phép năm 2026</div>
-                                <div class="leave-balance-value">@($"{allowedLeave:0.#}")</div>
-                            </div>
-                            <div class="col-md col-6">
-                                <div class="leave-balance-label">Phép tồn năm cũ</div>
-                                <div class="leave-balance-value">@($"{carryOverLeave:0.#}")</div>
-                            </div>
-                            <div class="col-md col-6">
-                                <div class="leave-balance-label">Phép hết hạn</div>
-                                <div class="leave-balance-value">@($"{expiredLeave:0.#}")</div>
-                            </div>
-                            <div class="col-md col-6">
-                                <div class="leave-balance-label">Đã sử dụng</div>
-                                <div class="leave-balance-value">@($"{usedLeave:0.#}")</div>
-                            </div>
-                            <div class="col-md col-12">
-                                <div class="leave-balance-label">Còn lại</div>
-                                <div class="leave-balance-value">@($"{remainingLeave:0.#}")</div>
-                            </div>
-                        </div>
-                        <div class="text-muted small mt-2">
-                            Công thức: Phép năm + phép tồn năm cũ - phép hết hạn - đã sử dụng.
-                        </div>
-                    </div>
+        <div class="admin-hero-panel leave-request-hero">
+            <div class="admin-hero-copy">
+                <span class="admin-hero-kicker">Nghỉ phép</span>
+                <h2 class="admin-hero-title">Đơn nghỉ phép gọn hơn, nhìn là biết việc nào đang chờ.</h2>
+                <p class="admin-hero-subtitle">Bảng đã được gom theo nhóm thông tin: người tạo, kế hoạch nghỉ, bàn giao và trạng thái. Mỗi dòng giờ tập trung vào quyết định, không còn phải kéo ngang qua quá nhiều cột rời rạc.</p>
+                <div class="admin-hero-actions">
+                    <form method="post" asp-page-handler="Export">
+                        <button type="submit" class="btn btn-outline-success">Xuất file</button>
+                    </form>
+                    @if (Model.Permision.Add ?? false)
+                    {
+                        <button type="button" class="btn btn-primary" onclick="openAddLeave()">Đăng ký nghỉ phép</button>
+                    }
+                </div>
+            </div>
+            <div class="admin-hero-side">
+                <div class="admin-hero-note">
+                    <strong>Quỹ phép còn lại</strong>
+                    <span>@($"{remainingLeave:0.#}") ngày. Phép năm @DateTime.Now.Year: @($"{allowedLeave:0.#}") ngày, phép tồn: @($"{carryOverLeave:0.#}") ngày.</span>
+                </div>
+                <div class="admin-hero-note">
+                    <strong>Đã dùng và hết hạn</strong>
+                    <span>Đã sử dụng @($"{usedLeave:0.#}") ngày, hết hạn @($"{expiredLeave:0.#}") ngày. Công thức tính đã được rút gọn trong cùng khối hiển thị.</span>
                 </div>
             </div>
         </div>
     }
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mt-3 mb-2">
-                        <h5 class="card-title">Lịch sử đơn nghỉ phép</h5>
-                        <div class="d-flex gap-2">
-                            <form method="post" asp-page-handler="Export">
-                                <button type="submit" class="btn btn-outline-success">Xuất file</button>
-                            </form>
-                            @if (Model.Permision.Add ?? false)
-                            {
-                                <button type="button" class="btn btn-primary" onclick="openAddLeave()">Đăng ký nghỉ phép</button>
-                            }
-                        </div>
-                    </div>
+    else
+    {
+        <div class="admin-hero-panel">
+            <div class="admin-hero-copy">
+                <span class="admin-hero-kicker">Nghỉ phép</span>
+                <h2 class="admin-hero-title">Theo dõi luồng nghỉ phép với bố cục ít cột hơn.</h2>
+                <p class="admin-hero-subtitle">Mỗi cột giờ đại diện cho một nhóm thông tin thay vì từng trường lẻ, giúp duyệt nhanh hơn và giữ trọng tâm vào trạng thái xử lý.</p>
+                <div class="admin-hero-actions">
+                    <form method="post" asp-page-handler="Export">
+                        <button type="submit" class="btn btn-outline-success">Xuất file</button>
+                    </form>
+                    @if (Model.Permision.Add ?? false)
+                    {
+                        <button type="button" class="btn btn-primary" onclick="openAddLeave()">Đăng ký nghỉ phép</button>
+                    }
+                </div>
+            </div>
+            <div class="admin-hero-side">
+                <div class="admin-hero-note">
+                    <strong>Luồng đang chờ</strong>
+                    <span>@pendingRequests đơn đang nằm trong các bước phê duyệt. Các trạng thái đóng đã được tách riêng để không làm nhiễu danh sách.</span>
+                </div>
+            </div>
+        </div>
+    }
 
-                    <table class="table table-striped">
-                        <thead>
+    <div class="admin-kpi-strip">
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-label">Tổng đơn</span>
+            <strong class="admin-kpi-value">@totalRequests</strong>
+            <span class="admin-kpi-meta">Tất cả đơn hiển thị theo bộ lọc hiện tại</span>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-label">Đang chờ duyệt</span>
+            <strong class="admin-kpi-value">@pendingRequests</strong>
+            <span class="admin-kpi-meta">Các đơn đang ở trong workflow phê duyệt</span>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-label">Đã duyệt</span>
+            <strong class="admin-kpi-value">@approvedRequests</strong>
+            <span class="admin-kpi-meta">Bao gồm cả trường hợp HCNS duyệt thay</span>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-label">Đã đóng</span>
+            <strong class="admin-kpi-value">@closedRequests</strong>
+            <span class="admin-kpi-meta">Từ chối hoặc đã hủy</span>
+        </div>
+    </div>
+
+    <div class="card admin-list-card">
+        <div class="card-body">
+            <div class="admin-list-header">
+                <div class="admin-list-copy">
+                    <span class="admin-list-kicker">Đơn từ</span>
+                    <h5 class="admin-list-title">Lịch sử đơn nghỉ phép</h5>
+                    <p class="admin-list-note">Thông tin cùng loại đã được gom trong cùng một ô: người tạo, kế hoạch nghỉ, bàn giao và trạng thái. Bảng ngắn hơn và dễ quét hơn rõ rệt.</p>
+                </div>
+                <div class="admin-list-actions">
+                    <form method="post" asp-page-handler="Export">
+                        <button type="submit" class="btn btn-outline-success">Xuất file</button>
+                    </form>
+                    @if (Model.Permision.Add ?? false)
+                    {
+                        <button type="button" class="btn btn-primary" onclick="openAddLeave()">Đăng ký nghỉ phép</button>
+                    }
+                </div>
+            </div>
+
+            <div class="table-responsive admin-table-scroll">
+                <table class="table table-striped table-admin-compact">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Người tạo</th>
+                            <th>Kế hoạch nghỉ</th>
+                            <th>Bàn giao và lý do</th>
+                            <th>Trạng thái</th>
+                            <th class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int i = 0;
+                        }
+                        @foreach (var item in Model.LeaveList.Data)
+                        {
+                            i++;
+                            var info = item as dynamic;
+                            var handoverName = Convert.ToString(info.HandoverEmployeeName);
+                            var approverName = Convert.ToString(info.ApproverName);
                             <tr>
-                                <th>#</th>
-                                <th>Người tạo</th>
-                                <th>Ngày tạo</th>
-                                <th>Loại nghỉ</th>
-                                <th>Từ ngày</th>
-                                <th>Đến ngày</th>
-                                <th class="text-center">Số ngày</th>
-                                <th>Người nhận bàn giao</th>
-                                <th>Lý do</th>
-                                <th class="text-center">Trạng thái</th>
-                                <th>Người phê duyệt cuối</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{
-                                int i = 0;
-                            }
-                            @foreach (var item in Model.LeaveList.Data)
-                            {
-                                i++;
-                                var info = item as dynamic;
-                                <tr>
-                                    <td>@i</td>
-                                    <td>@info.EmployeeName</td>
-                                    <td>@info.CreateAt.ToString("dd/MM/yyyy")</td>
-                                    <td>@info.LeaveTypeName</td>
-                                    <td>@info.FromDate.ToString("dd/MM/yyyy")</td>
-                                    <td>@info.ToDate.ToString("dd/MM/yyyy")</td>
-                                    <td class="text-center">@info.NumDays</td>
-                                    <td>@info.HandoverEmployeeName</td>
-                                    <td>@info.Reason</td>
-                                    <td class="text-center">
+                                <td class="text-nowrap">@i</td>
+                                <td>
+                                    <div class="table-stack">
+                                        <div class="table-stack-title">@info.EmployeeName</div>
+                                        <div class="table-stack-subtitle">Tạo ngày @info.CreateAt.ToString("dd/MM/yyyy")</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-stack">
+                                        <div class="table-stack-title">@info.LeaveTypeName</div>
+                                        <div class="table-stack-subtitle">@info.FromDate.ToString("dd/MM/yyyy") đến @info.ToDate.ToString("dd/MM/yyyy")</div>
+                                        <div class="table-stack-meta">
+                                            <span class="table-info-chip is-primary">@info.NumDays ngày</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-stack">
+                                        <div class="table-stack-title">Bàn giao: @(string.IsNullOrWhiteSpace(handoverName) ? "Chưa chọn" : handoverName)</div>
+                                        <div class="table-reason-block" title="@info.Reason">@info.Reason</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-status-stack">
                                         @if (info.Status == 0)
                                         {
                                             <span class="badge bg-warning text-dark">Chờ quản lý trực tiếp phê duyệt</span>
@@ -138,30 +222,42 @@
                                         {
                                             <span class="badge bg-secondary">Đã hủy</span>
                                         }
-                                    </td>
-                                    <td>@info.ApproverName</td>
-                                    <td>
+
+                                        @if (!string.IsNullOrWhiteSpace(approverName))
+                                        {
+                                            <span class="table-info-chip">Duyệt cuối: @approverName</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="table-actions table-actions-compact justify-content-center">
                                         @if (info.Status == 0 && (Model.Permision.Edit ?? false))
                                         {
-                                            <a href="javascript:void(0)" onclick="openEditLeave(@info.Id)" class="me-2" title="Chỉnh sửa"><i class="bi bi-pencil-square"></i></a>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openEditLeave(@info.Id)" title="Chỉnh sửa">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
                                         }
-                                        <a href="javascript:void(0)" onclick="viewWorkflowDetail(@info.Id)" class="me-2 text-info" title="Workflow detail"><i class="bi bi-diagram-3"></i></a>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewWorkflowDetail(@info.Id)" title="Workflow detail">
+                                            <i class="bi bi-diagram-3"></i>
+                                        </button>
                                         @if ((info.Status == 0 || info.Status == 1 || info.Status == 2) && (Model.Permision.Delete ?? false))
                                         {
-                                            <a href="javascript:void(0)" onclick="deleteLeave(@info.Id)" class="text-danger" title="Xóa"><i class="bi bi-trash"></i></a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteLeave(@info.Id)" title="Xóa">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
                                         }
-                                    </td>
-                                </tr>
-                            }
-                            @if (i == 0)
-                            {
-                                <tr>
-                                    <td colspan="12" class="text-center">Không có dữ liệu</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        @if (i == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center">Không có dữ liệu</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -200,7 +296,7 @@
                         <label class="form-label">Số ngày nghỉ</label>
                         <input type="number" step="0.5" class="form-control" id="numDays" required />
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" id="handoverEmployeeGroup" data-hide-annual-leave-handover="@Model.HideAnnualLeaveHandover.ToString().ToLowerInvariant()">
                         <label class="form-label">Người nhận bàn giao công việc</label>
                         <select class="form-select" id="handoverEmployeeId">
                             <option value="">-- Chọn người nhận bàn giao --</option>
@@ -283,53 +379,50 @@
 
 @section Styles {
     <style>
-        .leave-balance-card {
-            border: 1px solid #e5e7eb;
+        .leave-request-hero .admin-hero-note strong {
+            color: #1d4ed8;
         }
 
-        .leave-balance-label {
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-
-        .leave-balance-value {
-            color: #1b4fb0;
-            font-size: 1.4rem;
-            font-weight: 700;
-        }
         .workflow-header-grid {
             display: grid;
             gap: 10px;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         }
+
         .workflow-kpi {
             border: 1px solid #e5e7eb;
             border-radius: 8px;
             padding: 10px 12px;
             background: #fff;
         }
+
         .workflow-kpi-label {
             color: #6b7280;
             font-size: 12px;
         }
+
         .workflow-kpi-value {
             color: #111827;
             font-weight: 700;
         }
+
         .workflow-action-area {
             border: 1px solid #dbeafe;
             border-radius: 8px;
             padding: 12px;
             background: #eff6ff;
         }
+
         .workflow-timeline {
             border-left: 3px solid #d1d5db;
             padding-left: 14px;
         }
+
         .workflow-timeline-item {
             position: relative;
             padding: 0 0 14px 4px;
         }
+
         .workflow-timeline-item::before {
             content: "";
             position: absolute;
@@ -342,6 +435,7 @@
             border: 2px solid #fff;
             box-shadow: 0 0 0 1px #2563eb;
         }
+
         .workflow-info {
             border: 1px solid #e5e7eb;
             border-radius: 8px;

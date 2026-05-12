@@ -73,6 +73,7 @@
         public int? Type { get; set; }
         public int? InterviewerId { get; set; }
         public int? InterviewMode { get; set; }
+        public bool UpcomingOnly { get; set; }
 
         public ScheduleInterviewRquest() : base()
         {
@@ -80,6 +81,7 @@
             Status = -1;
             InterviewerId = -1;
             InterviewMode = -1;
+            UpcomingOnly = false;
         }
 
     }

@@ -36,4 +36,15 @@ namespace VS.Human.Business.Model
     {
         public int LineId { get; set; }
     }
+
+    public class SipServiceHealthResult
+    {
+        public string Url { get; set; } = string.Empty;
+        public bool IsOnline { get; set; }
+        public int? StatusCode { get; set; }
+        public string StatusText { get; set; } = string.Empty;
+        public long ElapsedMs { get; set; }
+        public DateTime CheckedAt { get; set; }
+        public string? Error { get; set; }
+    }
 }

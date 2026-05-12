@@ -26,6 +26,8 @@ namespace VS.Human.Business
         private const string LeavePendingHcnsTemplateCode = "LEAVE_PENDING_HCNS";
         private const string LeavePendingBgdTemplateCode = "LEAVE_PENDING_BGD";
         private const string LeaveEmailEntityType = "LEAVE";
+        private const int DepartmentMasterType = 5;
+        private const string RecruitmentDepartmentName = "Tuy\u1ec3n d\u1ee5ng";
 
         private readonly IEmailConfigBusiness _emailConfigBusiness;
         private readonly IEmailService _emailService;
@@ -182,13 +184,30 @@ namespace VS.Human.Business
             return await _unitOfWork.LeaveRep.GetEmployeeLeaveBalance(employeeId);
         }
 
+        public async Task<bool> ShouldSkipAnnualLeaveHandoverAsync(int employeeId)
+        {
+            if (employeeId <= 0)
+            {
+                return false;
+            }
+
+            var employee = await _unitOfWork.EmployeeRep.GetById(employeeId);
+            if (employee == null || employee.Id <= 0)
+            {
+                return false;
+            }
+
+            var initialStatus = await ResolveInitialLeaveStatusAsync(employee);
+            return initialStatus == 2;
+        }
+
         public async Task<LeaveApprovalAccessResult> GetApprovalAccessAsync(int leaveId, int userId, string? roleCode)
         {
             if (leaveId <= 0)
             {
                 return new LeaveApprovalAccessResult
                 {
-                    Message = "Khong tim thay don nghi phep."
+                    Message = "Không tìm thấy đơn nghỉ phép."
                 };
             }
 
@@ -213,22 +232,115 @@ namespace VS.Human.Business
             return result;
         }
 
+        private async Task<int> ResolveInitialLeaveStatusAsync(Employee employee)
+        {
+            var hasDepartment = await HasDepartmentAsync(employee.DepartmentCode);
+            var isRecruitmentDepartment = await IsRecruitmentDepartmentAsync(employee.DepartmentCode);
+            var isRequesterTeamLead = await IsRequesterTeamLeadAsync(employee);
+
+            if (!hasDepartment || !isRecruitmentDepartment || isRequesterTeamLead)
+            {
+                return 2;
+            }
+
+            var manager = await ResolveManagerAsync(employee);
+            if (manager != null && manager.Id > 0 && IsManagerRoleCode(manager.RoleCode))
+            {
+                return 0;
+            }
+
+            return 1;
+        }
+
+        private async Task<bool> HasDepartmentAsync(string? departmentCode)
+        {
+            var normalizedDepartmentCode = departmentCode?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedDepartmentCode))
+            {
+                return false;
+            }
+
+            var department = await _unitOfWork.MasterDataRep.GetByCode(normalizedDepartmentCode, DepartmentMasterType);
+            return department != null && department.Id > 0;
+        }
+
+        private async Task<bool> IsRecruitmentDepartmentAsync(string? departmentCode)
+        {
+            var normalizedDepartmentCode = departmentCode?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedDepartmentCode))
+            {
+                return false;
+            }
+
+            var recruitmentDepartment = await _unitOfWork.MasterDataRep.GetByName(RecruitmentDepartmentName, DepartmentMasterType);
+            return recruitmentDepartment != null
+                && !string.IsNullOrWhiteSpace(recruitmentDepartment.Code)
+                && string.Equals(recruitmentDepartment.Code.Trim(), normalizedDepartmentCode, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task<Employee?> ResolveManagerAsync(Employee employee)
+        {
+            if (employee.GroupId.HasValue && employee.GroupId.Value > 0)
+            {
+                var group = await _unitOfWork.GroupRep.GetById(employee.GroupId.Value);
+                if (group != null
+                    && int.TryParse(group.ManagerId, out var groupManagerId)
+                    && groupManagerId > 0
+                    && groupManagerId != employee.Id)
+                {
+                    var groupManager = await _unitOfWork.EmployeeRep.GetById(groupManagerId);
+                    if (groupManager != null && groupManager.Id > 0)
+                    {
+                        return groupManager;
+                    }
+                }
+            }
+
+            if (employee.ManagerId.HasValue
+                && employee.ManagerId.Value > 0
+                && employee.ManagerId.Value != employee.Id)
+            {
+                var directManager = await _unitOfWork.EmployeeRep.GetById(employee.ManagerId.Value);
+                if (directManager != null && directManager.Id > 0)
+                {
+                    return directManager;
+                }
+            }
+
+            return null;
+        }
+
+        private async Task<bool> IsRequesterTeamLeadAsync(Employee employee)
+        {
+            if (employee == null || employee.Id <= 0)
+            {
+                return false;
+            }
+
+            if (IsManagerRoleCode(employee.RoleCode))
+            {
+                return true;
+            }
+
+            return await _unitOfWork.EmployeeRep.IsPeopleManager(employee.Id);
+        }
+
         private async Task<LeaveApprovalAccessResult> BuildApprovalAccessAsync(LeaveIndexModel? leave, int userId, string? roleCode)
         {
             var result = new LeaveApprovalAccessResult
             {
-                Message = "Ban khong co quyen xem hoac xu ly don nghi phep nay."
+                Message = "Bạn không có quyền xem hoặc xử lý đơn nghỉ phép này."
             };
 
             if (leave == null || leave.Id <= 0)
             {
-                result.Message = "Khong tim thay don nghi phep.";
+                result.Message = "Không tìm thấy đơn nghỉ phép.";
                 return result;
             }
 
             if (userId <= 0)
             {
-                result.Message = "Vui long dang nhap lai de tiep tuc.";
+                result.Message = "Vui lòng đăng nhập lại để tiếp tục.";
                 return result;
             }
 
@@ -255,20 +367,26 @@ namespace VS.Human.Business
             var isBgdRole = IsBgdRoleCode(normalizedRoleCode);
             var isCurrentBgdQueue = isBgdRole && leave.Status == 2 && !isSelfLeave;
             var isRecordedBgdApprover = leave.BGDApproverId == userId && isBgdRole;
+            var isHcnsWorkflowViewer = isHcnsRole && !isSelfLeave;
+            var isBgdWorkflowViewer = isBgdRole
+                && !isSelfLeave
+                && (leave.Status >= 2
+                    || leave.BGDApproverId.HasValue
+                    || leave.ApproverId.HasValue);
 
             switch (leave.Status)
             {
                 case 0:
                     result.AssignedApproverId = manager?.Id;
                     result.AssignedApproverRoleCode = NormalizeApprovalRoleCode(manager?.RoleCode);
-                    result.AssignedApproverName = manager?.FullName ?? manager?.UserName ?? "Quan ly truc tiep";
+                    result.AssignedApproverName = manager?.FullName ?? manager?.UserName ?? "Quản lý trực tiếp";
                     result.CanApprove = isAssignedManager || (!isSelfLeave && isAdmin);
                     result.CanReject = isAssignedManager || (!isSelfLeave && isAdmin);
                     break;
 
                 case 1:
                     result.AssignedApproverRoleCode = RoleHcns;
-                    result.AssignedApproverName = "Phong HCNS";
+                    result.AssignedApproverName = "Phòng HCNS";
                     result.CanApprove = isCurrentHcnsQueue || (!isSelfLeave && isAdmin);
                     result.CanReject = isCurrentHcnsQueue || (!isSelfLeave && isAdmin);
                     result.CanActingApprove = isHcnsRole || (!isSelfLeave && isAdmin);
@@ -276,7 +394,7 @@ namespace VS.Human.Business
 
                 case 2:
                     result.AssignedApproverRoleCode = RoleBgd;
-                    result.AssignedApproverName = "Ban Giam doc";
+                    result.AssignedApproverName = "Ban Giám đốc";
                     result.CanApprove = isCurrentBgdQueue || (!isSelfLeave && isAdmin);
                     result.CanReject = isCurrentBgdQueue || (!isSelfLeave && isAdmin);
                     result.CanActingApprove = isHcnsRole || (!isSelfLeave && isAdmin);
@@ -291,7 +409,6 @@ namespace VS.Human.Business
                         ?? leave.BGDApproverName
                         ?? leave.HCNSApproverName
                         ?? "Nguoi phe duyet";
-                    result.CanReject = isRecordedBgdApprover || (!isSelfLeave && isAdmin);
                     break;
 
                 case 5:
@@ -317,6 +434,9 @@ namespace VS.Human.Business
 
             result.CanView =
                 (!isSelfLeave && isAdmin)
+                || isAssignedManager
+                || isHcnsWorkflowViewer
+                || isBgdWorkflowViewer
                 || result.CanApprove
                 || result.CanReject
                 || result.CanActingApprove
@@ -648,7 +768,7 @@ namespace VS.Human.Business
                 plan.TemplateCode = LeavePendingBgdTemplateCode;
                 AddDistinctEmails(plan.ToEmails, bgdEmails);
                 AddLeaveFlowCcRecipients(plan.CcEmails, employee, includeEmployee: true);
-                tokens["ApproverQueueName"] = "Ban Giam doc";
+                tokens["ApproverQueueName"] = "Ban Giám đốc";
                 tokens["ApproverQueueRole"] = "BGD";
                 plan.ManagerId = null;
                 return plan;

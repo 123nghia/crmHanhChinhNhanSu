@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -51,6 +52,89 @@ namespace VS.Human.Business.Imp
         public async Task<EmployeeSipAccountView?> GetEmployeeSipInfo(int employeeId)
         {
             return await _unitOfWork.SipRep.GetEmployeeSipInfo(employeeId);
+        }
+
+        public async Task<Result<SipServiceHealthResult>> CheckServiceHealth()
+        {
+            var checkedAt = DateTime.Now;
+            string baseUrl;
+
+            try
+            {
+                baseUrl = ResolveFreePbxServiceBaseUrl();
+            }
+            catch (Exception ex)
+            {
+                var missingConfig = new SipServiceHealthResult
+                {
+                    Url = "Telephony:FreePbxServiceBaseUrl",
+                    IsOnline = false,
+                    StatusText = "Chua cau hinh link",
+                    CheckedAt = checkedAt,
+                    Error = ex.Message
+                };
+
+                return Result<SipServiceHealthResult>.Success(missingConfig, "Chua cau hinh link tong dai.");
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                using var client = new HttpClient
+                {
+                    BaseAddress = new Uri(baseUrl),
+                    Timeout = TimeSpan.FromSeconds(4)
+                };
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Add("x-user-id", GetUserId().ToString());
+                client.DefaultRequestHeaders.Add("x-user-role", "admin");
+
+                var apiKey = _configuration["Telephony:ApiKey"]?.Trim();
+                if (!string.IsNullOrWhiteSpace(apiKey))
+                {
+                    client.DefaultRequestHeaders.Add("x-api-key", apiKey);
+                }
+
+                using var response = await client.GetAsync(string.Empty);
+                stopwatch.Stop();
+
+                var statusCode = (int)response.StatusCode;
+                var reason = string.IsNullOrWhiteSpace(response.ReasonPhrase)
+                    ? response.StatusCode.ToString()
+                    : response.ReasonPhrase;
+                var statusText = response.IsSuccessStatusCode
+                    ? "Dang hoat dong"
+                    : $"Co phan hoi HTTP {statusCode} {reason}";
+
+                var health = new SipServiceHealthResult
+                {
+                    Url = baseUrl.TrimEnd('/'),
+                    IsOnline = true,
+                    StatusCode = statusCode,
+                    StatusText = statusText,
+                    ElapsedMs = stopwatch.ElapsedMilliseconds,
+                    CheckedAt = checkedAt
+                };
+
+                return Result<SipServiceHealthResult>.Success(health, statusText);
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogWarning(ex, "SIP service health check failed. Url={Url}", baseUrl);
+
+                var health = new SipServiceHealthResult
+                {
+                    Url = baseUrl.TrimEnd('/'),
+                    IsOnline = false,
+                    StatusText = "Khong ket noi duoc",
+                    ElapsedMs = stopwatch.ElapsedMilliseconds,
+                    CheckedAt = checkedAt,
+                    Error = ex.Message
+                };
+
+                return Result<SipServiceHealthResult>.Success(health, health.StatusText);
+            }
         }
 
         public async Task<Result<SipServer>> SaveServer(SipServerSaveRequest request)

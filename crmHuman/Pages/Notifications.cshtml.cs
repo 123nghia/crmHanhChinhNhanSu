@@ -15,7 +15,7 @@ namespace crmHuman.Pages
         public NotificationsModel(INotificationBusiness notificationBusiness)
         {
             _notificationBusiness = notificationBusiness;
-            TitlePage = "Thong bao";
+            TitlePage = "Thông báo";
         }
 
         public List<AppNotification> Notifications { get; set; } = new List<AppNotification>();
@@ -119,15 +119,15 @@ namespace crmHuman.Pages
         {
             if (IsActionRequired(notification))
             {
-                return "Can xu ly";
+                return "Cần xử lý";
             }
 
             if (IsInternalNews(notification))
             {
-                return "Tin noi bo";
+                return "Tin nội bộ";
             }
 
-            return "Phan hoi";
+            return "Phản hồi";
         }
 
         public string GetCategoryBadgeClass(AppNotification notification)

@@ -52,6 +52,20 @@ namespace VS.Human.Item
         public string? SymbolPlus { get; set; }
         public decimal? TotalHours { get; set; }
         public string? FingerprintCode { get; set; }
+        public bool IsScheduledOff { get; set; }
+        public string? Note { get; set; }
+        public int? LeaveRequestId { get; set; }
+        public string? LeaveTypeCode { get; set; }
+        public string? LeaveTypeName { get; set; }
+        public string? LeaveReason { get; set; }
+        public int? HolidayId { get; set; }
+        public string? HolidayName { get; set; }
+        public int? ApprovedLateRequestId { get; set; }
+        public int? ApprovedLateMinutes { get; set; }
+        public string? ApprovedLateNote { get; set; }
+        public int? ApprovedEarlyRequestId { get; set; }
+        public int? ApprovedEarlyMinutes { get; set; }
+        public string? ApprovedEarlyNote { get; set; }
     }
 
     public class AttendanceDepartmentRuleModel : BaseIndexModel

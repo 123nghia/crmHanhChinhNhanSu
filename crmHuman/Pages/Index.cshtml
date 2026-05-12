@@ -1,8 +1,9 @@
 ﻿@page
 @model IndexModel
+@using global::System.Collections.Generic
 @using global::System.Linq
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Trang chủ";
 
     var showFilters = Model.HasViewPermission("Candidate") || Model.HasViewPermission("Report");
     var showLeaveSummary = Model.HasViewPermission("LeaveRequest") || Model.HasViewPermission("LeaveBalance") || Model.HasViewPermission("LeaveApproval");
@@ -20,18 +21,90 @@
     var extendedStats = Model.ExtendedStats;
     var itemdashboard = Model.InfoDashboard;
     var leaveStats = Model.LeaveSummary;
+    var roleCode = Model.UserData?.RoleCode ?? string.Empty;
+    var isExecutiveDashboard = roleCode == "1" || roleCode == "8" || roleCode == "9";
+    var isManagerDashboard = roleCode == "3";
+    var isMemberDashboard = roleCode == "4";
     var leftColumnClass = showActivity ? "col-lg-8" : "col-12";
-
     var upcomingInterviews = Model.UpcomingInterviews?.Data;
     var showUpcomingInterviews = (Model.UserData?.RoleCode != "CANDIDATE" && Model.UpcomingInterviews?.Total > 0);
+    var hasActionTasks = Model.ActionCenter?.MyTasks?.Any() == true;
+    var hasWorkflowHealth = Model.ActionCenter?.WorkflowHealth?.Any() == true;
+    var hasSystemIssues = Model.ActionCenter?.SystemIssues?.Any() == true;
+    var hasActionWorkspace = showLeaveApproval || hasActionTasks || hasWorkflowHealth || hasSystemIssues;
+    var hasRecruitmentWorkspace = showFilters || showRecruitmentStats || showUpcomingInterviews || showActivity;
+    var hasPeopleWorkspace = showLeaveSummary || showLeaveCompany || showOnlineCount || showExtendedStats || showMyLeave;
+    var hasInternalNews = Model.HasViewPermission("InternalNews");
+    var showPeopleBeforeRecruitment = isExecutiveDashboard || isManagerDashboard;
+    var heroKicker = "TRUNG TÂM ĐIỀU HÀNH";
+    var heroTitle = "Điều hành nhanh, ít bỏ sót hơn";
+    var heroSubtitle = "Tập trung thông báo mới, phê duyệt, lịch sắp tới và các điểm cần xử lý ngay trên một màn hình.";
+    var primaryActionHref = isMemberDashboard ? "/Leave/LeaveRequest" : showLeaveApproval ? "/Leave/LeaveApproval" : "/Notifications";
+    var primaryActionText = isMemberDashboard ? "Mở nghỉ phép" : showLeaveApproval ? "Mở hộp duyệt" : "Mở trung tâm";
+    var secondaryActionHref = string.Equals(primaryActionHref, "/Notifications", global::System.StringComparison.OrdinalIgnoreCase)
+        ? (showRecruitmentStats ? "/Candidate" : showLeaveSummary ? "/Leave/LeaveRequest" : null)
+        : "/Notifications";
+    var secondaryActionText = string.IsNullOrWhiteSpace(secondaryActionHref)
+        ? null
+        : string.Equals(secondaryActionHref, "/Notifications", global::System.StringComparison.OrdinalIgnoreCase)
+            ? "Thông báo"
+            : showRecruitmentStats ? "Tuyển dụng" : "Nghỉ phép";
+    var actionCenterHref = showLeaveApproval ? "/Leave/LeaveApproval" : "/Notifications";
+    var actionCenterText = showLeaveApproval ? "Mở hộp duyệt" : "Mở trung tâm";
+    var capabilityLabels = new List<string>();
+
+    if (hasActionWorkspace)
+    {
+        capabilityLabels.Add("Phê duyệt");
+    }
+
+    if (hasPeopleWorkspace)
+    {
+        capabilityLabels.Add(isMemberDashboard ? "Cá nhân" : "Nhân sự");
+    }
+
+    if (hasRecruitmentWorkspace)
+    {
+        capabilityLabels.Add("Tuyển dụng");
+    }
+
+    if (hasInternalNews)
+    {
+        capabilityLabels.Add("Nội bộ");
+    }
+
+    if (isExecutiveDashboard)
+    {
+        heroKicker = "BẢNG ĐIỀU HÀNH TOÀN HỆ THỐNG";
+        heroTitle = "Theo dõi vận hành nhân sự trên cùng một trục";
+        heroSubtitle = "Ưu tiên việc chờ duyệt, tình trạng nhân sự, tuyển dụng và điểm nghẽn hệ thống theo góc nhìn điều hành.";
+    }
+    else if (isManagerDashboard)
+    {
+        heroKicker = "ĐIỀU PHỐI NHÓM";
+        heroTitle = "Nắm việc của nhóm trước khi phát sinh chậm trễ";
+        heroSubtitle = "Tập trung vào luồng duyệt, nghỉ phép của nhóm, lịch phỏng vấn và các đầu việc cần phản hồi trong ngày.";
+    }
+    else if (isMemberDashboard)
+    {
+        heroKicker = "KHÔNG GIAN CÁ NHÂN";
+        heroTitle = "Xử lý việc cá nhân nhanh và rõ ràng hơn";
+        heroSubtitle = "Theo dõi phép, thông báo và các việc cần phản hồi của riêng bạn mà không bị lẫn với màn điều hành.";
+    }
+    else if (hasRecruitmentWorkspace)
+    {
+        heroKicker = "TRUNG TÂM TUYỂN DỤNG";
+        heroTitle = "Theo dõi pipeline tuyển dụng theo nhịp làm việc";
+        heroSubtitle = "Giữ các số liệu CV, lịch phỏng vấn, cuộc gọi và thông báo liên quan trong cùng một bố cục thao tác.";
+    }
 
     Func<int?, string> getRoundText = value =>
     {
         switch (value)
         {
             case 1: return "HR";
-            case 2: return "Technical";
-            case 3: return "Final";
+            case 2: return "Kỹ thuật";
+            case 3: return "Vòng cuối";
             case 0: return "Khác";
             default: return "";
         }
@@ -41,11 +114,11 @@
     {
         switch (value)
         {
-            case 0: return "Draft";
-            case 1: return "Scheduled";
-            case 2: return "Done";
-            case 3: return "Canceled";
-            case 4: return "No-show";
+            case 0: return "Nháp";
+            case 1: return "Đã lên lịch";
+            case 2: return "Hoàn tất";
+            case 3: return "Đã hủy";
+            case 4: return "Vắng mặt";
             default: return "";
         }
     };
@@ -54,8 +127,8 @@
     {
         switch (value)
         {
-            case 1: return "Offline";
-            case 2: return "Online";
+            case 1: return "Trực tiếp";
+            case 2: return "Trực tuyến";
             default: return "";
         }
     };
@@ -65,15 +138,19 @@
 @*    <main id="main" class="main"> *@
 
 <div class="pagetitle"> 
-    <h1>Dashboard</h1>
+    <h1>Bảng điều khiển</h1>
     <nav>
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
-            <li class="breadcrumb-item active">Dashboard</li>
+            <li class="breadcrumb-item active">Bảng điều khiển</li>
         </ol>
     </nav>
 </div><!-- End Page Title -->
 
+@await Html.PartialAsync("/Pages/Shared/_DashboardRoleLayout.cshtml", Model)
+
+@if (false)
+{
 <section class="section dashboard">
     <div class="row g-3 mb-3">
         <div class="col-12">
@@ -81,72 +158,72 @@
                 <div class="card-body">
                     <div class="admin-workspace-hero-head">
                         <div>
-                            <span class="admin-workspace-kicker">ADMIN WORKSPACE</span>
-                            <h5 class="admin-workspace-title mb-2">Dieu hanh nhanh, it bo sot hon</h5>
-                            <p class="admin-workspace-subtitle mb-0">Tap trung thong bao moi, approval, lich sap toi va cac diem can xu ly ngay tren mot man hinh.</p>
+                            <span class="admin-workspace-kicker">TRUNG TÂM ĐIỀU HÀNH</span>
+                            <h5 class="admin-workspace-title mb-2">Điều hành nhanh, ít bỏ sót hơn</h5>
+                            <p class="admin-workspace-subtitle mb-0">Tập trung thông báo mới, phê duyệt, lịch sắp tới và các điểm cần xử lý ngay trên một màn hình.</p>
                         </div>
                         <div class="admin-workspace-actions">
-                            <a class="btn btn-primary" href="/Notifications">Mo trung tam</a>
+                            <a class="btn btn-primary" href="/Notifications">Mở trung tâm</a>
                             @if (showLeaveApproval)
                             {
-                                <a class="btn btn-outline-primary" href="/Leave/LeaveApproval">Approval inbox</a>
+                                <a class="btn btn-outline-primary" href="/Leave/LeaveApproval">Hộp duyệt</a>
                             }
                         </div>
                     </div>
                     <div class="admin-workspace-grid">
                         <a class="workspace-stat-card" href="/Notifications">
-                            <span class="workspace-stat-label">Thong bao moi</span>
+                            <span class="workspace-stat-label">Thông báo mới</span>
                             <strong>@Model.UnreadNotificationCount</strong>
-                            <small>@(Model.UnreadNotificationCount > 0 ? "Can xem ngay" : "Da xu ly het")</small>
+                            <small>@(Model.UnreadNotificationCount > 0 ? "Cần xem ngay" : "Đã xử lý hết")</small>
                         </a>
                         @if (showLeaveApproval)
                         {
                             <a class="workspace-stat-card" href="/Leave/LeaveApproval">
-                                <span class="workspace-stat-label">Cho toi duyet</span>
+                                <span class="workspace-stat-label">Chờ tôi duyệt</span>
                                 <strong>@(leaveStats?.PendingApproval ?? 0)</strong>
-                                <small>Mo approval inbox</small>
+                                <small>Mở hộp duyệt</small>
                             </a>
                         }
                         else if (showLeaveSummary)
                         {
                             <a class="workspace-stat-card" href="/Leave/LeaveRequest">
-                                <span class="workspace-stat-label">Quy phep con lai</span>
+                                <span class="workspace-stat-label">Quỹ phép còn lại</span>
                                 <strong>@(leaveStats?.RemainingLeave ?? 0)</strong>
-                                <small>Ngay phep nam @DateTime.Now.Year</small>
+                                <small>Ngày phép năm @DateTime.Now.Year</small>
                             </a>
                         }
 
                         @if (showUpcomingInterviews)
                         {
                             <a class="workspace-stat-card" href="/ScheduleInterview">
-                                <span class="workspace-stat-label">Lich phong van sap toi</span>
+                                <span class="workspace-stat-label">Lịch phỏng vấn sắp tới</span>
                                 <strong>@(Model.UpcomingInterviews?.Total ?? 0)</strong>
-                                <small>Theo doi trong ngay</small>
+                                <small>Theo dõi trong ngày</small>
                             </a>
                         }
                         else if (showRecruitmentStats)
                         {
                             <a class="workspace-stat-card" href="/Candidate">
-                                <span class="workspace-stat-label">Ung vien dang theo doi</span>
+                                <span class="workspace-stat-label">Ứng viên đang theo dõi</span>
                                 <strong>@(itemdashboard?.totalCV ?? 0)</strong>
-                                <small>@(itemdashboard?.totalOnboard ?? 0) onboard</small>
+                                <small>@(itemdashboard?.totalOnboard ?? 0) nhận việc</small>
                             </a>
                         }
 
                         @if (showOnlineCount)
                         {
                             <a class="workspace-stat-card" href="/Employee">
-                                <span class="workspace-stat-label">User dang online</span>
+                                <span class="workspace-stat-label">Người dùng đang online</span>
                                 <strong>@Model.UserDataGlobal.GetCountUserOnline()</strong>
-                                <small>@Model.GlobalData.TotalUser tong user</small>
+                                <small>@Model.GlobalData.TotalUser tổng người dùng</small>
                             </a>
                         }
                         else if (Model.HasViewPermission("InternalNews"))
                         {
                             <a class="workspace-stat-card" href="/InternalNews">
-                                <span class="workspace-stat-label">Tin noi bo</span>
-                                <strong>Mo</strong>
-                                <small>Xem va dang thong bao</small>
+                                <span class="workspace-stat-label">Tin nội bộ</span>
+                                <strong>Mở</strong>
+                                <small>Xem và đăng thông báo</small>
                             </a>
                         }
                     </div>
@@ -161,38 +238,38 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
                         <div>
-                            <h5 class="card-title mb-0">Action Center</h5>
-                            <div class="text-muted small">Viec can xu ly, bottleneck va loi van hanh dang anh huong workflow.</div>
+                            <h5 class="card-title mb-0">Trung tâm xử lý</h5>
+                            <div class="text-muted small">Việc cần xử lý, điểm nghẽn và lỗi vận hành đang ảnh hưởng workflow.</div>
                         </div>
-                        <a class="btn btn-sm btn-primary" href="/Leave/LeaveApproval">Mo approval inbox</a>
+                        <a class="btn btn-sm btn-primary" href="/Leave/LeaveApproval">Mở hộp duyệt</a>
                     </div>
                     <div class="row g-3 mt-1">
                         <div class="col-lg-3 col-md-6">
                             <a class="action-tile" href="/Leave/LeaveApproval">
-                                <span class="action-tile-label">Cho toi xu ly</span>
+                                <span class="action-tile-label">Chờ tôi xử lý</span>
                                 <strong>@(Model.ActionCenter?.MyTasks?.Count ?? 0)</strong>
-                                <small>@((Model.ActionCenter?.MyTasks?.Count(x => x.IsOverdue) ?? 0)) overdue</small>
+                                <small>@((Model.ActionCenter?.MyTasks?.Count(x => x.IsOverdue) ?? 0)) quá hạn</small>
                             </a>
                         </div>
                         <div class="col-lg-3 col-md-6">
                             <a class="action-tile" href="/Leave/LeaveApproval?overdue=1">
-                                <span class="action-tile-label">Sap/da qua SLA</span>
+                                <span class="action-tile-label">Sắp/đã quá SLA</span>
                                 <strong>@(Model.ActionCenter?.WorkflowHealth?.Sum(x => x.OverdueCount) ?? 0)</strong>
-                                <small>theo Manager / HCNS / BGD</small>
+                                <small>theo Quản lý / HCNS / BGD</small>
                             </a>
                         </div>
                         <div class="col-lg-3 col-md-6">
                             <a class="action-tile" href="/Leave/LeaveApproval?issue=attendance-sync">
-                                <span class="action-tile-label">System issues</span>
+                                <span class="action-tile-label">Sự cố hệ thống</span>
                                 <strong>@(Model.ActionCenter?.SystemIssues?.Sum(x => x.Count) ?? 0)</strong>
-                                <small>mail / attendance sync</small>
+                                <small>mail / đồng bộ chấm công</small>
                             </a>
                         </div>
                         <div class="col-lg-3 col-md-6">
                             <a class="action-tile" href="/Candidate">
-                                <span class="action-tile-label">Calls today</span>
+                                <span class="action-tile-label">Cuộc gọi hôm nay</span>
                                 <strong>@(Model.TelephonyDashboard?.TotalToday ?? 0)</strong>
-                                <small>@(Model.TelephonyDashboard?.SuccessToday ?? 0) success / @(Model.TelephonyDashboard?.FailedToday ?? 0) failed</small>
+                                <small>@(Model.TelephonyDashboard?.SuccessToday ?? 0) thành công / @(Model.TelephonyDashboard?.FailedToday ?? 0) thất bại</small>
                             </a>
                         </div>
                     </div>
@@ -202,10 +279,10 @@
                             <table class="table table-sm align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th>Request</th>
-                                        <th>Step</th>
-                                        <th>Owner</th>
-                                        <th>Waiting</th>
+                                        <th>Yêu cầu</th>
+                                        <th>Bước xử lý</th>
+                                        <th>Người phụ trách</th>
+                                        <th>Thời gian chờ</th>
                                         <th>SLA</th>
                                         <th></th>
                                     </tr>
@@ -224,14 +301,14 @@
                                             <td>
                                                 @if (task.IsOverdue)
                                                 {
-                                                    <span class="badge bg-danger">OVERDUE</span>
+                                                    <span class="badge bg-danger">QUÁ HẠN</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-success">ON TRACK</span>
+                                                    <span class="badge bg-success">ĐÚNG HẠN</span>
                                                 }
                                             </td>
-                                            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="@task.Url">Xu ly</a></td>
+                                            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="@task.Url">Xử lý</a></td>
                                         </tr>
                                     }
                                 </tbody>
@@ -241,23 +318,23 @@
                     <div class="row g-3 mt-1">
                         <div class="col-lg-6">
                             <div class="mini-panel">
-                                <div class="fw-semibold mb-2">Workflow health</div>
+                                <div class="fw-semibold mb-2">Tình trạng luồng duyệt</div>
                                 @foreach (var item in Model.ActionCenter?.WorkflowHealth ?? new List<VS.Human.Rep.Model.WorkflowHealthItem>())
                                 {
                                     <div class="d-flex justify-content-between small py-1">
                                         <span>@item.StepName</span>
-                                        <span>@item.PendingCount pending / @item.OverdueCount overdue</span>
+                                        <span>@item.PendingCount đang chờ / @item.OverdueCount quá hạn</span>
                                     </div>
                                 }
                                 @if (Model.ActionCenter?.WorkflowHealth?.Any() != true)
                                 {
-                                    <div class="text-muted small">No pending workflow bottleneck.</div>
+                                    <div class="text-muted small">Không có điểm nghẽn chờ xử lý.</div>
                                 }
                             </div>
                         </div>
                         <div class="col-lg-6">
                             <div class="mini-panel">
-                                <div class="fw-semibold mb-2">Recent timeline</div>
+                                <div class="fw-semibold mb-2">Diễn biến gần đây</div>
                                 @foreach (var item in Model.ActionCenter?.RecentTimeline?.Take(5) ?? new List<VS.Human.Rep.Model.WorkflowTimelineEvent>())
                                 {
                                     <div class="small py-1">
@@ -267,7 +344,7 @@
                                 }
                                 @if (Model.ActionCenter?.RecentTimeline?.Any() != true)
                                 {
-                                    <div class="text-muted small">Timeline will appear after new workflow events.</div>
+                                    <div class="text-muted small">Dòng thời gian sẽ hiển thị khi có sự kiện quy trình mới.</div>
                                 }
                             </div>
                         </div>
@@ -285,8 +362,8 @@
                     <div class="card-body">
                         <div class="dashboard-section-head">
                             <div>
-                                <h5 class="card-title mb-1">Bo loc dieu hanh</h5>
-                                <div class="text-muted small">Loc nhanh theo thoi gian, nhom va thanh vien de xem so lieu can dung ngay.</div>
+                                <h5 class="card-title mb-1">Bộ lọc điều hành</h5>
+                                <div class="text-muted small">Lọc nhanh theo thời gian, nhóm và thành viên để xem số liệu cần dùng ngay.</div>
                             </div>
                         </div>
                         <form class="row g-3 align-items-end" method="get" action="/">
@@ -342,9 +419,9 @@
                     <div class="dashboard-filter-actions">
                     @if (showExport)
                     {
-                        <button type="button" onclick="exportFileDashboard()" class="btn btn-outline-primary">Xuat file</button>
+                        <button type="button" onclick="exportFileDashboard()" class="btn btn-outline-primary">Xuất file</button>
                     }
-                    <button type="submit" class="btn btn-primary">Tim kiem</button>
+                    <button type="submit" class="btn btn-primary">Tìm kiếm</button>
                     </div>
                 </div>
 
@@ -435,7 +512,7 @@
                                             <div class="ps-3">
                                                 <h6>@Model.UserDataGlobal.GetCountUserOnline()</h6>
                                                 <span class="text-success small pt-1 fw-bold">@Model.GlobalData.TotalUser</span>
-                                                <span class="text-muted small pt-2 ps-1">Tổng User</span>
+                                                <span class="text-muted small pt-2 ps-1">Tổng người dùng</span>
                                             </div>
                                         </div>
                                     </div>
@@ -509,26 +586,26 @@
                         <div class="col-12">
                             <div class="card dashboard-notification-card">
                                 <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 dashboard-section-head">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 dashboard-section-head">
                                         <div>
-                                            <h5 class="card-title mb-1">Thong bao noi bo</h5>
-                                            <div class="text-muted small">@Model.UnreadNotificationCount chua doc, uu tien hien thi viec can xu ly truoc.</div>
+                                            <h5 class="card-title mb-1">Thông báo nội bộ</h5>
+                                            <div class="text-muted small">@Model.UnreadNotificationCount chưa đọc, ưu tiên hiển thị việc cần xử lý trước.</div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
                                             @if (Model.UnreadNotificationCount > 0)
                                             {
                                                 <form method="post" asp-page-handler="MarkAllRead" class="d-inline">
-                                                    <button type="submit" class="btn btn-sm btn-outline-primary">Danh dau da doc</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary">Đánh dấu đã đọc</button>
                                                 </form>
                                             }
-                                            <a href="/Notifications" class="btn btn-sm btn-primary">Mo trung tam</a>
+                                            <a href="/Notifications" class="btn btn-sm btn-primary">Mở trung tâm</a>
                                         </div>
                                     </div>
 
                                     <ul class="list-group list-group-flush mt-3 dashboard-notification-list">
                                         @if (Model.Notifications.Count == 0)
                                         {
-                                            <li class="list-group-item text-muted dashboard-notification-empty">Chua co thong bao nao.</li>
+                                            <li class="list-group-item text-muted dashboard-notification-empty">Chưa có thông báo nào.</li>
                                         }
                                         else
                                         {
@@ -538,7 +615,7 @@
                                                 var isInternalNews = string.Equals(notif.RelatedEntityType, "INTERNAL_NEWS", global::System.StringComparison.OrdinalIgnoreCase)
                                                     || (!string.IsNullOrWhiteSpace(notif.Link) && notif.Link.StartsWith("/InternalNews", global::System.StringComparison.OrdinalIgnoreCase));
                                                 var badgeClass = isActionRequired ? "bg-danger" : isInternalNews ? "bg-info text-dark" : "bg-secondary";
-                                                var badgeText = isActionRequired ? "Can xu ly" : isInternalNews ? "Tin noi bo" : "Thong bao";
+                                                var badgeText = isActionRequired ? "Cần xử lý" : isInternalNews ? "Tin nội bộ" : "Thông báo";
                                                 var itemClass = notif.IsRead ? string.Empty : "dashboard-notification-item-unread";
                                                 <li class="list-group-item dashboard-notification-item @itemClass">
                                                     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
@@ -558,7 +635,7 @@
                                                         </div>
                                                         @if (!string.IsNullOrWhiteSpace(notif.Link))
                                                         {
-                                                            <a class="btn btn-sm btn-outline-primary" href="/Notifications?handler=Open&id=@notif.Id">Mo</a>
+                                                            <a class="btn btn-sm btn-outline-primary" href="/Notifications?handler=Open&id=@notif.Id">Mở</a>
                                                         }
                                                     </div>
                                                 </li>
@@ -808,7 +885,7 @@
                             <a class="icon" href="#" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></a>
                             <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
                                 <li class="dropdown-header text-start">
-                                    <h6>Filter</h6>
+                                    <h6>Bộ lọc</h6>
                                 </li>
 
                                 <li><a class="dropdown-item" href="#">Hôm nay</a></li>
@@ -859,6 +936,7 @@
 
             </div>
         </section>
+}
 
     @* </main> *@
  
@@ -1235,276 +1313,458 @@
 }
 
 <style>
-    .admin-workspace-hero {
+    .pagetitle {
+        margin-bottom: 16px;
+    }
+
+    .pagetitle h1 {
+        margin-bottom: 6px;
+    }
+
+    .pagetitle .breadcrumb {
+        margin-bottom: 0;
+    }
+
+    .dashboard-role-layout {
+        --dashboard-card-radius: 20px;
+        --dashboard-panel-radius: 18px;
+        --dashboard-gap: 12px;
+    }
+
+    .dashboard-role-layout .card-body {
+        padding: 18px 20px;
+    }
+
+    .dashboard-role-layout .admin-workspace-hero {
         overflow: hidden;
         border-color: rgba(37, 99, 235, 0.12);
         background:
-            radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 30%),
+            radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 28%),
             linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 251, 0.94));
     }
 
-    .admin-workspace-hero-head,
-    .dashboard-section-head {
+    .dashboard-role-layout .dashboard-workspace-card {
+        border-color: rgba(37, 99, 235, 0.1);
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.95)),
+            radial-gradient(circle at top right, rgba(37, 99, 235, 0.06), transparent 32%);
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+    }
+
+    .dashboard-role-layout .admin-workspace-hero-head,
+    .dashboard-role-layout .dashboard-section-head {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 16px;
+        gap: 14px;
         flex-wrap: wrap;
     }
 
-    .admin-workspace-kicker {
+    .dashboard-role-layout .admin-workspace-kicker,
+    .dashboard-role-layout .dashboard-section-kicker {
         display: inline-block;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
+        color: #64748b;
         font-size: 11px;
         font-weight: 800;
         letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: #64748b;
     }
 
-    .admin-workspace-title {
-        font-size: 2rem;
+    .dashboard-role-layout .admin-workspace-title {
+        margin: 0;
+        max-width: 28ch;
+        font-size: clamp(1.6rem, 2.1vw, 1.95rem);
+        line-height: 1.12;
         font-weight: 800;
         color: #0f172a;
     }
 
-    .admin-workspace-subtitle {
-        max-width: 760px;
+    .dashboard-role-layout .admin-workspace-subtitle,
+    .dashboard-role-layout .dashboard-section-subtitle {
+        max-width: 64ch;
+        margin-top: 4px;
         color: #475569;
-        line-height: 1.6;
+        line-height: 1.55;
     }
 
-    .admin-workspace-actions {
+    .dashboard-role-layout .dashboard-role-chip-list {
         display: flex;
-        gap: 12px;
+        gap: 8px;
         flex-wrap: wrap;
+        margin-top: 14px;
     }
 
-    .admin-workspace-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 14px;
-        margin-top: 20px;
-    }
-
-    .workspace-stat-card,
-    .action-tile {
-        display: block;
-        position: relative;
-        height: 100%;
-        overflow: hidden;
-        border: 1px solid rgba(148, 163, 184, 0.18);
-        border-radius: 20px;
-        padding: 18px;
-        color: #0f172a;
-        background: rgba(255, 255, 255, 0.96);
-        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
-        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-    }
-
-    .workspace-stat-card::after,
-    .action-tile::after {
-        content: "";
-        position: absolute;
-        inset: auto -12px -18px auto;
-        width: 84px;
-        height: 84px;
+    .dashboard-role-layout .dashboard-role-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 11px;
         border-radius: 999px;
-        background: radial-gradient(circle, rgba(37, 99, 235, 0.14), transparent 70%);
-    }
-
-    .workspace-stat-card:hover,
-    .workspace-stat-card:focus,
-    .action-tile:hover {
-        transform: translateY(-2px);
-        border-color: rgba(37, 99, 235, 0.24);
-        color: #0f172a;
-        text-decoration: none;
-        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.1);
-    }
-
-    .workspace-stat-label,
-    .action-tile-label {
-        display: block;
-        margin-bottom: 8px;
-        color: #64748b;
-        font-size: 12px;
+        background: rgba(37, 99, 235, 0.08);
+        border: 1px solid rgba(37, 99, 235, 0.12);
+        color: #1e3a8a;
+        font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
     }
 
-    .workspace-stat-card strong,
-    .action-tile strong {
+    .dashboard-role-layout .dashboard-section-title {
+        margin: 0;
+        color: #0f172a;
+        font-size: clamp(1.1rem, 1.6vw, 1.28rem);
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .dashboard-role-layout .admin-workspace-actions,
+    .dashboard-role-layout .dashboard-filter-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .dashboard-role-layout .admin-workspace-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--dashboard-gap);
+        margin-top: 18px;
+    }
+
+    .dashboard-role-layout .workspace-stat-card,
+    .dashboard-role-layout .action-tile {
+        display: block;
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: var(--dashboard-card-radius);
+        padding: 16px;
+        color: #0f172a;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .dashboard-role-layout .workspace-stat-card::after,
+    .dashboard-role-layout .action-tile::after {
+        content: "";
+        position: absolute;
+        inset: auto -10px -16px auto;
+        width: 72px;
+        height: 72px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.14), transparent 70%);
+    }
+
+    .dashboard-role-layout .workspace-stat-card:hover,
+    .dashboard-role-layout .workspace-stat-card:focus,
+    .dashboard-role-layout .action-tile:hover {
+        transform: translateY(-2px);
+        border-color: rgba(37, 99, 235, 0.22);
+        color: #0f172a;
+        text-decoration: none;
+        box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+    }
+
+    .dashboard-role-layout .workspace-stat-label,
+    .dashboard-role-layout .action-tile-label,
+    .dashboard-role-layout .info-card .card-title {
+        display: block;
+        margin-bottom: 8px;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        line-height: 1.35;
+        text-transform: uppercase;
+    }
+
+    .dashboard-role-layout .workspace-stat-label,
+    .dashboard-role-layout .action-tile-label {
+        min-height: 2.4em;
+    }
+
+    .dashboard-role-layout .workspace-stat-card strong,
+    .dashboard-role-layout .action-tile strong,
+    .dashboard-role-layout .info-card h6 {
         display: block;
         position: relative;
         z-index: 1;
-        margin-bottom: 6px;
-        font-size: 2rem;
+        margin-bottom: 4px;
+        font-size: clamp(1.45rem, 2vw, 1.75rem);
         line-height: 1;
         font-weight: 800;
+        color: #0f172a;
     }
 
-    .workspace-stat-card small,
-    .action-tile small {
+    .dashboard-role-layout .workspace-stat-card small,
+    .dashboard-role-layout .action-tile small {
         position: relative;
         z-index: 1;
         color: #475569;
+        line-height: 1.45;
     }
 
-    .action-center-card {
+    .dashboard-role-layout .action-center-card {
         border: 1px solid rgba(37, 99, 235, 0.1);
         background:
             linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.96)),
             radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 34%);
     }
 
-    .action-tile {
-        min-height: 112px;
+    .dashboard-role-layout .action-tile {
+        min-height: 98px;
     }
 
-    .action-tile-label {
-        position: relative;
-        z-index: 1;
-    }
-
-    .mini-panel {
-        border: 1px solid rgba(148, 163, 184, 0.18);
-        border-radius: 20px;
+    .dashboard-role-layout .mini-panel,
+    .dashboard-role-layout .dashboard-subpanel {
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: var(--dashboard-panel-radius);
         padding: 16px;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.92);
+        background: rgba(255, 255, 255, 0.94);
     }
 
-    .dashboard-filter-card,
-    .dashboard-notification-card {
+    .dashboard-role-layout .mini-panel {
+        height: 100%;
+    }
+
+    .dashboard-role-layout .dashboard-filter-card,
+    .dashboard-role-layout .dashboard-notification-card {
         border-color: rgba(37, 99, 235, 0.08);
     }
 
-    .dashboard-filter-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        flex-wrap: wrap;
+    .dashboard-role-layout .dashboard-notification-list {
+        gap: 10px;
     }
 
-    .dashboard-notification-list {
-        gap: 12px;
-    }
-
-    .dashboard-notification-item {
+    .dashboard-role-layout .dashboard-notification-item {
         border: 1px solid rgba(148, 163, 184, 0.16);
-        border-radius: 18px;
-        margin-bottom: 10px;
-        background: rgba(255, 255, 255, 0.88);
+        border-radius: 16px;
+        margin-bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
     }
 
-    .dashboard-notification-item-unread {
+    .dashboard-role-layout .dashboard-notification-item-unread {
         background: linear-gradient(180deg, rgba(239, 246, 255, 0.95), rgba(255, 255, 255, 0.98));
         border-color: rgba(37, 99, 235, 0.18);
     }
 
-    .dashboard-notification-body {
-        max-width: 860px;
+    .dashboard-role-layout .dashboard-notification-body {
+        max-width: min(100%, 760px);
     }
 
-    .dashboard-notification-link {
+    .dashboard-role-layout .dashboard-notification-link {
         color: #0f172a;
         font-weight: 700;
         text-decoration: none;
-        line-height: 1.6;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
     }
 
-    .dashboard-notification-link:hover {
+    .dashboard-role-layout .dashboard-notification-link:hover {
         color: #1d4ed8;
     }
 
-    .dashboard-notification-empty {
+    .dashboard-role-layout .dashboard-notification-empty {
         border: 1px dashed rgba(148, 163, 184, 0.24);
-        border-radius: 18px;
+        border-radius: 16px;
         background: rgba(248, 250, 252, 0.78);
     }
 
-    .dashboard .info-card {
+    .dashboard-role-layout .info-card {
         position: relative;
         overflow: hidden;
         border-color: rgba(148, 163, 184, 0.16);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
     }
 
-    .dashboard .info-card::after {
+    .dashboard-role-layout .info-card::after {
         content: "";
         position: absolute;
-        top: -32px;
-        right: -16px;
-        width: 96px;
-        height: 96px;
+        top: -28px;
+        right: -12px;
+        width: 82px;
+        height: 82px;
         border-radius: 999px;
         background: radial-gradient(circle, rgba(37, 99, 235, 0.12), transparent 70%);
     }
 
-    .dashboard .info-card .card-title {
-        margin-bottom: 14px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #64748b;
-    }
-
-    .dashboard .info-card h6 {
-        margin-bottom: 4px;
-        font-size: 2rem;
-        font-weight: 800;
-        color: #0f172a;
-    }
-
-    .dashboard .card-icon {
-        width: 58px;
-        height: 58px;
-        border-radius: 20px !important;
+    .dashboard-role-layout .card-icon {
+        width: 50px;
+        height: 50px;
+        flex: 0 0 auto;
+        border-radius: 16px !important;
         background: linear-gradient(180deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.08));
         color: #2563eb;
     }
 
-    .dashboard .sales-card .card-icon {
+    .dashboard-role-layout .sales-card .card-icon {
         background: linear-gradient(180deg, rgba(37, 99, 235, 0.14), rgba(219, 234, 254, 0.8));
         color: #1d4ed8;
     }
 
-    .dashboard .revenue-card .card-icon {
+    .dashboard-role-layout .revenue-card .card-icon {
         background: linear-gradient(180deg, rgba(22, 163, 74, 0.16), rgba(220, 252, 231, 0.8));
         color: #15803d;
     }
 
-    .dashboard .customers-card .card-icon {
+    .dashboard-role-layout .customers-card .card-icon {
         background: linear-gradient(180deg, rgba(249, 115, 22, 0.14), rgba(255, 237, 213, 0.8));
         color: #c2410c;
     }
 
-    @@media (max-width: 1200px) {
-        .admin-workspace-grid {
+    .dashboard-role-layout .dashboard-table {
+        font-size: 0.92rem;
+    }
+
+    .dashboard-role-layout .dashboard-table > :not(caption) > * > * {
+        padding: 0.7rem 0.65rem;
+        vertical-align: middle;
+    }
+
+    .dashboard-role-layout .dashboard-table tbody td:first-child {
+        min-width: 150px;
+    }
+
+    .dashboard-role-layout .table-responsive {
+        margin: 0 -4px;
+        padding: 0 4px 2px;
+    }
+
+    .dashboard-role-layout .btn {
+        border-radius: 14px;
+    }
+
+    .dashboard-role-layout .btn.btn-sm {
+        padding: 0.55rem 0.9rem;
+    }
+
+    @@media (max-width: 991.98px) {
+        .dashboard-role-layout .card-body {
+            padding: 16px 18px;
+        }
+
+        .dashboard-role-layout .admin-workspace-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .dashboard-role-layout .dashboard-table {
+            font-size: 0.87rem;
         }
     }
 
-    @@media (max-width: 768px) {
-        .admin-workspace-grid {
+    @@media (max-width: 767.98px) {
+        .pagetitle {
+            margin-bottom: 12px;
+        }
+
+        .dashboard-role-layout .card-body {
+            padding: 14px;
+        }
+
+        .dashboard-role-layout .admin-workspace-hero-head,
+        .dashboard-role-layout .dashboard-section-head {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .dashboard-role-layout .admin-workspace-grid {
             grid-template-columns: 1fr;
+            gap: 10px;
         }
 
-        .admin-workspace-title {
-            font-size: 1.55rem;
-        }
-
-        .dashboard-filter-actions,
-        .admin-workspace-actions {
+        .dashboard-role-layout .admin-workspace-actions,
+        .dashboard-role-layout .dashboard-filter-actions {
             width: 100%;
         }
 
-        .dashboard-filter-actions .btn,
-        .admin-workspace-actions .btn {
+        .dashboard-role-layout .admin-workspace-actions .btn,
+        .dashboard-role-layout .dashboard-filter-actions .btn {
+            flex: 1 1 calc(50% - 5px);
+            min-width: 0;
+        }
+
+        .dashboard-role-layout .workspace-stat-card,
+        .dashboard-role-layout .action-tile,
+        .dashboard-role-layout .mini-panel,
+        .dashboard-role-layout .dashboard-subpanel {
+            padding: 14px;
+            border-radius: 16px;
+        }
+
+        .dashboard-role-layout .workspace-stat-card::after,
+        .dashboard-role-layout .action-tile::after {
+            width: 60px;
+            height: 60px;
+        }
+
+        .dashboard-role-layout .workspace-stat-label,
+        .dashboard-role-layout .action-tile-label {
+            min-height: 0;
+        }
+
+        .dashboard-role-layout .admin-workspace-title {
+            font-size: 1.45rem;
+        }
+
+        .dashboard-role-layout .dashboard-section-subtitle,
+        .dashboard-role-layout .admin-workspace-subtitle {
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+
+        .dashboard-role-layout .dashboard-role-chip {
+            padding: 6px 10px;
+            font-size: 10px;
+        }
+
+        .dashboard-role-layout .dashboard-table {
+            font-size: 0.83rem;
+        }
+
+        .dashboard-role-layout .dashboard-table > :not(caption) > * > * {
+            padding: 0.55rem 0.5rem;
+        }
+
+        .dashboard-role-layout .dashboard-task-table th:nth-child(3),
+        .dashboard-role-layout .dashboard-task-table td:nth-child(3),
+        .dashboard-role-layout .dashboard-task-table th:nth-child(4),
+        .dashboard-role-layout .dashboard-task-table td:nth-child(4),
+        .dashboard-role-layout .dashboard-interview-table th:nth-child(3),
+        .dashboard-role-layout .dashboard-interview-table td:nth-child(3),
+        .dashboard-role-layout .dashboard-interview-table th:nth-child(5),
+        .dashboard-role-layout .dashboard-interview-table td:nth-child(5),
+        .dashboard-role-layout .dashboard-leave-table th:nth-child(2),
+        .dashboard-role-layout .dashboard-leave-table td:nth-child(2),
+        .dashboard-role-layout .dashboard-leave-table th:nth-child(3),
+        .dashboard-role-layout .dashboard-leave-table td:nth-child(3) {
+            display: none;
+        }
+
+        .dashboard-role-layout .dashboard-notification-body {
+            max-width: none;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .dashboard-role-layout .admin-workspace-actions .btn,
+        .dashboard-role-layout .dashboard-filter-actions .btn {
             flex: 1 1 100%;
+        }
+
+        .dashboard-role-layout .workspace-stat-card strong,
+        .dashboard-role-layout .action-tile strong,
+        .dashboard-role-layout .info-card h6 {
+            font-size: 1.35rem;
+        }
+
+        .dashboard-role-layout .card-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px !important;
         }
     }
 </style>

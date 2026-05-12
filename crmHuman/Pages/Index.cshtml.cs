@@ -281,7 +281,9 @@ namespace crmHuman.Pages
             {
                 UserId = UserData.UserId,
                 Status = -1,
-                Limit = 10
+                Limit = 10,
+                UpcomingOnly = true,
+                OrderBy = "schedule-asc"
             };
             UpcomingInterviews = await _scheduleInterviewBussiness.GetAll(interviewRequest);
             var rounds = await _masterDataBusinness.GetAll(new CommonRequest { Type = 5 });
@@ -293,7 +295,7 @@ namespace crmHuman.Pages
                 .Where(CanViewNotification)
                 .Take(10)
                 .ToList();
-            UnreadNotificationCount = Notifications.Count(x => !x.IsRead);
+            UnreadNotificationCount = await _notificationBusiness.GetUnreadCount(UserData.UserId);
 
             return Page();
         }

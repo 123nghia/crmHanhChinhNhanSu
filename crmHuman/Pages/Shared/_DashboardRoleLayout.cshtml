@@ -1,0 +1,1003 @@
+@model crmHuman.Pages.IndexModel
+@using global::System.Collections.Generic
+@using global::System.Linq
+@{
+    var showFilters = Model.HasViewPermission("Candidate") || Model.HasViewPermission("Report");
+    var showLeaveSummary = Model.HasViewPermission("LeaveRequest") || Model.HasViewPermission("LeaveBalance") || Model.HasViewPermission("LeaveApproval");
+    var showLeaveApproval = Model.HasApprovePermission("LeaveApproval");
+    var showLeaveCompany = Model.HasViewPermission("LeaveApproval") || Model.HasViewPermission("LeaveBalance");
+    var leaveMonthTitle = Model.LeaveMonthTitle;
+    var leaveMonthSub = Model.LeaveMonthSubtitle;
+    var showRecruitmentStats = Model.HasViewPermission("Candidate") || Model.HasViewPermission("Job");
+    var showOrderOverview = Model.HasViewPermission("Candidate");
+    var showActivity = Model.UserData?.RoleCode != "4" && showOrderOverview;
+    var showExport = Model.HasViewPermission("Report");
+    var showMyLeave = Model.UserData?.RoleCode == "4" && Model.HasViewPermission("LeaveRequest");
+    var showExtendedStats = Model.ShowExtendedStats;
+    var showOnlineCount = Model.ShowOnlineCount;
+    var extendedStats = Model.ExtendedStats;
+    var itemdashboard = Model.InfoDashboard;
+    var leaveStats = Model.LeaveSummary;
+    var roleCode = Model.UserData?.RoleCode ?? string.Empty;
+    var isExecutiveDashboard = roleCode == "1" || roleCode == "8" || roleCode == "9";
+    var isManagerDashboard = roleCode == "3";
+    var isMemberDashboard = roleCode == "4";
+    var upcomingInterviews = Model.UpcomingInterviews?.Data;
+    var showUpcomingInterviews = (Model.UserData?.RoleCode != "CANDIDATE" && Model.UpcomingInterviews?.Total > 0);
+    var hasActionTasks = Model.ActionCenter?.MyTasks?.Any() == true;
+    var hasWorkflowHealth = Model.ActionCenter?.WorkflowHealth?.Any() == true;
+    var hasSystemIssues = Model.ActionCenter?.SystemIssues?.Any() == true;
+    var hasActionWorkspace = showLeaveApproval || hasActionTasks || hasWorkflowHealth || hasSystemIssues;
+    var hasRecruitmentWorkspace = showFilters || showRecruitmentStats || showUpcomingInterviews || showActivity;
+    var hasPeopleWorkspace = showLeaveSummary || showLeaveCompany || showOnlineCount || showExtendedStats || showMyLeave;
+    var hasInternalNews = Model.HasViewPermission("InternalNews");
+    var showPeopleBeforeRecruitment = isExecutiveDashboard || isManagerDashboard;
+    var heroKicker = "TRUNG TÂM ĐIỀU HÀNH";
+    var heroTitle = "Điều hành nhanh, ít bỏ sót hơn";
+    var heroSubtitle = "Tập trung thông báo mới, phê duyệt, lịch sắp tới và các điểm cần xử lý ngay trên một màn hình.";
+    var primaryActionHref = isMemberDashboard ? "/Leave/LeaveRequest" : showLeaveApproval ? "/Leave/LeaveApproval" : "/Notifications";
+    var primaryActionText = isMemberDashboard ? "Mở nghỉ phép" : showLeaveApproval ? "Mở hộp duyệt" : "Mở trung tâm";
+    var secondaryActionHref = string.Equals(primaryActionHref, "/Notifications", global::System.StringComparison.OrdinalIgnoreCase)
+        ? (showRecruitmentStats ? "/Candidate" : showLeaveSummary ? "/Leave/LeaveRequest" : null)
+        : "/Notifications";
+    var secondaryActionText = string.IsNullOrWhiteSpace(secondaryActionHref)
+        ? null
+        : string.Equals(secondaryActionHref, "/Notifications", global::System.StringComparison.OrdinalIgnoreCase)
+            ? "Thông báo"
+            : showRecruitmentStats ? "Tuyển dụng" : "Nghỉ phép";
+    var actionCenterHref = showLeaveApproval ? "/Leave/LeaveApproval" : "/Notifications";
+    var actionCenterText = showLeaveApproval ? "Mở hộp duyệt" : "Mở trung tâm";
+    var capabilityLabels = new List<string>();
+
+    if (hasActionWorkspace)
+    {
+        capabilityLabels.Add("Phê duyệt");
+    }
+
+    if (hasPeopleWorkspace)
+    {
+        capabilityLabels.Add(isMemberDashboard ? "Cá nhân" : "Nhân sự");
+    }
+
+    if (hasRecruitmentWorkspace)
+    {
+        capabilityLabels.Add("Tuyển dụng");
+    }
+
+    if (hasInternalNews)
+    {
+        capabilityLabels.Add("Nội bộ");
+    }
+
+    if (isExecutiveDashboard)
+    {
+        heroKicker = "BẢNG ĐIỀU HÀNH TOÀN HỆ THỐNG";
+        heroTitle = "Theo dõi vận hành nhân sự trên cùng một trục";
+        heroSubtitle = "Ưu tiên việc chờ duyệt, tình trạng nhân sự, tuyển dụng và điểm nghẽn hệ thống theo góc nhìn điều hành.";
+    }
+    else if (isManagerDashboard)
+    {
+        heroKicker = "ĐIỀU PHỐI NHÓM";
+        heroTitle = "Nắm việc của nhóm trước khi phát sinh chậm trễ";
+        heroSubtitle = "Tập trung vào luồng duyệt, nghỉ phép của nhóm, lịch phỏng vấn và các đầu việc cần phản hồi trong ngày.";
+    }
+    else if (isMemberDashboard)
+    {
+        heroKicker = "KHÔNG GIAN CÁ NHÂN";
+        heroTitle = "Xử lý việc cá nhân nhanh và rõ ràng hơn";
+        heroSubtitle = "Theo dõi phép, thông báo và các việc cần phản hồi của riêng bạn mà không bị lẫn với màn điều hành.";
+    }
+    else if (hasRecruitmentWorkspace)
+    {
+        heroKicker = "TRUNG TÂM TUYỂN DỤNG";
+        heroTitle = "Theo dõi pipeline tuyển dụng theo nhịp làm việc";
+        heroSubtitle = "Giữ các số liệu CV, lịch phỏng vấn, cuộc gọi và thông báo liên quan trong cùng một bố cục thao tác.";
+    }
+
+    Func<int?, string> getRoundText = value =>
+    {
+        switch (value)
+        {
+            case 1: return "HR";
+            case 2: return "Kỹ thuật";
+            case 3: return "Vòng cuối";
+            case 0: return "Khác";
+            default: return "";
+        }
+    };
+
+    Func<int?, string> getStatusText = value =>
+    {
+        switch (value)
+        {
+            case 0: return "Nháp";
+            case 1: return "Đã lên lịch";
+            case 2: return "Hoàn tất";
+            case 3: return "Đã hủy";
+            case 4: return "Vắng mặt";
+            default: return "";
+        }
+    };
+
+    Func<int?, string> getModeText = value =>
+    {
+        switch (value)
+        {
+            case 1: return "Trực tiếp";
+            case 2: return "Trực tuyến";
+            default: return "";
+        }
+    };
+}
+
+<section class="section dashboard dashboard-role-layout">
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card admin-workspace-hero">
+                <div class="card-body">
+                    <div class="admin-workspace-hero-head">
+                        <div>
+                            <span class="admin-workspace-kicker">@heroKicker</span>
+                            <h5 class="admin-workspace-title mb-2">@heroTitle</h5>
+                            <p class="admin-workspace-subtitle mb-0">@heroSubtitle</p>
+                            @if (capabilityLabels.Any())
+                            {
+                                <div class="dashboard-role-chip-list">
+                                    @foreach (var label in capabilityLabels)
+                                    {
+                                        <span class="dashboard-role-chip">@label</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="admin-workspace-actions">
+                            <a class="btn btn-primary" href="@primaryActionHref">@primaryActionText</a>
+                            @if (!string.IsNullOrWhiteSpace(secondaryActionHref)
+                                && !string.Equals(primaryActionHref, secondaryActionHref, global::System.StringComparison.OrdinalIgnoreCase))
+                            {
+                                <a class="btn btn-outline-primary" href="@secondaryActionHref">@secondaryActionText</a>
+                            }
+                        </div>
+                    </div>
+                    <div class="admin-workspace-grid">
+                        <a class="workspace-stat-card" href="/Notifications">
+                            <span class="workspace-stat-label">Thông báo mới</span>
+                            <strong>@Model.UnreadNotificationCount</strong>
+                            <small>@(Model.UnreadNotificationCount > 0 ? "Cần xem ngay" : "Đã xử lý hết")</small>
+                        </a>
+                        @if (showLeaveApproval)
+                        {
+                            <a class="workspace-stat-card" href="/Leave/LeaveApproval">
+                                <span class="workspace-stat-label">Chờ tôi duyệt</span>
+                                <strong>@(leaveStats?.PendingApproval ?? 0)</strong>
+                                <small>Mở hộp duyệt</small>
+                            </a>
+                        }
+                        else if (showLeaveSummary)
+                        {
+                            <a class="workspace-stat-card" href="/Leave/LeaveRequest">
+                                <span class="workspace-stat-label">Quỹ phép còn lại</span>
+                                <strong>@(leaveStats?.RemainingLeave ?? 0)</strong>
+                                <small>Ngày phép năm @DateTime.Now.Year</small>
+                            </a>
+                        }
+
+                        @if (showUpcomingInterviews)
+                        {
+                            <a class="workspace-stat-card" href="/ScheduleInterview">
+                                <span class="workspace-stat-label">Lịch phỏng vấn sắp tới</span>
+                                <strong>@(Model.UpcomingInterviews?.Total ?? 0)</strong>
+                                <small>Theo dõi trong ngày</small>
+                            </a>
+                        }
+                        else if (showRecruitmentStats)
+                        {
+                            <a class="workspace-stat-card" href="/Candidate">
+                                <span class="workspace-stat-label">Ứng viên đang theo dõi</span>
+                                <strong>@(itemdashboard?.totalCV ?? 0)</strong>
+                                <small>@(itemdashboard?.totalOnboard ?? 0) nhận việc</small>
+                            </a>
+                        }
+
+                        @if (showOnlineCount)
+                        {
+                            <a class="workspace-stat-card" href="/Employee">
+                                <span class="workspace-stat-label">Người dùng đang online</span>
+                                <strong>@Model.UserDataGlobal.GetCountUserOnline()</strong>
+                                <small>@Model.GlobalData.TotalUser tổng người dùng</small>
+                            </a>
+                        }
+                        else if (hasInternalNews)
+                        {
+                            <a class="workspace-stat-card" href="/InternalNews">
+                                <span class="workspace-stat-label">Tin nội bộ</span>
+                                <strong>Mở</strong>
+                                <small>Xem và đăng thông báo</small>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (showMyLeave)
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-12">
+                <div class="card dashboard-workspace-card">
+                    <div class="card-body">
+                        <div class="dashboard-section-head">
+                            <div>
+                                <span class="dashboard-section-kicker">TỰ PHỤC VỤ</span>
+                                <h5 class="dashboard-section-title mb-1">Nghỉ phép và việc cá nhân</h5>
+                                <div class="dashboard-section-subtitle">Giữ phép cá nhân, trạng thái đơn và thao tác tra cứu trong một khu vực riêng.</div>
+                            </div>
+                            <a href="/Leave/LeaveRequest" class="btn btn-sm btn-primary">Quản lý phép cá nhân</a>
+                        </div>
+                        <div class="dashboard-subpanel mt-3">
+                            <div class="table-responsive">
+                                <table class="table table-borderless mb-0 dashboard-table dashboard-leave-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Loại phép</th>
+                                            <th>Từ ngày</th>
+                                            <th>Đến ngày</th>
+                                            <th>Số ngày</th>
+                                            <th>Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="myLeaveList">
+                                        <tr>
+                                            <td colspan="5" class="text-center">Đang tải dữ liệu...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (hasActionWorkspace)
+        {
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <div class="card dashboard-workspace-card action-center-card">
+                        <div class="card-body">
+                            <div class="dashboard-section-head">
+                                <div>
+                                    <span class="dashboard-section-kicker">PHÊ DUYỆT VÀ XỬ LÝ</span>
+                                    <h5 class="dashboard-section-title mb-1">Khối công việc cần phản hồi</h5>
+                                    <div class="dashboard-section-subtitle">Tập trung các yêu cầu đang chờ, các điểm quá hạn và tín hiệu lỗi ảnh hưởng đến vận hành.</div>
+                                </div>
+                                <a class="btn btn-sm btn-primary" href="@actionCenterHref">@actionCenterText</a>
+                            </div>
+                            <div class="row g-3 mt-1">
+                                <div class="col-lg-3 col-md-6">
+                                    <a class="action-tile" href="@actionCenterHref">
+                                        <span class="action-tile-label">Chờ tôi xử lý</span>
+                                        <strong>@(Model.ActionCenter?.MyTasks?.Count ?? 0)</strong>
+                                        <small>@((Model.ActionCenter?.MyTasks?.Count(x => x.IsOverdue) ?? 0)) quá hạn</small>
+                                    </a>
+                                </div>
+                                <div class="col-lg-3 col-md-6">
+                                    <a class="action-tile" href="@actionCenterHref">
+                                        <span class="action-tile-label">Sắp/đã quá SLA</span>
+                                        <strong>@(Model.ActionCenter?.WorkflowHealth?.Sum(x => x.OverdueCount) ?? 0)</strong>
+                                        <small>theo Quản lý / HCNS / BGD</small>
+                                    </a>
+                                </div>
+                                <div class="col-lg-3 col-md-6">
+                                    <a class="action-tile" href="/Notifications">
+                                        <span class="action-tile-label">Sự cố hệ thống</span>
+                                        <strong>@(Model.ActionCenter?.SystemIssues?.Sum(x => x.Count) ?? 0)</strong>
+                                        <small>mail / đồng bộ chấm công</small>
+                                    </a>
+                                </div>
+                                @if (showRecruitmentStats)
+                                {
+                                    <div class="col-lg-3 col-md-6">
+                                        <a class="action-tile" href="/Candidate">
+                                            <span class="action-tile-label">Cuộc gọi hôm nay</span>
+                                            <strong>@(Model.TelephonyDashboard?.TotalToday ?? 0)</strong>
+                                            <small>@(Model.TelephonyDashboard?.SuccessToday ?? 0) thành công / @(Model.TelephonyDashboard?.FailedToday ?? 0) thất bại</small>
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                            @if (hasActionTasks)
+                            {
+                                <div class="table-responsive mt-3">
+                                    <table class="table table-sm align-middle mb-0 dashboard-table dashboard-task-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Yêu cầu</th>
+                                                <th>Bước xử lý</th>
+                                                <th>Người phụ trách</th>
+                                                <th>Thời gian chờ</th>
+                                                <th>SLA</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var task in Model.ActionCenter.MyTasks.Take(6))
+                                            {
+                                                <tr class="@(task.IsOverdue ? "table-warning" : "")">
+                                                    <td>
+                                                        <div class="fw-semibold">@task.RequestCode</div>
+                                                        <div class="text-muted small">@task.Title</div>
+                                                    </td>
+                                                    <td>@task.CurrentStep</td>
+                                                    <td>@(task.CurrentOwnerName ?? "--")</td>
+                                                    <td>@task.WaitingHours h</td>
+                                                    <td>
+                                                        @if (task.IsOverdue)
+                                                        {
+                                                            <span class="badge bg-danger">QUÁ HẠN</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-success">ĐÚNG HẠN</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="@task.Url">Xử lý</a></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            <div class="row g-3 mt-1">
+                                <div class="col-lg-6">
+                                    <div class="mini-panel">
+                                        <div class="fw-semibold mb-2">Tình trạng luồng duyệt</div>
+                                        @foreach (var item in Model.ActionCenter?.WorkflowHealth ?? new List<VS.Human.Rep.Model.WorkflowHealthItem>())
+                                        {
+                                            <div class="d-flex justify-content-between small py-1">
+                                                <span>@item.StepName</span>
+                                                <span>@item.PendingCount đang chờ / @item.OverdueCount quá hạn</span>
+                                            </div>
+                                        }
+                                        @if (hasWorkflowHealth != true)
+                                        {
+                                            <div class="text-muted small">Không có điểm nghẽn chờ xử lý.</div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="mini-panel">
+                                        <div class="fw-semibold mb-2">Diễn biến gần đây</div>
+                                        @foreach (var item in Model.ActionCenter?.RecentTimeline?.Take(5) ?? new List<VS.Human.Rep.Model.WorkflowTimelineEvent>())
+                                        {
+                                            <div class="small py-1">
+                                                <span class="fw-semibold">@item.EventCode</span>
+                                                <span class="text-muted">@item.EventTitle</span>
+                                            </div>
+                                        }
+                                        @if (Model.ActionCenter?.RecentTimeline?.Any() != true)
+                                        {
+                                            <div class="text-muted small">Dòng thời gian sẽ hiển thị khi có sự kiện quy trình mới.</div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (showPeopleBeforeRecruitment && hasPeopleWorkspace)
+        {
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <div class="card dashboard-workspace-card">
+                        <div class="card-body">
+                            <div class="dashboard-section-head">
+                                <div>
+                                    <span class="dashboard-section-kicker">NHÂN SỰ VÀ NGHỈ PHÉP</span>
+                                    <h5 class="dashboard-section-title mb-1">Khối theo dõi nhân sự</h5>
+                                    <div class="dashboard-section-subtitle">Ưu tiên các số liệu con người, quỹ phép và sức khỏe vận hành nhân sự cho vai trò điều hành.</div>
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-1">
+                                @if (showLeaveSummary)
+                                {
+                                    <div class="col-xl-3 col-md-6">
+                                        <div class="card info-card revenue-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Quỹ phép còn lại</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-calendar-check"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@(leaveStats?.RemainingLeave ?? 0) ngày</h6>
+                                                        <span class="text-muted small pt-2 ps-1">năm @DateTime.Now.Year</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (showLeaveCompany)
+                                {
+                                    <div class="col-xl-3 col-md-6">
+                                        <div class="card info-card customers-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">@leaveMonthTitle</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-people"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@(leaveStats?.ApprovedMonth ?? 0) lượt</h6>
+                                                        <span class="text-muted small pt-2 ps-1">@leaveMonthSub</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (showOnlineCount)
+                                {
+                                    <div class="col-xl-3 col-md-6">
+                                        <div class="card info-card sales-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Người dùng đang online</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-people"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@Model.UserDataGlobal.GetCountUserOnline()</h6>
+                                                        <span class="text-success small pt-1 fw-bold">@Model.GlobalData.TotalUser</span>
+                                                        <span class="text-muted small pt-2 ps-1">Tổng người dùng</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (hasInternalNews)
+                                {
+                                    <div class="col-xl-3 col-md-6">
+                                        <div class="card info-card sales-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Tin nội bộ</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-megaphone"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>Mở nhanh</h6>
+                                                        <a href="/InternalNews" class="text-primary small pt-1 fw-bold">Xem bảng tin</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            @if (showExtendedStats)
+                            {
+                                <div class="row g-3 mt-1">
+                                    <div class="col-12">
+                                        <div class="dashboard-subpanel">
+                                            <h5 class="card-title mt-0">Thống kê nhân sự</h5>
+                                            @if (extendedStats.ContractStats != null && extendedStats.ContractStats.Count > 0)
+                                            {
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm mb-0 dashboard-table dashboard-contract-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>HĐLĐ</th>
+                                                                <th>Số lượng</th>
+                                                                <th>Tỷ lệ</th>
+                                                                <th>Chi tiết</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var group in extendedStats.ContractStats)
+                                                            {
+                                                                <tr>
+                                                                    <td>@group.Title</td>
+                                                                    <td>@group.Value</td>
+                                                                    <td>@($"{group.Percent:0.#}%")</td>
+                                                                    <td>
+                                                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                                                data-bs-toggle="modal" data-bs-target="#@($"modal-{group.Key}")">
+                                                                            Xem
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-muted">Chưa có dữ liệu hợp đồng.</div>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <div class="col-xxl-4 col-md-6">
+                                        <div class="card info-card sales-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">HĐLĐ sắp đến hạn</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-calendar2-week"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@extendedStats.ExpiringContracts.Value</h6>
+                                                        <span class="text-muted small pt-1">@($"{extendedStats.ExpiringContracts.Percent:0.#}%") nhân sự</span>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#modal-expiring-contracts">
+                                                    Xem chi tiết
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-xxl-4 col-md-6">
+                                        <div class="card info-card sales-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Ứng viên</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-people"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@extendedStats.CandidateTotal.Value</h6>
+                                                        <span class="text-muted small pt-1">PV đạt: @extendedStats.CandidatePass.Value (@($"{extendedStats.CandidatePass.Percent:0.#}%"))</span>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2 d-flex gap-2">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modal-candidate-total">Tất cả</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modal-candidate-pass">PV đạt</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-xxl-4 col-md-6">
+                                        <div class="card info-card customers-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Ngày phép trong tháng</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-calendar-check"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@extendedStats.LeaveMonth.Value @extendedStats.LeaveMonth.Unit</h6>
+                                                        <span class="text-muted small pt-1">Duyệt: @($"{extendedStats.LeaveMonth.Percent:0.#}%")</span>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#modal-leave-month">
+                                                    Xem chi tiết
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-xxl-4 col-md-6">
+                                        <div class="card info-card customers-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Tình trạng nhân sự</h5>
+                                                <div class="ps-1 small">
+                                                    <div>
+                                                        Đang làm việc:
+                                                        <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-employee-working">
+                                                            @extendedStats.EmployeeWorking.Value (@($"{extendedStats.EmployeeWorking.Percent:0.#}%"))
+                                                        </a>
+                                                    </div>
+                                                    <div>
+                                                        Nghỉ việc:
+                                                        <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-employee-resigned">
+                                                            @extendedStats.EmployeeResigned.Value (@($"{extendedStats.EmployeeResigned.Percent:0.#}%"))
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-xxl-4 col-md-6">
+                                        <div class="card info-card revenue-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Nhân viên chính thức</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-person-badge"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@extendedStats.OfficialEmployees.Value</h6>
+                                                        <span class="text-muted small pt-1">@($"{extendedStats.OfficialEmployees.Percent:0.#}%") tổng nhân sự</span>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#modal-employee-official">
+                                                    Xem chi tiết
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (hasRecruitmentWorkspace)
+        {
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <div class="card dashboard-workspace-card">
+                        <div class="card-body">
+                            <div class="dashboard-section-head">
+                                <div>
+                                    <span class="dashboard-section-kicker">TUYỂN DỤNG VÀ VẬN HÀNH</span>
+                                    <h5 class="dashboard-section-title mb-1">Khối pipeline tuyển dụng</h5>
+                                    <div class="dashboard-section-subtitle">Sắp lại CV, bộ lọc, lịch phỏng vấn và hoạt động gần đây theo cùng một luồng theo dõi.</div>
+                                </div>
+                            </div>
+
+                            @if (showFilters)
+                            {
+                                <div class="dashboard-subpanel mt-3">
+                                    <div class="dashboard-section-head mb-3">
+                                        <div>
+                                            <div class="fw-semibold">Bộ lọc điều hành</div>
+                                            <div class="text-muted small">Lọc nhanh theo thời gian, nhóm và thành viên để xem số liệu cần dùng ngay.</div>
+                                        </div>
+                                    </div>
+                                    <form class="row g-3 align-items-end" method="get" action="/">
+                                        <div class="col-md-2">
+                                            <label class="form-label">Từ ngày</label>
+                                            <input value="@Model.RequestPage.FromText" id="fromDate" type="date" name="from" class="form-control">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Đến ngày</label>
+                                            <input value="@Model.RequestPage.ToText" id="toDate" type="date" name="to" class="form-control">
+                                        </div>
+
+                                        @if (Model.Permision.SearchGrop == true)
+                                        {
+                                            @if (Model.RequestPage.RoleCode == "3")
+                                            {
+                                                <div class="col-md-2" style="display: none;">
+                                                    <label class="form-label">Nhóm</label>
+                                                    <select id="cbgroup" name="groupId" class="form-select" aria-label="">
+                                                        <option value="tat-ca">Tất cả</option>
+                                                    </select>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="col-md-2">
+                                                    <label class="form-label">Nhóm</label>
+                                                    <select id="cbgroup" name="groupId" class="form-select" aria-label="">
+                                                        <option value="tat-ca">Tất cả</option>
+                                                    </select>
+                                                </div>
+                                            }
+
+                                            <div class="col-md-3">
+                                                <label class="form-label">Thành viên</label>
+                                                <select id="cbmember" name="memberId" class="form-select" aria-label="">
+                                                    <option selected>Tất cả</option>
+                                                </select>
+                                            </div>
+                                        }
+
+                                        <div class="col-12">
+                                            <div class="dashboard-filter-actions">
+                                                @if (showExport)
+                                                {
+                                                    <button type="button" onclick="exportFileDashboard()" class="btn btn-outline-primary">Xuất file</button>
+                                                }
+                                                <button type="submit" class="btn btn-primary">Tìm kiếm</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            }
+
+                            @if (showRecruitmentStats)
+                            {
+                                <div class="row g-3 mt-1">
+                                    <div class="col-xxl-4 col-md-6">
+                                        <div class="card info-card sales-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Số lượng CV</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-file-earmark-person"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@itemdashboard.totalCVInput</h6>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-xxl-4 col-md-6">
+                                        <div class="card info-card sales-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Số lượng ứng tuyển</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-cart"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@itemdashboard.totalCV</h6>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-xxl-4 col-xl-12">
+                                        <div class="card info-card customers-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Ứng viên onboard</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-people"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@itemdashboard.totalOnboard</h6>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (showUpcomingInterviews || showActivity)
+                            {
+                                <div class="row g-3 mt-1">
+                                    @if (showUpcomingInterviews)
+                                    {
+                                        <div class="@(showActivity ? "col-xl-8" : "col-12")">
+                                            <div class="dashboard-subpanel">
+                                                <div class="dashboard-section-head mb-3">
+                                                    <div>
+                                                        <div class="fw-semibold">@((Model.UserData?.RoleCode == "1") ? "Tất cả lịch phỏng vấn sắp tới" : "Lịch phỏng vấn của tôi")</div>
+                                                        <div class="text-muted small">Theo dõi lịch phỏng vấn gần nhất để tránh trùng lịch và bỏ sót ứng viên.</div>
+                                                    </div>
+                                                    <a href="/ScheduleInterview" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+                                                </div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-borderless mb-0 dashboard-table dashboard-interview-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Ứng viên</th>
+                                                                <th>Vị trí</th>
+                                                                <th>Vòng</th>
+                                                                <th>Thời gian</th>
+                                                                <th>Hình thức</th>
+                                                                <th>Trạng thái</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var item in upcomingInterviews)
+                                                            {
+                                                                var itemInfo = item as dynamic;
+                                                                var scheduleDate = itemInfo?.ScheduleDate != null ? ((DateTime)itemInfo.ScheduleDate).ToString("dd/MM/yyyy HH:mm") : "--";
+                                                                <tr>
+                                                                    <td>
+                                                                        <a href="/CandidateDetail?id=@itemInfo.RelId" class="text-primary fw-bold">@itemInfo.CandidateFullName</a>
+                                                                    </td>
+                                                                    <td>@itemInfo.PositionText</td>
+                                                                    <td>@getRoundText(itemInfo.Type)</td>
+                                                                    <td>@scheduleDate</td>
+                                                                    <td><span class="badge @(itemInfo.InterviewMode == 2 ? "bg-info" : "bg-secondary")">@getModeText(itemInfo.InterviewMode)</span></td>
+                                                                    <td><span class="badge bg-success">@getStatusText(itemInfo.Status)</span></td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (showActivity)
+                                    {
+                                        <div class="@(showUpcomingInterviews ? "col-xl-4" : "col-12")">
+                                            <div class="dashboard-subpanel h-100">
+                                                <div class="fw-semibold mb-2">Hoạt động gần đây</div>
+                                                <div class="text-muted small mb-3">Các cập nhật tuyển dụng mới nhất trong phạm vi bạn đang theo dõi.</div>
+                                                <div class="activity">
+                                                    @if (Model.TopImpact != null && Model.TopImpact.Data != null)
+                                                    {
+                                                        @foreach (var item in Model.TopImpact.Data)
+                                                        {
+                                                            var itemImpact = item as dynamic;
+                                                            <div class="activity-item d-flex">
+                                                                <div class="activite-label">@itemImpact.CreateAt</div>
+                                                                <i class="bi bi-circle-fill activity-badge text-success align-self-start"></i>
+                                                                <div class="activity-content">
+                                                                    Đơn hàng @itemImpact.OrderCode đã được cập nhật bởi @itemImpact.CreatedByName
+                                                                    Trạng thái: @itemImpact.StatusName
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="text-muted small">Chưa có hoạt động mới.</div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (!showPeopleBeforeRecruitment && hasPeopleWorkspace)
+        {
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <div class="card dashboard-workspace-card">
+                        <div class="card-body">
+                            <div class="dashboard-section-head">
+                                <div>
+                                    <span class="dashboard-section-kicker">NHÂN SỰ VÀ NGHỈ PHÉP</span>
+                                    <h5 class="dashboard-section-title mb-1">Khối theo dõi nhân sự</h5>
+                                    <div class="dashboard-section-subtitle">Hiển thị các chỉ số nhân sự, nghỉ phép và truy cập nhanh phù hợp với quyền hiện có của bạn.</div>
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-1">
+                                @if (showLeaveSummary)
+                                {
+                                    <div class="col-xl-4 col-md-6">
+                                        <div class="card info-card revenue-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Quỹ phép còn lại</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-calendar-check"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@(leaveStats?.RemainingLeave ?? 0) ngày</h6>
+                                                        <span class="text-muted small pt-2 ps-1">năm @DateTime.Now.Year</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (showLeaveCompany)
+                                {
+                                    <div class="col-xl-4 col-md-6">
+                                        <div class="card info-card customers-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">@leaveMonthTitle</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-people"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>@(leaveStats?.ApprovedMonth ?? 0) lượt</h6>
+                                                        <span class="text-muted small pt-2 ps-1">@leaveMonthSub</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (hasInternalNews)
+                                {
+                                    <div class="col-xl-4 col-md-6">
+                                        <div class="card info-card sales-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Tin nội bộ</h5>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-megaphone"></i>
+                                                    </div>
+                                                    <div class="ps-3">
+                                                        <h6>Mở nhanh</h6>
+                                                        <a href="/InternalNews" class="text-primary small pt-1 fw-bold">Xem bảng tin</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card dashboard-workspace-card dashboard-notification-card">
+                <div class="card-body">
+                    <div class="dashboard-section-head">
+                        <div>
+                            <span class="dashboard-section-kicker">THÔNG BÁO VÀ NỘI BỘ</span>
+                            <h5 class="dashboard-section-title mb-1">Bảng tin cần theo dõi</h5>
+                            <div class="dashboard-section-subtitle">@Model.UnreadNotificationCount chưa đọc, ưu tiên hiển thị việc cần xử lý trước.</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (Model.UnreadNotificationCount > 0)
+                            {
+                                <form method="post" asp-page-handler="MarkAllRead" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Đánh dấu đã đọc</button>
+                                </form>
+                            }
+                            <a href="/Notifications" class="btn btn-sm btn-primary">Mở trung tâm</a>
+                        </div>
+                    </div>
+
+                    <ul class="list-group list-group-flush mt-3 dashboard-notification-list">
+                        @if (Model.Notifications.Count == 0)
+                        {
+                            <li class="list-group-item text-muted dashboard-notification-empty">Chưa có thông báo nào.</li>
+                        }
+                        else
+                        {
+                            foreach (var notif in Model.Notifications)
+                            {
+                                var isActionRequired = string.Equals(notif.Category, "ACTION_REQUIRED", global::System.StringComparison.OrdinalIgnoreCase);
+                                var isInternalNews = string.Equals(notif.RelatedEntityType, "INTERNAL_NEWS", global::System.StringComparison.OrdinalIgnoreCase)
+                                    || (!string.IsNullOrWhiteSpace(notif.Link) && notif.Link.StartsWith("/InternalNews", global::System.StringComparison.OrdinalIgnoreCase));
+                                var badgeClass = isActionRequired ? "bg-danger" : isInternalNews ? "bg-info text-dark" : "bg-secondary";
+                                var badgeText = isActionRequired ? "Cần xử lý" : isInternalNews ? "Tin nội bộ" : "Thông báo";
+                                var itemClass = notif.IsRead ? string.Empty : "dashboard-notification-item-unread";
+                                <li class="list-group-item dashboard-notification-item @itemClass">
+                                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                                        <div class="dashboard-notification-body">
+                                            <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                                                <span class="badge @badgeClass">@badgeText</span>
+                                                <small class="text-muted">@notif.CreateAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(notif.Link))
+                                            {
+                                                <a href="/Notifications?handler=Open&id=@notif.Id" class="dashboard-notification-link">@notif.Message</a>
+                                            }
+                                            else
+                                            {
+                                                @notif.Message
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(notif.Link))
+                                        {
+                                            <a class="btn btn-sm btn-outline-primary" href="/Notifications?handler=Open&id=@notif.Id">Mở</a>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

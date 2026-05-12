@@ -103,8 +103,8 @@ namespace VS.Human.Business.Imp
             return leave.Status switch
             {
                 0 => await ResolveManagerOwnerAsync(leave.EmployeeId),
-                1 => (null, "Phong HCNS"),
-                2 => (null, "Ban Giam doc"),
+                1 => (null, "Phòng HCNS"),
+                2 => (null, "Ban Giám đốc"),
                 _ => (null, null)
             };
         }
@@ -147,7 +147,7 @@ namespace VS.Human.Business.Imp
                 }
             }
 
-            return (null, "Quan ly truc tiep");
+            return (null, "Quản lý trực tiếp");
         }
 
         private static int? ResolveLeaveSlaHours(int status)
@@ -165,13 +165,13 @@ namespace VS.Human.Business.Imp
         {
             return status switch
             {
-                0 => "Pending Manager",
-                1 => "Manager Approved / Pending HCNS",
-                2 => "HCNS Approved / Pending BGD",
-                3 => "Final Approved",
-                4 => "Final Approved (Acting)",
-                5 => "Rejected",
-                6 => "Cancelled",
+                0 => "Chờ quản lý trực tiếp",
+                1 => "Quản lý đã duyệt / Chờ HCNS",
+                2 => "HCNS đã duyệt / Chờ BGD",
+                3 => "Đã duyệt",
+                4 => "Đã duyệt (duyệt thay)",
+                5 => "Từ chối",
+                6 => "Đã hủy",
                 _ => status.ToString()
             };
         }

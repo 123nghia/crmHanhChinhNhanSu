@@ -45,6 +45,18 @@ namespace crmHuman.Pages.System
             return Page();
         }
 
+        public async Task<IActionResult> OnGetServiceHealthAsync()
+        {
+            GetInfoUser();
+            if (!CanViewSipManagement())
+            {
+                return BuildResult(false, "Khong co quyen xem trang thai server.", 403);
+            }
+
+            var result = await _sipBusiness.CheckServiceHealth();
+            return BuildResult(result.IsSuccess, result.Message, result.IsSuccess ? 200 : 400, result.Data);
+        }
+
         public async Task<IActionResult> OnPostSaveServerAsync([FromBody] SipServerSaveRequest request)
         {
             GetInfoUser();

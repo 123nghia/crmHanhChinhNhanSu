@@ -32,7 +32,7 @@ namespace crmHuman.Pages.Candidate
             _scheduleInterviewBusiness = scheduleInterviewBusiness;
             _masterDataBusiness = masterDataBusiness;
             _notificationBusiness = notificationBusiness;
-            TitlePage = "Candidate Dashboard";
+            TitlePage = "Bảng điều khiển ứng viên";
             KeyPage = "CandidateDashboard";
         }
 

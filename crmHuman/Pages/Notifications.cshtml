@@ -8,8 +8,8 @@
     <h1>@Model.TitlePage</h1>
     <nav>
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Trang chu</a></li>
-            <li class="breadcrumb-item active">Thong bao</li>
+            <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Thông báo</li>
         </ol>
     </nav>
 </div>
@@ -21,37 +21,37 @@
                 <div class="card-body">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                         <div>
-                            <h5 class="card-title mb-1">Trung tam thong bao</h5>
-                            <div class="small text-muted">Tap trung cac viec can xu ly, phan hoi he thong va tin noi bo.</div>
+                            <h5 class="card-title mb-1">Trung tâm thông báo</h5>
+                            <div class="small text-muted">Tập trung các việc cần xử lý, phản hồi hệ thống và tin nội bộ.</div>
                         </div>
                         @if (Model.VisibleUnreadCount > 0)
                         {
                             <form method="post" asp-page-handler="MarkAllRead" class="d-inline">
                                 <input type="hidden" name="filter" value="@Model.CurrentFilter" />
-                                <button type="submit" class="btn btn-outline-primary btn-sm">Danh dau da doc tat ca</button>
+                                <button type="submit" class="btn btn-outline-primary btn-sm">Đánh dấu đã đọc tất cả</button>
                             </form>
                         }
                     </div>
 
                     <div class="notification-filter-bar mb-3">
                         <a class="btn btn-sm @(Model.CurrentFilter == "all" ? "btn-primary" : "btn-outline-primary")" href="/Notifications?filter=all">
-                            Tat ca
+                            Tất cả
                             <span class="ms-1">@Model.VisibleTotalCount</span>
                         </a>
                         <a class="btn btn-sm @(Model.CurrentFilter == "unread" ? "btn-primary" : "btn-outline-primary")" href="/Notifications?filter=unread">
-                            Chua doc
+                            Chưa đọc
                             <span class="ms-1">@Model.VisibleUnreadCount</span>
                         </a>
                         <a class="btn btn-sm @(Model.CurrentFilter == "action" ? "btn-primary" : "btn-outline-primary")" href="/Notifications?filter=action">
-                            Can xu ly
+                            Cần xử lý
                             <span class="ms-1">@Model.VisibleActionRequiredCount</span>
                         </a>
                         <a class="btn btn-sm @(Model.CurrentFilter == "news" ? "btn-primary" : "btn-outline-primary")" href="/Notifications?filter=news">
-                            Tin noi bo
+                            Tin nội bộ
                             <span class="ms-1">@Model.VisibleNewsCount</span>
                         </a>
                         <a class="btn btn-sm @(Model.CurrentFilter == "feedback" ? "btn-primary" : "btn-outline-primary")" href="/Notifications?filter=feedback">
-                            Phan hoi
+                            Phản hồi
                             <span class="ms-1">@Model.VisibleFeedbackCount</span>
                         </a>
                     </div>
@@ -60,8 +60,8 @@
                     {
                         <div class="notification-empty-state">
                             <div class="notification-empty-icon"><i class="bi bi-inbox"></i></div>
-                            <div class="fw-semibold">Khong co thong bao phu hop</div>
-                            <div class="text-muted small">Thu doi bo loc hoac quay lai sau.</div>
+                            <div class="fw-semibold">Không có thông báo phù hợp</div>
+                            <div class="text-muted small">Thử đổi bộ lọc hoặc quay lại sau.</div>
                         </div>
                     }
                     else
@@ -77,15 +77,15 @@
                                                 <span class="badge @Model.GetCategoryBadgeClass(notif)">@Model.GetCategoryLabel(notif)</span>
                                                 @if (Model.IsOverdue(notif))
                                                 {
-                                                    <span class="badge bg-danger">Qua han</span>
+                                                    <span class="badge bg-danger">Quá hạn</span>
                                                 }
                                                 else if (notif.DueAt.HasValue)
                                                 {
-                                                    <span class="badge bg-warning text-dark">Due @notif.DueAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                                    <span class="badge bg-warning text-dark">Hạn @notif.DueAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
                                                 }
                                                 @if (!notif.IsRead)
                                                 {
-                                                    <span class="badge bg-primary">Moi</span>
+                                                    <span class="badge bg-primary">Mới</span>
                                                 }
                                             </div>
 
@@ -110,14 +110,14 @@
                                         <div class="d-flex flex-row flex-lg-column align-items-stretch gap-2 notification-actions">
                                             @if (!string.IsNullOrWhiteSpace(notif.Link))
                                             {
-                                                <a href="/Notifications?handler=Open&id=@notif.Id&filter=@Model.CurrentFilter" class="btn btn-sm btn-primary">Mo</a>
+                                                <a href="/Notifications?handler=Open&id=@notif.Id&filter=@Model.CurrentFilter" class="btn btn-sm btn-primary">Mở</a>
                                             }
                                             @if (!notif.IsRead)
                                             {
                                                 <form method="post" asp-page-handler="MarkRead">
                                                     <input type="hidden" name="id" value="@notif.Id" />
                                                     <input type="hidden" name="filter" value="@Model.CurrentFilter" />
-                                                    <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Da doc</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Đã đọc</button>
                                                 </form>
                                             }
                                         </div>
