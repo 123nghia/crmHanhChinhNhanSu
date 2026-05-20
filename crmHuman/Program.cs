@@ -58,10 +58,28 @@ namespace crmHuman
                             return;
                         }
 
-                        var empBusiness = context.HttpContext.RequestServices.GetRequiredService<IEmpBusiness>();
-                        var employee = await empBusiness.GetById(userId);
-                        if (EmployeeSystemAccessPolicy.HasSystemAccess(employee))
+                        try
                         {
+                            var empBusiness = context.HttpContext.RequestServices.GetRequiredService<IEmpBusiness>();
+                            using (var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                            {
+                                var employee = await empBusiness.GetById(userId);
+                                if (EmployeeSystemAccessPolicy.HasSystemAccess(employee))
+                                {
+                                    return;
+                                }
+                            }
+                        }
+                        catch (System.OperationCanceledException)
+                        {
+                            context.RejectPrincipal();
+                            await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            context.RejectPrincipal();
+                            await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                             return;
                         }
 
@@ -72,7 +90,11 @@ namespace crmHuman
                         var logHistoryBusiness = context.HttpContext.RequestServices.GetService<ILogHistoryBusiness>();
                         if (logHistoryBusiness != null)
                         {
-                            await logHistoryBusiness.LogLogout(userId, roleCode);
+                            try
+                            {
+                                await logHistoryBusiness.LogLogout(userId, roleCode);
+                            }
+                            catch { }
                         }
 
                         context.RejectPrincipal();
